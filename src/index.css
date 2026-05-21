@@ -37,6 +37,8 @@
     --sidebar-accent-foreground: 1.0000 0 0;
     --sidebar-border: 0.2795 0.0368 260.0310;
     --sidebar-ring: 0.6461 0.1943 41.1158;
+    --sidebar-width: 16rem;
+    --sidebar-width-icon: 3rem;
     --font-sans: Inter, system-ui, sans-serif;
     --font-mono: JetBrains Mono, monospace;
     --font-serif: Georgia, serif;
@@ -82,6 +84,42 @@
 @layer base {
   * {
     @apply border-border;
+  }
+
+  html {
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.35) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: linear-gradient(
+      180deg,
+      hsl(var(--muted-foreground) / 0.42),
+      hsl(var(--muted-foreground) / 0.24)
+    );
+    border: 3px solid transparent;
+    background-clip: content-box;
+    border-radius: 9999px;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(
+      180deg,
+      hsl(var(--muted-foreground) / 0.56),
+      hsl(var(--muted-foreground) / 0.36)
+    );
+    border: 3px solid transparent;
+    background-clip: content-box;
   }
 
   body {

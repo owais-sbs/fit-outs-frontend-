@@ -1,1 +1,9 @@
-export { default as Dashboard } from "./dashboard";
+export { default as SuperAdminDashboard } from "./SuperAdminDashboard";
+export { default as TenantsPage } from "./TenantsPage";
+export { default as TenantDetailPage } from "./TenantDetailPage";
+export { default as PlansPage } from "./PlansPage";
+export { default as UsersPage } from "./UsersPage";
+export { default as PermissionsPage } from "./PermissionsPage";
+export { default as ReportsPage } from "./ReportsPage";
+export { default as SettingsPage } from "./SettingsPage";
+export { default as SuperAdminPlaceholder } from "./SuperAdminPlaceholder";

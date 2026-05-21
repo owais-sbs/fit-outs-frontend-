@@ -1,0 +1,81 @@
+export const DASHBOARD_STATS = [
+  {
+    id: "total-tenants",
+    title: "Total Tenants",
+    value: "248",
+    growth: 8.2,
+    growthLabel: "vs last month",
+  },
+  {
+    id: "active-trials",
+    title: "Active Trials",
+    value: "34",
+    growth: 12.5,
+    growthLabel: "vs last month",
+  },
+  {
+    id: "expiring",
+    title: "Expiring This Month",
+    value: "17",
+    growth: -3.1,
+    growthLabel: "vs last month",
+  },
+  {
+    id: "mrr",
+    title: "Monthly Recurring Revenue",
+    value: "$128.4k",
+    growth: 5.7,
+    growthLabel: "vs last month",
+  },
+];
+
+export const MOCK_TENANTS = [
+  {
+    id: "t1",
+    name: "Apex Fitouts Pty Ltd",
+    plan: "Enterprise",
+    users: 42,
+    status: "active",
+    expiryDate: "2026-12-15",
+  },
+  {
+    id: "t2",
+    name: "Urban Build Co",
+    plan: "Pro",
+    users: 18,
+    status: "trial",
+    expiryDate: "2026-06-02",
+  },
+  {
+    id: "t3",
+    name: "Coastal Projects",
+    plan: "Starter",
+    users: 6,
+    status: "active",
+    expiryDate: "2026-09-20",
+  },
+  {
+    id: "t4",
+    name: "Metro Interiors",
+    plan: "Pro",
+    users: 24,
+    status: "expired",
+    expiryDate: "2026-04-01",
+  },
+  {
+    id: "t5",
+    name: "Summit Construction",
+    plan: "Enterprise",
+    users: 56,
+    status: "active",
+    expiryDate: "2027-01-30",
+  },
+  {
+    id: "t6",
+    name: "Harbour Design Group",
+    plan: "Starter",
+    users: 4,
+    status: "trial",
+    expiryDate: "2026-05-28",
+  },
+];

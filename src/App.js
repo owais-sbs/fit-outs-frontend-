@@ -9,7 +9,25 @@ import RoleRoute from "./app/routes/role-route";
 import Login from "./modules/auth/pages/login";
 import RolesManagement from "./modules/auth/pages/roles-management";
 
-import SuperAdminDashboard from "./modules/super-admin/pages/dashboard";
+import SuperAdminLayout from "./modules/super-admin/layouts/SuperAdminLayout";
+import SuperAdminDashboard from "./modules/super-admin/pages/SuperAdminDashboard";
+import TenantsPage from "./modules/super-admin/pages/TenantsPage";
+import TenantDetailPage from "./modules/super-admin/pages/TenantDetailPage";
+import PlansPage from "./modules/super-admin/pages/PlansPage";
+import UsersPage from "./modules/super-admin/pages/UsersPage";
+import PermissionsPage from "./modules/super-admin/pages/PermissionsPage";
+import ReportsPage from "./modules/super-admin/pages/ReportsPage";
+import SettingsPage from "./modules/super-admin/pages/SettingsPage";
+import CrmLayout from "./modules/crm/layouts/CrmLayout";
+import {
+  PipelinePage,
+  LeadIntakePage,
+  LeadDetailPage,
+  CrmReportsPage,
+  SiteVisitsPage,
+  SiteVisitSchedulePage,
+  SiteVisitReportPage,
+} from "./modules/crm/pages";
 import AdminDashboard from "./modules/admin/pages/dashboard";
 import BusinessOwnerDashboard from "./modules/business-owner/pages/dashboard";
 import ProjectManagerDashboard from "./modules/project-manager/pages/dashboard";
@@ -30,17 +48,49 @@ function App() {
             <Route path={ROUTES.AUTH.LOGIN} element={<Login />} />
             <Route path="/roles" element={<RolesManagement />} />
 
-            {/* Protected dashboard routes per role */}
+            {/* Super Admin — nested layout + pages */}
             <Route
-              path={ROUTES.SUPER_ADMIN.DASHBOARD}
+              path="/super-admin"
               element={
                 <ProtectedRoute>
                   <RoleRoute allowedRoles={[ROLES.SUPER_ADMIN]}>
-                    <SuperAdminDashboard />
+                    <SuperAdminLayout />
                   </RoleRoute>
                 </ProtectedRoute>
-              }
-            />
+              }>
+              <Route index element={<SuperAdminDashboard />} />
+              <Route path="tenants/:tenantId" element={<TenantDetailPage />} />
+              <Route path="tenants" element={<TenantsPage />} />
+              <Route path="plans" element={<PlansPage />} />
+              <Route path="users" element={<UsersPage />} />
+            <Route path="permissions" element={<PermissionsPage />} />
+            <Route path="reports" element={<ReportsPage />} />
+            <Route path="site-visits" element={<SiteVisitsPage />} />
+            <Route path="site-visits/schedule" element={<SiteVisitSchedulePage />} />
+            <Route path="site-visits/:visitId/report" element={<SiteVisitReportPage />} />
+            <Route path="settings" element={<SettingsPage />} />
+          </Route>
+
+            {/* CRM — sales & site visits */}
+            <Route
+              path="/crm"
+              element={
+                <ProtectedRoute>
+                  <RoleRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.SALES, ROLES.ADMIN]}>
+                    <CrmLayout />
+                  </RoleRoute>
+                </ProtectedRoute>
+              }>
+              <Route path="pipeline" element={<PipelinePage />} />
+              <Route path="leads/new" element={<LeadIntakePage />} />
+              <Route path="leads/:leadId" element={<LeadDetailPage />} />
+              <Route path="reports" element={<CrmReportsPage />} />
+              <Route path="site-visits" element={<SiteVisitsPage />} />
+              <Route path="site-visits/schedule" element={<SiteVisitSchedulePage />} />
+              <Route path="site-visits/:visitId/report" element={<SiteVisitReportPage />} />
+            </Route>
+
+            {/* Protected dashboard routes per role */}
             <Route
               path={ROUTES.ADMIN.DASHBOARD}
               element={
