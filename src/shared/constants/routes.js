@@ -8,6 +8,7 @@ export const ROUTES = {
   SUPER_ADMIN: {
     DASHBOARD: "/super-admin",
     TENANTS: "/super-admin/tenants",
+    TENANTS_CREATE: "/super-admin/tenants/new",
     TENANT_DETAIL: "/super-admin/tenants/:tenantId",
     PLANS: "/super-admin/plans",
     USERS: "/super-admin/users",

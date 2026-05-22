@@ -59,6 +59,7 @@ function App() {
                 </ProtectedRoute>
               }>
               <Route index element={<SuperAdminDashboard />} />
+              <Route path="tenants/new" element={<TenantsPage />} />
               <Route path="tenants/:tenantId" element={<TenantDetailPage />} />
               <Route path="tenants" element={<TenantsPage />} />
               <Route path="plans" element={<PlansPage />} />

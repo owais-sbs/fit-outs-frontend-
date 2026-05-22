@@ -1,5 +1,4 @@
-import { Building2, Download, Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { TenantQuickActions } from "./tenant-management";
 
 function formatCurrentDate() {
   return new Intl.DateTimeFormat("en-AU", {
@@ -21,23 +20,10 @@ export default function DashboardHeader() {
           Super Admin
         </h1>
         <p className="max-w-xl text-sm text-muted-foreground">
-          Platform overview — monitor tenants, subscriptions, and revenue at a glance.
+          Platform overview - monitor tenants, subscriptions, and revenue at a glance.
         </p>
       </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <Button variant="outline" size="sm" className="gap-2">
-          <Download className="h-4 w-4" />
-          Export
-        </Button>
-        <Button size="sm" className="gap-2">
-          <Plus className="h-4 w-4" />
-          Add tenant
-        </Button>
-        <Button variant="secondary" size="sm" className="gap-2">
-          <Building2 className="h-4 w-4" />
-          View all tenants
-        </Button>
-      </div>
+      <TenantQuickActions />
     </div>
   );
 }
