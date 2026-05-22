@@ -7,4 +7,5 @@ export { default as TenantTableSkeleton } from "./TenantTableSkeleton";
 export { default as AppSidebar } from "./layout/AppSidebar";
 export { default as SuperAdminNavbar } from "./layout/SuperAdminNavbar";
 export { default as SuperAdminShell } from "./SuperAdminShell";
+export * from "./tenant-management";
 export * from "./dashboard";

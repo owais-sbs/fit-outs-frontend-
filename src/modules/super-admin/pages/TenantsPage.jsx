@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Building2, MoreHorizontal, Plus, Search } from "lucide-react";
+import { Building2, MoreHorizontal, Search } from "lucide-react";
 import { ROUTES } from "@/shared/constants/routes";
 import PageHeader from "../components/shared/PageHeader";
-import { TENANTS_LIST } from "../data/tenants";
+import { TenantQuickActions } from "../components/tenant-management";
+import { useTenantManagement } from "../context/tenant-management-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -47,16 +48,21 @@ const STATUS_VARIANT = {
   expired: "destructive",
 };
 
-function formatDate(d) {
-  return new Intl.DateTimeFormat("en-AU", { day: "numeric", month: "short", year: "numeric" }).format(new Date(d));
+function formatDate(value) {
+  return new Intl.DateTimeFormat("en-AU", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(value));
 }
 
-function formatRevenue(n) {
-  return n ? `$${n.toLocaleString()}` : "—";
+function formatRevenue(value) {
+  return value ? `$${value.toLocaleString()}` : "-";
 }
 
 export default function TenantsPage() {
   const navigate = useNavigate();
+  const { tenants } = useTenantManagement();
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [plan, setPlan] = useState("all");
@@ -65,20 +71,23 @@ export default function TenantsPage() {
   const [page, setPage] = useState(1);
 
   useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 600);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setLoading(false), 600);
+    return () => clearTimeout(timer);
   }, []);
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return TENANTS_LIST.filter((t) => {
-      const matchQ = !q || t.company.toLowerCase().includes(q);
-      const matchPlan = plan === "all" || t.plan.toLowerCase() === plan;
-      const matchStatus = status === "all" || t.status === status;
-      const matchRenewal = renewal === "all" || t.renewalState === renewal;
-      return matchQ && matchPlan && matchStatus && matchRenewal;
+    const query = search.trim().toLowerCase();
+    return tenants.filter((tenant) => {
+      const matchQuery =
+        !query ||
+        tenant.company.toLowerCase().includes(query) ||
+        tenant.name.toLowerCase().includes(query);
+      const matchPlan = plan === "all" || tenant.plan.toLowerCase() === plan;
+      const matchStatus = status === "all" || tenant.status === status;
+      const matchRenewal = renewal === "all" || tenant.renewalState === renewal;
+      return matchQuery && matchPlan && matchStatus && matchRenewal;
     });
-  }, [search, plan, status, renewal]);
+  }, [tenants, search, plan, status, renewal]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -91,12 +100,7 @@ export default function TenantsPage() {
       <PageHeader
         title="Tenants"
         description="Manage fit-out companies, subscriptions, and renewal status across the platform."
-        actions={
-          <Button size="sm" className="gap-2">
-            <Plus className="h-4 w-4" />
-            Add tenant
-          </Button>
-        }
+        actions={<TenantQuickActions />}
       />
 
       <Card className="border-border/60 shadow-sm">
@@ -107,13 +111,23 @@ export default function TenantsPage() {
               <Input
                 placeholder="Search companies..."
                 value={search}
-                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setPage(1);
+                }}
                 className="pl-9"
               />
             </div>
             <div className="flex flex-wrap gap-2">
-              <Select value={plan} onValueChange={(v) => { setPlan(v); setPage(1); }}>
-                <SelectTrigger className="w-[130px]"><SelectValue placeholder="Plan" /></SelectTrigger>
+              <Select
+                value={plan}
+                onValueChange={(value) => {
+                  setPlan(value);
+                  setPage(1);
+                }}>
+                <SelectTrigger className="w-[130px]">
+                  <SelectValue placeholder="Plan" />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All plans</SelectItem>
                   <SelectItem value="starter">Starter</SelectItem>
@@ -121,8 +135,15 @@ export default function TenantsPage() {
                   <SelectItem value="enterprise">Enterprise</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={status} onValueChange={(v) => { setStatus(v); setPage(1); }}>
-                <SelectTrigger className="w-[130px]"><SelectValue placeholder="Status" /></SelectTrigger>
+              <Select
+                value={status}
+                onValueChange={(value) => {
+                  setStatus(value);
+                  setPage(1);
+                }}>
+                <SelectTrigger className="w-[130px]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All status</SelectItem>
                   <SelectItem value="active">Active</SelectItem>
@@ -131,8 +152,15 @@ export default function TenantsPage() {
                   <SelectItem value="expired">Expired</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={renewal} onValueChange={(v) => { setRenewal(v); setPage(1); }}>
-                <SelectTrigger className="w-[140px]"><SelectValue placeholder="Renewal" /></SelectTrigger>
+              <Select
+                value={renewal}
+                onValueChange={(value) => {
+                  setRenewal(value);
+                  setPage(1);
+                }}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Renewal" />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All renewal</SelectItem>
                   <SelectItem value="auto">Auto-renew</SelectItem>
@@ -162,10 +190,12 @@ export default function TenantsPage() {
             </TableHeader>
             <TableBody>
               {loading
-                ? Array.from({ length: 6 }).map((_, i) => (
-                    <TableRow key={i}>
-                      {Array.from({ length: 7 }).map((__, j) => (
-                        <TableCell key={j}><Skeleton className="h-4 w-full max-w-[100px]" /></TableCell>
+                ? Array.from({ length: 6 }).map((_, rowIndex) => (
+                    <TableRow key={rowIndex}>
+                      {Array.from({ length: 7 }).map((__, cellIndex) => (
+                        <TableCell key={cellIndex}>
+                          <Skeleton className="h-4 w-full max-w-[100px]" />
+                        </TableCell>
                       ))}
                     </TableRow>
                   ))
@@ -175,34 +205,54 @@ export default function TenantsPage() {
                       <TableCell colSpan={7} className="h-48 text-center">
                         <Building2 className="mx-auto mb-3 h-10 w-10 text-muted-foreground/50" />
                         <p className="font-medium">No tenants found</p>
-                        <p className="text-sm text-muted-foreground">Adjust filters or search terms</p>
+                        <p className="text-sm text-muted-foreground">
+                          Adjust filters or search terms
+                        </p>
                       </TableCell>
                     </TableRow>
                   )
-                  : paginated.map((t) => (
+                  : paginated.map((tenant) => (
                     <TableRow
-                      key={t.id}
+                      key={tenant.id}
                       className="cursor-pointer"
-                      onClick={() => goDetail(t.id)}>
-                      <TableCell className="pl-6 font-medium">{t.company}</TableCell>
-                      <TableCell>{t.plan}</TableCell>
+                      onClick={() => goDetail(tenant.id)}>
+                      <TableCell className="pl-6 font-medium">{tenant.company}</TableCell>
+                      <TableCell>{tenant.plan}</TableCell>
                       <TableCell>
-                        <Badge variant={STATUS_VARIANT[t.status]}>{t.status}</Badge>
+                        <Badge variant={STATUS_VARIANT[tenant.status]}>{tenant.status}</Badge>
                       </TableCell>
-                      <TableCell>{t.activeUsers}</TableCell>
-                      <TableCell className="text-muted-foreground">{formatDate(t.renewalDate)}</TableCell>
-                      <TableCell>{formatRevenue(t.revenue)}</TableCell>
+                      <TableCell>{tenant.activeUsers}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {formatDate(tenant.renewalDate)}
+                      </TableCell>
+                      <TableCell>{formatRevenue(tenant.revenue)}</TableCell>
                       <TableCell className="pr-6 text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={(event) => event.stopPropagation()}>
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); goDetail(t.id); }}>View</DropdownMenuItem>
-                            <DropdownMenuItem onClick={(e) => e.stopPropagation()}>Edit</DropdownMenuItem>
-                            <DropdownMenuItem onClick={(e) => e.stopPropagation()} className="text-destructive">Suspend</DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                goDetail(tenant.id);
+                              }}>
+                              View
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={(event) => event.stopPropagation()}>
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={(event) => event.stopPropagation()}
+                              className="text-destructive">
+                              Suspend
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -211,29 +261,34 @@ export default function TenantsPage() {
             </TableBody>
           </Table>
         </div>
+
         {!loading && filtered.length > 0 && (
           <div className="flex items-center justify-between border-t px-4 py-3">
             <p className="text-xs text-muted-foreground">
-              {filtered.length} tenant{filtered.length !== 1 ? "s" : ""} · Page {page} of {totalPages}
+              {filtered.length} tenant{filtered.length !== 1 ? "s" : ""} - Page {page} of{" "}
+              {totalPages}
             </p>
             <Pagination>
               <PaginationContent>
                 <PaginationItem>
                   <PaginationPrevious
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    onClick={() => setPage((current) => Math.max(1, current - 1))}
                     className={page <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
                   />
                 </PaginationItem>
-                {Array.from({ length: totalPages }).map((_, i) => (
-                  <PaginationItem key={i}>
-                    <PaginationLink isActive={page === i + 1} onClick={() => setPage(i + 1)} className="cursor-pointer">
-                      {i + 1}
+                {Array.from({ length: totalPages }).map((_, index) => (
+                  <PaginationItem key={index}>
+                    <PaginationLink
+                      isActive={page === index + 1}
+                      onClick={() => setPage(index + 1)}
+                      className="cursor-pointer">
+                      {index + 1}
                     </PaginationLink>
                   </PaginationItem>
                 ))}
                 <PaginationItem>
                   <PaginationNext
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
                     className={page >= totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
                   />
                 </PaginationItem>

@@ -1,4 +1,4 @@
-import { Building2, Download, Plus } from "lucide-react";
+import { Download, Plus, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 function formatCurrentDate() {
@@ -12,7 +12,7 @@ function formatCurrentDate() {
 
 export default function DashboardHeader({
   title = "Super Admin",
-  description = "Platform overview — monitor tenants, subscriptions, and revenue at a glance.",
+  description = "Platform overview \u2014 monitor tenants, subscriptions, and revenue at a glance.",
   children
 }) {
   const currentDate = formatCurrentDate();

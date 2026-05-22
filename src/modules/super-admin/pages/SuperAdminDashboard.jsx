@@ -13,8 +13,7 @@ import TenantTable from "../components/TenantTable";
 import TenantTableSkeleton from "../components/TenantTableSkeleton";
 import DashboardAnalytics from "../components/dashboard/DashboardAnalytics";
 import DashboardAnalyticsSkeleton from "../components/dashboard/DashboardAnalyticsSkeleton";
-import { ANALYTICS_STATS } from "../data/analytics-dashboard";
-import { MOCK_TENANTS } from "../data/mock-dashboard";
+import { useTenantManagement } from "../context/tenant-management-context";
 
 const STAT_ICONS = {
   "total-tenants": Building2,
@@ -44,6 +43,7 @@ function filterTenants(tenants, searchQuery, planFilter, statusFilter) {
 }
 
 export default function SuperAdminDashboard() {
+  const { tenants, stats } = useTenantManagement();
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [planFilter, setPlanFilter] = useState("all");
@@ -55,8 +55,46 @@ export default function SuperAdminDashboard() {
   }, []);
 
   const filteredTenants = useMemo(
-    () => filterTenants(MOCK_TENANTS, searchQuery, planFilter, statusFilter),
-    [searchQuery, planFilter, statusFilter]
+    () => filterTenants(tenants, searchQuery, planFilter, statusFilter),
+    [tenants, searchQuery, planFilter, statusFilter]
+  );
+
+  const dashboardStats = useMemo(
+    () => [
+      {
+        id: "total-tenants",
+        title: "Total Tenants",
+        value: tenants.length.toLocaleString(),
+        growth: 8.2,
+        growthLabel: "vs last month",
+      },
+      {
+        id: "active-subscriptions",
+        title: "Active Subscriptions",
+        value: stats.activeSubscriptions.toLocaleString(),
+        growth: 12.5,
+        growthLabel: "vs last month",
+      },
+      {
+        id: "monthly-revenue",
+        title: "Monthly Revenue",
+        value: new Intl.NumberFormat("en-AU", {
+          style: "currency",
+          currency: "AUD",
+          maximumFractionDigits: 0,
+        }).format(stats.totalRevenue),
+        growth: 5.7,
+        growthLabel: "vs last month",
+      },
+      {
+        id: "trial-conversions",
+        title: "Trial Conversions",
+        value: stats.trialTenants.toLocaleString(),
+        growth: -3.1,
+        growthLabel: "vs last month",
+      },
+    ],
+    [tenants.length, stats]
   );
 
   return (
@@ -66,7 +104,7 @@ export default function SuperAdminDashboard() {
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {isLoading
           ? Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)
-          : ANALYTICS_STATS.map((stat) => (
+          : dashboardStats.map((stat) => (
               <StatCard
                 key={stat.id}
                 title={stat.title}

@@ -1,15 +1,11 @@
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, Pause, Play, RefreshCw } from "lucide-react";
 import { ROUTES } from "@/shared/constants/routes";
 import PageHeader from "../components/shared/PageHeader";
-import {
-  getTenantById,
-  MODULES,
-  PLAN_MODULES,
-  TENANT_DETAIL,
-} from "../data/tenants";
+import { MODULES, PLAN_MODULES, TENANT_DETAIL } from "../data/tenants";
 import { PLAN_TYPES } from "../data/plans";
+import { TenantQuickActions } from "../components/tenant-management";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,6 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { useTenantManagement } from "../context/tenant-management-context";
 
 function moduleDiff(currentPlan, newPlan) {
   const current = new Set(PLAN_MODULES[currentPlan] || []);
@@ -42,6 +39,7 @@ function moduleDiff(currentPlan, newPlan) {
 
 export default function TenantDetailPage() {
   const { tenantId } = useParams();
+  const { getTenantById } = useTenantManagement();
   const tenant = getTenantById(tenantId);
   const [planDialogOpen, setPlanDialogOpen] = useState(false);
   const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
@@ -50,10 +48,13 @@ export default function TenantDetailPage() {
 
   const detail = TENANT_DETAIL[tenantId] || {
     enabledModules: PLAN_MODULES[tenant?.plan] || [],
-    loginActivity: [
-      { user: "Admin User", action: "Signed in", time: "Today", ip: "—" },
-    ],
-    billing: { lastInvoice: "—", nextBilling: "—", paymentMethod: "—", outstanding: "$0" },
+    loginActivity: [{ user: "Admin User", action: "Signed in", time: "Today", ip: "-" }],
+    billing: {
+      lastInvoice: "-",
+      nextBilling: "-",
+      paymentMethod: "-",
+      outstanding: "$0",
+    },
   };
 
   const diff = useMemo(
@@ -65,9 +66,14 @@ export default function TenantDetailPage() {
     return (
       <div className="space-y-4">
         <Button variant="ghost" size="sm" asChild>
-          <Link to={ROUTES.SUPER_ADMIN.TENANTS}><ArrowLeft className="mr-2 h-4 w-4" />Back</Link>
+          <Link to={ROUTES.SUPER_ADMIN.TENANTS}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </Link>
         </Button>
-        <Card><CardContent className="py-12 text-center">Tenant not found</CardContent></Card>
+        <Card>
+          <CardContent className="py-12 text-center">Tenant not found</CardContent>
+        </Card>
       </div>
     );
   }
@@ -87,21 +93,38 @@ export default function TenantDetailPage() {
         <div className="min-w-0 flex-1 space-y-6">
           <PageHeader
             title={tenant.company}
-            description={`${tenant.plan} plan · ${tenant.activeUsers} active users · MRR ${tenant.mrr ? `$${tenant.mrr}` : "—"}`}
+            description={`${tenant.plan} plan - ${tenant.activeUsers} active users - MRR ${
+              tenant.mrr ? `$${tenant.mrr}` : "-"
+            }`}
+            actions={<TenantQuickActions />}
           />
 
           <div className="grid gap-4 sm:grid-cols-3">
             <Card className="border-border/60">
-              <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Status</CardTitle></CardHeader>
-              <CardContent><Badge variant={tenant.status === "active" ? "success" : "warning"}>{suspended ? "suspended" : tenant.status}</Badge></CardContent>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-muted-foreground">Status</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Badge variant={tenant.status === "active" ? "success" : "warning"}>
+                  {suspended ? "suspended" : tenant.status}
+                </Badge>
+              </CardContent>
             </Card>
             <Card className="border-border/60">
-              <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Renewal</CardTitle></CardHeader>
-              <CardContent className="text-sm font-medium">{new Date(tenant.renewalDate).toLocaleDateString("en-AU")}</CardContent>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-muted-foreground">Renewal</CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm font-medium">
+                {new Date(tenant.renewalDate).toLocaleDateString("en-AU")}
+              </CardContent>
             </Card>
             <Card className="border-border/60">
-              <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Revenue</CardTitle></CardHeader>
-              <CardContent className="text-xl font-semibold">${tenant.revenue?.toLocaleString() || 0}</CardContent>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-muted-foreground">Revenue</CardTitle>
+              </CardHeader>
+              <CardContent className="text-xl font-semibold">
+                ${tenant.revenue?.toLocaleString() || 0}
+              </CardContent>
             </Card>
           </div>
 
@@ -119,21 +142,37 @@ export default function TenantDetailPage() {
                   <CardTitle className="text-base">Subscription information</CardTitle>
                   <CardDescription>Current plan and renewal settings</CardDescription>
                 </CardHeader>
-                <CardContent className="grid gap-4 sm:grid-cols-2 text-sm">
-                  <div><span className="text-muted-foreground">Plan</span><p className="font-medium">{tenant.plan}</p></div>
-                  <div><span className="text-muted-foreground">Renewal state</span><p className="font-medium capitalize">{tenant.renewalState}</p></div>
-                  <div><span className="text-muted-foreground">Billing cycle</span><p className="font-medium">Monthly</p></div>
-                  <div><span className="text-muted-foreground">Seats used</span><p className="font-medium">{tenant.activeUsers}</p></div>
+                <CardContent className="grid gap-4 text-sm sm:grid-cols-2">
+                  <div>
+                    <span className="text-muted-foreground">Plan</span>
+                    <p className="font-medium">{tenant.plan}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Renewal state</span>
+                    <p className="font-medium capitalize">{tenant.renewalState}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Billing cycle</span>
+                    <p className="font-medium">Monthly</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Seats used</span>
+                    <p className="font-medium">{tenant.activeUsers}</p>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
 
             <TabsContent value="modules">
               <Card className="border-border/60">
-                <CardHeader><CardTitle className="text-base">Enabled modules</CardTitle></CardHeader>
+                <CardHeader>
+                  <CardTitle className="text-base">Enabled modules</CardTitle>
+                </CardHeader>
                 <CardContent className="flex flex-wrap gap-2">
                   {detail.enabledModules.map((id) => (
-                    <Badge key={id} variant="secondary">{modLabel(id)}</Badge>
+                    <Badge key={id} variant="secondary">
+                      {modLabel(id)}
+                    </Badge>
                   ))}
                 </CardContent>
               </Card>
@@ -141,7 +180,9 @@ export default function TenantDetailPage() {
 
             <TabsContent value="activity">
               <Card className="border-border/60">
-                <CardHeader><CardTitle className="text-base">Login activity</CardTitle></CardHeader>
+                <CardHeader>
+                  <CardTitle className="text-base">Login activity</CardTitle>
+                </CardHeader>
                 <CardContent className="space-y-4">
                   {detail.loginActivity.map((ev, i) => (
                     <div key={i} className="flex gap-4 border-l-2 border-primary/30 pl-4">
@@ -161,12 +202,26 @@ export default function TenantDetailPage() {
 
             <TabsContent value="billing">
               <Card className="border-border/60">
-                <CardHeader><CardTitle className="text-base">Billing summary</CardTitle></CardHeader>
+                <CardHeader>
+                  <CardTitle className="text-base">Billing summary</CardTitle>
+                </CardHeader>
                 <CardContent className="grid gap-3 text-sm sm:grid-cols-2">
-                  <div><span className="text-muted-foreground">Last invoice</span><p className="font-medium">{detail.billing.lastInvoice}</p></div>
-                  <div><span className="text-muted-foreground">Next billing</span><p className="font-medium">{detail.billing.nextBilling}</p></div>
-                  <div><span className="text-muted-foreground">Payment method</span><p className="font-medium">{detail.billing.paymentMethod}</p></div>
-                  <div><span className="text-muted-foreground">Outstanding</span><p className="font-medium">{detail.billing.outstanding}</p></div>
+                  <div>
+                    <span className="text-muted-foreground">Last invoice</span>
+                    <p className="font-medium">{detail.billing.lastInvoice}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Next billing</span>
+                    <p className="font-medium">{detail.billing.nextBilling}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Payment method</span>
+                    <p className="font-medium">{detail.billing.paymentMethod}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Outstanding</span>
+                    <p className="font-medium">{detail.billing.outstanding}</p>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -175,7 +230,9 @@ export default function TenantDetailPage() {
 
         <aside className="w-full shrink-0 lg:w-72">
           <Card className="sticky top-20 border-border/60 shadow-sm">
-            <CardHeader><CardTitle className="text-base">Admin actions</CardTitle></CardHeader>
+            <CardHeader>
+              <CardTitle className="text-base">Admin actions</CardTitle>
+            </CardHeader>
             <CardContent className="space-y-2">
               <Button className="w-full gap-2" variant="outline" onClick={() => setPlanDialogOpen(true)}>
                 <RefreshCw className="h-4 w-4" />
@@ -197,18 +254,26 @@ export default function TenantDetailPage() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Change subscription plan</DialogTitle>
-            <DialogDescription>Review module changes before applying to {tenant.company}.</DialogDescription>
+            <DialogDescription>
+              Review module changes before applying to {tenant.company}.
+            </DialogDescription>
           </DialogHeader>
           <Select value={selectedPlan} onValueChange={setSelectedPlan}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               {PLAN_TYPES.map((p) => (
-                <SelectItem key={p.id} value={p.displayName}>{p.displayName}</SelectItem>
+                <SelectItem key={p.id} value={p.displayName}>
+                  {p.displayName}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
           <Card className="border-border/60 bg-muted/30">
-            <CardHeader className="pb-2"><CardTitle className="text-sm">Module comparison</CardTitle></CardHeader>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Module comparison</CardTitle>
+            </CardHeader>
             <CardContent className="grid gap-3 text-sm sm:grid-cols-2">
               <div>
                 <p className="mb-1 font-medium text-muted-foreground">Current ({tenant.plan})</p>
@@ -227,20 +292,32 @@ export default function TenantDetailPage() {
             <CardContent className="grid gap-2 text-xs sm:grid-cols-3">
               <div>
                 <p className="font-semibold text-emerald-600">Added</p>
-                {diff.added.length ? diff.added.map((m) => <p key={m}>+ {modLabel(m)}</p>) : <p className="text-muted-foreground">—</p>}
+                {diff.added.length ? (
+                  diff.added.map((m) => <p key={m}>+ {modLabel(m)}</p>)
+                ) : (
+                  <p className="text-muted-foreground">-</p>
+                )}
               </div>
               <div>
                 <p className="font-semibold text-destructive">Removed</p>
-                {diff.removed.length ? diff.removed.map((m) => <p key={m}>− {modLabel(m)}</p>) : <p className="text-muted-foreground">—</p>}
+                {diff.removed.length ? (
+                  diff.removed.map((m) => <p key={m}>- {modLabel(m)}</p>)
+                ) : (
+                  <p className="text-muted-foreground">-</p>
+                )}
               </div>
               <div>
                 <p className="font-semibold">Unchanged</p>
-                {diff.kept.map((m) => <p key={m}>{modLabel(m)}</p>)}
+                {diff.kept.map((m) => (
+                  <p key={m}>{modLabel(m)}</p>
+                ))}
               </div>
             </CardContent>
           </Card>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPlanDialogOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setPlanDialogOpen(false)}>
+              Cancel
+            </Button>
             <Button onClick={() => setPlanDialogOpen(false)}>Confirm plan change</Button>
           </DialogFooter>
         </DialogContent>
@@ -257,10 +334,15 @@ export default function TenantDetailPage() {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setSuspendDialogOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setSuspendDialogOpen(false)}>
+              Cancel
+            </Button>
             <Button
               variant={suspended ? "default" : "destructive"}
-              onClick={() => { setSuspended(!suspended); setSuspendDialogOpen(false); }}>
+              onClick={() => {
+                setSuspended(!suspended);
+                setSuspendDialogOpen(false);
+              }}>
               Confirm
             </Button>
           </DialogFooter>
