@@ -1,55 +1,70 @@
 import { useState } from "react";
 import {
-  BarChart3, DollarSign, Target, Trophy,
-  TrendingUp, MapPin, Download,
+  BarChart3, DollarSign, Target, Users,
+  TrendingUp, MapPin, Trophy,
 } from "lucide-react";
-import DashboardHeader from "../../super-admin/components/DashboardHeader";
+import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import AnalyticsToolbar from "@/modules/shared/components/AnalyticsToolbar";
+import KpiGrid from "@/modules/shared/components/KpiGrid";
 import AnalyticsChartCard from "@/modules/super-admin/components/dashboard/AnalyticsChartCard";
 import DashboardSection from "@/modules/super-admin/components/dashboard/DashboardSection";
 import {
-  EvilLineChart, Line, XAxis, Legend, Tooltip,
+  EvilLineChart,
+  Line,
+  XAxis,
+  Legend,
+  Tooltip,
 } from "@/components/evilcharts/charts/line-chart";
 import { 
   EvilPieChart, Pie, Legend as PieLegend, Tooltip as PieTooltip 
 } from "@/components/evilcharts/charts/pie-chart";
 import {
-  EvilBarChart, Bar, Grid, XAxis as BarXAxis, Legend as BarLegend, Tooltip as BarTooltip,
+  EvilBarChart,
+  Bar,
+  Grid,
+  XAxis as BarXAxis,
+  Legend as BarLegend,
+  Tooltip as BarTooltip,
 } from "@/components/evilcharts/charts/bar-chart";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-
 import {
-  PIPELINE_PERF_DATA, PIPELINE_PERF_CONFIG,
-  LEAD_SOURCE_DATA, LEAD_SOURCE_CONFIG,
-  TEAM_PERF_DATA, TEAM_PERF_CONFIG,
+  CRM_REPORT_KPIS,
+  PIPELINE_PERF_DATA,
+  PIPELINE_PERF_CONFIG,
+  LEAD_SOURCE_DATA,
+  LEAD_SOURCE_CONFIG,
+  TEAM_PERF_DATA,
+  TEAM_PERF_CONFIG,
 } from "../data/crm-reports";
 
-// ─── Extended KPIs (6 cards) ──────────────────────────────────────────────────
-const EXTENDED_KPIS = [
-  { id: "pipeline",   title: "Pipeline value",    value: "$2.4M",  growth: 11.2, growthLabel: "open deals" },
-  { id: "won",        title: "Won this month",    value: "$428k",  growth: 18.4, growthLabel: "vs last month" },
-  { id: "lost",       title: "Lost this month",   value: "$95k",   growth: -4.2, growthLabel: "vs last month" },
-  { id: "conversion", title: "Win rate",          value: "24%",    growth: 2.1,  growthLabel: "qualified → won" },
-  { id: "revenue",    title: "Monthly revenue",   value: "$142k",  growth: 9.8,  growthLabel: "vs target" },
-  { id: "visits",     title: "Site visits",       value: "12",     growth: 20.0, growthLabel: "this month" },
-];
-
-const EXTENDED_ICONS = {
+// ─── Icon map ─────────────────────────────────────────────────────────────────
+const ICONS = {
   pipeline:   BarChart3,
-  won:        Trophy,
-  lost:       Target,
-  conversion: TrendingUp,
-  revenue:    DollarSign,
-  visits:     MapPin,
+  won:        DollarSign,
+  conversion: Target,
+  cycle:      Users,
 };
 
 // ─── Forecast table ──────────────────────────────────────────────────────────
@@ -58,12 +73,6 @@ const FORECAST_ROWS = [
   { month: "Jul", leads: 38, forecast: 580, committed: 0,   status: "at-risk" },
   { month: "Aug", leads: 35, forecast: 610, committed: 0,   status: "pending" },
 ];
-
-const STATUS_VARIANT = {
-  "on-track": "success",
-  "at-risk":  "warning",
-  "pending":  "secondary",
-};
 
 // ─── Won vs Lost data ─────────────────────────────────────────────────────────
 const WON_LOST_DATA = [
@@ -94,7 +103,33 @@ const PROJECT_TYPE_CONFIG = {
   construction: { label: "Construction", colors: { light: { from: "#f97316", to: "#ea580c" }, dark: { from: "#f97316", to: "#ea580c" } } },
 };
 
-export default function AdminDashboard() {
+// ─── Extended KPIs (6 cards) ──────────────────────────────────────────────────
+const EXTENDED_KPIS = [
+  { id: "pipeline",   title: "Pipeline value",    value: "$2.4M",  growth: 11.2, growthLabel: "open deals" },
+  { id: "won",        title: "Won this month",    value: "$428k",  growth: 18.4, growthLabel: "vs last month" },
+  { id: "lost",       title: "Lost this month",   value: "$95k",   growth: -4.2, growthLabel: "vs last month" },
+  { id: "conversion", title: "Win rate",          value: "24%",    growth: 2.1,  growthLabel: "qualified → won" },
+  { id: "revenue",    title: "Monthly revenue",   value: "$142k",  growth: 9.8,  growthLabel: "vs target" },
+  { id: "visits",     title: "Site visits",       value: "12",     growth: 20.0, growthLabel: "this month" },
+];
+
+const EXTENDED_ICONS = {
+  pipeline:   BarChart3,
+  won:        Trophy,
+  lost:       Target,
+  conversion: TrendingUp,
+  revenue:    DollarSign,
+  visits:     MapPin,
+};
+
+// ─── Status badge ─────────────────────────────────────────────────────────────
+const STATUS_VARIANT = {
+  "on-track": "success",
+  "at-risk":  "warning",
+  "pending":  "secondary",
+};
+
+export default function CrmReportsPage() {
   const [period, setPeriod] = useState("30d");
   const [assignee, setAssignee] = useState("all");
   const [dateFrom, setDateFrom] = useState("2026-01-01");
@@ -102,16 +137,12 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-8">
-      <DashboardHeader 
-        title="Admin Dashboard"
-        description="Monitor CRM analytics, lead pipeline, team performance, and system overview."
-      >
-        <Button variant="outline" size="sm" className="gap-2">
-          <Download className="h-4 w-4" />
-          Export Report
-        </Button>
-      </DashboardHeader>
+      <PageHeader
+        title="CRM Reports"
+        description="Pipeline performance, conversion analytics, team metrics, and revenue forecasting."
+      />
 
+      {/* ── Toolbar ───────────────────────────────────────────────────────── */}
       <AnalyticsToolbar
         period={period}
         onPeriodChange={setPeriod}
@@ -130,6 +161,7 @@ export default function AdminDashboard() {
               <SelectItem value="james">James Wu</SelectItem>
               <SelectItem value="emma">Emma Walsh</SelectItem>
               <SelectItem value="tom">Tom Bradley</SelectItem>
+              <SelectItem value="lisa">Lisa Park</SelectItem>
             </SelectContent>
           </Select>
         }
@@ -164,6 +196,7 @@ export default function AdminDashboard() {
         })}
       </div>
 
+      {/* ── Row 1: Pipeline trend + Lead source ───────────────────────────── */}
       <DashboardSection gridClassName="lg:grid-cols-2">
         <AnalyticsChartCard
           title="Pipeline performance"
@@ -191,6 +224,7 @@ export default function AdminDashboard() {
         </AnalyticsChartCard>
       </DashboardSection>
 
+      {/* ── Row 2: Won vs Lost + Project type ────────────────────────────── */}
       <DashboardSection gridClassName="lg:grid-cols-2">
         <AnalyticsChartCard
           title="Won vs Lost"
@@ -222,69 +256,71 @@ export default function AdminDashboard() {
 
 
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="border-border/60">
-          <CardHeader className="flex-row items-center justify-between">
-            <CardTitle className="text-base">Revenue forecast ($k)</CardTitle>
-            <Badge variant="outline" className="text-xs">Next 3 months</Badge>
-          </CardHeader>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="pl-6">Month</TableHead>
-                  <TableHead>Forecast</TableHead>
-                  <TableHead>Committed</TableHead>
-                  <TableHead className="pr-6">Status</TableHead>
+      {/* ── Revenue forecast table ────────────────────────────────────────── */}
+      <Card className="border-border/60">
+        <CardHeader className="flex-row items-center justify-between">
+          <CardTitle className="text-base">Revenue forecast ($k)</CardTitle>
+          <Badge variant="outline" className="text-xs">Next 3 months</Badge>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="pl-6">Month</TableHead>
+                <TableHead>Leads</TableHead>
+                <TableHead>Forecast</TableHead>
+                <TableHead>Committed</TableHead>
+                <TableHead className="pr-6">Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {FORECAST_ROWS.map((r) => (
+                <TableRow key={r.month}>
+                  <TableCell className="pl-6 font-semibold">{r.month}</TableCell>
+                  <TableCell>{r.leads}</TableCell>
+                  <TableCell className="font-medium">${r.forecast}k</TableCell>
+                  <TableCell>{r.committed ? `$${r.committed}k` : "—"}</TableCell>
+                  <TableCell className="pr-6">
+                    <Badge variant={STATUS_VARIANT[r.status] || "secondary"} className="capitalize text-[10px]">
+                      {r.status.replace("-", " ")}
+                    </Badge>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {FORECAST_ROWS.map((r) => (
-                  <TableRow key={r.month}>
-                    <TableCell className="pl-6 font-semibold">{r.month}</TableCell>
-                    <TableCell className="font-medium">${r.forecast}k</TableCell>
-                    <TableCell>{r.committed ? `$${r.committed}k` : "—"}</TableCell>
-                    <TableCell className="pr-6">
-                      <Badge variant={STATUS_VARIANT[r.status] || "secondary"} className="capitalize text-[10px]">
-                        {r.status.replace("-", " ")}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
-        <Card className="border-border/60">
-          <CardHeader>
-            <CardTitle className="text-base">Rep leaderboard</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {[
-              { name: "Tom Bradley",  deals: 7, revenue: 510, rate: "82%" },
-              { name: "James Wu",     deals: 8, revenue: 420, rate: "76%" },
-              { name: "Emma Walsh",   deals: 6, revenue: 380, rate: "71%" },
-              { name: "Lisa Park",    deals: 4, revenue: 290, rate: "60%" },
-            ].map((rep, i) => {
-              const initials = rep.name.split(" ").map((n) => n[0]).join("");
-              return (
-                <div key={rep.name} className="flex items-center gap-3 rounded-lg border border-border/40 bg-muted/20 px-4 py-3">
-                  <span className="w-5 text-sm font-bold text-muted-foreground">#{i + 1}</span>
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-primary/10 text-xs text-primary font-semibold">{initials}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{rep.name}</p>
-                    <p className="text-xs text-muted-foreground">{rep.deals} deals · ${rep.revenue}k</p>
-                  </div>
-                  <Badge variant="outline" className="text-xs">{rep.rate} win</Badge>
+      {/* ── Rep leaderboard ───────────────────────────────────────────────── */}
+      <Card className="border-border/60">
+        <CardHeader>
+          <CardTitle className="text-base">Rep leaderboard</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {[
+            { name: "Tom Bradley",  deals: 7, revenue: 510, rate: "82%" },
+            { name: "James Wu",     deals: 8, revenue: 420, rate: "76%" },
+            { name: "Emma Walsh",   deals: 6, revenue: 380, rate: "71%" },
+            { name: "Lisa Park",    deals: 4, revenue: 290, rate: "60%" },
+          ].map((rep, i) => {
+            const initials = rep.name.split(" ").map((n) => n[0]).join("");
+            return (
+              <div key={rep.name} className="flex items-center gap-3 rounded-lg border border-border/40 bg-muted/20 px-4 py-3">
+                <span className="w-5 text-sm font-bold text-muted-foreground">#{i + 1}</span>
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback className="bg-primary/10 text-xs text-primary font-semibold">{initials}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">{rep.name}</p>
+                  <p className="text-xs text-muted-foreground">{rep.deals} deals · ${rep.revenue}k</p>
                 </div>
-              );
-            })}
-          </CardContent>
-        </Card>
-      </div>
+                <Badge variant="outline" className="text-xs">{rep.rate} win rate</Badge>
+              </div>
+            );
+          })}
+        </CardContent>
+      </Card>
     </div>
   );
 }

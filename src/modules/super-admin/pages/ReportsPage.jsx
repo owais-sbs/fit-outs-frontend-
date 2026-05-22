@@ -127,7 +127,7 @@ export default function ReportsPage() {
               </Link>
             </Button>
             <Button asChild variant="ghost" className="gap-2">
-              <Link to={ROUTES.CRM.SITE_VISITS}>
+              <Link to={ROUTES.ADMIN.SITE_VISITS}>
                 <ExternalLink className="h-4 w-4" />
                 CRM view
               </Link>

@@ -18,7 +18,7 @@ import UsersPage from "./modules/super-admin/pages/UsersPage";
 import PermissionsPage from "./modules/super-admin/pages/PermissionsPage";
 import ReportsPage from "./modules/super-admin/pages/ReportsPage";
 import SettingsPage from "./modules/super-admin/pages/SettingsPage";
-import CrmLayout from "./modules/crm/layouts/CrmLayout";
+import AdminLayout from "./modules/admin/layouts/AdminLayout";
 import {
   PipelinePage,
   LeadIntakePage,
@@ -27,8 +27,26 @@ import {
   SiteVisitsPage,
   SiteVisitSchedulePage,
   SiteVisitReportPage,
-} from "./modules/crm/pages";
+  LeadsListPage,
+  FollowUpsPage,
+  FollowUpDetailPage,
+  LeadSourcesPage,
+  ClientConversionPage,
+  ClientDetailPage,
+  ActivityLogsPage,
+  NotificationsPage,
+  ProposalManagementPage,
+  NegotiationTrackingPage,
+  PaymentCollectionPage,
+  CRMAnalyticsDashboard,
+  TeamPerformancePage,
+  LostLeadsPage,
+  WonProjectsPage,
+  QualifiedLeadsPage,
+  ProjectsPage,
+} from "./modules/admin/pages";
 import AdminDashboard from "./modules/admin/pages/dashboard";
+import AdminSettingsPage from "./modules/admin/pages/SettingsPage";
 import BusinessOwnerDashboard from "./modules/business-owner/pages/dashboard";
 import ProjectManagerDashboard from "./modules/project-manager/pages/dashboard";
 import DesignerDashboard from "./modules/designer/pages/dashboard";
@@ -71,36 +89,43 @@ function App() {
             <Route path="settings" element={<SettingsPage />} />
           </Route>
 
-            {/* CRM — sales & site visits */}
+            {/* ADMIN — dashboard & CRM & site visits */}
             <Route
-              path="/crm"
+              path="/admin"
               element={
                 <ProtectedRoute>
-                  <RoleRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.SALES, ROLES.ADMIN]}>
-                    <CrmLayout />
+                  <RoleRoute allowedRoles={[ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.SALES]}>
+                    <AdminLayout />
                   </RoleRoute>
                 </ProtectedRoute>
               }>
+              <Route index element={<AdminDashboard />} />
               <Route path="pipeline" element={<PipelinePage />} />
+              <Route path="leads" element={<LeadsListPage />} />
               <Route path="leads/new" element={<LeadIntakePage />} />
+              <Route path="leads/qualified" element={<QualifiedLeadsPage />} />
               <Route path="leads/:leadId" element={<LeadDetailPage />} />
+              <Route path="follow-ups" element={<FollowUpsPage />} />
+              <Route path="follow-ups/:followUpId" element={<FollowUpDetailPage />} />
+              <Route path="lead-sources" element={<LeadSourcesPage />} />
+              <Route path="client-conversion" element={<ClientConversionPage />} />
+              <Route path="clients/:clientId" element={<ClientDetailPage />} />
+              <Route path="activity-logs" element={<ActivityLogsPage />} />
+              <Route path="notifications" element={<NotificationsPage />} />
+              <Route path="proposals" element={<ProposalManagementPage />} />
+              <Route path="negotiations" element={<NegotiationTrackingPage />} />
+              <Route path="payments" element={<PaymentCollectionPage />} />
+              <Route path="crm-analytics" element={<CRMAnalyticsDashboard />} />
+              <Route path="team-performance" element={<TeamPerformancePage />} />
+              <Route path="lost-leads" element={<LostLeadsPage />} />
+              <Route path="won-projects" element={<WonProjectsPage />} />
+              <Route path="projects" element={<ProjectsPage />} />
               <Route path="reports" element={<CrmReportsPage />} />
               <Route path="site-visits" element={<SiteVisitsPage />} />
               <Route path="site-visits/schedule" element={<SiteVisitSchedulePage />} />
               <Route path="site-visits/:visitId/report" element={<SiteVisitReportPage />} />
+              <Route path="settings" element={<AdminSettingsPage />} />
             </Route>
-
-            {/* Protected dashboard routes per role */}
-            <Route
-              path={ROUTES.ADMIN.DASHBOARD}
-              element={
-                <ProtectedRoute>
-                  <RoleRoute allowedRoles={[ROLES.ADMIN]}>
-                    <AdminDashboard />
-                  </RoleRoute>
-                </ProtectedRoute>
-              }
-            />
             <Route
               path={ROUTES.BUSINESS_OWNER.DASHBOARD}
               element={
