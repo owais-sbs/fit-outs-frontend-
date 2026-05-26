@@ -2,25 +2,35 @@ import React, {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
 } from "react";
 import { TENANTS_LIST } from "../data/tenants";
+import axiosInstance from "@/lib/axiosInstance";
 
 function normalizeTenant(tenant) {
-  const company = tenant.company || tenant.name || "Untitled tenant";
+  // Support both API shape (uuid, companyName, domainSlug) and mock shape (id, company)
+  const company = tenant.companyName || tenant.company || tenant.name || "Untitled tenant";
+  const id = tenant.uuid || tenant.id;
+  const status = (tenant.status || "active").toLowerCase();
   return {
     ...tenant,
-    id: tenant.id,
+    id,
+    uuid: id,
     name: company,
     company,
+    plan: tenant.plan || tenant.subscriptionPlanUuid || "—",
+    status,
     users: tenant.users ?? tenant.activeUsers ?? 0,
     activeUsers: tenant.activeUsers ?? tenant.users ?? 0,
-    expiryDate: tenant.expiryDate || tenant.renewalDate || "",
-    renewalDate: tenant.renewalDate || tenant.expiryDate || "",
+    expiryDate: tenant.expiryDate || tenant.renewalDate || tenant.createdAt || "",
+    renewalDate: tenant.renewalDate || tenant.expiryDate || tenant.createdAt || "",
     revenue: tenant.revenue ?? tenant.mrr ?? 0,
     mrr: tenant.mrr ?? tenant.revenue ?? 0,
     renewalState: tenant.renewalState || "manual",
+    domainSlug: tenant.domainSlug || "",
+    logo: tenant.logo || "",
   };
 }
 
@@ -79,9 +89,37 @@ const TenantManagementContext = createContext(null);
 
 export function TenantManagementProvider({ children }) {
   const [tenants, setTenants] = useState(() => buildTenantRows(TENANTS_LIST));
+  const [tenantsLoading, setTenantsLoading] = useState(true);
+  const [tenantsError, setTenantsError] = useState(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [tenantForm, setTenantForm] = useState(defaultForm);
+
+  // Fetch tenants from API on mount
+  useEffect(() => {
+    let cancelled = false;
+    setTenantsLoading(true);
+    setTenantsError(null);
+
+    axiosInstance
+      .get("/tenants/GetAllTenants")
+      .then(({ data }) => {
+        if (cancelled) return;
+        const list = Array.isArray(data?.data) ? data.data : [];
+        setTenants(buildTenantRows(list));
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error("Failed to fetch tenants:", err);
+        setTenantsError(err?.response?.data?.message || err.message || "Failed to load tenants");
+        // Keep mock data as fallback
+      })
+      .finally(() => {
+        if (!cancelled) setTenantsLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, []);
 
   const stats = useMemo(() => {
     const totalRevenue = tenants.reduce((sum, tenant) => sum + Number(tenant.revenue || 0), 0);
@@ -150,6 +188,8 @@ export function TenantManagementProvider({ children }) {
   const value = useMemo(
     () => ({
       tenants,
+      tenantsLoading,
+      tenantsError,
       stats,
       createOpen,
       setCreateOpen,
@@ -163,7 +203,7 @@ export function TenantManagementProvider({ children }) {
       getTenantById,
       formatDateForInput,
     }),
-    [tenants, stats, createOpen, exportOpen, tenantForm, addTenant, exportTenants, resetForm, getTenantById]
+    [tenants, tenantsLoading, tenantsError, stats, createOpen, exportOpen, tenantForm, addTenant, exportTenants, resetForm, getTenantById]
   );
 
   return (

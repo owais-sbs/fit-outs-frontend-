@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Building2, MoreHorizontal, Search } from "lucide-react";
 import { ROUTES } from "@/shared/constants/routes";
@@ -62,18 +62,14 @@ function formatRevenue(value) {
 
 export default function TenantsPage() {
   const navigate = useNavigate();
-  const { tenants } = useTenantManagement();
-  const [loading, setLoading] = useState(true);
+  const { tenants, tenantsLoading: loading } = useTenantManagement();
   const [search, setSearch] = useState("");
   const [plan, setPlan] = useState("all");
   const [status, setStatus] = useState("all");
   const [renewal, setRenewal] = useState("all");
   const [page, setPage] = useState(1);
 
-  useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 600);
-    return () => clearTimeout(timer);
-  }, []);
+  // loading state now comes from the context (real API fetch)
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();

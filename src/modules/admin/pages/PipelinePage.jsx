@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   DndContext,
@@ -14,12 +14,12 @@ import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import {
   PIPELINE_COLUMNS,
   INITIAL_LEADS,
-  getLeadById,
   LEAD_SOURCES,
   PROJECT_TYPES,
   PRIORITIES,
   SALES_REPS,
 } from "../data/leads";
+import { fetchAllLeads } from "../api/leads.api";
 import PipelineColumn from "../components/pipeline/PipelineColumn";
 import LeadCard from "../components/pipeline/LeadCard";
 import {
@@ -71,6 +71,32 @@ export default function PipelinePage() {
   const [leads, setLeads] = useState(INITIAL_LEADS);
   const [activeId, setActiveId] = useState(null);
   const [previewLead, setPreviewLead] = useState(null);
+
+  // Fetch leads from API and group by stage
+  useEffect(() => {
+    let cancelled = false;
+    fetchAllLeads()
+      .then((data) => {
+        if (cancelled) return;
+        const list = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+        if (list.length === 0) return; // keep mock fallback
+
+        // Group by stage — default unmapped stages to "new"
+        const validStages = PIPELINE_COLUMNS.map((c) => c.id);
+        const grouped = Object.fromEntries(validStages.map((s) => [s, []]));
+        list.forEach((lead) => {
+          const stage = validStages.includes(lead.stage) ? lead.stage : "new";
+          grouped[stage].push({ ...lead, stage });
+        });
+        setLeads(grouped);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error("Failed to fetch leads for pipeline:", err);
+        // keep mock data as fallback
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   // ── Filters ────────────────────────────────────────────────────────────────
   const [search, setSearch] = useState("");
@@ -271,7 +297,7 @@ export default function PipelinePage() {
               column={col}
               leads={filteredLeads[col.id] || []}
               onLeadClick={(id) => {
-                const lead = getLeadById(id);
+                const lead = Object.values(leads).flat().find((l) => l.id === id);
                 if (lead) setPreviewLead(lead);
               }}
               onLeadNavigate={(id) => navigate(ROUTES.ADMIN.LEAD_DETAIL.replace(":leadId", id))}

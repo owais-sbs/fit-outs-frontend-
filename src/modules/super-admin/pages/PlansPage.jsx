@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, Save, Upload, Sparkles, ShieldCheck, Users2, Database } from "lucide-react";
 import PageHeader from "../components/shared/PageHeader";
 import { PLAN_TYPES, ALL_MODULES } from "../data/plans";
@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Accordion,
   AccordionContent,
@@ -31,6 +32,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import axiosInstance from "@/lib/axiosInstance";
 
 const PLAN_ACCENTS = {
   basic: {
@@ -53,8 +55,11 @@ const PLAN_ACCENTS = {
   },
 };
 
+const ACCENT_KEYS = ["basic", "professional", "enterprise"];
+
 export default function PlansPage() {
-  const [plans] = useState(PLAN_TYPES);
+  const [plans, setPlans] = useState(PLAN_TYPES);
+  const [loading, setLoading] = useState(true);
   const [publishOpen, setPublishOpen] = useState(false);
   const [moduleToggles, setModuleToggles] = useState(() => {
     const map = {};
@@ -63,6 +68,41 @@ export default function PlansPage() {
     });
     return map;
   });
+
+  // Fetch plans from API, map API shape → UI shape
+  useEffect(() => {
+    let cancelled = false;
+    axiosInstance
+      .get("/subscription-plans")
+      .then(({ data }) => {
+        if (cancelled) return;
+        const list = Array.isArray(data?.data) ? data.data : [];
+        if (list.length === 0) return; // keep mock fallback
+        const mapped = list.map((item, index) => ({
+          id: item.uuid,
+          name: item.planName,
+          displayName: item.planName,
+          price: item.priceMonthly ?? 0,
+          annualPrice: item.priceAnnual ?? 0,
+          seats: item.maxUsers ?? 0,
+          modules: Array.isArray(item.modulesIncluded) ? item.modulesIncluded : [],
+          limits: { projects: "—", storage: "—", apiCalls: "—" },
+          published: item.active ?? true,
+          _accentKey: ACCENT_KEYS[index % ACCENT_KEYS.length],
+        }));
+        setPlans(mapped);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error("Failed to fetch subscription plans:", err);
+        // keep mock data as fallback
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, []);
 
   const toggleModule = (moduleId, planId) => {
     setModuleToggles((prev) => ({
@@ -78,111 +118,151 @@ export default function PlansPage() {
         description="Configure pricing, modules, and renewal settings for fit-out tenant tiers."
         actions={
           <>
-            <Button variant="outline" size="sm" className="gap-2"><Save className="h-4 w-4" />Save draft</Button>
-            <Button size="sm" className="gap-2" onClick={() => setPublishOpen(true)}><Upload className="h-4 w-4" />Publish</Button>
+            <Button variant="outline" size="sm" className="gap-2">
+              <Save className="h-4 w-4" />Save draft
+            </Button>
+            <Button size="sm" className="gap-2" onClick={() => setPublishOpen(true)}>
+              <Upload className="h-4 w-4" />Publish
+            </Button>
           </>
         }
       />
 
+      {/* ── Plan cards ── */}
       <div className="grid gap-4 md:grid-cols-3">
-        {plans.map((plan) => {
-          const accent = PLAN_ACCENTS[plan.id];
-          const AccentIcon = accent.icon;
+        {loading
+          ? Array.from({ length: 3 }).map((_, i) => (
+              <Card key={i} className="border-border/60 shadow-sm">
+                <CardHeader className="space-y-4 pb-4">
+                  <Skeleton className="h-11 w-11 rounded-2xl" />
+                  <Skeleton className="h-5 w-32" />
+                  <Skeleton className="h-20 w-full rounded-2xl" />
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-24 w-full rounded-2xl" />
+                </CardContent>
+              </Card>
+            ))
+          : plans.map((plan) => {
+              const accentKey = plan._accentKey || plan.id;
+              const accent = PLAN_ACCENTS[accentKey] || PLAN_ACCENTS.basic;
+              const AccentIcon = accent.icon;
 
-          return (
-            <Card
-              key={plan.id}
-              className={cn(
-                "group relative overflow-hidden border border-border/60 bg-card/80 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg",
-                accent.ring
-              )}
-            >
-              <div className={cn("absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r", accent.band)} />
-              <div className="absolute right-0 top-0 h-28 w-28 rounded-bl-full bg-gradient-to-br from-primary/10 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+              return (
+                <Card
+                  key={plan.id}
+                  className={cn(
+                    "group relative overflow-hidden border border-border/60 bg-card/80 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg",
+                    accent.ring
+                  )}
+                >
+                  <div className={cn("absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r", accent.band)} />
+                  <div className="absolute right-0 top-0 h-28 w-28 rounded-bl-full bg-gradient-to-br from-primary/10 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
-              <CardHeader className="relative space-y-4 pb-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-border/60 bg-muted/60 text-foreground shadow-sm transition-colors group-hover:bg-background">
-                      <AccentIcon className="h-5 w-5" />
+                  <CardHeader className="relative space-y-4 pb-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-border/60 bg-muted/60 text-foreground shadow-sm transition-colors group-hover:bg-background">
+                          <AccentIcon className="h-5 w-5" />
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <CardTitle className="text-base tracking-tight">{plan.displayName}</CardTitle>
+                            <Badge
+                              variant={plan.published ? "success" : "secondary"}
+                              className="h-5 px-2 text-[10px] uppercase tracking-wide"
+                            >
+                              {plan.published ? "Live" : "Draft"}
+                            </Badge>
+                          </div>
+                          <CardDescription className="text-xs">
+                            {accent.badge} subscription tier
+                          </CardDescription>
+                        </div>
+                      </div>
                     </div>
-                    <div className="space-y-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <CardTitle className="text-base tracking-tight">{plan.displayName}</CardTitle>
-                        <Badge variant={plan.published ? "success" : "secondary"} className="h-5 px-2 text-[10px] uppercase tracking-wide">
-                          {plan.published ? "Live" : "Draft"}
+
+                    <div className="grid gap-3 rounded-2xl border border-border/60 bg-muted/20 p-4">
+                      <div className="flex items-end justify-between gap-3">
+                        <div>
+                          <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Monthly</p>
+                          <div className="mt-1 flex items-baseline gap-1">
+                            <span className="text-3xl font-semibold tracking-tight">${plan.price}</span>
+                            <span className="text-sm text-muted-foreground">AUD</span>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Annual</p>
+                          <p className="mt-1 text-sm font-medium text-foreground">
+                            ${plan.annualPrice.toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Badge variant="outline" className="gap-1">
+                          <Users2 className="h-3 w-3" />
+                          {plan.seats} seats
                         </Badge>
-                      </div>
-                      <CardDescription className="text-xs">
-                        {PLAN_ACCENTS[plan.id].badge} subscription tier
-                      </CardDescription>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid gap-3 rounded-2xl border border-border/60 bg-muted/20 p-4">
-                  <div className="flex items-end justify-between gap-3">
-                    <div>
-                      <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Monthly</p>
-                      <div className="mt-1 flex items-baseline gap-1">
-                        <span className="text-3xl font-semibold tracking-tight">${plan.price}</span>
-                        <span className="text-sm text-muted-foreground">AUD</span>
+                        <Badge variant="outline" className="gap-1">
+                          <Sparkles className="h-3 w-3" />
+                          {plan.modules.length} modules
+                        </Badge>
+                        {plan.published && <Badge variant="success">Published</Badge>}
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Annual</p>
-                      <p className="mt-1 text-sm font-medium text-foreground">${plan.annualPrice.toLocaleString()}</p>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant="outline" className="gap-1">
-                      <Users2 className="h-3 w-3" />
-                      {plan.seats} seats
-                    </Badge>
-                    <Badge variant="outline" className="gap-1">
-                      <Sparkles className="h-3 w-3" />
-                      {plan.modules.length} modules
-                    </Badge>
-                    {plan.published && <Badge variant="success">Published</Badge>}
-                  </div>
-                </div>
-              </CardHeader>
+                  </CardHeader>
 
-              <CardContent className="relative space-y-4">
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div>
-                    <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Monthly (AUD)</Label>
-                    <Input type="number" defaultValue={plan.price} className="mt-1.5 h-10 bg-background/80" />
-                  </div>
-                  <div>
-                    <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">Annual (AUD)</Label>
-                    <Input type="number" defaultValue={plan.annualPrice} className="mt-1.5 h-10 bg-background/80" />
-                  </div>
-                </div>
+                  <CardContent className="relative space-y-4">
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div>
+                        <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                          Monthly (AUD)
+                        </Label>
+                        <Input
+                          type="number"
+                          defaultValue={plan.price}
+                          className="mt-1.5 h-10 bg-background/80"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                          Annual (AUD)
+                        </Label>
+                        <Input
+                          type="number"
+                          defaultValue={plan.annualPrice}
+                          className="mt-1.5 h-10 bg-background/80"
+                        />
+                      </div>
+                    </div>
 
-                <div className="rounded-2xl border border-border/60 bg-background/60 p-4">
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Included limits</p>
-                  <div className="mt-3 grid gap-3 text-sm">
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="text-muted-foreground">Projects</span>
-                      <span className="font-medium">{plan.limits.projects}</span>
+                    <div className="rounded-2xl border border-border/60 bg-background/60 p-4">
+                      <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                        Included limits
+                      </p>
+                      <div className="mt-3 grid gap-3 text-sm">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-muted-foreground">Projects</span>
+                          <span className="font-medium">{plan.limits.projects}</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-muted-foreground">Storage</span>
+                          <span className="font-medium">{plan.limits.storage}</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-muted-foreground">API calls</span>
+                          <span className="font-medium">{plan.limits.apiCalls}</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="text-muted-foreground">Storage</span>
-                      <span className="font-medium">{plan.limits.storage}</span>
-                    </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="text-muted-foreground">API calls</span>
-                      <span className="font-medium">{plan.limits.apiCalls}</span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+                  </CardContent>
+                </Card>
+              );
+            })}
       </div>
 
+      {/* ── Module toggles ── */}
       <Card className="border-border/60">
         <CardHeader>
           <CardTitle className="text-base">Module toggles</CardTitle>
@@ -209,6 +289,7 @@ export default function PlansPage() {
         </CardContent>
       </Card>
 
+      {/* ── Feature comparison matrix ── */}
       <Accordion type="single" collapsible className="rounded-lg border border-border/60 px-4">
         <AccordionItem value="matrix">
           <AccordionTrigger>Feature comparison matrix</AccordionTrigger>
@@ -217,7 +298,9 @@ export default function PlansPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Feature</TableHead>
-                  {plans.map((p) => <TableHead key={p.id}>{p.displayName}</TableHead>)}
+                  {plans.map((p) => (
+                    <TableHead key={p.id}>{p.displayName}</TableHead>
+                  ))}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -226,7 +309,11 @@ export default function PlansPage() {
                     <TableCell className="font-medium">{m.label}</TableCell>
                     {plans.map((p) => (
                       <TableCell key={p.id}>
-                        {p.modules.includes(m.id) ? <Check className="h-4 w-4 text-primary" /> : "—"}
+                        {p.modules.includes(m.id) ? (
+                          <Check className="h-4 w-4 text-primary" />
+                        ) : (
+                          "—"
+                        )}
                       </TableCell>
                     ))}
                   </TableRow>
@@ -237,6 +324,7 @@ export default function PlansPage() {
         </AccordionItem>
       </Accordion>
 
+      {/* ── Sticky footer ── */}
       <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-border bg-background/95 p-4 backdrop-blur md:left-[var(--sidebar-width)]">
         <div className="mx-auto flex max-w-[1600px] justify-end gap-2">
           <Button variant="outline">Save draft</Button>
@@ -244,16 +332,20 @@ export default function PlansPage() {
         </div>
       </div>
 
+      {/* ── Publish dialog ── */}
       <Dialog open={publishOpen} onOpenChange={setPublishOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Publish plan changes</DialogTitle>
             <DialogDescription>
-              Updates will propagate to renewal workflows on the next billing cycle. Existing tenants retain current pricing until renewal.
+              Updates will propagate to renewal workflows on the next billing cycle. Existing
+              tenants retain current pricing until renewal.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPublishOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setPublishOpen(false)}>
+              Cancel
+            </Button>
             <Button onClick={() => setPublishOpen(false)}>Publish now</Button>
           </DialogFooter>
         </DialogContent>

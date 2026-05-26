@@ -4,7 +4,8 @@ import { MoreHorizontal, Plus, Search, Users, Target, DollarSign, TrendingUp } f
 import { ROUTES } from "@/shared/constants/routes";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import StatCard from "@/modules/super-admin/components/StatCard";
-import { getAllLeads, LEAD_SOURCES, PRIORITIES, SALES_REPS } from "../data/leads";
+import { LEAD_SOURCES, PRIORITIES, SALES_REPS } from "../data/leads";
+import { fetchAllLeads } from "../api/leads.api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -47,6 +48,7 @@ function formatCurrency(n) {
 
 export default function LeadsListPage() {
   const navigate = useNavigate();
+  const [allLeads, setAllLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [stageFilter, setStageFilter] = useState("all");
@@ -56,11 +58,23 @@ export default function LeadsListPage() {
   const [page, setPage] = useState(1);
 
   useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 600);
-    return () => clearTimeout(t);
+    let cancelled = false;
+    fetchAllLeads()
+      .then((data) => {
+        if (cancelled) return;
+        // Support { data: [...] } or plain array
+        const list = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+        setAllLeads(list);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error("Failed to fetch leads:", err);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
   }, []);
-
-  const allLeads = useMemo(() => getAllLeads(), []);
 
   const stats = useMemo(() => ({
     total: allLeads.length,

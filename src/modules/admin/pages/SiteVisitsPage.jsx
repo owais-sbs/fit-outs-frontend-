@@ -1,15 +1,57 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Clock, FileText, MapPin, Search } from "lucide-react";
 import { ROUTES } from "@/shared/constants/routes";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
-import { SITE_VISITS } from "../data/site-visits";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import axiosInstance from "@/lib/axiosInstance";
+
+// Map API shape → UI shape
+function normalizeSiteVisit(item) {
+  const loc = item.locationDetails || {};
+  const locationStr = [
+    loc.addressLine1,
+    loc.buildingName,
+    loc.area,
+    loc.city,
+    loc.state,
+  ]
+    .filter(Boolean)
+    .join(", ") || "Location not specified";
+
+  const dateTime = item.scheduledDate && item.scheduledTime
+    ? `${item.scheduledDate}T${item.scheduledTime}`
+    : item.scheduledDate || item.createdAt;
+
+  const status = (item.status || "").toUpperCase();
+  const isCompleted = status === "COMPLETED";
+
+  // Countdown in hours from now
+  const scheduledMs = new Date(dateTime).getTime();
+  const nowMs = Date.now();
+  const countdownHours = Math.max(0, Math.round((scheduledMs - nowMs) / 3_600_000));
+
+  return {
+    id: item.uuid,
+    uuid: item.uuid,
+    client: `Lead #${item.leadId}`,
+    company: loc.buildingName || loc.area || "—",
+    date: dateTime,
+    location: locationStr,
+    assignee: `User #${item.assignedTo}`,
+    status: item.status,
+    isCompleted,
+    countdownHours,
+    reportId: isCompleted ? item.uuid : null,
+    notes: item.notes || "",
+  };
+}
 
 function CountdownBadge({ hours }) {
   const label = hours < 24 ? `${hours}h` : `${Math.floor(hours / 24)}d`;
@@ -22,7 +64,9 @@ function CountdownBadge({ hours }) {
 }
 
 function VisitCard({ visit, upcoming }) {
-  const initials = visit.assignee.split(" ").map((n) => n[0]).join("").slice(0, 2);
+  const initials = visit.assignee
+    ? visit.assignee.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
+    : "??";
   return (
     <Card className="border-border/60 transition-all hover:border-primary/25 hover:shadow-md">
       <CardContent className="p-4">
@@ -62,14 +106,39 @@ function VisitCard({ visit, upcoming }) {
 }
 
 export default function SiteVisitsPage() {
+  const [upcoming, setUpcoming] = useState([]);
+  const [completed, setCompleted] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    axiosInstance
+      .get("/site-visits/GetAllSite-Visits")
+      .then(({ data }) => {
+        if (cancelled) return;
+        const list = Array.isArray(data?.data) ? data.data : [];
+        const normalized = list.map(normalizeSiteVisit);
+        setUpcoming(normalized.filter((v) => !v.isCompleted));
+        setCompleted(normalized.filter((v) => v.isCompleted));
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error("Failed to fetch site visits:", err);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   const filter = (list) =>
     list.filter(
       (v) =>
         !search.trim() ||
         v.client.toLowerCase().includes(search.toLowerCase()) ||
-        v.company.toLowerCase().includes(search.toLowerCase())
+        v.company.toLowerCase().includes(search.toLowerCase()) ||
+        v.location.toLowerCase().includes(search.toLowerCase())
     );
 
   return (
@@ -91,18 +160,40 @@ export default function SiteVisitsPage() {
 
       <Tabs defaultValue="upcoming">
         <TabsList>
-          <TabsTrigger value="upcoming">Upcoming ({filter(SITE_VISITS.upcoming).length})</TabsTrigger>
-          <TabsTrigger value="completed">Completed ({filter(SITE_VISITS.completed).length})</TabsTrigger>
+          <TabsTrigger value="upcoming">Upcoming ({filter(upcoming).length})</TabsTrigger>
+          <TabsTrigger value="completed">Completed ({filter(completed).length})</TabsTrigger>
         </TabsList>
         <TabsContent value="upcoming" className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filter(SITE_VISITS.upcoming).map((v) => (
-            <VisitCard key={v.id} visit={v} upcoming />
-          ))}
+          {loading
+            ? Array.from({ length: 3 }).map((_, i) => (
+                <Card key={i} className="border-border/60">
+                  <CardContent className="p-4 space-y-3">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-3 w-24" />
+                    <Skeleton className="h-3 w-full" />
+                    <Skeleton className="h-3 w-20" />
+                  </CardContent>
+                </Card>
+              ))
+            : filter(upcoming).length === 0
+              ? <p className="col-span-3 py-12 text-center text-sm text-muted-foreground">No upcoming site visits.</p>
+              : filter(upcoming).map((v) => <VisitCard key={v.id} visit={v} upcoming />)}
         </TabsContent>
         <TabsContent value="completed" className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filter(SITE_VISITS.completed).map((v) => (
-            <VisitCard key={v.id} visit={v} upcoming={false} />
-          ))}
+          {loading
+            ? Array.from({ length: 2 }).map((_, i) => (
+                <Card key={i} className="border-border/60">
+                  <CardContent className="p-4 space-y-3">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-3 w-24" />
+                    <Skeleton className="h-3 w-full" />
+                    <Skeleton className="h-3 w-20" />
+                  </CardContent>
+                </Card>
+              ))
+            : filter(completed).length === 0
+              ? <p className="col-span-3 py-12 text-center text-sm text-muted-foreground">No completed site visits.</p>
+              : filter(completed).map((v) => <VisitCard key={v.id} visit={v} upcoming={false} />)}
         </TabsContent>
       </Tabs>
     </div>

@@ -45,8 +45,28 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import axiosInstance from "@/lib/axiosInstance";
+
+// Map API account shape → UI user shape
+function normalizeUser(account) {
+  return {
+    id: account.id,
+    name: account.fullName || account.email,
+    email: account.email,
+    phone: account.phone || "—",
+    role: Array.isArray(account.roles) && account.roles.length > 0
+      ? account.roles[0].replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+      : "—",
+    modules: ["CRM", "Dashboard"],
+    status: account.active ? "active" : "inactive",
+    lastActive: "—",
+    tenant: account.companyName || "—",
+    tenantUuid: account.tenantUuid || "",
+  };
+}
 
 export default function UsersPage() {
+  const [users, setUsers] = useState(PLATFORM_USERS);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
@@ -54,19 +74,38 @@ export default function UsersPage() {
   const [editUser, setEditUser] = useState(null);
   const [saved, setSaved] = useState(false);
 
+  // Fetch users from API on mount
   useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 500);
-    return () => clearTimeout(t);
+    let cancelled = false;
+    axiosInstance
+      .get("/accounts")
+      .then(({ data }) => {
+        if (cancelled) return;
+        const list = Array.isArray(data?.data) ? data.data : [];
+        if (list.length > 0) {
+          setUsers(list.map(normalizeUser));
+        }
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error("Failed to fetch accounts:", err);
+        // keep mock data as fallback
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => { cancelled = true; };
   }, []);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return PLATFORM_USERS.filter((u) => {
+    return users.filter((u) => {
       const matchQ = !q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
       const matchRole = roleFilter === "all" || u.role === roleFilter;
       return matchQ && matchRole;
     });
-  }, [search, roleFilter]);
+  }, [users, search, roleFilter]);
 
   return (
     <div className="space-y-6">

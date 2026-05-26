@@ -16,22 +16,29 @@ export default function Login() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  const VALID_EMAIL = "admin@opbs.com";
+  const VALID_PASSWORD = "123456";
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!email || !password) {
       setError("Please enter both email and password.");
       return;
     }
-    
+
+    if (email !== VALID_EMAIL || password !== VALID_PASSWORD) {
+      setError("Invalid credentials. Please check your email and password.");
+      return;
+    }
+
     setIsLoading(true);
     setError("");
 
     try {
-      // Normal login redirects to role selection screen
       await login({ email, password });
       navigate("/roles");
     } catch (err) {
-      setError("Invalid credentials. Try demo mode or any valid email/password.");
+      setError("Login failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
