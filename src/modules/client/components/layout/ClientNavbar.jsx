@@ -7,33 +7,27 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/shared/context/auth-context";
 import { ROUTES } from "@/shared/constants/routes";
 import NotificationDropdown from "@/modules/client/components/design/NotificationDropdown";
 import { SEED_NOTIFICATIONS } from "@/shared/store/designWorkflowStore";
 
-export default function AdminNavbar() {
+export default function ClientNavbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [notifications, setNotifications] = useState(SEED_NOTIFICATIONS.admin);
+  const [notifications, setNotifications] = useState(SEED_NOTIFICATIONS.client);
 
-  const displayName = user?.name || "Demo User";
-  const initials = displayName
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
+  const displayName = user?.name || "Client";
+  const initials = displayName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
 
-  const markRead  = (id) => setNotifications((p) => p.map((n) => n.id === id ? { ...n, read: true } : n));
-  const clearAll  = ()   => setNotifications((p) => p.map((n) => ({ ...n, read: true })));
+  const markRead = (id) =>
+    setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, read: true } : n));
+
+  const clearAll = () =>
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
 
   return (
     <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/80 md:px-6">
@@ -44,7 +38,7 @@ export default function AdminNavbar() {
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           type="search"
-          placeholder="Search leads, projects, reports..."
+          placeholder="Search your designs, projects..."
           className="h-9 border-transparent bg-muted/40 pl-9 focus-visible:bg-background"
         />
       </div>
@@ -70,28 +64,21 @@ export default function AdminNavbar() {
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>
               <p className="text-sm font-medium">{displayName}</p>
-              <p className="text-xs text-muted-foreground">
-                {user?.email || "admin@onepath.com"}
-              </p>
+              <p className="text-xs text-muted-foreground">{user?.email || "client@example.com"}</p>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate(ROUTES.ADMIN.SETTINGS)}>
-              <User className="mr-2 h-4 w-4" />
-              Profile
+            <DropdownMenuItem onClick={() => navigate(ROUTES.CLIENT.SETTINGS)}>
+              <User className="mr-2 h-4 w-4" /> Profile
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate(ROUTES.ADMIN.SETTINGS)}>
-              <Settings className="mr-2 h-4 w-4" />
-              Settings
+            <DropdownMenuItem onClick={() => navigate(ROUTES.CLIENT.SETTINGS)}>
+              <Settings className="mr-2 h-4 w-4" /> Settings
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              onClick={() => {
-                logout();
-                navigate(ROUTES.AUTH.LOGIN);
-              }}
-              className="text-destructive focus:text-destructive">
-              <LogOut className="mr-2 h-4 w-4" />
-              Sign out
+              onClick={() => { logout(); navigate(ROUTES.AUTH.LOGIN); }}
+              className="text-destructive focus:text-destructive"
+            >
+              <LogOut className="mr-2 h-4 w-4" /> Sign out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

@@ -1,1 +1,10 @@
-export { default as Dashboard } from "./dashboard";
+export { default as ClientDashboard }      from "./ClientDashboard";
+export { default as MyDesignsPage }        from "./MyDesignsPage";
+export { default as DesignDetailPage }     from "./DesignDetailPage";
+export { default as PendingApprovalPage }  from "./PendingApprovalPage";
+export { default as RevisionHistoryPage }  from "./RevisionHistoryPage";
+export { default as ApprovedDesignsPage }  from "./ApprovedDesignsPage";
+export { default as ClientDocumentsPage }  from "./ClientDocumentsPage";
+export { default as ClientInvoicesPage }   from "./ClientInvoicesPage";
+export { default as ClientCommsPage }      from "./ClientCommsPage";
+export { default as ClientSettingsPage }   from "./ClientSettingsPage";

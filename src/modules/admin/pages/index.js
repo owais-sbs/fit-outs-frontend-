@@ -23,3 +23,12 @@ export { default as QualifiedLeadsPage } from "./QualifiedLeadsPage";
 export { default as LostLeadsPage } from "./LostLeadsPage";
 export { default as WonProjectsPage } from "./WonProjectsPage";
 export { default as ProjectsPage } from "./ProjectsPage";
+
+// Design Workflow
+export { default as DesignRequestsPage } from "./design-workflow/DesignRequestsPage";
+export { default as InProgressPage } from "./design-workflow/InProgressPage";
+export { default as InternalReviewPage } from "./design-workflow/InternalReviewPage";
+export { default as UploadDesignPage } from "./design-workflow/UploadDesignPage";
+export { default as ClientApprovalPage } from "./design-workflow/ClientApprovalPage";
+export { default as RevisionRequestsPage } from "./design-workflow/RevisionRequestsPage";
+export { default as CompletedDesignsPage } from "./design-workflow/CompletedDesignsPage";

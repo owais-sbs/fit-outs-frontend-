@@ -44,6 +44,13 @@ import {
   WonProjectsPage,
   QualifiedLeadsPage,
   ProjectsPage,
+  DesignRequestsPage,
+  InProgressPage,
+  InternalReviewPage,
+  UploadDesignPage,
+  ClientApprovalPage,
+  RevisionRequestsPage,
+  CompletedDesignsPage,
 } from "./modules/admin/pages";
 import AdminDashboard from "./modules/admin/pages/dashboard";
 import AdminSettingsPage from "./modules/admin/pages/SettingsPage";
@@ -53,7 +60,19 @@ import DesignerDashboard from "./modules/designer/pages/dashboard";
 import QASDashboard from "./modules/qas/pages/dashboard";
 import FinanceDashboard from "./modules/finance/pages/dashboard";
 import SubcontractorDashboard from "./modules/subcontractor/pages/dashboard";
-import ClientDashboard from "./modules/client/pages/dashboard";
+import {
+  ClientLayout,
+  ClientDashboard,
+  MyDesignsPage,
+  DesignDetailPage,
+  PendingApprovalPage,
+  RevisionHistoryPage,
+  ApprovedDesignsPage,
+  ClientDocumentsPage,
+  ClientInvoicesPage,
+  ClientCommsPage,
+  ClientSettingsPage,
+} from "./modules/client";
 import SalesDashboard from "./modules/sales/pages/dashboard";
 
 function App() {
@@ -126,6 +145,14 @@ function App() {
               <Route path="site-visits/schedule" element={<SiteVisitSchedulePage />} />
               <Route path="site-visits/:visitId/report" element={<SiteVisitReportPage />} />
               <Route path="settings" element={<AdminSettingsPage />} />
+              {/* Design Workflow */}
+              <Route path="design-workflow/requests" element={<DesignRequestsPage />} />
+              <Route path="design-workflow/in-progress" element={<InProgressPage />} />
+              <Route path="design-workflow/internal-review" element={<InternalReviewPage />} />
+              <Route path="design-workflow/upload" element={<UploadDesignPage />} />
+              <Route path="design-workflow/client-approval" element={<ClientApprovalPage />} />
+              <Route path="design-workflow/revisions" element={<RevisionRequestsPage />} />
+              <Route path="design-workflow/completed" element={<CompletedDesignsPage />} />
             </Route>
             <Route
               path={ROUTES.BUSINESS_OWNER.DASHBOARD}
@@ -192,11 +219,22 @@ function App() {
               element={
                 <ProtectedRoute>
                   <RoleRoute allowedRoles={[ROLES.CLIENT]}>
-                    <ClientDashboard />
+                    <ClientLayout />
                   </RoleRoute>
                 </ProtectedRoute>
               }
-            />
+            >
+              <Route index element={<ClientDashboard />} />
+              <Route path="designs"            element={<MyDesignsPage />} />
+              <Route path="designs/pending"    element={<PendingApprovalPage />} />
+              <Route path="designs/revisions"  element={<RevisionHistoryPage />} />
+              <Route path="designs/approved"   element={<ApprovedDesignsPage />} />
+              <Route path="designs/:id"        element={<DesignDetailPage />} />
+              <Route path="documents"          element={<ClientDocumentsPage />} />
+              <Route path="invoices"           element={<ClientInvoicesPage />} />
+              <Route path="communications"     element={<ClientCommsPage />} />
+              <Route path="settings"           element={<ClientSettingsPage />} />
+            </Route>
             <Route
               path={ROUTES.SALES.DASHBOARD}
               element={

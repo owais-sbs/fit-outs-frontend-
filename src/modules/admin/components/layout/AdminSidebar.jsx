@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { 
+import {
   Sparkles, LayoutDashboard, Target, Users, MapPin, BarChart3, Settings,
   List, CalendarDays, Link, CheckCircle, XCircle, Activity,
-  Briefcase, DollarSign, FileText, MessageSquare, Bell, ChevronRight
+  Briefcase, DollarSign, FileText, MessageSquare, Bell, ChevronRight,
+  Palette, Inbox, Layers, Eye, Upload, UserCheck, RotateCcw, Award,
 } from "lucide-react";
 import {
   Sidebar,
@@ -23,6 +24,8 @@ import {
 } from "@/components/ui/sidebar";
 import { ROUTES } from "@/shared/constants/routes";
 import { useAuth } from "@/shared/context/auth-context";
+
+// ─── Nav data ────────────────────────────────────────────────────────────────
 
 const ADMIN_NAV_GROUPS = [
   {
@@ -44,6 +47,7 @@ const ADMIN_NAV_GROUPS = [
       { label: "Payments", href: ROUTES.ADMIN.PAYMENTS, icon: DollarSign },
       { label: "Proposals", href: ROUTES.ADMIN.PROPOSALS, icon: FileText },
       { label: "Negotiations", href: ROUTES.ADMIN.NEGOTIATIONS, icon: MessageSquare },
+      { label: "DESIGN_WORKFLOW_PLACEHOLDER" },
       { label: "Notifications", href: ROUTES.ADMIN.NOTIFICATIONS, icon: Bell },
       { label: "Settings", href: ROUTES.ADMIN.SETTINGS, icon: Settings },
     ],
@@ -58,6 +62,18 @@ const LEADS_SUB_ITEMS = [
   { label: "Lost Leads", href: ROUTES.ADMIN.LOST_LEADS, icon: XCircle },
   { label: "Sources", href: ROUTES.ADMIN.LEAD_SOURCES, icon: Link },
 ];
+
+const DESIGN_WORKFLOW_SUB_ITEMS = [
+  { label: "Design Requests", href: ROUTES.ADMIN.DESIGN_REQUESTS, icon: Inbox },
+  { label: "In Progress", href: ROUTES.ADMIN.DESIGN_IN_PROGRESS, icon: Layers },
+  { label: "Internal Review", href: ROUTES.ADMIN.DESIGN_INTERNAL_REVIEW, icon: Eye },
+  { label: "Upload Design", href: ROUTES.ADMIN.DESIGN_UPLOAD, icon: Upload },
+  { label: "Client Approval", href: ROUTES.ADMIN.DESIGN_CLIENT_APPROVAL, icon: UserCheck },
+  { label: "Revision Requests", href: ROUTES.ADMIN.DESIGN_REVISIONS, icon: RotateCcw },
+  { label: "Completed Designs", href: ROUTES.ADMIN.DESIGN_COMPLETED, icon: Award },
+];
+
+// ─── Components ──────────────────────────────────────────────────────────────
 
 function AdminNavItem({ item }) {
   const location = useLocation();
@@ -80,7 +96,7 @@ function AdminNavItem({ item }) {
 function LeadsSubmenu() {
   const location = useLocation();
   const [open, setOpen] = useState(
-    LEADS_SUB_ITEMS.some((item) => 
+    LEADS_SUB_ITEMS.some((item) =>
       location.pathname === item.href || location.pathname.startsWith(`${item.href}/`)
     )
   );
@@ -90,17 +106,11 @@ function LeadsSubmenu() {
 
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton
-        onClick={() => setOpen(!open)}
-        isActive={isAnyActive}
-        tooltip="Leads"
-      >
+      <SidebarMenuButton onClick={() => setOpen(!open)} isActive={isAnyActive} tooltip="Leads">
         <Users className="h-4 w-4" />
         <span>Leads</span>
         <ChevronRight
-          className={`ml-auto h-3 w-3 transition-transform duration-200 ${
-            open ? "rotate-90" : ""
-          }`}
+          className={`ml-auto h-3 w-3 transition-transform duration-200 ${open ? "rotate-90" : ""}`}
         />
       </SidebarMenuButton>
       {open && (
@@ -127,8 +137,59 @@ function LeadsSubmenu() {
   );
 }
 
+function DesignWorkflowSubmenu() {
+  const location = useLocation();
+  const [open, setOpen] = useState(
+    DESIGN_WORKFLOW_SUB_ITEMS.some((item) =>
+      location.pathname === item.href || location.pathname.startsWith(`${item.href}/`)
+    )
+  );
+  const isAnyActive = DESIGN_WORKFLOW_SUB_ITEMS.some((item) =>
+    location.pathname === item.href || location.pathname.startsWith(`${item.href}/`)
+  );
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        onClick={() => setOpen(!open)}
+        isActive={isAnyActive}
+        tooltip="Design Workflow"
+      >
+        <Palette className="h-4 w-4" />
+        <span>Design Workflow</span>
+        <ChevronRight
+          className={`ml-auto h-3 w-3 transition-transform duration-200 ${open ? "rotate-90" : ""}`}
+        />
+      </SidebarMenuButton>
+      {open && (
+        <SidebarMenuSub>
+          {DESIGN_WORKFLOW_SUB_ITEMS.map((item) => {
+            const Icon = item.icon;
+            const isSubActive =
+              location.pathname === item.href ||
+              location.pathname.startsWith(`${item.href}/`);
+            return (
+              <SidebarMenuSubItem key={item.href}>
+                <SidebarMenuSubButton asChild isActive={isSubActive}>
+                  <NavLink to={item.href}>
+                    <Icon className="h-4 w-4" />
+                    <span>{item.label}</span>
+                  </NavLink>
+                </SidebarMenuSubButton>
+              </SidebarMenuSubItem>
+            );
+          })}
+        </SidebarMenuSub>
+      )}
+    </SidebarMenuItem>
+  );
+}
+
+// ─── Main sidebar ─────────────────────────────────────────────────────────────
+
 export default function AdminSidebar() {
   const { user, role } = useAuth();
+
   return (
     <Sidebar collapsible="icon" variant="inset">
       <SidebarHeader className="border-b border-sidebar-border">
@@ -146,6 +207,7 @@ export default function AdminSidebar() {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
+
       <SidebarContent>
         {ADMIN_NAV_GROUPS.map((group) => (
           <SidebarGroup key={group.label}>
@@ -157,6 +219,8 @@ export default function AdminSidebar() {
                 {group.items.map((item) =>
                   item.label === "LEADS_PLACEHOLDER" ? (
                     <LeadsSubmenu key="leads" />
+                  ) : item.label === "DESIGN_WORKFLOW_PLACEHOLDER" ? (
+                    <DesignWorkflowSubmenu key="design-workflow" />
                   ) : (
                     <AdminNavItem key={item.href} item={item} />
                   )
@@ -166,6 +230,7 @@ export default function AdminSidebar() {
           </SidebarGroup>
         ))}
       </SidebarContent>
+
       <SidebarFooter className="border-t border-sidebar-border p-4">
         <div className="flex items-center gap-3 rounded-lg border border-border/50 bg-muted/30 p-2 group-data-[collapsible=icon]:hidden">
           <div className="flex h-8 w-8 items-center justify-center rounded-md bg-background shadow-sm">
@@ -179,6 +244,7 @@ export default function AdminSidebar() {
           </div>
         </div>
       </SidebarFooter>
+
       <SidebarRail />
     </Sidebar>
   );
