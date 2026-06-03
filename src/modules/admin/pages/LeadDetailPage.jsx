@@ -1,12 +1,14 @@
-import { useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useParams } from "react-router-dom";
 import {
   ArrowLeft, Calendar, MessageSquare, MapPin, Phone, Mail,
   Building2, DollarSign, Clock, Paperclip, FileText,
   CheckCircle2, Circle, Edit, Zap, CalendarPlus, User,
 } from "lucide-react";
 import { ROUTES } from "@/shared/constants/routes";
-import { getLeadById, LEAD_DETAIL_EXTRA, PIPELINE_COLUMNS } from "../data/leads";
+import { getLeadById as getMockLeadById, LEAD_DETAIL_EXTRA, PIPELINE_COLUMNS } from "../data/leads";
+import { normalizeLead } from "../api/leads.api";
+import axiosInstance from "@/lib/axiosInstance";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -75,8 +77,9 @@ function SidebarRow({ label, value, icon: Icon }) {
 
 export default function LeadDetailPage() {
   const { leadId } = useParams();
-  const navigate = useNavigate();
-  const lead = getLeadById(leadId);
+  const [apiLead, setApiLead] = useState(null);
+  const [loadingLead, setLoadingLead] = useState(true);
+  const lead = apiLead || getMockLeadById(leadId);
   const extra = LEAD_DETAIL_EXTRA[leadId] || {
     timeline: [], notes: [], followUps: [], siteVisit: null, attachments: [], activities: [],
   };
@@ -86,6 +89,37 @@ export default function LeadDetailPage() {
   const [followUpOpen, setFollowUpOpen] = useState(false);
   const [noteText, setNoteText] = useState("");
   const [notes, setNotes] = useState(extra.notes);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoadingLead(true);
+    axiosInstance.get(`/leads/${leadId}`)
+      .then(({ data }) => {
+        if (!cancelled && data?.data) setApiLead(normalizeLead(data.data));
+      })
+      .catch(() => {
+        if (!cancelled) setApiLead(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingLead(false);
+      });
+    return () => { cancelled = true; };
+  }, [leadId]);
+
+  useEffect(() => {
+    if (lead?.stage) setStatus(lead.stage);
+  }, [lead?.stage]);
+
+  if (!lead && loadingLead) {
+    return (
+      <div className="space-y-4">
+        <Button variant="ghost" size="sm" asChild>
+          <Link to={ROUTES.ADMIN.PIPELINE}><ArrowLeft className="mr-2 h-4 w-4" />Pipeline</Link>
+        </Button>
+        <Card><CardContent className="py-16 text-center text-muted-foreground">Loading lead...</CardContent></Card>
+      </div>
+    );
+  }
 
   if (!lead) {
     return (

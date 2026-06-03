@@ -11,10 +11,13 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import axiosInstance from "@/lib/axiosInstance";
+import { fetchAllLeads } from "../api/leads.api";
+import { SALES_REPS } from "../data/leads";
 
 // Map API shape → UI shape
-function normalizeSiteVisit(item) {
+function normalizeSiteVisit(item, leadMap = new Map()) {
   const loc = item.locationDetails || {};
+  const lead = leadMap.get(String(item.leadId));
   const locationStr = [
     loc.addressLine1,
     loc.buildingName,
@@ -40,11 +43,11 @@ function normalizeSiteVisit(item) {
   return {
     id: item.uuid,
     uuid: item.uuid,
-    client: `Lead #${item.leadId}`,
-    company: loc.buildingName || loc.area || "—",
+    client: lead?.clientName || `Lead #${item.leadId}`,
+    company: lead?.company || loc.buildingName || loc.area || "—",
     date: dateTime,
     location: locationStr,
-    assignee: `User #${item.assignedTo}`,
+    assignee: SALES_REPS[Number(item.assignedTo) - 1] || `User #${item.assignedTo}`,
     status: item.status,
     isCompleted,
     countdownHours,
@@ -91,14 +94,12 @@ function VisitCard({ visit, upcoming }) {
             </Avatar>
             <span className="text-xs">{visit.assignee}</span>
           </div>
-          {!upcoming && visit.reportId && (
-            <Button variant="outline" size="sm" className="gap-1" asChild>
-              <Link to={ROUTES.ADMIN.SITE_VISIT_REPORT.replace(":visitId", visit.reportId)}>
-                <FileText className="h-3 w-3" />
-                Report
-              </Link>
-            </Button>
-          )}
+          <Button variant="outline" size="sm" className="gap-1" asChild>
+            <Link to={ROUTES.ADMIN.SITE_VISIT_REPORT.replace(":visitId", visit.uuid)}>
+              <FileText className="h-3 w-3" />
+              Report
+            </Link>
+          </Button>
         </div>
       </CardContent>
     </Card>
@@ -113,12 +114,15 @@ export default function SiteVisitsPage() {
 
   useEffect(() => {
     let cancelled = false;
-    axiosInstance
-      .get("/site-visits/GetAllSite-Visits")
-      .then(({ data }) => {
+    Promise.all([
+      axiosInstance.get("/site-visits/GetAllSite-Visits"),
+      fetchAllLeads().catch(() => []),
+    ])
+      .then(([{ data }, leads]) => {
         if (cancelled) return;
+        const leadMap = new Map(leads.map((lead) => [String(lead.id), lead]));
         const list = Array.isArray(data?.data) ? data.data : [];
-        const normalized = list.map(normalizeSiteVisit);
+        const normalized = list.map((item) => normalizeSiteVisit(item, leadMap));
         setUpcoming(normalized.filter((v) => !v.isCompleted));
         setCompleted(normalized.filter((v) => v.isCompleted));
       })

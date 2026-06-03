@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, Check, ImagePlus, LockKeyhole, Paperclip } from "lucide-react";
 import { ROUTES } from "@/shared/constants/routes";
 import { REPORT_CHECKLIST } from "../data/site-visits";
+import axiosInstance from "@/lib/axiosInstance";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,21 +23,106 @@ const INITIAL_NOTES =
 
 const MOCK_PHOTOS = ["Reception", "Services", "Floor plan"];
 
+function fallbackChecklistItems() {
+  return REPORT_CHECKLIST.map((item) => ({
+    id: item.id,
+    label: item.label,
+    required: item.required,
+  }));
+}
+
+function normalizeTemplateItem(item) {
+  return {
+    id: String(item.uuid),
+    label: item.question || item.sectionName || "Checklist item",
+    required: Boolean(item.isRequired),
+    sectionName: item.sectionName || "",
+  };
+}
+
+function locationLabel(locationDetails = {}) {
+  return [
+    locationDetails.addressLine1,
+    locationDetails.buildingName,
+    locationDetails.area,
+    locationDetails.city,
+    locationDetails.state,
+  ].filter(Boolean).join(", ") || "Location not specified";
+}
+
 export default function SiteVisitReportPage() {
   const { visitId } = useParams();
-  const [submitted, setSubmitted] = useState(visitId === "v4" || visitId === "v5");
+  const [submitted, setSubmitted] = useState(false);
   const [submitOpen, setSubmitOpen] = useState(false);
-  const [notes, setNotes] = useState(submitted ? INITIAL_NOTES : "");
+  const [notes, setNotes] = useState("");
+  const [visit, setVisit] = useState(null);
+  const [lead, setLead] = useState(null);
+  const [checklistItems, setChecklistItems] = useState(fallbackChecklistItems);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [conversion, setConversion] = useState(null);
   const [checks, setChecks] = useState(() =>
-    Object.fromEntries(REPORT_CHECKLIST.map((item) => [item.id, submitted]))
+    Object.fromEntries(fallbackChecklistItems().map((item) => [item.id, false]))
   );
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+
+    axiosInstance.get(`/site-visits/GetSiteVisitByUuid/${visitId}`)
+      .then(async ({ data }) => {
+        if (cancelled) return;
+        const visitData = data?.data;
+        setVisit(visitData);
+        const completed = String(visitData?.status || "").toUpperCase() === "COMPLETED";
+        setSubmitted(completed);
+        setNotes(completed ? (visitData?.notes || INITIAL_NOTES) : "");
+
+        const [templateResult, leadResult] = await Promise.allSettled([
+          visitData?.checklistTemplateUuid
+            ? axiosInstance.get(`/checklist-templates/GetCheckListByUuid/${visitData.checklistTemplateUuid}`)
+            : Promise.resolve({ data: { data: null } }),
+          visitData?.leadId
+            ? axiosInstance.get(`/leads/${visitData.leadId}`)
+            : Promise.resolve({ data: { data: null } }),
+        ]);
+
+        if (cancelled) return;
+        const template = templateResult.status === "fulfilled" ? templateResult.value.data?.data : null;
+        const templateItems = Array.isArray(template?.items) && template.items.length > 0
+          ? template.items.map(normalizeTemplateItem)
+          : fallbackChecklistItems();
+        setChecklistItems(templateItems);
+        setChecks(Object.fromEntries(templateItems.map((item) => [item.id, completed])));
+
+        const leadData = leadResult.status === "fulfilled" ? leadResult.value.data?.data : null;
+        setLead(leadData);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        const completedMockVisit = visitId === "v4" || visitId === "v5";
+        const fallbackItems = fallbackChecklistItems();
+        setChecklistItems(fallbackItems);
+        setChecks(Object.fromEntries(fallbackItems.map((item) => [item.id, completedMockVisit])));
+        setSubmitted(completedMockVisit);
+        setNotes(completedMockVisit ? INITIAL_NOTES : "");
+        setError(err.response?.data?.error || err.response?.data?.message || "Unable to load site visit report details");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [visitId]);
 
   const completedCount = useMemo(
     () => Object.values(checks).filter(Boolean).length,
     [checks]
   );
-  const progress = Math.round((completedCount / REPORT_CHECKLIST.length) * 100);
-  const requiredMissing = REPORT_CHECKLIST.filter((item) => item.required && !checks[item.id]);
+  const progress = checklistItems.length > 0 ? Math.round((completedCount / checklistItems.length) * 100) : 0;
+  const requiredMissing = checklistItems.filter((item) => item.required && !checks[item.id]);
   const readOnly = submitted;
   const canSubmit = requiredMissing.length === 0;
 
@@ -44,6 +130,37 @@ export default function SiteVisitReportPage() {
     if (readOnly) return;
     setChecks((current) => ({ ...current, [id]: !current[id] }));
   };
+
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    setError("");
+    try {
+      const { data } = await axiosInstance.post(`/site-visits/EmployeeSiteVisitByUuid/${visitId}/report`, {
+        outcome: "QUALIFIED",
+        notes,
+        items: checklistItems.map((item) => ({
+          templateItemUuid: item.id,
+          response: checks[item.id] ? "YES" : "",
+          remarks: "",
+          photoUrls: [],
+        })),
+      });
+
+      setConversion(data?.data || null);
+      setSubmitted(true);
+      setSubmitOpen(false);
+    } catch (err) {
+      setError(err.response?.data?.error || err.response?.data?.message || "Unable to submit site visit report");
+      setSubmitOpen(false);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const clientName = lead?.clientName || (visit ? `Lead #${visit.leadId}` : "Client");
+  const companyName = lead?.company || visit?.locationDetails?.buildingName || "—";
+  const visitLocation = visit ? locationLabel(visit.locationDetails) : "Location not specified";
+  const assignee = visit?.assignedTo ? `User #${visit.assignedTo}` : "—";
 
   return (
     <div className="space-y-6 pb-28">
@@ -78,6 +195,19 @@ export default function SiteVisitReportPage() {
         </Card>
       )}
 
+      {error && (
+        <Card className="border-destructive/30 bg-destructive/5">
+          <CardContent className="p-4 text-sm text-destructive">{error}</CardContent>
+        </Card>
+      )}
+
+      {loading && (
+        <Card>
+          <CardContent className="py-12 text-center text-sm text-muted-foreground">Loading report details...</CardContent>
+        </Card>
+      )}
+
+      {!loading && (
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,0.9fr)]">
         <div className="space-y-6">
           <Card className="border-border/60 shadow-sm">
@@ -87,19 +217,19 @@ export default function SiteVisitReportPage() {
             <CardContent className="grid gap-4 text-sm sm:grid-cols-2">
               <div>
                 <p className="text-muted-foreground">Client</p>
-                <p className="font-medium">Claire Moss</p>
+                <p className="font-medium">{clientName}</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Company</p>
-                <p className="font-medium">Moss Interiors</p>
+                <p className="font-medium">{companyName}</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Location</p>
-                <p className="font-medium">200 Crown St, Surry Hills</p>
+                <p className="font-medium">{visitLocation}</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Inspector</p>
-                <p className="font-medium">Lisa Park</p>
+                <p className="font-medium">{assignee}</p>
               </div>
             </CardContent>
           </Card>
@@ -109,7 +239,7 @@ export default function SiteVisitReportPage() {
               <CardTitle className="text-base">Checklist completion</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {REPORT_CHECKLIST.map((item) => {
+              {checklistItems.map((item) => {
                 const checked = !!checks[item.id];
                 const isRequiredMissing = item.required && !checked && !readOnly;
 
@@ -127,6 +257,7 @@ export default function SiteVisitReportPage() {
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="text-sm font-medium">{item.label}</p>
+                        {item.sectionName && <Badge variant="outline" className="text-[10px]">{item.sectionName}</Badge>}
                         {item.required && (
                           <Badge variant={checked ? "success" : "destructive"} className="text-[10px]">
                             Required
@@ -232,6 +363,7 @@ export default function SiteVisitReportPage() {
           </Card>
         </div>
       </div>
+      )}
 
       {!readOnly && (
         <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-border bg-background/95 p-4 backdrop-blur md:left-[var(--sidebar-width)]">
@@ -261,12 +393,41 @@ export default function SiteVisitReportPage() {
             </Button>
             <Button
               onClick={() => {
-                setSubmitted(true);
-                setSubmitOpen(false);
+                handleSubmit();
               }}
+              disabled={submitting}
             >
-              Submit
+              {submitting ? "Submitting..." : "Submit"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!conversion} onOpenChange={(open) => { if (!open) setConversion(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Report submitted</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <p className="text-muted-foreground">The site visit is complete and the linked lead is now a client.</p>
+            {conversion?.clientEmail && (
+              <div className="rounded-lg border border-border/60 p-3">
+                <p className="text-xs text-muted-foreground">Client email</p>
+                <p className="font-medium">{conversion.clientEmail}</p>
+              </div>
+            )}
+            {conversion?.temporaryPassword && (
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+                <p className="text-xs text-muted-foreground">Temporary password</p>
+                <p className="font-mono text-base font-semibold">{conversion.temporaryPassword}</p>
+              </div>
+            )}
+            {!conversion?.temporaryPassword && (
+              <p className="text-xs text-muted-foreground">An existing account was reused, so no new password was generated.</p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setConversion(null)}>Done</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

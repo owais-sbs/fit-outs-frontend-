@@ -22,6 +22,7 @@ import {
   PRIORITIES,
   SALES_REPS,
 } from "../data/leads";
+import { createLead } from "../api/leads.api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -113,28 +114,38 @@ export default function LeadIntakePage() {
   const [errors, setErrors] = useState({});
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   const update = (field, value) => {
     setForm((f) => ({ ...f, [field]: value }));
     if (errors[field]) setErrors((e) => { const next = { ...e }; delete next[field]; return next; });
   };
 
-  const handleSave = () => {
+  const submitLead = async () => {
     const errs = validate(form);
     setErrors(errs);
-    if (Object.keys(errs).length > 0) return;
+    if (Object.keys(errs).length > 0) return null;
+
     setSubmitting(true);
-    setTimeout(() => {
+    setSubmitError("");
+    try {
+      return await createLead(form);
+    } catch (error) {
+      setSubmitError(error.response?.data?.error || error.response?.data?.message || "Unable to save lead");
+      return null;
+    } finally {
       setSubmitting(false);
-      setConfirmOpen(true);
-    }, 600);
+    }
   };
 
-  const handleSaveAndContinue = () => {
-    const errs = validate(form);
-    setErrors(errs);
-    if (Object.keys(errs).length > 0) return;
-    navigate(ROUTES.ADMIN.PIPELINE);
+  const handleSave = async () => {
+    const savedLead = await submitLead();
+    if (savedLead) setConfirmOpen(true);
+  };
+
+  const handleSaveAndContinue = async () => {
+    const savedLead = await submitLead();
+    if (savedLead) navigate(ROUTES.ADMIN.PIPELINE);
   };
 
   const filledCount = Object.values(form).filter((v) => v.trim?.() || v).length;
@@ -446,6 +457,7 @@ export default function LeadIntakePage() {
                 {Object.keys(errors).length} field{Object.keys(errors).length > 1 ? "s" : ""} need attention
               </span>
             )}
+            {submitError && <span className="text-destructive">{submitError}</span>}
           </p>
           <div className="ml-auto flex flex-wrap items-center gap-2">
             <Button
@@ -458,6 +470,7 @@ export default function LeadIntakePage() {
               variant="outline"
               className="gap-2"
               onClick={handleSaveAndContinue}
+              disabled={submitting}
             >
               Save &amp; continue
               <ArrowRight className="h-4 w-4" />
@@ -506,7 +519,7 @@ export default function LeadIntakePage() {
           <DialogFooter className="gap-2 sm:gap-0">
             <Button
               variant="outline"
-              onClick={() => { setConfirmOpen(false); setForm(EMPTY_FORM); setErrors({}); }}
+              onClick={() => { setConfirmOpen(false); setForm(EMPTY_FORM); setErrors({}); setSubmitError(""); }}
             >
               Add another lead
             </Button>
