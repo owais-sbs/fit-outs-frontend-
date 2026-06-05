@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, Upload, CheckCircle2, RotateCcw, X } from "lucide-react";
+import { Bell, Upload, CheckCircle2, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuTrigger,

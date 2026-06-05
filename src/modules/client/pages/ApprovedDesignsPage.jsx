@@ -4,7 +4,6 @@ import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SEED_CLIENT_DESIGNS } from "@/shared/store/designWorkflowStore";
-import StatusBadge from "@/modules/client/components/design/StatusBadge";
 
 function formatDate(d) {
   return new Intl.DateTimeFormat("en-AU", { day: "numeric", month: "short", year: "numeric" }).format(new Date(d));

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sparkles, LayoutDashboard, ChevronRight,
-  Palette, Inbox, CheckCircle2, RotateCcw, Award,
+  Palette, Inbox, RotateCcw, Award,
   FileText, CreditCard, MessageSquare, Settings,
 } from "lucide-react";
 import {

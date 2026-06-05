@@ -1,11 +1,10 @@
 import { useState } from "react";
 import {
-  BarChart3, DollarSign, Target, Users,
+  BarChart3, DollarSign, Target,
   TrendingUp, MapPin, Trophy,
 } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import AnalyticsToolbar from "@/modules/shared/components/AnalyticsToolbar";
-import KpiGrid from "@/modules/shared/components/KpiGrid";
 import AnalyticsChartCard from "@/modules/super-admin/components/dashboard/AnalyticsChartCard";
 import DashboardSection from "@/modules/super-admin/components/dashboard/DashboardSection";
 import {
@@ -50,22 +49,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
-  CRM_REPORT_KPIS,
   PIPELINE_PERF_DATA,
   PIPELINE_PERF_CONFIG,
   LEAD_SOURCE_DATA,
   LEAD_SOURCE_CONFIG,
-  TEAM_PERF_DATA,
-  TEAM_PERF_CONFIG,
 } from "../data/crm-reports";
-
-// ─── Icon map ─────────────────────────────────────────────────────────────────
-const ICONS = {
-  pipeline:   BarChart3,
-  won:        DollarSign,
-  conversion: Target,
-  cycle:      Users,
-};
 
 // ─── Forecast table ──────────────────────────────────────────────────────────
 const FORECAST_ROWS = [

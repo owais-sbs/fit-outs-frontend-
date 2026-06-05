@@ -1,7 +1,7 @@
 import { FileText, Download, Eye, Search, FolderOpen } from "lucide-react";
 import { useState } from "react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

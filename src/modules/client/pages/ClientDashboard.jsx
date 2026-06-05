@@ -1,8 +1,7 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Palette, Clock, CheckCircle2, RotateCcw, ArrowRight, Calendar } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SEED_CLIENT_DESIGNS } from "@/shared/store/designWorkflowStore";
 import { ROUTES } from "@/shared/constants/routes";

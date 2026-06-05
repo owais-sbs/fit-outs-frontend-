@@ -3,7 +3,6 @@ import { Calendar, Send, RefreshCw, GripVertical } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import { IN_PROGRESS_DESIGNS, KANBAN_COLUMNS } from "../../data/design-workflow";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";

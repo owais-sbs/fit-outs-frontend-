@@ -5,10 +5,8 @@ import { SEED_CLIENT_DESIGNS } from "@/shared/store/designWorkflowStore";
 import DesignCard from "@/modules/client/components/design/DesignCard";
 import ApprovalModal from "@/modules/client/components/design/ApprovalModal";
 import RevisionModal from "@/modules/client/components/design/RevisionModal";
-import { useNavigate } from "react-router-dom";
 
 export default function PendingApprovalPage() {
-  const navigate = useNavigate();
   const [designs, setDesigns] = useState(
     SEED_CLIENT_DESIGNS.filter((d) => d.status === "Pending Approval")
   );

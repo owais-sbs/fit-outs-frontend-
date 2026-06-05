@@ -30,7 +30,6 @@ import { Button } from "@/components/ui/button";
 import {
   PIPELINE_PERF_DATA, PIPELINE_PERF_CONFIG,
   LEAD_SOURCE_DATA, LEAD_SOURCE_CONFIG,
-  TEAM_PERF_DATA, TEAM_PERF_CONFIG,
 } from "../data/crm-reports";
 
 // ─── Extended KPIs (6 cards) ──────────────────────────────────────────────────
