@@ -1,8 +1,30 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Check, ImagePlus, LockKeyhole, Paperclip } from "lucide-react";
+import {
+  ArrowLeft,
+  Briefcase,
+  Building2,
+  Calendar,
+  CalendarClock,
+  Check,
+  ClipboardList,
+  Clock3,
+  IndianRupee,
+  ImagePlus,
+  LockKeyhole,
+  Mail,
+  MapPin,
+  Navigation2,
+  Paperclip,
+  Phone,
+  User,
+} from "lucide-react";
+import L from "leaflet";
+import { MapContainer, Marker, TileLayer } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
 import { ROUTES } from "@/shared/constants/routes";
 import { REPORT_CHECKLIST } from "../data/site-visits";
+import { SALES_REPS } from "../data/leads";
 import axiosInstance from "@/lib/axiosInstance";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -10,6 +32,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import {
   Dialog,
   DialogContent,
@@ -17,6 +40,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+
+import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
+import markerIcon from "leaflet/dist/images/marker-icon.png";
+import markerShadow from "leaflet/dist/images/marker-shadow.png";
+
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: markerIcon2x,
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow,
+});
 
 const INITIAL_NOTES =
   "Ceiling grid is suitable for LED panels. Client requested premium finish in reception and a clear path for cable runs.";
@@ -40,14 +73,77 @@ function normalizeTemplateItem(item) {
   };
 }
 
-function locationLabel(locationDetails = {}) {
-  return [
+function fullAddress(locationDetails = {}) {
+  const parts = [
     locationDetails.addressLine1,
+    locationDetails.addressLine2,
     locationDetails.buildingName,
+    locationDetails.floor && `Floor ${locationDetails.floor}`,
+    locationDetails.unitNumber && `Unit ${locationDetails.unitNumber}`,
+    locationDetails.landmark,
     locationDetails.area,
     locationDetails.city,
     locationDetails.state,
-  ].filter(Boolean).join(", ") || "Location not specified";
+    locationDetails.pincode,
+    locationDetails.country,
+  ].filter(Boolean);
+  return parts.length > 0 ? parts.join(", ") : "Location not specified";
+}
+
+function formatScheduledDateTime(date, time) {
+  if (!date) return "Not scheduled";
+  try {
+    const iso = time ? `${date}T${time}` : date;
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return `${date}${time ? ` at ${time}` : ""}`;
+    return new Intl.DateTimeFormat("en-AU", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(d);
+  } catch {
+    return `${date}${time ? ` at ${time}` : ""}`;
+  }
+}
+
+function formatTime(time) {
+  if (!time) return "—";
+  const [hours, minutes] = String(time).split(":");
+  const h = Number(hours);
+  if (!Number.isFinite(h)) return time;
+  const period = h >= 12 ? "PM" : "AM";
+  const display = h % 12 === 0 ? 12 : h % 12;
+  return `${display}:${minutes || "00"} ${period}`;
+}
+
+function formatBudget(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return "—";
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(n);
+}
+
+function statusBadgeVariant(status = "") {
+  const s = String(status).toUpperCase();
+  if (s === "COMPLETED") return "success";
+  if (s === "CANCELLED") return "destructive";
+  if (s === "IN_PROGRESS") return "default";
+  return "warning";
+}
+
+function statusLabel(status = "") {
+  if (!status) return "Pending";
+  return String(status)
+    .toLowerCase()
+    .split("_")
+    .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+    .join(" ");
 }
 
 export default function SiteVisitReportPage() {
@@ -57,6 +153,7 @@ export default function SiteVisitReportPage() {
   const [notes, setNotes] = useState("");
   const [visit, setVisit] = useState(null);
   const [lead, setLead] = useState(null);
+  const [template, setTemplate] = useState(null);
   const [checklistItems, setChecklistItems] = useState(fallbackChecklistItems);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -78,7 +175,7 @@ export default function SiteVisitReportPage() {
         setVisit(visitData);
         const completed = String(visitData?.status || "").toUpperCase() === "COMPLETED";
         setSubmitted(completed);
-        setNotes(completed ? (visitData?.notes || INITIAL_NOTES) : "");
+        setNotes(visitData?.notes || (completed ? INITIAL_NOTES : ""));
 
         const [templateResult, leadResult] = await Promise.allSettled([
           visitData?.checklistTemplateUuid
@@ -90,9 +187,10 @@ export default function SiteVisitReportPage() {
         ]);
 
         if (cancelled) return;
-        const template = templateResult.status === "fulfilled" ? templateResult.value.data?.data : null;
-        const templateItems = Array.isArray(template?.items) && template.items.length > 0
-          ? template.items.map(normalizeTemplateItem)
+        const templateData = templateResult.status === "fulfilled" ? templateResult.value.data?.data : null;
+        setTemplate(templateData);
+        const templateItems = Array.isArray(templateData?.items) && templateData.items.length > 0
+          ? templateData.items.map(normalizeTemplateItem)
           : fallbackChecklistItems();
         setChecklistItems(templateItems);
         setChecks(Object.fromEntries(templateItems.map((item) => [item.id, completed])));
@@ -157,10 +255,19 @@ export default function SiteVisitReportPage() {
     }
   };
 
-  const clientName = lead?.clientName || (visit ? `Lead #${visit.leadId}` : "Client");
+  const clientName = lead?.clientName || "Client";
   const companyName = lead?.company || visit?.locationDetails?.buildingName || "—";
-  const visitLocation = visit ? locationLabel(visit.locationDetails) : "Location not specified";
-  const assignee = visit?.assignedTo ? `User #${visit.assignedTo}` : "—";
+  const assigneeIndex = Number(visit?.assignedTo) - 1;
+  const assignee = Number.isFinite(assigneeIndex) && SALES_REPS[assigneeIndex]
+    ? SALES_REPS[assigneeIndex]
+    : "Unassigned";
+  const templateName = template?.name && template.name !== "string" ? template.name : "Standard inspection checklist";
+  const latitude = Number(visit?.latitude);
+  const longitude = Number(visit?.longitude);
+  const hasCoords = Number.isFinite(latitude) && Number.isFinite(longitude);
+  const mapPosition = hasCoords ? [latitude, longitude] : null;
+  const scheduledLabel = formatScheduledDateTime(visit?.scheduledDate, visit?.scheduledTime);
+  const address = visit ? fullAddress(visit.locationDetails) : "Location not specified";
 
   return (
     <div className="space-y-6 pb-28">
@@ -174,16 +281,17 @@ export default function SiteVisitReportPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Site visit report</h1>
-          <p className="text-muted-foreground">Visit {visitId} - Commercial fit-out inspection</p>
+          <p className="text-muted-foreground">
+            {clientName}{companyName && companyName !== "—" ? ` · ${companyName}` : ""} — {scheduledLabel}
+          </p>
         </div>
-        {readOnly ? (
-          <Badge variant="success" className="gap-1">
-            <Check className="h-3 w-3" />
-            Submitted
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant={statusBadgeVariant(visit?.status)} className="gap-1">
+            {readOnly && <Check className="h-3 w-3" />}
+            {statusLabel(visit?.status) || "Pending"}
           </Badge>
-        ) : (
-          <Badge variant="warning">{progress}% complete</Badge>
-        )}
+          {!readOnly && <Badge variant="warning">{progress}% complete</Badge>}
+        </div>
       </div>
 
       {readOnly && (
@@ -208,35 +316,243 @@ export default function SiteVisitReportPage() {
       )}
 
       {!loading && (
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,0.9fr)]">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(340px,0.9fr)]">
         <div className="space-y-6">
           <Card className="border-border/60 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-base">Client information</CardTitle>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <User className="h-4 w-4 text-primary" />
+                Client information
+              </CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 text-sm sm:grid-cols-2">
               <div>
-                <p className="text-muted-foreground">Client</p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Client</p>
                 <p className="font-medium">{clientName}</p>
               </div>
               <div>
-                <p className="text-muted-foreground">Company</p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Company</p>
                 <p className="font-medium">{companyName}</p>
               </div>
+              {lead?.phone && (
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Phone</p>
+                  <p className="flex items-center gap-1.5 font-medium">
+                    <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                    {lead.phone}
+                  </p>
+                </div>
+              )}
+              {lead?.email && (
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Email</p>
+                  <p className="flex items-center gap-1.5 font-medium">
+                    <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                    {lead.email}
+                  </p>
+                </div>
+              )}
+              {lead?.projectType && (
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Project type</p>
+                  <p className="flex items-center gap-1.5 font-medium">
+                    <Briefcase className="h-3.5 w-3.5 text-muted-foreground" />
+                    {lead.projectType}
+                  </p>
+                </div>
+              )}
+              {lead?.budget !== undefined && Number(lead.budget) > 0 && (
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Budget</p>
+                  <p className="flex items-center gap-1.5 font-medium">
+                    <IndianRupee className="h-3.5 w-3.5 text-muted-foreground" />
+                    {formatBudget(lead.budget)}
+                  </p>
+                </div>
+              )}
+              {lead?.priority && (
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Priority</p>
+                  <Badge variant="outline" className="font-medium">
+                    {lead.priority}
+                  </Badge>
+                </div>
+              )}
+              {lead?.referenceNo && (
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Lead reference</p>
+                  <p className="font-mono text-xs font-medium">{lead.referenceNo}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/60 shadow-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <CalendarClock className="h-4 w-4 text-primary" />
+                Visit schedule
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4 text-sm sm:grid-cols-2">
               <div>
-                <p className="text-muted-foreground">Location</p>
-                <p className="font-medium">{visitLocation}</p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Date</p>
+                <p className="flex items-center gap-1.5 font-medium">
+                  <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                  {visit?.scheduledDate || "—"}
+                </p>
               </div>
               <div>
-                <p className="text-muted-foreground">Inspector</p>
-                <p className="font-medium">{assignee}</p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Time</p>
+                <p className="flex items-center gap-1.5 font-medium">
+                  <Clock3 className="h-3.5 w-3.5 text-muted-foreground" />
+                  {formatTime(visit?.scheduledTime)}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Inspector</p>
+                <p className="flex items-center gap-1.5 font-medium">
+                  <User className="h-3.5 w-3.5 text-muted-foreground" />
+                  {assignee}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Checklist template</p>
+                <p className="flex items-center gap-1.5 font-medium">
+                  <ClipboardList className="h-3.5 w-3.5 text-muted-foreground" />
+                  {templateName}
+                </p>
               </div>
             </CardContent>
           </Card>
 
           <Card className="border-border/60 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-base">Checklist completion</CardTitle>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <MapPin className="h-4 w-4 text-primary" />
+                Site location
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {hasCoords ? (
+                <div className="overflow-hidden rounded-lg border border-border/60">
+                  <MapContainer
+                    center={mapPosition}
+                    zoom={15}
+                    scrollWheelZoom={false}
+                    className="h-72 w-full"
+                  >
+                    <TileLayer
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                    <Marker position={mapPosition} />
+                  </MapContainer>
+                </div>
+              ) : (
+                <div className="flex h-48 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 text-sm text-muted-foreground">
+                  Map coordinates not provided
+                </div>
+              )}
+
+              <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
+                <div className="flex items-start gap-2">
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium leading-snug">{address}</p>
+                    {hasCoords && (
+                      <p className="mt-1 flex items-center gap-1.5 font-mono text-xs text-muted-foreground">
+                        <Navigation2 className="h-3 w-3" />
+                        {latitude.toFixed(6)}, {longitude.toFixed(6)}
+                        <a
+                          href={`https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=17/${latitude}/${longitude}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="ml-2 text-primary hover:underline"
+                        >
+                          Open in map
+                        </a>
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-3 text-sm sm:grid-cols-2">
+                {visit?.locationDetails?.buildingName && (
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Building</p>
+                    <p className="flex items-center gap-1.5 font-medium">
+                      <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                      {visit.locationDetails.buildingName}
+                    </p>
+                  </div>
+                )}
+                {visit?.locationDetails?.area && (
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Area</p>
+                    <p className="font-medium">{visit.locationDetails.area}</p>
+                  </div>
+                )}
+                {visit?.locationDetails?.city && (
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">City</p>
+                    <p className="font-medium">{visit.locationDetails.city}</p>
+                  </div>
+                )}
+                {visit?.locationDetails?.state && (
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">State</p>
+                    <p className="font-medium">{visit.locationDetails.state}</p>
+                  </div>
+                )}
+                {visit?.locationDetails?.pincode && (
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Pincode</p>
+                    <p className="font-medium">{visit.locationDetails.pincode}</p>
+                  </div>
+                )}
+                {visit?.locationDetails?.country && (
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Country</p>
+                    <p className="font-medium">{visit.locationDetails.country}</p>
+                  </div>
+                )}
+                {visit?.locationDetails?.floor && (
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Floor</p>
+                    <p className="font-medium">{visit.locationDetails.floor}</p>
+                  </div>
+                )}
+                {visit?.locationDetails?.unitNumber && (
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Unit</p>
+                    <p className="font-medium">{visit.locationDetails.unitNumber}</p>
+                  </div>
+                )}
+                {visit?.locationDetails?.landmark && (
+                  <div className="sm:col-span-2">
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Landmark</p>
+                    <p className="font-medium">{visit.locationDetails.landmark}</p>
+                  </div>
+                )}
+              </div>
+
+              {visit?.locationDetails?.accessNotes && (
+                <div className="rounded-lg border border-amber-200/60 bg-amber-50/60 p-3 text-sm dark:border-amber-500/30 dark:bg-amber-500/10">
+                  <p className="text-xs font-medium uppercase tracking-wide text-amber-700 dark:text-amber-400">Access notes</p>
+                  <p className="mt-1 text-foreground">{visit.locationDetails.accessNotes}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/60 shadow-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <ClipboardList className="h-4 w-4 text-primary" />
+                Checklist completion
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {checklistItems.map((item) => {
@@ -257,7 +573,9 @@ export default function SiteVisitReportPage() {
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="text-sm font-medium">{item.label}</p>
-                        {item.sectionName && <Badge variant="outline" className="text-[10px]">{item.sectionName}</Badge>}
+                        {item.sectionName && item.sectionName !== "string" && (
+                          <Badge variant="outline" className="text-[10px]">{item.sectionName}</Badge>
+                        )}
                         {item.required && (
                           <Badge variant={checked ? "success" : "destructive"} className="text-[10px]">
                             Required
@@ -330,35 +648,74 @@ export default function SiteVisitReportPage() {
         <div className="space-y-6">
           <Card className="sticky top-6 border-border/60 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-base">Report status</CardTitle>
+              <CardTitle className="text-base">Visit summary</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 text-sm">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">Completion</span>
-                <span className="font-medium">{progress}%</span>
+              <div className="space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <span className="text-muted-foreground">Client</span>
+                  <span className="max-w-[60%] text-right font-medium">{clientName}</span>
+                </div>
+                <div className="flex items-start justify-between gap-3">
+                  <span className="text-muted-foreground">Scheduled</span>
+                  <span className="max-w-[60%] text-right font-medium">
+                    {visit?.scheduledDate || "—"}
+                    {visit?.scheduledTime && (
+                      <span className="block text-xs text-muted-foreground">{formatTime(visit.scheduledTime)}</span>
+                    )}
+                  </span>
+                </div>
+                <div className="flex items-start justify-between gap-3">
+                  <span className="text-muted-foreground">Inspector</span>
+                  <span className="max-w-[60%] text-right font-medium">{assignee}</span>
+                </div>
+                <div className="flex items-start justify-between gap-3">
+                  <span className="text-muted-foreground">Checklist</span>
+                  <span className="max-w-[60%] text-right font-medium">{templateName}</span>
+                </div>
               </div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">Required items missing</span>
-                <span className="font-medium">{requiredMissing.length}</span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">Mode</span>
-                <span className="font-medium">{readOnly ? "Read-only" : "Editable"}</span>
-              </div>
-              <div className="rounded-lg border border-border/60 bg-muted/20 p-3 text-xs text-muted-foreground">
-                After submission, the entire report is locked and marked as submitted.
-              </div>
-            </CardContent>
-          </Card>
 
-          <Card className="border-border/60 shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-base">Submission rules</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm text-muted-foreground">
-              <p>Required checklist items must be completed before submission.</p>
-              <p>Submitted reports become fully read-only with disabled inputs.</p>
-              <p>The current report state is preserved for completed visits.</p>
+              <Separator />
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-muted-foreground">Completion</span>
+                  <span className="font-semibold">{progress}%</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-primary transition-all"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+                <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                  <span>{completedCount} of {checklistItems.length} done</span>
+                  <span>{requiredMissing.length} required pending</span>
+                </div>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-2 text-xs text-muted-foreground">
+                <div className="flex items-center justify-between gap-3">
+                  <span>Mode</span>
+                  <span className="font-medium text-foreground">{readOnly ? "Read-only" : "Editable"}</span>
+                </div>
+                {visit?.createdAt && (
+                  <div className="flex items-center justify-between gap-3">
+                    <span>Created</span>
+                    <span className="font-medium text-foreground">
+                      {new Date(visit.createdAt).toLocaleDateString("en-AU", { dateStyle: "medium" })}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {!readOnly && (
+                <div className="rounded-lg border border-border/60 bg-muted/20 p-3 text-xs text-muted-foreground">
+                  Required checklist items must be completed before submission. The report becomes read-only once submitted.
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
