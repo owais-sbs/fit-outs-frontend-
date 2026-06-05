@@ -9,7 +9,7 @@ export default function TenantDistributionChart() {
   return (
     <AnalyticsChartCard
       title="Tenant plan distribution"
-      description="Active tenants by subscription tier on the OnePath Fitouts platform"
+      description="Active tenants by subscription tier on the Fitouts platform"
       contentClassName="h-[320px] min-h-[280px] p-0">
       <EvilPieChart
         className="h-full w-full p-4"

@@ -46,7 +46,7 @@ export default function AppSidebar() {
                 <Sparkles className="h-4 w-4" />
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">OnePath Fitouts</span>
+                <span className="truncate font-semibold">Fitouts</span>
                 <span className="truncate text-xs text-sidebar-foreground/70">
                   Super Admin
                 </span>

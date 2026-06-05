@@ -154,7 +154,7 @@ export default function RolesManagement() {
           <div className="flex flex-col gap-2">
             <h2 className="text-2xl font-semibold tracking-tight">Active Application Roles</h2>
             <p className="text-sm text-muted-foreground max-w-2xl">
-              OnePath Fitouts features granular role-based access. Select any operational profile below to immediately launch its dashboard workspace and simulate user flows.
+              Fitouts features granular role-based access. Select any operational profile below to immediately launch its dashboard workspace and simulate user flows.
             </p>
           </div>
 

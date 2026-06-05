@@ -62,7 +62,7 @@ export default function SuperAdminSidebar({ collapsed, onToggle }) {
                 <Sparkles className="h-4 w-4" />
               </div>
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold">OnePath Fitouts</p>
+                <p className="truncate text-sm font-semibold">Fitouts</p>
                 <p className="truncate text-xs text-sidebar-foreground/60">
                   Super Admin
                 </p>

@@ -10,7 +10,7 @@ import { Lock, Mail, ArrowRight, Sparkles, AlertCircle } from "lucide-react";
 export default function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
-  
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -60,19 +60,19 @@ export default function Login() {
         <Card className="border border-border bg-card/60 backdrop-blur-xl shadow-2xl relative overflow-hidden">
           {/* Subtle colored top bar for premium feel */}
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-secondary to-primary/80" />
-          
+
           <CardHeader className="space-y-1 text-center pt-8">
             <div className="flex justify-center mb-3">
               <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 text-primary">
                 <Sparkles className="h-6 w-6 animate-pulse" />
               </div>
             </div>
-            <CardTitle className="text-2xl font-bold tracking-tight">OnePath Fitouts</CardTitle>
+            <CardTitle className="text-2xl font-bold tracking-tight"> Fitouts</CardTitle>
             <CardDescription className="text-muted-foreground">
               Sign in to manage commercial fit-out projects
             </CardDescription>
           </CardHeader>
-          
+
           <CardContent className="space-y-4">
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
@@ -119,8 +119,8 @@ export default function Login() {
                 </div>
               </div>
 
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 className="w-full bg-primary text-primary-foreground hover:bg-primary/95 transition-all duration-200 flex items-center justify-center gap-2 font-medium"
                 disabled={isLoading}
               >
@@ -139,7 +139,7 @@ export default function Login() {
             </div>
 
             {/* Premium Simulation Mode CTA */}
-            <div 
+            <div
               onClick={handleDemoMode}
               className="group cursor-pointer rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/10 p-4 transition-all duration-300 hover:border-primary/40 relative overflow-hidden"
             >
@@ -162,10 +162,10 @@ export default function Login() {
               </div>
             </div>
           </CardContent>
-          
+
           <CardFooter className="pb-8 justify-center">
             <p className="text-xs text-muted-foreground">
-              Authorized personnel only. OnePath Fitouts © 2026.
+              Authorized personnel only.  Fitouts © 2026.
             </p>
           </CardFooter>
         </Card>

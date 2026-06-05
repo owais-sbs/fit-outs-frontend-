@@ -59,7 +59,7 @@ export default function SuperAdminTopNav() {
           className="w-72 border-sidebar-border bg-sidebar p-0 text-sidebar-foreground">
           <SheetHeader className="border-b border-sidebar-border px-4 py-4 text-left">
             <SheetTitle className="text-sidebar-foreground">
-              OnePath Fitouts
+              Fitouts
             </SheetTitle>
           </SheetHeader>
           <SuperAdminMobileNav onNavigate={() => setMobileOpen(false)} />

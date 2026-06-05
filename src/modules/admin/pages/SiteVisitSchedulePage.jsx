@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Calendar, Clock3, Crosshair, MapPin, Navigation2, ShieldCheck, Sparkles } from "lucide-react";
+import { Calendar, Check, Clock3, Crosshair, Loader2, MapPin, Navigation2, Search, ShieldCheck, Sparkles } from "lucide-react";
 import L from "leaflet";
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
@@ -55,10 +55,55 @@ const QUICK_DATES = [
   { label: "Next week", value: addDays(7) },
 ];
 const QUICK_TIMES = ["08:30", "10:00", "13:30", "15:00"];
+const NOMINATIM_SEARCH_URL = "https://nominatim.openstreetmap.org/search";
+const NOMINATIM_REVERSE_URL = "https://nominatim.openstreetmap.org/reverse";
 
 function parseCoordinate(value, fallback) {
   const number = Number(value);
   return Number.isFinite(number) ? number : fallback;
+}
+
+async function searchLocations(query, signal) {
+  const params = new URLSearchParams({
+    q: query,
+    format: "jsonv2",
+    addressdetails: "1",
+    limit: "5",
+  });
+
+  const response = await fetch(`${NOMINATIM_SEARCH_URL}?${params.toString()}`, {
+    signal,
+    headers: {
+      Accept: "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Location search failed");
+  }
+
+  return response.json();
+}
+
+async function reverseGeocode(latitude, longitude, signal) {
+  const params = new URLSearchParams({
+    lat: String(latitude),
+    lon: String(longitude),
+    format: "jsonv2",
+  });
+
+  const response = await fetch(`${NOMINATIM_REVERSE_URL}?${params.toString()}`, {
+    signal,
+    headers: {
+      Accept: "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Reverse geocoding failed");
+  }
+
+  return response.json();
 }
 
 function MapRecenter({ position }) {
@@ -86,6 +131,8 @@ function LocationPickerMap({ position, onChange }) {
 
 export default function SiteVisitSchedulePage() {
   const navigate = useNavigate();
+  const locationSearchControllerRef = useRef(null);
+  const reverseGeocodeControllerRef = useRef(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [leads, setLeads] = useState([]);
   const [templates, setTemplates] = useState([]);
@@ -93,6 +140,10 @@ export default function SiteVisitSchedulePage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [locationLoading, setLocationLoading] = useState(false);
+  const [locationQuery, setLocationQuery] = useState("");
+  const [locationResults, setLocationResults] = useState([]);
+  const [locationSearchOpen, setLocationSearchOpen] = useState(false);
+  const [locationSearchLoading, setLocationSearchLoading] = useState(false);
   const [form, setForm] = useState({
     leadId: "",
     staff: "",
@@ -126,6 +177,10 @@ export default function SiteVisitSchedulePage() {
     return () => { cancelled = true; };
   }, []);
 
+  useEffect(() => {
+    setLocationQuery(form.location);
+  }, [form.location]);
+
   const selectedLead = leads.find((l) => l.id === form.leadId);
   const selectedTemplate = templates.find((t) => String(t.uuid) === form.checklist);
 
@@ -157,6 +212,74 @@ export default function SiteVisitSchedulePage() {
     setError("");
   };
 
+  const applyLocationSelection = (result) => {
+    const latitude = Number(result.lat);
+    const longitude = Number(result.lon);
+    setForm((f) => ({
+      ...f,
+      location: result.display_name || f.location,
+      latitude: Number.isFinite(latitude) ? latitude.toFixed(8) : f.latitude,
+      longitude: Number.isFinite(longitude) ? longitude.toFixed(8) : f.longitude,
+    }));
+    setLocationQuery(result.display_name || "");
+    setLocationResults([]);
+    setLocationSearchOpen(false);
+    setError("");
+  };
+
+  const syncLocationFromCoordinates = async (latitude, longitude) => {
+    reverseGeocodeControllerRef.current?.abort();
+    const controller = new AbortController();
+    reverseGeocodeControllerRef.current = controller;
+
+    try {
+      const result = await reverseGeocode(latitude, longitude, controller.signal);
+      const nextLocation = result?.display_name;
+      if (nextLocation) {
+        setForm((f) => ({ ...f, location: nextLocation }));
+        setLocationQuery(nextLocation);
+      }
+    } catch (err) {
+      if (err.name !== "AbortError") {
+        setError("Unable to resolve the selected map point to an address. You can still search and select a location.");
+      }
+    }
+  };
+
+  useEffect(() => {
+    const query = locationQuery.trim();
+    if (query.length < 3 || query === form.location.trim()) {
+      setLocationResults([]);
+      setLocationSearchLoading(false);
+      return undefined;
+    }
+
+    locationSearchControllerRef.current?.abort();
+    const controller = new AbortController();
+    locationSearchControllerRef.current = controller;
+    setLocationSearchLoading(true);
+
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        const results = await searchLocations(query, controller.signal);
+        setLocationResults(results);
+        setLocationSearchOpen(true);
+      } catch (err) {
+        if (err.name !== "AbortError") {
+          setLocationResults([]);
+          setError("Unable to search locations right now.");
+        }
+      } finally {
+        setLocationSearchLoading(false);
+      }
+    }, 300);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeoutId);
+    };
+  }, [form.location, locationQuery]);
+
   const mapPosition = [
     parseCoordinate(form.latitude, DEFAULT_COORDINATES.lat),
     parseCoordinate(form.longitude, DEFAULT_COORDINATES.lng),
@@ -173,6 +296,7 @@ export default function SiteVisitSchedulePage() {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         updateCoordinates(position.coords.latitude, position.coords.longitude);
+        void syncLocationFromCoordinates(position.coords.latitude, position.coords.longitude);
         setLocationLoading(false);
       },
       () => {
@@ -369,11 +493,58 @@ export default function SiteVisitSchedulePage() {
 
               <div className="space-y-2 md:col-span-2">
                 <Label>Location *</Label>
-                <Input
-                  value={form.location}
-                  onChange={(e) => update("location", e.target.value)}
-                  placeholder="Street address or site name"
-                />
+                <div className="relative">
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      value={locationQuery}
+                      onChange={(e) => {
+                        setLocationQuery(e.target.value);
+                        setError("");
+                        setLocationSearchOpen(true);
+                      }}
+                      onFocus={() => {
+                        if (locationResults.length) setLocationSearchOpen(true);
+                      }}
+                      onBlur={() => {
+                        window.setTimeout(() => {
+                          update("location", locationQuery.trim());
+                          setLocationSearchOpen(false);
+                        }, 150);
+                      }}
+                      placeholder="Search street address, building, or area"
+                      className="pl-9 pr-9"
+                    />
+                    {locationSearchLoading ? (
+                      <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+                    ) : null}
+                  </div>
+
+                  {locationSearchOpen && (locationResults.length > 0 || locationQuery.trim().length >= 3) ? (
+                    <div className="absolute z-30 mt-2 max-h-72 w-full overflow-y-auto rounded-md border border-border bg-popover p-1 shadow-md">
+                      {locationResults.length ? (
+                        locationResults.map((result) => (
+                          <button
+                            key={`${result.place_id}-${result.lat}-${result.lon}`}
+                            type="button"
+                            className="flex w-full items-start justify-between gap-3 rounded-sm px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
+                            onMouseDown={(event) => {
+                              event.preventDefault();
+                              applyLocationSelection(result);
+                            }}
+                          >
+                            <span className="line-clamp-2">{result.display_name}</span>
+                            <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                          </button>
+                        ))
+                      ) : (
+                        <div className="px-3 py-2 text-sm text-muted-foreground">
+                          No matching locations found.
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -445,7 +616,13 @@ export default function SiteVisitSchedulePage() {
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                   />
-                  <LocationPickerMap position={mapPosition} onChange={updateCoordinates} />
+                  <LocationPickerMap
+                    position={mapPosition}
+                    onChange={(latitude, longitude) => {
+                      updateCoordinates(latitude, longitude);
+                      void syncLocationFromCoordinates(latitude, longitude);
+                    }}
+                  />
                 </MapContainer>
               </div>
               <div className="mt-3 rounded-lg border border-border/60 bg-muted/20 p-3 text-xs text-muted-foreground">
