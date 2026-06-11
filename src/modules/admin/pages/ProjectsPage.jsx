@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Filter, Plus, Briefcase, CheckCircle, Clock, AlertTriangle, Sliders, Edit2, Eye, Search, MapPin } from "lucide-react";
+import { Filter, Briefcase, CheckCircle, Clock, AlertTriangle, Sliders, Edit2, Eye, Search, MapPin } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import StatCard from "@/modules/super-admin/components/StatCard";
 import { Button } from "@/components/ui/button";
@@ -121,12 +121,7 @@ export default function ProjectsPage() {
       <PageHeader
         title="Projects Management"
         description="Monitor construction execution, track timelines, documents and update progress."
-        actions={
-          <Button onClick={() => navigate(ROUTES.ADMIN.PROJECT_CREATE)} size="sm" className="gap-2">
-            <Plus className="h-4 w-4" />
-            Create Project
-          </Button>
-        }
+      />
       />
 
       {/* Stats Cards */}

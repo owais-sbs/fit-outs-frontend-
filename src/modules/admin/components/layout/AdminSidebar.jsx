@@ -2,8 +2,9 @@ import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sparkles, LayoutDashboard, Users, MapPin,
-  List, CalendarDays, Link, CheckCircle, XCircle, ChevronRight,
-  UserSquare2, CalendarRange, Briefcase, ClipboardList
+  List, XCircle, ChevronRight,
+  UserSquare2, CalendarRange, Briefcase,
+  UserCheck, Mail, UserPlus,
 } from "lucide-react";
 import {
   Sidebar,
@@ -24,84 +25,66 @@ import {
 import { ROUTES } from "@/shared/constants/routes";
 import { useAuth } from "@/shared/context/auth-context";
 
-// ─── Nav data ────────────────────────────────────────────────────────────────
-
+// ─── Nav groups ───────────────────────────────────────────────────────────────
 const ADMIN_NAV_GROUPS = [
   {
     label: "Main",
     items: [
-      { label: "Dashboard", href: ROUTES.ADMIN.DASHBOARD, icon: LayoutDashboard },
+      { label: "Dashboard",            href: ROUTES.ADMIN.DASHBOARD,  icon: LayoutDashboard },
       { label: "LEADS_PLACEHOLDER" },
-      { label: "Site Visits", href: ROUTES.ADMIN.SITE_VISITS, icon: MapPin },
-      { label: "Employees",   href: ROUTES.ADMIN.EMPLOYEES,   icon: UserSquare2 },
-      { label: "Calendar",    href: ROUTES.ADMIN.CALENDAR,    icon: CalendarRange },
-      { label: "Projects",    href: ROUTES.ADMIN.PROJECTS,    icon: Briefcase },
+      { label: "CLIENTS_PLACEHOLDER" },
+      { label: "Site Visits",          href: ROUTES.ADMIN.SITE_VISITS, icon: MapPin },
+      { label: "Employees",            href: ROUTES.ADMIN.EMPLOYEES,   icon: UserSquare2 },
+      { label: "Calendar",             href: ROUTES.ADMIN.CALENDAR,    icon: CalendarRange },
+      { label: "Projects",             href: ROUTES.ADMIN.PROJECTS,    icon: Briefcase },
     ],
   },
 ];
 
 const LEADS_SUB_ITEMS = [
-  { label: "All Leads", href: ROUTES.ADMIN.LEADS_LIST, icon: List },
-  { label: "New Leads", href: ROUTES.ADMIN.LEADS_NEW, icon: Users },
-  { label: "Qualified Leads", href: ROUTES.ADMIN.LEADS_QUALIFIED, icon: CheckCircle },
-  { label: "Follow-ups", href: ROUTES.ADMIN.FOLLOW_UPS, icon: CalendarDays },
+  { label: "All Leads",  href: ROUTES.ADMIN.LEADS_LIST, icon: List },
   { label: "Lost Leads", href: ROUTES.ADMIN.LOST_LEADS, icon: XCircle },
-  { label: "Sources", href: ROUTES.ADMIN.LEAD_SOURCES, icon: Link },
-  { label: "Project Requests", href: ROUTES.ADMIN.PROJECT_REQUESTS, icon: ClipboardList },
 ];
 
-// ─── Components ──────────────────────────────────────────────────────────────
+const CLIENTS_SUB_ITEMS = [
+  { label: "All Clients", href: ROUTES.ADMIN.CLIENTS,      icon: UserCheck },
+  { label: "Add Client",  href: ROUTES.ADMIN.CLIENT_NEW,   icon: UserPlus },
+  { label: "Email",       href: ROUTES.ADMIN.CLIENT_EMAIL, icon: Mail },
+];
 
-function AdminNavItem({ item }) {
+// ─── Reusable collapsible submenu ─────────────────────────────────────────────
+function Submenu({ label, icon: Icon, items }) {
   const location = useLocation();
-  const Icon = item.icon;
-  const isActive =
-    location.pathname === item.href || location.pathname.startsWith(`${item.href}/`);
+  const isAnyActive = items.some(
+    (i) => location.pathname === i.href || location.pathname.startsWith(`${i.href}/`)
+  );
+  const [open, setOpen] = useState(isAnyActive);
 
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
-        <NavLink to={item.href}>
-          <Icon className="h-4 w-4" />
-          <span>{item.label}</span>
-        </NavLink>
-      </SidebarMenuButton>
-    </SidebarMenuItem>
-  );
-}
-
-function LeadsSubmenu() {
-  const location = useLocation();
-  const [open, setOpen] = useState(
-    LEADS_SUB_ITEMS.some((item) =>
-      location.pathname === item.href || location.pathname.startsWith(`${item.href}/`)
-    )
-  );
-  const isAnyActive = LEADS_SUB_ITEMS.some((item) =>
-    location.pathname === item.href || location.pathname.startsWith(`${item.href}/`)
-  );
-
-  return (
-    <SidebarMenuItem>
-      <SidebarMenuButton onClick={() => setOpen(!open)} isActive={isAnyActive} tooltip="Leads">
-        <Users className="h-4 w-4" />
-        <span>Leads</span>
+      <SidebarMenuButton
+        onClick={() => setOpen((o) => !o)}
+        isActive={isAnyActive}
+        tooltip={label}
+      >
+        <Icon className="h-4 w-4" />
+        <span>{label}</span>
         <ChevronRight
           className={`ml-auto h-3 w-3 transition-transform duration-200 ${open ? "rotate-90" : ""}`}
         />
       </SidebarMenuButton>
       {open && (
         <SidebarMenuSub>
-          {LEADS_SUB_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const isSubActive =
+          {items.map((item) => {
+            const ItemIcon = item.icon;
+            const active =
               location.pathname === item.href ||
               location.pathname.startsWith(`${item.href}/`);
             return (
               <SidebarMenuSubItem key={item.href}>
-                <SidebarMenuSubButton asChild isActive={isSubActive}>
+                <SidebarMenuSubButton asChild isActive={active}>
                   <NavLink to={item.href}>
-                    <Icon className="h-4 w-4" />
+                    <ItemIcon className="h-4 w-4" />
                     <span>{item.label}</span>
                   </NavLink>
                 </SidebarMenuSubButton>
@@ -114,8 +97,26 @@ function LeadsSubmenu() {
   );
 }
 
-// ─── Main sidebar ─────────────────────────────────────────────────────────────
+// ─── Simple nav item ──────────────────────────────────────────────────────────
+function AdminNavItem({ item }) {
+  const location = useLocation();
+  const Icon = item.icon;
+  const isActive =
+    location.pathname === item.href ||
+    location.pathname.startsWith(`${item.href}/`);
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
+        <NavLink to={item.href}>
+          <Icon className="h-4 w-4" />
+          <span>{item.label}</span>
+        </NavLink>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
+}
 
+// ─── Sidebar ──────────────────────────────────────────────────────────────────
 export default function AdminSidebar() {
   const { user, role } = useAuth();
 
@@ -145,13 +146,13 @@ export default function AdminSidebar() {
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {group.items.map((item) =>
-                  item.label === "LEADS_PLACEHOLDER" ? (
-                    <LeadsSubmenu key="leads" />
-                  ) : (
-                    <AdminNavItem key={item.href} item={item} />
-                  )
-                )}
+                {group.items.map((item) => {
+                  if (item.label === "LEADS_PLACEHOLDER")
+                    return <Submenu key="leads" label="Leads" icon={Users} items={LEADS_SUB_ITEMS} />;
+                  if (item.label === "CLIENTS_PLACEHOLDER")
+                    return <Submenu key="clients" label="Clients" icon={UserCheck} items={CLIENTS_SUB_ITEMS} />;
+                  return <AdminNavItem key={item.href} item={item} />;
+                })}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -167,7 +168,9 @@ export default function AdminSidebar() {
           </div>
           <div className="flex flex-col overflow-hidden">
             <span className="truncate text-xs font-medium">{user?.name || "User"}</span>
-            <span className="truncate text-[10px] text-muted-foreground capitalize">{role || "Admin"}</span>
+            <span className="truncate text-[10px] text-muted-foreground capitalize">
+              {role || "Admin"}
+            </span>
           </div>
         </div>
       </SidebarFooter>

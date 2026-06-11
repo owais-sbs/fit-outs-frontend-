@@ -20,3 +20,8 @@ export { default as CreateProjectPage } from "./CreateProjectPage";
 export { default as ProjectDetailPage } from "./ProjectDetailPage";
 export { default as ProjectRequestsPage } from "./ProjectRequestsPage";
 
+export { default as ClientsPage } from "./clients/ClientsPage";
+export { default as AddClientPage } from "./clients/AddClientPage";
+export { default as ClientEmailPage } from "./clients/ClientEmailPage";
+export { default as ClientDetailPage } from "./clients/ClientDetailPage";
+

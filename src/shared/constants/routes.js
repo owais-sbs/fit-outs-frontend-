@@ -42,6 +42,11 @@ export const ROUTES = {
     PROJECT_CREATE: "/admin/projects/new",
     PROJECT_DETAIL: "/admin/projects/:projectId",
     PROJECT_REQUESTS: "/admin/leads/project-requests",
+    CLIENTS: "/admin/clients",
+    CLIENT_DETAIL: "/admin/clients/:clientId",
+    CLIENT_NEW: "/admin/clients/new",
+    CLIENT_EMAIL: "/admin/clients/email",
+    CLIENT_CALLS: "/admin/clients/calls",
   },
   BUSINESS_OWNER: {
     DASHBOARD: "/business-owner",

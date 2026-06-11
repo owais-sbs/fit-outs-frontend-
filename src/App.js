@@ -39,6 +39,10 @@ import {
   CreateProjectPage,
   ProjectDetailPage,
   ProjectRequestsPage,
+  ClientsPage,
+  AddClientPage,
+  ClientEmailPage,
+  ClientDetailPage,
 } from "./modules/admin/pages";
 import AdminDashboard from "./modules/admin/pages/dashboard";
 import BusinessOwnerDashboard from "./modules/business-owner/pages/dashboard";
@@ -133,6 +137,10 @@ function App() {
               <Route path="projects/new" element={<CreateProjectPage />} />
               <Route path="projects/:projectId" element={<ProjectDetailPage />} />
               <Route path="leads/project-requests" element={<ProjectRequestsPage />} />
+              <Route path="clients" element={<ClientsPage />} />
+              <Route path="clients/new" element={<AddClientPage />} />
+              <Route path="clients/email" element={<ClientEmailPage />} />
+              <Route path="clients/:clientId" element={<ClientDetailPage />} />
             </Route>
             <Route
               path={ROUTES.BUSINESS_OWNER.DASHBOARD}
