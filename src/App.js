@@ -20,10 +20,8 @@ import ReportsPage from "./modules/super-admin/pages/ReportsPage";
 import SettingsPage from "./modules/super-admin/pages/SettingsPage";
 import AdminLayout from "./modules/admin/layouts/AdminLayout";
 import {
-  PipelinePage,
   LeadIntakePage,
   LeadDetailPage,
-  CrmReportsPage,
   SiteVisitsPage,
   SiteVisitSchedulePage,
   SiteVisitReportPage,
@@ -31,29 +29,10 @@ import {
   FollowUpsPage,
   FollowUpDetailPage,
   LeadSourcesPage,
-  ClientConversionPage,
-  ClientDetailPage,
-  ActivityLogsPage,
-  NotificationsPage,
-  ProposalManagementPage,
-  NegotiationTrackingPage,
-  PaymentCollectionPage,
-  CRMAnalyticsDashboard,
-  TeamPerformancePage,
   LostLeadsPage,
-  WonProjectsPage,
   QualifiedLeadsPage,
-  ProjectsPage,
-  DesignRequestsPage,
-  InProgressPage,
-  InternalReviewPage,
-  UploadDesignPage,
-  ClientApprovalPage,
-  RevisionRequestsPage,
-  CompletedDesignsPage,
 } from "./modules/admin/pages";
 import AdminDashboard from "./modules/admin/pages/dashboard";
-import AdminSettingsPage from "./modules/admin/pages/SettingsPage";
 import BusinessOwnerDashboard from "./modules/business-owner/pages/dashboard";
 import ProjectManagerDashboard from "./modules/project-manager/pages/dashboard";
 import DesignerDashboard from "./modules/designer/pages/dashboard";
@@ -109,7 +88,7 @@ function App() {
             <Route path="settings" element={<SettingsPage />} />
           </Route>
 
-            {/* ADMIN — dashboard & CRM & site visits */}
+            {/* ADMIN — leads & site visits only */}
             <Route
               path="/admin"
               element={
@@ -120,7 +99,6 @@ function App() {
                 </ProtectedRoute>
               }>
               <Route index element={<AdminDashboard />} />
-              <Route path="pipeline" element={<PipelinePage />} />
               <Route path="leads" element={<LeadsListPage />} />
               <Route path="leads/new" element={<LeadIntakePage />} />
               <Route path="leads/qualified" element={<QualifiedLeadsPage />} />
@@ -128,31 +106,10 @@ function App() {
               <Route path="follow-ups" element={<FollowUpsPage />} />
               <Route path="follow-ups/:followUpId" element={<FollowUpDetailPage />} />
               <Route path="lead-sources" element={<LeadSourcesPage />} />
-              <Route path="client-conversion" element={<ClientConversionPage />} />
-              <Route path="clients/:clientId" element={<ClientDetailPage />} />
-              <Route path="activity-logs" element={<ActivityLogsPage />} />
-              <Route path="notifications" element={<NotificationsPage />} />
-              <Route path="proposals" element={<ProposalManagementPage />} />
-              <Route path="negotiations" element={<NegotiationTrackingPage />} />
-              <Route path="payments" element={<PaymentCollectionPage />} />
-              <Route path="crm-analytics" element={<CRMAnalyticsDashboard />} />
-              <Route path="team-performance" element={<TeamPerformancePage />} />
               <Route path="lost-leads" element={<LostLeadsPage />} />
-              <Route path="won-projects" element={<WonProjectsPage />} />
-              <Route path="projects" element={<ProjectsPage />} />
-              <Route path="reports" element={<CrmReportsPage />} />
               <Route path="site-visits" element={<SiteVisitsPage />} />
               <Route path="site-visits/schedule" element={<SiteVisitSchedulePage />} />
               <Route path="site-visits/:visitId/report" element={<SiteVisitReportPage />} />
-              <Route path="settings" element={<AdminSettingsPage />} />
-              {/* Design Workflow */}
-              <Route path="design-workflow/requests" element={<DesignRequestsPage />} />
-              <Route path="design-workflow/in-progress" element={<InProgressPage />} />
-              <Route path="design-workflow/internal-review" element={<InternalReviewPage />} />
-              <Route path="design-workflow/upload" element={<UploadDesignPage />} />
-              <Route path="design-workflow/client-approval" element={<ClientApprovalPage />} />
-              <Route path="design-workflow/revisions" element={<RevisionRequestsPage />} />
-              <Route path="design-workflow/completed" element={<CompletedDesignsPage />} />
             </Route>
             <Route
               path={ROUTES.BUSINESS_OWNER.DASHBOARD}

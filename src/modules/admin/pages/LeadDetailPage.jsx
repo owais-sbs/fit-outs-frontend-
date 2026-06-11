@@ -114,7 +114,7 @@ export default function LeadDetailPage() {
     return (
       <div className="space-y-4">
         <Button variant="ghost" size="sm" asChild>
-          <Link to={ROUTES.ADMIN.PIPELINE}><ArrowLeft className="mr-2 h-4 w-4" />Pipeline</Link>
+          <Link to={ROUTES.ADMIN.LEADS_LIST}><ArrowLeft className="mr-2 h-4 w-4" />Pipeline</Link>
         </Button>
         <Card><CardContent className="py-16 text-center text-muted-foreground">Loading lead...</CardContent></Card>
       </div>
@@ -125,7 +125,7 @@ export default function LeadDetailPage() {
     return (
       <div className="space-y-4">
         <Button variant="ghost" size="sm" asChild>
-          <Link to={ROUTES.ADMIN.PIPELINE}><ArrowLeft className="mr-2 h-4 w-4" />Pipeline</Link>
+          <Link to={ROUTES.ADMIN.LEADS_LIST}><ArrowLeft className="mr-2 h-4 w-4" />Pipeline</Link>
         </Button>
         <Card><CardContent className="py-16 text-center text-muted-foreground">Lead not found.</CardContent></Card>
       </div>
@@ -138,7 +138,7 @@ export default function LeadDetailPage() {
     <div className="space-y-5">
       {/* ── Back ─────────────────────────────────────────────────────────── */}
       <Button variant="ghost" size="sm" asChild className="-ml-2">
-        <Link to={ROUTES.ADMIN.PIPELINE}><ArrowLeft className="mr-2 h-4 w-4" />Pipeline</Link>
+        <Link to={ROUTES.ADMIN.LEADS_LIST}><ArrowLeft className="mr-2 h-4 w-4" />Pipeline</Link>
       </Button>
 
       {/* ── Hero header ──────────────────────────────────────────────────── */}

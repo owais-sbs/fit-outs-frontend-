@@ -145,7 +145,7 @@ export default function LeadIntakePage() {
 
   const handleSaveAndContinue = async () => {
     const savedLead = await submitLead();
-    if (savedLead) navigate(ROUTES.ADMIN.PIPELINE);
+    if (savedLead) navigate(ROUTES.ADMIN.LEADS_LIST);
   };
 
   const filledCount = Object.values(form).filter((v) => v.trim?.() || v).length;
@@ -462,7 +462,7 @@ export default function LeadIntakePage() {
           <div className="ml-auto flex flex-wrap items-center gap-2">
             <Button
               variant="outline"
-              onClick={() => navigate(ROUTES.ADMIN.PIPELINE)}
+              onClick={() => navigate(ROUTES.ADMIN.LEADS_LIST)}
             >
               Cancel
             </Button>
@@ -525,7 +525,7 @@ export default function LeadIntakePage() {
             </Button>
             <Button
               className="gap-2"
-              onClick={() => navigate(ROUTES.ADMIN.PIPELINE)}
+              onClick={() => navigate(ROUTES.ADMIN.LEADS_LIST)}
             >
               <UserCheck className="h-4 w-4" />
               View pipeline

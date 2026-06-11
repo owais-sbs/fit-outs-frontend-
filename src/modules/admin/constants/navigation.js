@@ -1,7 +1,5 @@
 import {
-  Kanban,
   UserPlus,
-  BarChart3,
   MapPin,
   CalendarPlus,
 } from "lucide-react";
@@ -9,11 +7,9 @@ import { ROUTES } from "@/shared/constants/routes";
 
 export const CRM_NAV_GROUPS = [
   {
-    label: "CRM",
+    label: "Leads",
     items: [
-      { label: "Pipeline", href: ROUTES.ADMIN.PIPELINE, icon: Kanban },
       { label: "New lead", href: ROUTES.ADMIN.LEADS_NEW, icon: UserPlus },
-      { label: "Reports", href: ROUTES.ADMIN.REPORTS, icon: BarChart3 },
     ],
   },
   {
