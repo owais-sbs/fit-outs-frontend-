@@ -31,6 +31,14 @@ import {
   LeadSourcesPage,
   LostLeadsPage,
   QualifiedLeadsPage,
+  EmployeesPage,
+  AddEmployeePage,
+  EmployeeDetailPage,
+  CalendarPage,
+  ProjectsPage,
+  CreateProjectPage,
+  ProjectDetailPage,
+  ProjectRequestsPage,
 } from "./modules/admin/pages";
 import AdminDashboard from "./modules/admin/pages/dashboard";
 import BusinessOwnerDashboard from "./modules/business-owner/pages/dashboard";
@@ -51,8 +59,15 @@ import {
   ClientInvoicesPage,
   ClientCommsPage,
   ClientSettingsPage,
+  MyProjectsPage,
+  NewProjectRequestPage,
+  ClientProjectDetailPage,
 } from "./modules/client";
 import SalesDashboard from "./modules/sales/pages/dashboard";
+import EmployeeLayout from "./modules/employee/layouts/EmployeeLayout";
+import EmployeeDashboard from "./modules/employee/pages/EmployeeDashboard";
+import EmployeeProjectsPage from "./modules/employee/pages/EmployeeProjectsPage";
+import EmployeeCalendarPage from "./modules/employee/pages/EmployeeCalendarPage";
 
 function App() {
   return (
@@ -110,6 +125,14 @@ function App() {
               <Route path="site-visits" element={<SiteVisitsPage />} />
               <Route path="site-visits/schedule" element={<SiteVisitSchedulePage />} />
               <Route path="site-visits/:visitId/report" element={<SiteVisitReportPage />} />
+              <Route path="employees" element={<EmployeesPage />} />
+              <Route path="employees/new" element={<AddEmployeePage />} />
+              <Route path="employees/:employeeId" element={<EmployeeDetailPage />} />
+              <Route path="calendar" element={<CalendarPage />} />
+              <Route path="projects" element={<ProjectsPage />} />
+              <Route path="projects/new" element={<CreateProjectPage />} />
+              <Route path="projects/:projectId" element={<ProjectDetailPage />} />
+              <Route path="leads/project-requests" element={<ProjectRequestsPage />} />
             </Route>
             <Route
               path={ROUTES.BUSINESS_OWNER.DASHBOARD}
@@ -191,6 +214,9 @@ function App() {
               <Route path="invoices"           element={<ClientInvoicesPage />} />
               <Route path="communications"     element={<ClientCommsPage />} />
               <Route path="settings"           element={<ClientSettingsPage />} />
+              <Route path="projects/my"        element={<MyProjectsPage />} />
+              <Route path="projects/request"   element={<NewProjectRequestPage />} />
+              <Route path="projects/:projectId" element={<ClientProjectDetailPage />} />
             </Route>
             <Route
               path={ROUTES.SALES.DASHBOARD}
@@ -206,6 +232,20 @@ function App() {
             {/* Fallback routes */}
             <Route path="/" element={<Navigate to={ROUTES.AUTH.LOGIN} replace />} />
             <Route path="*" element={<Navigate to={ROUTES.AUTH.LOGIN} replace />} />
+
+            {/* Employee Portal */}
+            <Route
+              path="/employee"
+              element={
+                <ProtectedRoute>
+                  <EmployeeLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<EmployeeDashboard />} />
+              <Route path="projects" element={<EmployeeProjectsPage />} />
+              <Route path="calendar" element={<EmployeeCalendarPage />} />
+            </Route>
           </Routes>
         </div>
       </BrowserRouter>

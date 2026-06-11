@@ -34,6 +34,14 @@ export const ROUTES = {
     SITE_VISITS: "/admin/site-visits",
     SITE_VISIT_SCHEDULE: "/admin/site-visits/schedule",
     SITE_VISIT_REPORT: "/admin/site-visits/:visitId/report",
+    EMPLOYEES: "/admin/employees",
+    EMPLOYEE_NEW: "/admin/employees/new",
+    EMPLOYEE_DETAIL: "/admin/employees/:employeeId",
+    CALENDAR: "/admin/calendar",
+    PROJECTS: "/admin/projects",
+    PROJECT_CREATE: "/admin/projects/new",
+    PROJECT_DETAIL: "/admin/projects/:projectId",
+    PROJECT_REQUESTS: "/admin/leads/project-requests",
   },
   BUSINESS_OWNER: {
     DASHBOARD: "/business-owner",
@@ -78,6 +86,9 @@ export const ROUTES = {
   CLIENT: {
     DASHBOARD: "/client",
     PROJECTS: "/client/projects",
+    PROJECTS_MY: "/client/projects/my",
+    PROJECTS_REQUEST: "/client/projects/request",
+    PROJECT_DETAIL: "/client/projects/:projectId",
     DOCUMENTS: "/client/documents",
     INVOICES: "/client/invoices",
     COMMUNICATIONS: "/client/communications",
@@ -94,5 +105,10 @@ export const ROUTES = {
     CLIENTS: "/sales/clients",
     PROPOSALS: "/sales/proposals",
     REPORTS: "/sales/reports",
+  },
+  EMPLOYEE: {
+    DASHBOARD: "/employee",
+    PROJECTS: "/employee/projects",
+    CALENDAR: "/employee/calendar",
   },
 };

@@ -8,3 +8,7 @@ export { default as ClientDocumentsPage }  from "./ClientDocumentsPage";
 export { default as ClientInvoicesPage }   from "./ClientInvoicesPage";
 export { default as ClientCommsPage }      from "./ClientCommsPage";
 export { default as ClientSettingsPage }   from "./ClientSettingsPage";
+export { default as MyProjectsPage }        from "./MyProjectsPage";
+export { default as NewProjectRequestPage }  from "./NewProjectRequestPage";
+export { default as ClientProjectDetailPage } from "./ClientProjectDetailPage";
+

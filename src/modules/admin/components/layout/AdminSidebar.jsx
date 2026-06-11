@@ -3,6 +3,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import {
   Sparkles, LayoutDashboard, Users, MapPin,
   List, CalendarDays, Link, CheckCircle, XCircle, ChevronRight,
+  UserSquare2, CalendarRange, Briefcase, ClipboardList
 } from "lucide-react";
 import {
   Sidebar,
@@ -32,6 +33,9 @@ const ADMIN_NAV_GROUPS = [
       { label: "Dashboard", href: ROUTES.ADMIN.DASHBOARD, icon: LayoutDashboard },
       { label: "LEADS_PLACEHOLDER" },
       { label: "Site Visits", href: ROUTES.ADMIN.SITE_VISITS, icon: MapPin },
+      { label: "Employees",   href: ROUTES.ADMIN.EMPLOYEES,   icon: UserSquare2 },
+      { label: "Calendar",    href: ROUTES.ADMIN.CALENDAR,    icon: CalendarRange },
+      { label: "Projects",    href: ROUTES.ADMIN.PROJECTS,    icon: Briefcase },
     ],
   },
 ];
@@ -43,6 +47,7 @@ const LEADS_SUB_ITEMS = [
   { label: "Follow-ups", href: ROUTES.ADMIN.FOLLOW_UPS, icon: CalendarDays },
   { label: "Lost Leads", href: ROUTES.ADMIN.LOST_LEADS, icon: XCircle },
   { label: "Sources", href: ROUTES.ADMIN.LEAD_SOURCES, icon: Link },
+  { label: "Project Requests", href: ROUTES.ADMIN.PROJECT_REQUESTS, icon: ClipboardList },
 ];
 
 // ─── Components ──────────────────────────────────────────────────────────────

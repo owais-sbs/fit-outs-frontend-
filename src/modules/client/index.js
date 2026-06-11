@@ -9,3 +9,7 @@ export { default as ClientDocumentsPage }  from "./pages/ClientDocumentsPage";
 export { default as ClientInvoicesPage }   from "./pages/ClientInvoicesPage";
 export { default as ClientCommsPage }      from "./pages/ClientCommsPage";
 export { default as ClientSettingsPage }   from "./pages/ClientSettingsPage";
+export { default as MyProjectsPage }        from "./pages/MyProjectsPage";
+export { default as NewProjectRequestPage }  from "./pages/NewProjectRequestPage";
+export { default as ClientProjectDetailPage } from "./pages/ClientProjectDetailPage";
+
