@@ -7,6 +7,7 @@ import "leaflet/dist/leaflet.css";
 import { ROUTES } from "@/shared/constants/routes";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import { fetchAllLeads } from "../api/leads.api";
+import { fetchAllEmployees } from "../api/employees.api";
 import { createSiteVisit, addLocationDetails } from "../api/site-visits.api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,7 +41,6 @@ L.Icon.Default.mergeOptions({
   shadowUrl: markerShadow,
 });
 
-const STAFF_MEMBERS = [];
 const DEFAULT_COORDINATES = { lat: -33.86882, lng: 151.20929 };
 const toDateInput = (date) => date.toISOString().slice(0, 10);
 const addDays = (days) => {
@@ -134,6 +134,7 @@ export default function SiteVisitSchedulePage() {
   const reverseGeocodeControllerRef = useRef(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [leads, setLeads] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [loadingOptions, setLoadingOptions] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -155,14 +156,18 @@ export default function SiteVisitSchedulePage() {
 
   useEffect(() => {
     let cancelled = false;
-    fetchAllLeads()
-      .then((leadList) => {
+    Promise.all([
+      fetchAllLeads(),
+      fetchAllEmployees().catch(() => []),
+    ])
+      .then(([leadList, empList]) => {
         if (cancelled) return;
         setLeads(leadList);
+        setEmployees(empList.filter((e) => e.isActive));
       })
       .catch((err) => {
         if (cancelled) return;
-        setError(err.response?.data?.error || err.response?.data?.message || "Unable to load leads");
+        setError(err.response?.data?.error || err.response?.data?.message || "Unable to load options");
       })
       .finally(() => {
         if (!cancelled) setLoadingOptions(false);
@@ -175,6 +180,7 @@ export default function SiteVisitSchedulePage() {
   }, [form.location]);
 
   const selectedLead = leads.find((l) => l.id === form.leadId);
+  const selectedEmployee = employees.find((e) => String(e.id) === String(form.staff));
 
   const summaryItems = useMemo(
     () => [
@@ -184,9 +190,9 @@ export default function SiteVisitSchedulePage() {
       },
       { label: "Date", value: form.date || "Pending" },
       { label: "Time", value: form.time || "Pending" },
-      { label: "Staff", value: form.staff || "Assign staff" },
+      { label: "Staff", value: selectedEmployee?.employeeName || "Assign staff" },
     ],
-    [form.date, form.staff, form.time, selectedLead]
+    [form.date, form.time, selectedLead, selectedEmployee]
   );
 
   const update = (field, value) => {
@@ -315,13 +321,13 @@ export default function SiteVisitSchedulePage() {
     try {
       const visit = await createSiteVisit({
         leadId: form.leadId,
-        assignedTo: Math.max(1, STAFF_MEMBERS.indexOf(form.staff) + 1),
+        assignedTo: form.staff,
         scheduledDate: form.date,
         scheduledTime: form.time,
         latitude: form.latitude,
         longitude: form.longitude,
         notes: form.notes || "",
-        createdBy: Math.max(1, STAFF_MEMBERS.indexOf(form.staff) + 1),
+        createdBy: form.staff,
       });
 
       if (visit.uuid) {
@@ -445,11 +451,18 @@ export default function SiteVisitSchedulePage() {
 
               <div className="space-y-2">
                 <Label>Assigned staff *</Label>
-                <Input
-                  value={form.staff}
-                  onChange={(e) => update("staff", e.target.value)}
-                  placeholder="Staff member name"
-                />
+                <Select value={form.staff} onValueChange={(v) => update("staff", v)} disabled={loadingOptions}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={loadingOptions ? "Loading staff..." : "Select staff member"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {employees.map((emp) => (
+                      <SelectItem key={emp.id} value={emp.id}>
+                        {emp.employeeName || emp.fullName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2 md:col-span-2">
@@ -649,7 +662,7 @@ export default function SiteVisitSchedulePage() {
               {form.date || "Date pending"} at {form.time || "Time pending"}
             </p>
             <p>
-              Assigned to {form.staff || "staff"}.
+              Assigned to {selectedEmployee?.employeeName || "staff"}.
             </p>
           </div>
           <DialogFooter>

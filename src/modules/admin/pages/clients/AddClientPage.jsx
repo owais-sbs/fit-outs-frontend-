@@ -4,6 +4,7 @@ import { CheckCircle2, Eye, EyeOff, FileText, Paperclip, User, Upload, X } from 
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import { createClient } from "../../api/clients.api";
 import { ROUTES } from "@/shared/constants/routes";
+import { useAuth } from "@/shared/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -66,6 +67,7 @@ function pwStrength(pw) {
 
 export default function AddClientPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [showPw, setShowPw] = useState(false);
   const [showCpw, setShowCpw] = useState(false);
   const [errors, setErrors] = useState({});
@@ -129,6 +131,7 @@ export default function AddClientPage() {
         password: form.password,
         phone: form.phone.trim() || null,
         companyName: form.company.trim() || null,
+        companyUuid: user?.companyId || null,
       });
       setSaved(true);
       setTimeout(() => navigate(ROUTES.ADMIN.CLIENTS), 1500);

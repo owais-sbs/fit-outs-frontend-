@@ -82,3 +82,8 @@ export const updateLeadStatus = (id, status, updatedBy, notes, lostReason) =>
 
 export const deleteLead = (id) =>
   axiosInstance.delete(`/leads/${id}`).then((r) => r.data?.data);
+
+export const convertLeadToClient = (id) =>
+  axiosInstance
+    .post(`/leads/${id}/convert-to-client`)
+    .then((r) => normalizeLead(r.data?.data));

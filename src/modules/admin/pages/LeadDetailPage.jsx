@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   ArrowLeft, Calendar, MessageSquare, Phone, Mail,
-  Building2, Clock,
+  Building2, Clock, UserCheck,
 } from "lucide-react";
 import { ROUTES } from "@/shared/constants/routes";
-import { fetchLeadById } from "../api/leads.api";
+import { fetchLeadById, updateLeadStatus, convertLeadToClient } from "../api/leads.api";
+import { useAuth } from "@/shared/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,27 +49,35 @@ function EmptyState({ icon: Icon, message }) {
   );
 }
 
-function SidebarRow({ label, value, icon: Icon }) {
+function SidebarRow({ label, value, icon: Icon, href }) {
   if (!value || value === "\u2014") return null;
-  return (
+  const content = (
     <div className="space-y-0.5">
       <p className="text-xs text-muted-foreground">{label}</p>
       <div className="flex items-center gap-1.5">
         {Icon && <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
-        <p className="text-sm font-medium break-all">{value}</p>
+        <p className={`text-sm font-medium break-all ${href ? "text-primary hover:underline cursor-pointer" : ""}`}>{value}</p>
       </div>
     </div>
   );
+  if (href) {
+    return <a href={href} target="_blank" rel="noopener noreferrer">{content}</a>;
+  }
+  return content;
 }
 
 export default function LeadDetailPage() {
   const { leadId } = useParams();
+  const { user } = useAuth();
   const [lead, setLead] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [statusSaving, setStatusSaving] = useState(false);
 
   const [status, setStatus] = useState("NEW");
   const [noteOpen, setNoteOpen] = useState(false);
   const [noteText, setNoteText] = useState("");
+  const [convertOpen, setConvertOpen] = useState(false);
+  const [converting, setConverting] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -88,6 +97,35 @@ export default function LeadDetailPage() {
       });
     return () => { cancelled = true; };
   }, [leadId]);
+
+  const handleStatusChange = async (newStatus) => {
+    if (newStatus === status) return;
+    setStatusSaving(true);
+    try {
+      const updated = await updateLeadStatus(leadId, newStatus, user?.id);
+      setLead(updated);
+      setStatus(updated.status);
+    } catch (err) {
+      console.error("Failed to update status:", err);
+      setStatus(lead.status);
+    } finally {
+      setStatusSaving(false);
+    }
+  };
+
+  const handleConvertToClient = async () => {
+    setConverting(true);
+    try {
+      const updated = await convertLeadToClient(leadId);
+      setLead(updated);
+      setStatus(updated.status);
+      setConvertOpen(false);
+    } catch (err) {
+      console.error("Failed to convert lead:", err);
+    } finally {
+      setConverting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -112,6 +150,8 @@ export default function LeadDetailPage() {
   }
 
   const initials = lead.clientName?.split(" ").map((n) => n[0]).join("").slice(0, 2) || "??";
+  const phoneHref = lead.phone ? `tel:${lead.phone.replace(/\s/g, "")}` : null;
+  const emailHref = lead.email ? `https://mail.google.com/mail/?to=${encodeURIComponent(lead.email)}` : null;
 
   return (
     <div className="space-y-5">
@@ -148,6 +188,16 @@ export default function LeadDetailPage() {
               <Calendar className="h-3.5 w-3.5" />Schedule visit
             </Link>
           </Button>
+          {status !== "CLIENT" && status !== "LOST" && (
+            <Button
+              variant="default"
+              size="sm"
+              className="gap-1.5 bg-green-600 hover:bg-green-700"
+              onClick={() => setConvertOpen(true)}
+            >
+              <UserCheck className="h-3.5 w-3.5" />Convert to Client
+            </Button>
+          )}
         </div>
       </div>
 
@@ -189,14 +239,14 @@ export default function LeadDetailPage() {
               <Card className="border-border/60">
                 <CardHeader className="pb-2"><CardTitle className="text-sm">Contact</CardTitle></CardHeader>
                 <CardContent className="grid gap-3 sm:grid-cols-2 text-sm">
-                  <div className="flex items-center gap-2">
+                  <a href={phoneHref} className="flex items-center gap-2 hover:text-primary transition-colors">
                     <Phone className="h-4 w-4 text-muted-foreground" />
-                    <p>{lead.phone || "\u2014"}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
+                    <p className={phoneHref ? "cursor-pointer" : ""}>{lead.phone || "\u2014"}</p>
+                  </a>
+                  <a href={emailHref} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-primary transition-colors">
                     <Mail className="h-4 w-4 text-muted-foreground" />
-                    <p className="truncate">{lead.email || "\u2014"}</p>
-                  </div>
+                    <p className={`truncate ${emailHref ? "cursor-pointer" : ""}`}>{lead.email || "\u2014"}</p>
+                  </a>
                 </CardContent>
               </Card>
 
@@ -229,7 +279,7 @@ export default function LeadDetailPage() {
             <Card className="border-border/60">
               <CardHeader className="pb-2"><CardTitle className="text-sm">Move status</CardTitle></CardHeader>
               <CardContent className="space-y-2">
-                <Select value={status} onValueChange={setStatus}>
+                <Select value={status} onValueChange={handleStatusChange} disabled={statusSaving}>
                   <SelectTrigger className="h-8 text-xs">
                     <SelectValue />
                   </SelectTrigger>
@@ -239,6 +289,7 @@ export default function LeadDetailPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                {statusSaving && <p className="text-[11px] text-muted-foreground">Saving...</p>}
               </CardContent>
             </Card>
 
@@ -246,8 +297,8 @@ export default function LeadDetailPage() {
               <CardHeader className="pb-2"><CardTitle className="text-sm">Lead info</CardTitle></CardHeader>
               <CardContent className="space-y-3">
                 <SidebarRow label="Source" value={lead.source} icon={Building2} />
-                <SidebarRow label="Phone" value={lead.phone} icon={Phone} />
-                <SidebarRow label="Email" value={lead.email} icon={Mail} />
+                <SidebarRow label="Phone" value={lead.phone} icon={Phone} href={phoneHref} />
+                <SidebarRow label="Email" value={lead.email} icon={Mail} href={emailHref} />
                 {lead.createdAt && (
                   <div className="space-y-0.5">
                     <p className="text-xs text-muted-foreground">Created</p>
@@ -284,6 +335,27 @@ export default function LeadDetailPage() {
               }}
             >
               Save note
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={convertOpen} onOpenChange={setConvertOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Convert to Client</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            This will create a client account for <span className="font-medium text-foreground">{lead.email}</span> with password <span className="font-mono font-medium text-foreground">123456</span> and move this lead to Client status.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConvertOpen(false)} disabled={converting}>Cancel</Button>
+            <Button
+              className="bg-green-600 hover:bg-green-700"
+              disabled={converting}
+              onClick={handleConvertToClient}
+            >
+              {converting ? "Converting..." : "Convert"}
             </Button>
           </DialogFooter>
         </DialogContent>
