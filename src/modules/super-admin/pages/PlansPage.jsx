@@ -240,7 +240,7 @@ export default function PlansPage() {
                           <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Monthly</p>
                           <div className="mt-1 flex items-baseline gap-1">
                             <span className="text-3xl font-semibold tracking-tight">${plan.price}</span>
-                            <span className="text-sm text-muted-foreground">AUD</span>
+                            <span className="text-sm text-muted-foreground">AED</span>
                           </div>
                         </div>
                         <div className="text-right">
@@ -268,7 +268,7 @@ export default function PlansPage() {
                     <div className="grid gap-3 sm:grid-cols-2">
                       <div>
                         <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                          Monthly (AUD)
+                          Monthly (AED)
                         </Label>
                         <Input
                           type="number"
@@ -278,7 +278,7 @@ export default function PlansPage() {
                       </div>
                       <div>
                         <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                          Annual (AUD)
+                          Annual (AED)
                         </Label>
                         <Input
                           type="number"
@@ -405,7 +405,7 @@ export default function PlansPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="priceMonthly">Monthly price (AUD)</Label>
+                <Label htmlFor="priceMonthly">Monthly price (AED)</Label>
                 <Input
                   id="priceMonthly"
                   type="number"
@@ -416,7 +416,7 @@ export default function PlansPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="priceAnnual">Annual price (AUD)</Label>
+                <Label htmlFor="priceAnnual">Annual price (AED)</Label>
                 <Input
                   id="priceAnnual"
                   type="number"

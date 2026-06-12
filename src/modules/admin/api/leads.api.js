@@ -5,8 +5,7 @@ const STATUS_TO_LABEL = {
   CONTACTED: "Contacted",
   QUALIFIED: "Qualified",
   SITE_VISIT_SCHEDULED: "Site Visit Scheduled",
-  LOST: "Lost",
-  CLIENT: "Client",
+  LOST: "Lost"
 };
 
 const SOURCE_DISPLAY = {
@@ -87,3 +86,8 @@ export const convertLeadToClient = (id) =>
   axiosInstance
     .post(`/leads/${id}/convert-to-client`)
     .then((r) => normalizeLead(r.data?.data));
+
+export const createLeadAccount = (id) =>
+  axiosInstance
+    .post(`/leads/${id}/create-account`)
+    .then((r) => r.data?.data);

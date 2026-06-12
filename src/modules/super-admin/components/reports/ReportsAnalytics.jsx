@@ -72,7 +72,7 @@ export function RevenueAnalyticsSection() {
   return (
     <AnalyticsChartCard
       title="Revenue analytics"
-      description="MRR and CRM pipeline value (AUD thousands)"
+      description="MRR and CRM pipeline value (AED thousands)"
       contentClassName="h-[300px] min-h-[260px] p-0">
       <EvilLineChart
         data={REVENUE_ANALYTICS_DATA}

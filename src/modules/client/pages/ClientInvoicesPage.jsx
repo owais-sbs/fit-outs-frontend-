@@ -17,7 +17,7 @@ const INVOICES = [
 const STATUS_VARIANT = { Paid: "success", Pending: "warning", Overdue: "destructive" };
 
 function formatCurrency(amount) {
-  return new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD", maximumFractionDigits: 0 }).format(amount);
+  return new Intl.NumberFormat("en-AU", { style: "currency", currency: "AED", maximumFractionDigits: 0 }).format(amount);
 }
 
 function formatDate(d) {

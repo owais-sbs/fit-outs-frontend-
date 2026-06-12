@@ -69,7 +69,7 @@ export const ANALYTICS_STATS = [
   },
 ];
 
-/** Monthly MRR + CRM pipeline value (AUD thousands) */
+/** Monthly MRR + CRM pipeline value (AED thousands) */
 export const REVENUE_ANALYTICS_DATA = [
   { month: "Jan", mrr: 96, crmPipeline: 42 },
   { month: "Feb", mrr: 102, crmPipeline: 48 },

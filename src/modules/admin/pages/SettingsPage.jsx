@@ -146,7 +146,7 @@ export default function AdminSettingsPage() {
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="usd">USD ($)</SelectItem>
-                    <SelectItem value="aud">AUD ($)</SelectItem>
+                    <SelectItem value="aud">AED ($)</SelectItem>
                     <SelectItem value="eur">EUR (€)</SelectItem>
                   </SelectContent>
                 </Select>

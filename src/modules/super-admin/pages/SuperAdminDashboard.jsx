@@ -80,7 +80,7 @@ export default function SuperAdminDashboard() {
         title: "Monthly Revenue",
         value: new Intl.NumberFormat("en-AU", {
           style: "currency",
-          currency: "AUD",
+          currency: "AED",
           maximumFractionDigits: 0,
         }).format(stats.totalRevenue),
         growth: 5.7,

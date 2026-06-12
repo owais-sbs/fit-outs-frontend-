@@ -5,7 +5,8 @@ import {
   Building2, Clock, UserCheck,
 } from "lucide-react";
 import { ROUTES } from "@/shared/constants/routes";
-import { fetchLeadById, updateLeadStatus, convertLeadToClient } from "../api/leads.api";
+import { fetchLeadById, updateLeadStatus, convertLeadToClient,
+  createLeadAccount } from "../api/leads.api";
 import { useAuth } from "@/shared/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,13 +21,14 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 
+
 const STATUS_VARIANT = {
   NEW: "default",
   CONTACTED: "outline",
   QUALIFIED: "warning",
   SITE_VISIT_SCHEDULED: "secondary",
   LOST: "destructive",
-  CLIENT: "success",
+
 };
 
 const STATUS_LABELS = {
@@ -35,7 +37,7 @@ const STATUS_LABELS = {
   QUALIFIED: "Qualified",
   SITE_VISIT_SCHEDULED: "Site Visit Scheduled",
   LOST: "Lost",
-  CLIENT: "Client",
+
 };
 
 function EmptyState({ icon: Icon, message }) {
@@ -78,6 +80,7 @@ export default function LeadDetailPage() {
   const [noteText, setNoteText] = useState("");
   const [convertOpen, setConvertOpen] = useState(false);
   const [converting, setConverting] = useState(false);
+  const [creatingAccount, setCreatingAccount] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -126,6 +129,23 @@ export default function LeadDetailPage() {
       setConverting(false);
     }
   };
+
+  const handleCreateAccount = async () => {
+  setCreatingAccount(true);
+
+  try {
+    await createLeadAccount(leadId);
+
+    setLead((prev) => ({
+      ...prev,
+      accountCreated: true,
+    }));
+  } catch (err) {
+    console.error("Failed to create account:", err);
+  } finally {
+    setCreatingAccount(false);
+  }
+};
 
   if (loading) {
     return (
@@ -198,6 +218,18 @@ export default function LeadDetailPage() {
               <UserCheck className="h-3.5 w-3.5" />Convert to Client
             </Button>
           )}
+          {!lead.accountCreated && (
+  <Button
+    variant="outline"
+    size="sm"
+    disabled={creatingAccount}
+    onClick={handleCreateAccount}
+  >
+    {creatingAccount ? "Creating..." : "Create Account"}
+  </Button>
+)}
+
+
         </div>
       </div>
 

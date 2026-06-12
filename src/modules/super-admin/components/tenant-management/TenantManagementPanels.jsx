@@ -39,7 +39,7 @@ export default function TenantManagementPanels() {
 
   const revenueLabel = new Intl.NumberFormat("en-AU", {
     style: "currency",
-    currency: "AUD",
+    currency: "AED",
     maximumFractionDigits: 0,
   }).format(stats.totalRevenue);
 
