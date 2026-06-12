@@ -4,7 +4,7 @@ import {
   Sparkles, LayoutDashboard, Users, MapPin,
   List, XCircle, ChevronRight,
   UserSquare2, CalendarRange, Briefcase,
-  UserCheck, Mail, UserPlus,
+  UserCheck, Mail,
 } from "lucide-react";
 import {
   Sidebar,
@@ -48,7 +48,6 @@ const LEADS_SUB_ITEMS = [
 
 const CLIENTS_SUB_ITEMS = [
   { label: "All Clients", href: ROUTES.ADMIN.CLIENTS,      icon: UserCheck },
-  { label: "Add Client",  href: ROUTES.ADMIN.CLIENT_NEW,   icon: UserPlus },
   { label: "Email",       href: ROUTES.ADMIN.CLIENT_EMAIL, icon: Mail },
 ];
 

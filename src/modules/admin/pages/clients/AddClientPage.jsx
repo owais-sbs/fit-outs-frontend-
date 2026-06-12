@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { CheckCircle2, Eye, EyeOff, User, Upload } from "lucide-react";
+import { CheckCircle2, Eye, EyeOff, FileText, Paperclip, User, Upload, X } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import { CLIENT_STATUSES } from "../../data/clients";
 import { ROUTES } from "@/shared/constants/routes";
@@ -14,6 +14,12 @@ import { Separator } from "@/components/ui/separator";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+
+// ─── Document types ───────────────────────────────────────────────────────────
+const CLIENT_DOC_TYPES = [
+  "Contract", "NDA", "Proposal", "Invoice",
+  "ID Document", "Agreement", "Other",
+];
 
 function Field({ label, required, error, children }) {
   return (
@@ -64,6 +70,29 @@ export default function AddClientPage() {
   const [showCpw, setShowCpw] = useState(false);
   const [errors, setErrors] = useState({});
   const [saved, setSaved] = useState(false);
+  const [docs, setDocs] = useState([]);
+  const [docForm, setDocForm] = useState({ file: null, name: "", type: "Contract" });
+
+  const addDoc = () => {
+    if (!docForm.name.trim()) return;
+    
+    let sizeStr = "—";
+    if (docForm.file) {
+      const kb = docForm.file.size / 1024;
+      if (kb > 1024) {
+        sizeStr = (kb / 1024).toFixed(1) + " MB";
+      } else {
+        sizeStr = kb.toFixed(0) + " KB";
+      }
+    }
+    
+    setDocs((prev) => [...prev, { id: Date.now(), name: docForm.name.trim(), type: docForm.type, size: sizeStr, file: docForm.file }]);
+    setDocForm({ file: null, name: "", type: "Contract" });
+    
+    const fileInput = document.getElementById("client-doc-upload");
+    if (fileInput) fileInput.value = "";
+  };
+  const removeDoc = (id) => setDocs((prev) => prev.filter((d) => d.id !== id));
 
   const [form, setForm] = useState({
     firstName: "", lastName: "", company: "", email: "", phone: "",
@@ -112,11 +141,27 @@ export default function AddClientPage() {
           {/* Personal */}
           <Section title="Client Details" desc="Basic contact and company information.">
             <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-border bg-muted/40">
-                <User className="h-5 w-5 text-muted-foreground" />
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-border bg-muted/40 overflow-hidden relative">
+                {form.photo ? (
+                  <img src={URL.createObjectURL(form.photo)} alt="Profile" className="h-full w-full object-cover" />
+                ) : (
+                  <User className="h-5 w-5 text-muted-foreground" />
+                )}
               </div>
               <div>
-                <Button variant="outline" size="sm" className="gap-1.5"><Upload className="h-3.5 w-3.5" />Upload Photo</Button>
+                <Button type="button" variant="outline" size="sm" className="gap-1.5 relative overflow-hidden">
+                  <Upload className="h-3.5 w-3.5" />
+                  Upload Photo
+                  <input
+                    type="file"
+                    accept="image/jpeg, image/png"
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) set("photo", file);
+                    }}
+                  />
+                </Button>
                 <p className="mt-1 text-[11px] text-muted-foreground">JPG, PNG · max 5 MB</p>
               </div>
             </div>
@@ -183,6 +228,68 @@ export default function AddClientPage() {
                 </div>
               </Field>
             </Row>
+          </Section>
+
+          {/* Documents */}
+          <Section title="Documents" desc="Attach any relevant files for this client.">
+            <div className="flex gap-2">
+              <Select value={docForm.type} onValueChange={(v) => setDocForm((f) => ({ ...f, type: v }))}>
+                <SelectTrigger className="w-[150px] shrink-0">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CLIENT_DOC_TYPES.map((t) => (
+                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Input
+                id="client-doc-upload"
+                type="file"
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (file) {
+                    setDocForm((f) => ({ ...f, file, name: file.name }));
+                  }
+                }}
+                className="flex-1 cursor-pointer"
+              />
+              <Button type="button" variant="outline" size="sm" onClick={addDoc} className="shrink-0 gap-1.5">
+                <Paperclip className="h-3.5 w-3.5" />
+                Attach
+              </Button>
+            </div>
+
+            {docs.length === 0 ? (
+              <div className="flex items-center justify-center rounded-lg border border-dashed border-border/60 py-7 text-sm text-muted-foreground">
+                <FileText className="mr-2 h-4 w-4 opacity-40" />
+                No documents attached yet
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {docs.map((doc) => (
+                  <div key={doc.id} className="flex items-center gap-3 rounded-lg border border-border/50 bg-muted/20 px-3 py-2">
+                    <FileText className="h-4 w-4 text-primary shrink-0" />
+                    <div className="flex-1 min-w-0 flex justify-between items-center pr-4">
+                      <div>
+                        <p className="text-sm font-medium truncate">{doc.name}</p>
+                        <p className="text-xs text-muted-foreground">{doc.type}</p>
+                      </div>
+                      {doc.size !== "—" && doc.size && (
+                        <span className="text-xs text-muted-foreground">{doc.size}</span>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeDoc(doc.id)}
+                      className="text-muted-foreground hover:text-destructive transition-colors"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </Section>
         </div>
 

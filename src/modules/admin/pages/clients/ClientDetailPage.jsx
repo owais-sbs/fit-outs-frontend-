@@ -134,6 +134,16 @@ export default function ClientDetailPage() {
                 variant="outline"
                 size="sm"
                 className="w-full gap-2 justify-start"
+                onClick={() => window.open(`tel:${client.phone}`)}
+              >
+                <Phone className="h-3.5 w-3.5" />
+                Call {client.name.split(" ")[0]}
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full gap-2 justify-start"
                 onClick={() =>
                   navigate(ROUTES.ADMIN.CLIENT_EMAIL + `?to=${client.email}&name=${client.name}`)
                 }

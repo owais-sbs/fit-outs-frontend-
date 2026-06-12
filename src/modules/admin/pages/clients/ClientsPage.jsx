@@ -1,11 +1,9 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Building2, DollarSign, MoreHorizontal, Plus,
-  Search, UserCheck, UserPlus, Users,
+  MoreHorizontal, Plus, Search, UserCheck, UserPlus, Users,
 } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
-import StatCard from "@/modules/super-admin/components/StatCard";
 import { INITIAL_CLIENTS, CLIENT_STATUSES } from "../../data/clients";
 import { ROUTES } from "@/shared/constants/routes";
 import { Button } from "@/components/ui/button";
@@ -13,7 +11,6 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -31,10 +28,7 @@ import { Label } from "@/components/ui/label";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const STATUS_VARIANT = {
-  Active:   "success",
-  Inactive: "secondary",
-  Prospect: "warning",
-  VIP:      "default",
+  Active: "success", Inactive: "secondary", Prospect: "warning", VIP: "default",
 };
 
 const AVATAR_HEX = ["7C3AED","0284C7","059669","B45309","BE123C","4338CA","0F766E","C2410C"];
@@ -44,10 +38,6 @@ function avatarUrl(name = "") {
 }
 function initials(name = "") {
   return name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
-}
-function fmtDate(d) {
-  if (!d) return "—";
-  return new Date(d).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
 }
 
 // ─── Convert Lead dialog ──────────────────────────────────────────────────────
@@ -59,13 +49,11 @@ const LEADS_FOR_CONVERT = [
 
 function ConvertLeadDialog({ open, onClose, onSave }) {
   const [selected, setSelected] = useState("");
-  const [form, setForm] = useState({ username: "", password: "" });
-
   const lead = LEADS_FOR_CONVERT.find((l) => l.id === selected);
 
   const handleSave = () => {
-    if (!selected || !form.username || !form.password) return;
-    onSave({ lead, username: form.username });
+    if (!selected) return;
+    onSave({ lead });
     onClose();
   };
 
@@ -89,38 +77,18 @@ function ConvertLeadDialog({ open, onClose, onSave }) {
           </div>
 
           {lead && (
-            <div className="rounded-lg bg-muted/30 border border-border/50 p-3 space-y-1.5 text-sm">
+            <div className="rounded-lg bg-muted/30 border border-border/50 p-4 space-y-1.5">
               <p className="font-medium">{lead.name}</p>
-              <p className="text-muted-foreground text-xs">{lead.company}</p>
-              <p className="text-muted-foreground text-xs">{lead.email} · {lead.phone}</p>
+              <p className="text-sm text-muted-foreground">{lead.company}</p>
+              <p className="text-xs text-muted-foreground">{lead.email}</p>
+              <p className="text-xs text-muted-foreground">{lead.phone}</p>
             </div>
           )}
-
-          <Separator />
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Create Client Account</p>
-
-          <div className="space-y-1.5">
-            <Label>Username / Email <span className="text-destructive">*</span></Label>
-            <Input
-              value={form.username}
-              onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))}
-              placeholder={lead?.email || "client@example.com"}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Temporary Password <span className="text-destructive">*</span></Label>
-            <Input
-              type="password"
-              value={form.password}
-              onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-              placeholder="Min. 8 characters"
-            />
-          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button disabled={!selected || !form.username || !form.password} onClick={handleSave}>
-            Convert &amp; Create Account
+          <Button disabled={!selected} onClick={handleSave}>
+            Convert to Client
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -152,12 +120,12 @@ export default function ClientsPage() {
     });
   }, [clients, search, statusFilter]);
 
-  const handleConvert = ({ lead, username }) => {
+  const handleConvert = ({ lead }) => {
     const newClient = {
       id: `cl-${Date.now()}`,
       name: lead.name,
       company: lead.company,
-      email: username || lead.email,
+      email: lead.email,
       phone: lead.phone,
       location: "—",
       status: "Active",
@@ -193,14 +161,6 @@ export default function ClientsPage() {
           </div>
         }
       />
-
-      {/* Stats */}
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Total Clients"   value={stats.total}                              icon={Users}      growth={6}  growthLabel="vs last month" />
-        <StatCard title="Active / VIP"    value={stats.active}                             icon={UserCheck}  growth={4}  growthLabel="vs last month" />
-        <StatCard title="VIP Clients"     value={stats.vip}                               icon={Building2}  growth={10} growthLabel="vs last month" />
-        <StatCard title="Total Revenue"   value={`$${stats.revenue.toLocaleString()}`}    icon={DollarSign} growth={12} growthLabel="vs last month" />
-      </section>
 
       {/* Filters */}
       <Card className="border-border/60 shadow-sm">

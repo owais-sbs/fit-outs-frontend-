@@ -122,7 +122,6 @@ export default function ProjectsPage() {
         title="Projects Management"
         description="Monitor construction execution, track timelines, documents and update progress."
       />
-      />
 
       {/* Stats Cards */}
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

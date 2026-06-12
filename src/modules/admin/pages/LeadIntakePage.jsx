@@ -13,6 +13,9 @@ import {
   Building2,
   Info,
   CheckCircle2,
+  FileText,
+  Paperclip,
+  X,
 } from "lucide-react";
 import { ROUTES } from "@/shared/constants/routes";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
@@ -108,6 +111,12 @@ const EMPTY_FORM = {
   expectedStartDate: "",
 };
 
+// ─── Document types for leads ────────────────────────────────────────────────
+const LEAD_DOC_TYPES = [
+  "Site Brief", "Floor Plan", "Scope of Works",
+  "Client Proposal", "Quote Request", "Other",
+];
+
 export default function LeadIntakePage() {
   const navigate = useNavigate();
   const [form, setForm] = useState(EMPTY_FORM);
@@ -115,6 +124,30 @@ export default function LeadIntakePage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [docs, setDocs] = useState([]);
+  const [docForm, setDocForm] = useState({ file: null, name: "", type: "Site Brief" });
+
+  const addDoc = () => {
+    if (!docForm.name.trim()) return;
+    
+    let sizeStr = "—";
+    if (docForm.file) {
+      const kb = docForm.file.size / 1024;
+      if (kb > 1024) {
+        sizeStr = (kb / 1024).toFixed(1) + " MB";
+      } else {
+        sizeStr = kb.toFixed(0) + " KB";
+      }
+    }
+    
+    setDocs((prev) => [...prev, { id: Date.now(), name: docForm.name.trim(), type: docForm.type, size: sizeStr, file: docForm.file }]);
+    setDocForm({ file: null, name: "", type: "Site Brief" });
+    
+    const fileInput = document.getElementById("lead-doc-upload");
+    if (fileInput) fileInput.value = "";
+  };
+
+  const removeDoc = (id) => setDocs((prev) => prev.filter((d) => d.id !== id));
 
   const update = (field, value) => {
     setForm((f) => ({ ...f, [field]: value }));
@@ -338,10 +371,82 @@ export default function LeadIntakePage() {
               </div>
             </CardContent>
           </Card>
+          {/* Documents */}
+          <Card className="border-border/60">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Paperclip className="h-4 w-4 text-primary" />
+                Documents
+              </CardTitle>
+              <CardDescription>Attach any relevant files to this lead</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Add document row */}
+              <div className="flex gap-2">
+                <Select value={docForm.type} onValueChange={(v) => setDocForm((f) => ({ ...f, type: v }))}>
+                  <SelectTrigger className="w-[160px] shrink-0">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LEAD_DOC_TYPES.map((t) => (
+                      <SelectItem key={t} value={t}>{t}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  id="lead-doc-upload"
+                  type="file"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      setDocForm((f) => ({ ...f, file, name: file.name }));
+                    }
+                  }}
+                  className="flex-1 cursor-pointer"
+                />
+                <Button type="button" variant="outline" size="sm" onClick={addDoc} className="shrink-0 gap-1.5">
+                  <Paperclip className="h-3.5 w-3.5" />
+                  Attach
+                </Button>
+              </div>
+
+              {/* Document list */}
+              {docs.length === 0 ? (
+                <div className="flex items-center justify-center rounded-lg border border-dashed border-border/60 py-8 text-sm text-muted-foreground">
+                  <FileText className="mr-2 h-4 w-4 opacity-40" />
+                  No documents attached yet
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {docs.map((doc) => (
+                    <div key={doc.id} className="flex items-center gap-3 rounded-lg border border-border/50 bg-muted/20 px-3 py-2">
+                      <FileText className="h-4 w-4 text-primary shrink-0" />
+                      <div className="flex-1 min-w-0 flex justify-between items-center pr-4">
+                        <div>
+                          <p className="text-sm font-medium truncate">{doc.name}</p>
+                          <p className="text-xs text-muted-foreground">{doc.type}</p>
+                        </div>
+                        {doc.size !== "—" && (
+                          <span className="text-xs text-muted-foreground">{doc.size}</span>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeDoc(doc.id)}
+                        className="text-muted-foreground hover:text-destructive transition-colors"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
         </div>
 
-        {/* ── Sidebar ──────────────────────────────────────────────────── */}
-        <div className="space-y-4">
+        {/* ── Sidebar ──────────────────────────────────────────────────── */}        <div className="space-y-4">
           {/* Summary preview */}
           {(form.clientName || form.projectType || form.budget || form.priority) && (
             <Card className="border-border/60 border-primary/20 bg-primary/3">

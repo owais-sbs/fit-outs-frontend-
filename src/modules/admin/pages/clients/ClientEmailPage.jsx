@@ -70,67 +70,71 @@ function ComposeWindow({ initialTo, initialName, onClose, onSent }) {
   }
 
   return (
-    <div className="fixed bottom-0 right-6 z-50 w-[540px] rounded-t-xl border border-border bg-card shadow-2xl overflow-hidden">
-      {/* Title bar */}
-      <div className="flex items-center justify-between bg-secondary px-4 py-2.5">
-        <span className="text-sm font-semibold">{subject || "New Message"}</span>
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => setMin(true)}>
-            <ChevronDown className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-sm">
+      <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-2xl overflow-hidden">
+        {/* Title bar */}
+        <div className="flex items-center justify-between bg-secondary px-4 py-3">
+          <span className="text-sm font-semibold">{subject || "New Message"}</span>
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => setMin(true)}>
+              <ChevronDown className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={onClose}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
-      </div>
 
-      {/* Fields */}
-      <div className="border-b border-border/50">
-        <div className="flex items-center gap-2 px-4 py-2 border-b border-border/30">
-          <span className="text-xs text-muted-foreground w-6">To</span>
-          <Input
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-            placeholder="Recipients"
-            className="h-7 border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0 flex-1"
-          />
+        {/* Fields */}
+        <div className="border-b border-border/50">
+          <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border/30">
+            <span className="text-xs text-muted-foreground w-14">To</span>
+            <Input
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+              placeholder="Recipients"
+              className="h-7 border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0 flex-1"
+            />
+          </div>
+          <div className="flex items-center gap-2 px-4 py-2.5">
+            <span className="text-xs text-muted-foreground w-14">Subject</span>
+            <Input
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              placeholder="Subject"
+              className="h-7 border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0 flex-1"
+            />
+          </div>
         </div>
-        <div className="flex items-center gap-2 px-4 py-2">
-          <span className="text-xs text-muted-foreground w-6">Subject</span>
-          <Input
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            placeholder="Subject"
-            className="h-7 border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0 flex-1"
-          />
-        </div>
-      </div>
 
-      {/* Body */}
-      <textarea
-        value={body}
-        onChange={(e) => setBody(e.target.value)}
-        placeholder="Compose email..."
-        className="w-full resize-none bg-transparent px-4 py-3 text-sm outline-none h-52 text-foreground placeholder:text-muted-foreground"
-      />
+        {/* Body */}
+        <textarea
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          placeholder="Compose email..."
+          className="w-full resize-none bg-transparent px-4 py-3 text-sm outline-none h-56 text-foreground placeholder:text-muted-foreground"
+        />
 
-      {/* Footer */}
-      <div className="flex items-center justify-between border-t border-border/50 px-4 py-3">
-        <div className="flex items-center gap-1">
-          <Button
-            size="sm"
-            className="gap-2 rounded-full px-5"
-            disabled={!to || !subject || !body.trim() || sending}
-            onClick={handleSend}
-          >
-            <Send className="h-3.5 w-3.5" />
-            {sending ? "Sending..." : "Send"}
+        {/* Footer */}
+        <div className="flex items-center justify-between border-t border-border/50 px-4 py-3">
+          <div className="flex items-center gap-1">
+            <Button
+              size="sm"
+              className="gap-2 rounded-full px-5"
+              disabled={!to || !subject || !body.trim() || sending}
+              onClick={handleSend}
+            >
+              <Send className="h-3.5 w-3.5" />
+              {sending ? "Sending..." : "Send"}
+            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
+              <Paperclip className="h-4 w-4" />
+            </Button>
+          </div>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={onClose}>
+            <Trash2 className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground"><Paperclip className="h-4 w-4" /></Button>
         </div>
-        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={onClose}>
-          <Trash2 className="h-4 w-4" />
-        </Button>
       </div>
     </div>
   );
