@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Check, Save, Upload, Sparkles, ShieldCheck, Users2, Database } from "lucide-react";
+import { Check, Loader2, Plus, Sparkles, ShieldCheck, Upload, Users2, Database, X } from "lucide-react";
 import PageHeader from "../components/shared/PageHeader";
 import { PLAN_TYPES, ALL_MODULES } from "../data/plans";
 import { Button } from "@/components/ui/button";
@@ -57,10 +57,22 @@ const PLAN_ACCENTS = {
 
 const ACCENT_KEYS = ["basic", "professional", "enterprise"];
 
+const defaultCreateForm = {
+  planName: "",
+  maxUsers: 10,
+  modulesIncluded: [],
+  priceMonthly: 0,
+  priceAnnual: 0,
+  active: true,
+};
+
 export default function PlansPage() {
   const [plans, setPlans] = useState(PLAN_TYPES);
   const [loading, setLoading] = useState(true);
   const [publishOpen, setPublishOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [createForm, setCreateForm] = useState(defaultCreateForm);
   const [moduleToggles, setModuleToggles] = useState(() => {
     const map = {};
     ALL_MODULES.forEach((m) => {
@@ -69,15 +81,13 @@ export default function PlansPage() {
     return map;
   });
 
-  // Fetch plans from API, map API shape → UI shape
-  useEffect(() => {
-    let cancelled = false;
+  const fetchPlans = () => {
+    setLoading(true);
     axiosInstance
       .get("/subscription-plans")
       .then(({ data }) => {
-        if (cancelled) return;
         const list = Array.isArray(data?.data) ? data.data : [];
-        if (list.length === 0) return; // keep mock fallback
+        if (list.length === 0) return;
         const mapped = list.map((item, index) => ({
           id: item.uuid,
           name: item.planName,
@@ -93,15 +103,16 @@ export default function PlansPage() {
         setPlans(mapped);
       })
       .catch((err) => {
-        if (cancelled) return;
         console.error("Failed to fetch subscription plans:", err);
-        // keep mock data as fallback
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        setLoading(false);
       });
+  };
 
-    return () => { cancelled = true; };
+  // Fetch plans from API on mount
+  useEffect(() => {
+    fetchPlans();
   }, []);
 
   const toggleModule = (moduleId, planId) => {
@@ -111,6 +122,46 @@ export default function PlansPage() {
     }));
   };
 
+  const handleCreateChange = (field) => (event) => {
+    const value = event?.target?.value ?? event;
+    setCreateForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleCreateSubmit = async (event) => {
+    event.preventDefault();
+    if (!createForm.planName.trim()) return;
+    setCreating(true);
+    try {
+      await axiosInstance.post("/subscription-plans", {
+        planName: createForm.planName.trim(),
+        maxUsers: Number(createForm.maxUsers),
+        modulesIncluded: createForm.modulesIncluded,
+        priceMonthly: Number(createForm.priceMonthly),
+        priceAnnual: Number(createForm.priceAnnual),
+        active: true,
+      });
+      setCreateOpen(false);
+      setCreateForm(defaultCreateForm);
+      fetchPlans();
+    } catch (err) {
+      console.error("Failed to create plan:", err);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const moduleToggle = (moduleId) => {
+    setCreateForm((prev) => {
+      const has = prev.modulesIncluded.includes(moduleId);
+      return {
+        ...prev,
+        modulesIncluded: has
+          ? prev.modulesIncluded.filter((m) => m !== moduleId)
+          : [...prev.modulesIncluded, moduleId],
+      };
+    });
+  };
+
   return (
     <div className="space-y-6 pb-24">
       <PageHeader
@@ -118,8 +169,8 @@ export default function PlansPage() {
         description="Configure pricing, modules, and renewal settings for fit-out tenant tiers."
         actions={
           <>
-            <Button variant="outline" size="sm" className="gap-2">
-              <Save className="h-4 w-4" />Save draft
+            <Button variant="outline" size="sm" className="gap-2" onClick={() => setCreateOpen(true)}>
+              <Plus className="h-4 w-4" />Create plan
             </Button>
             <Button size="sm" className="gap-2" onClick={() => setPublishOpen(true)}>
               <Upload className="h-4 w-4" />Publish
@@ -324,10 +375,94 @@ export default function PlansPage() {
         </AccordionItem>
       </Accordion>
 
+      {/* ── Create plan dialog ── */}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Create subscription plan</DialogTitle>
+            <DialogDescription>Add a new plan tier for fit-out companies.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleCreateSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="planName">Plan name</Label>
+              <Input
+                id="planName"
+                value={createForm.planName}
+                onChange={handleCreateChange("planName")}
+                placeholder="e.g. Basic, Professional, Enterprise"
+                required
+              />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="maxUsers">Max users</Label>
+                <Input
+                  id="maxUsers"
+                  type="number"
+                  min="1"
+                  value={createForm.maxUsers}
+                  onChange={handleCreateChange("maxUsers")}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="priceMonthly">Monthly price (AUD)</Label>
+                <Input
+                  id="priceMonthly"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={createForm.priceMonthly}
+                  onChange={handleCreateChange("priceMonthly")}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="priceAnnual">Annual price (AUD)</Label>
+                <Input
+                  id="priceAnnual"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={createForm.priceAnnual}
+                  onChange={handleCreateChange("priceAnnual")}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Included modules</Label>
+              <div className="flex flex-wrap gap-2">
+                {ALL_MODULES.map((mod) => {
+                  const selected = createForm.modulesIncluded.includes(mod.id);
+                  return (
+                    <Badge
+                      key={mod.id}
+                      variant={selected ? "default" : "outline"}
+                      className="cursor-pointer gap-1 px-3 py-1.5"
+                      onClick={() => moduleToggle(mod.id)}
+                    >
+                      {mod.label}
+                      {selected ? <X className="ml-1 h-3 w-3" /> : <Plus className="ml-1 h-3 w-3" />}
+                    </Badge>
+                  );
+                })}
+              </div>
+            </div>
+            <DialogFooter className="pt-2">
+              <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={creating}>
+                {creating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Create plan
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {/* ── Sticky footer ── */}
       <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-border bg-background/95 p-4 backdrop-blur md:left-[var(--sidebar-width)]">
         <div className="mx-auto flex max-w-[1600px] justify-end gap-2">
-          <Button variant="outline">Save draft</Button>
+          <Button variant="outline" onClick={() => setCreateOpen(true)}>Create plan</Button>
           <Button onClick={() => setPublishOpen(true)}>Publish plans</Button>
         </div>
       </div>

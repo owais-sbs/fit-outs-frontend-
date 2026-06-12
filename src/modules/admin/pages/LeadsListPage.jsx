@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { MoreHorizontal, Plus, Search, Users, Target, DollarSign, TrendingUp } from "lucide-react";
+import { MoreHorizontal, Plus, Search, Users } from "lucide-react";
 import { ROUTES } from "@/shared/constants/routes";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
-import StatCard from "@/modules/super-admin/components/StatCard";
-import { LEAD_SOURCES, PRIORITIES, SALES_REPS } from "../data/leads";
+import { LEAD_SOURCES } from "../data/leads";
 import { fetchAllLeads } from "../api/leads.api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,35 +25,31 @@ import {
 
 const PAGE_SIZE = 10;
 
-const STAGE_VARIANTS = {
-  new: "default",
-  contacted: "outline",
-  qualified: "warning",
-  siteVisit: "secondary",
-  proposalSent: "default",
-  won: "success",
-  lost: "destructive",
+const STATUS_VARIANTS = {
+  NEW: "default",
+  CONTACTED: "outline",
+  QUALIFIED: "warning",
+  SITE_VISIT_SCHEDULED: "secondary",
+  LOST: "destructive",
+  CLIENT: "success",
 };
 
-const PRIORITY_VARIANTS = {
-  high: "destructive",
-  medium: "warning",
-  low: "secondary",
+const STATUS_LABELS = {
+  NEW: "New",
+  CONTACTED: "Contacted",
+  QUALIFIED: "Qualified",
+  SITE_VISIT_SCHEDULED: "Site Visit Scheduled",
+  LOST: "Lost",
+  CLIENT: "Client",
 };
-
-function formatCurrency(n) {
-  return n ? `$${n.toLocaleString()}` : "\u2014";
-}
 
 export default function LeadsListPage() {
   const navigate = useNavigate();
   const [allLeads, setAllLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [stageFilter, setStageFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [sourceFilter, setSourceFilter] = useState("all");
-  const [priorityFilter, setPriorityFilter] = useState("all");
-  const [assigneeFilter, setAssigneeFilter] = useState("all");
   const [page, setPage] = useState(1);
 
   useEffect(() => {
@@ -62,13 +57,10 @@ export default function LeadsListPage() {
     fetchAllLeads()
       .then((data) => {
         if (cancelled) return;
-        // Support { data: [...] } or plain array
-        const list = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
-        setAllLeads(list);
+        setAllLeads(Array.isArray(data) ? data : []);
       })
-      .catch((err) => {
+      .catch(() => {
         if (cancelled) return;
-        console.error("Failed to fetch leads:", err);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -76,31 +68,18 @@ export default function LeadsListPage() {
     return () => { cancelled = true; };
   }, []);
 
-  const stats = useMemo(() => ({
-    total: allLeads.length,
-    qualified: allLeads.filter((l) => l.stage === "qualified").length,
-    pipelineValue: allLeads.reduce((s, l) => s + (l.budget || 0), 0),
-    conversionRate:
-      allLeads.length > 0
-        ? Math.round((allLeads.filter((l) => l.stage === "won").length / allLeads.length) * 100)
-        : 0,
-  }), [allLeads]);
-
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return allLeads.filter((l) => {
       const matchQ =
         !q ||
-        l.clientName.toLowerCase().includes(q) ||
-        (l.company && l.company.toLowerCase().includes(q)) ||
+        l.clientName?.toLowerCase().includes(q) ||
         (l.email && l.email.toLowerCase().includes(q));
-      const matchStage = stageFilter === "all" || l.stage === stageFilter;
+      const matchStatus = statusFilter === "all" || l.status === statusFilter;
       const matchSource = sourceFilter === "all" || l.source === sourceFilter;
-      const matchPriority = priorityFilter === "all" || l.priority === priorityFilter;
-      const matchAssignee = assigneeFilter === "all" || l.assignee === assigneeFilter;
-      return matchQ && matchStage && matchSource && matchPriority && matchAssignee;
+      return matchQ && matchStatus && matchSource;
     });
-  }, [search, stageFilter, sourceFilter, priorityFilter, assigneeFilter, allLeads]);
+  }, [search, statusFilter, sourceFilter, allLeads]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -109,7 +88,7 @@ export default function LeadsListPage() {
     <div className="space-y-6">
       <PageHeader
         title="All Leads"
-        description="View and manage all leads across every pipeline stage."
+        description="View and manage all leads."
         actions={
           <Button size="sm" className="gap-2" onClick={() => navigate(ROUTES.ADMIN.LEADS_NEW)}>
             <Plus className="h-4 w-4" />
@@ -117,13 +96,6 @@ export default function LeadsListPage() {
           </Button>
         }
       />
-
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Total Leads" value={stats.total} icon={Users} growth={12} growthLabel="vs last month" />
-        <StatCard title="Qualified" value={stats.qualified} icon={Target} growth={8} growthLabel="vs last month" />
-        <StatCard title="Pipeline Value" value={formatCurrency(stats.pipelineValue)} icon={DollarSign} growth={15} growthLabel="vs last month" />
-        <StatCard title="Conversion Rate" value={`${stats.conversionRate}%`} icon={TrendingUp} growth={stats.conversionRate > 20 ? 5 : -3} growthLabel="vs last month" />
-      </section>
 
       <Card className="border-border/60 shadow-sm">
         <CardContent className="p-4">
@@ -138,17 +110,13 @@ export default function LeadsListPage() {
               />
             </div>
             <div className="flex flex-wrap gap-2">
-              <Select value={stageFilter} onValueChange={(v) => { setStageFilter(v); setPage(1); }}>
-                <SelectTrigger className="w-[130px]"><SelectValue placeholder="Stage" /></SelectTrigger>
+              <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
+                <SelectTrigger className="w-[160px]"><SelectValue placeholder="Status" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All stages</SelectItem>
-                  <SelectItem value="new">New</SelectItem>
-                  <SelectItem value="contacted">Contacted</SelectItem>
-                  <SelectItem value="qualified">Qualified</SelectItem>
-                  <SelectItem value="siteVisit">Site Visit</SelectItem>
-                  <SelectItem value="proposalSent">Proposal Sent</SelectItem>
-                  <SelectItem value="won">Won</SelectItem>
-                  <SelectItem value="lost">Lost</SelectItem>
+                  <SelectItem value="all">All statuses</SelectItem>
+                  {Object.entries(STATUS_LABELS).map(([key, label]) => (
+                    <SelectItem key={key} value={key}>{label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <Select value={sourceFilter} onValueChange={(v) => { setSourceFilter(v); setPage(1); }}>
@@ -156,20 +124,6 @@ export default function LeadsListPage() {
                 <SelectContent>
                   <SelectItem value="all">All sources</SelectItem>
                   {LEAD_SOURCES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Select value={priorityFilter} onValueChange={(v) => { setPriorityFilter(v); setPage(1); }}>
-                <SelectTrigger className="w-[120px]"><SelectValue placeholder="Priority" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All priorities</SelectItem>
-                  {PRIORITIES.map((p) => <SelectItem key={p} value={p.toLowerCase()}>{p}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Select value={assigneeFilter} onValueChange={(v) => { setAssigneeFilter(v); setPage(1); }}>
-                <SelectTrigger className="w-[140px]"><SelectValue placeholder="Assignee" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All assignees</SelectItem>
-                  {SALES_REPS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -182,13 +136,12 @@ export default function LeadsListPage() {
           <Table>
             <TableHeader className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm">
               <TableRow className="hover:bg-transparent">
-                <TableHead className="pl-6">Client</TableHead>
-                <TableHead>Company</TableHead>
-                <TableHead>Stage</TableHead>
+                <TableHead className="pl-6">Ref No.</TableHead>
+                <TableHead>Client</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>Source</TableHead>
-                <TableHead>Assignee</TableHead>
-                <TableHead>Priority</TableHead>
-                <TableHead>Budget</TableHead>
+                <TableHead>Project Type</TableHead>
+                <TableHead>Email</TableHead>
                 <TableHead className="pr-6 text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -196,7 +149,7 @@ export default function LeadsListPage() {
               {loading
                 ? Array.from({ length: 6 }).map((_, i) => (
                     <TableRow key={i}>
-                      {Array.from({ length: 8 }).map((__, j) => (
+                      {Array.from({ length: 7 }).map((__, j) => (
                         <TableCell key={j}><Skeleton className="h-4 w-full max-w-[100px]" /></TableCell>
                       ))}
                     </TableRow>
@@ -204,7 +157,7 @@ export default function LeadsListPage() {
                 : paginated.length === 0
                   ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="h-48 text-center">
+                      <TableCell colSpan={7} className="h-48 text-center">
                         <Users className="mx-auto mb-3 h-10 w-10 text-muted-foreground/50" />
                         <p className="font-medium">No leads found</p>
                         <p className="text-sm text-muted-foreground">Adjust filters or search terms</p>
@@ -217,17 +170,20 @@ export default function LeadsListPage() {
                       className="cursor-pointer"
                       onClick={() => navigate(ROUTES.ADMIN.LEAD_DETAIL.replace(":leadId", lead.id))}
                     >
-                      <TableCell className="pl-6 font-medium">{lead.clientName}</TableCell>
-                      <TableCell className="text-muted-foreground">{lead.company || "\u2014"}</TableCell>
+                      <TableCell className="pl-6 font-mono text-xs text-muted-foreground">
+                        {lead.referenceNo || "\u2014"}
+                      </TableCell>
+                      <TableCell className="font-medium">{lead.clientName}</TableCell>
                       <TableCell>
-                        <Badge variant={STAGE_VARIANTS[lead.stage]} className="capitalize">{lead.stage}</Badge>
+                        <Badge variant={STATUS_VARIANTS[lead.status]} className="capitalize">
+                          {STATUS_LABELS[lead.status] || lead.status}
+                        </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground">{lead.source}</TableCell>
-                      <TableCell>{lead.assignee}</TableCell>
-                      <TableCell>
-                        <Badge variant={PRIORITY_VARIANTS[lead.priority]} className="capitalize">{lead.priority}</Badge>
+                      <TableCell className="text-muted-foreground">{lead.projectType || "\u2014"}</TableCell>
+                      <TableCell className="text-muted-foreground max-w-[160px] truncate">
+                        {lead.email || "\u2014"}
                       </TableCell>
-                      <TableCell className="font-medium tabular-nums">{formatCurrency(lead.budget)}</TableCell>
                       <TableCell className="pr-6 text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -237,8 +193,6 @@ export default function LeadsListPage() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(ROUTES.ADMIN.LEAD_DETAIL.replace(":leadId", lead.id)); }}>View</DropdownMenuItem>
-                            <DropdownMenuItem onClick={(e) => e.stopPropagation()}>Edit</DropdownMenuItem>
-                            <DropdownMenuItem onClick={(e) => e.stopPropagation()}>{lead.stage !== "lost" ? "Mark as Lost" : "Reopen"}</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>

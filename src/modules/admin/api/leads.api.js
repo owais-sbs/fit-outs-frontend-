@@ -1,30 +1,41 @@
 import axiosInstance from "@/lib/axiosInstance";
-import { LEAD_SOURCES, SALES_REPS } from "../data/leads";
 
-const STATUS_TO_STAGE = {
-  NEW: "new",
-  CONTACTED: "contacted",
-  QUALIFIED: "qualified",
-  SITE_VISIT_SCHEDULED: "siteVisit",
-  LOST: "lost",
-  CLIENT: "won",
+const STATUS_TO_LABEL = {
+  NEW: "New",
+  CONTACTED: "Contacted",
+  QUALIFIED: "Qualified",
+  SITE_VISIT_SCHEDULED: "Site Visit Scheduled",
+  LOST: "Lost",
+  CLIENT: "Client",
+};
+
+const SOURCE_DISPLAY = {
+  WALK_IN: "Walk-in",
+  REFERRAL: "Referral",
+  WEBSITE: "Website",
+  SOCIAL: "Social",
+  OTHER: "Other",
 };
 
 export function normalizeLead(item = {}) {
-  const sourceId = Number(item.sourceId);
-  const assignedTo = Number(item.assignedTo);
-
+  const sourceVal = item.source?.name || item.source || "";
+  const statusVal = item.status?.name || item.status || "NEW";
   return {
     ...item,
     id: String(item.id),
     clientName: item.clientName || "Unnamed lead",
-    company: item.company || "",
-    stage: STATUS_TO_STAGE[item.status] || String(item.status || "new").toLowerCase(),
-    source: LEAD_SOURCES[sourceId - 1] || item.source || (sourceId ? `Source #${sourceId}` : "—"),
-    assignee: SALES_REPS[assignedTo - 1] || item.assignee || (assignedTo ? `User #${assignedTo}` : "—"),
-    priority: String(item.priority || "medium").toLowerCase(),
-    budget: Number(item.budget || 0),
-    expectedStart: item.expectedStartDate || item.expectedStart || "",
+    source: SOURCE_DISPLAY[sourceVal] || sourceVal || "—",
+    sourceRaw: sourceVal,
+    status: statusVal,
+    statusLabel: STATUS_TO_LABEL[statusVal] || statusVal,
+    projectType: item.projectType || "",
+    notes: item.notes || "",
+    otherSource: item.otherSource || "",
+    assignedTo: item.assignedTo || null,
+    referenceNo: item.referenceNo || "",
+    createdAt: item.createdAt || "",
+    isactive: item.isactive,
+    isdeleted: item.isdeleted,
   };
 }
 
@@ -41,21 +52,33 @@ export const fetchAllLeads = () =>
     .then((r) => unwrapLeadPage(r.data).map(normalizeLead));
 
 export const createLead = (form) => {
-  const sourceId = Math.max(1, LEAD_SOURCES.indexOf(form.source) + 1);
-  const assignedTo = Math.max(1, SALES_REPS.indexOf(form.assignee) + 1);
+  const sourceMap = {
+    "Walk-in": "WALK_IN",
+    "Referral": "REFERRAL",
+    "Website": "WEBSITE",
+    "Social": "SOCIAL",
+    "Other": "OTHER",
+  };
 
   return axiosInstance.post("/leads", {
     clientName: form.clientName.trim(),
-    company: form.company?.trim() || "",
     phone: form.phone.trim(),
     email: form.email.trim(),
     projectType: form.projectType,
-    sourceId,
-    assignedTo,
+    source: sourceMap[form.source] || "OTHER",
+    otherSource: form.source === "Other" ? (form.otherSource?.trim() || null) : null,
     notes: form.notes?.trim() || "",
-    budget: Number(form.budget),
-    priority: form.priority,
-    location: form.location?.trim() || "",
-    expectedStartDate: form.expectedStartDate || null,
   }).then((r) => normalizeLead(r.data?.data));
 };
+
+export const fetchLeadById = (id) =>
+  axiosInstance.get(`/leads/${id}`)
+    .then((r) => normalizeLead(r.data?.data));
+
+export const updateLeadStatus = (id, status, updatedBy, notes, lostReason) =>
+  axiosInstance.put(`/leads/${id}/status`, null, {
+    params: { status, updatedBy, notes, lostReason },
+  }).then((r) => normalizeLead(r.data?.data));
+
+export const deleteLead = (id) =>
+  axiosInstance.delete(`/leads/${id}`).then((r) => r.data?.data);

@@ -4,7 +4,7 @@ import { CalendarDays, CheckCircle2, Clock, MoreHorizontal, Search, AlertCircle 
 import { ROUTES } from "@/shared/constants/routes";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import StatCard from "@/modules/super-admin/components/StatCard";
-import { getAllLeads, SALES_REPS } from "../data/leads";
+import { getAllLeads } from "../data/leads";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -74,7 +74,6 @@ export default function FollowUpsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [assigneeFilter, setAssigneeFilter] = useState("all");
   const [page, setPage] = useState(1);
 
   useEffect(() => {
@@ -128,10 +127,9 @@ export default function FollowUpsPage() {
         (statusFilter === "overdue" && isOverdue) ||
         (statusFilter === "today" && isToday) ||
         (statusFilter === "upcoming" && isUpcoming);
-      const matchAssignee = assigneeFilter === "all" || f.assignee === assigneeFilter;
-      return matchQ && matchStatus && matchAssignee;
+      return matchQ && matchStatus;
     });
-  }, [search, statusFilter, assigneeFilter, followUps, today]);
+  }, [search, statusFilter, followUps, today]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -170,13 +168,6 @@ export default function FollowUpsPage() {
                   <SelectItem value="overdue">Overdue</SelectItem>
                   <SelectItem value="today">Today</SelectItem>
                   <SelectItem value="upcoming">Upcoming</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={assigneeFilter} onValueChange={(v) => { setAssigneeFilter(v); setPage(1); }}>
-                <SelectTrigger className="w-[140px]"><SelectValue placeholder="Assignee" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All assignees</SelectItem>
-                  {SALES_REPS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

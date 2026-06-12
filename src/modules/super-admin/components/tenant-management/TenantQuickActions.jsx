@@ -23,7 +23,7 @@ export default function TenantQuickActions() {
         className="gap-2"
         onClick={() => navigate(ROUTES.SUPER_ADMIN.TENANTS_CREATE)}>
         <Plus className="h-4 w-4" />
-        Add tenant
+        Add company
       </Button>
       <Button
         variant="secondary"

@@ -4,7 +4,7 @@ import { MoreHorizontal, Search, XCircle, DollarSign, TrendingDown, RotateCcw } 
 import { ROUTES } from "@/shared/constants/routes";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import StatCard from "@/modules/super-admin/components/StatCard";
-import { getAllLeads, LEAD_SOURCES, SALES_REPS } from "../data/leads";
+import { getAllLeads, LEAD_SOURCES } from "../data/leads";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -33,7 +33,6 @@ export default function LostLeadsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [sourceFilter, setSourceFilter] = useState("all");
-  const [assigneeFilter, setAssigneeFilter] = useState("all");
   const [page, setPage] = useState(1);
 
   useEffect(() => {
@@ -42,7 +41,7 @@ export default function LostLeadsPage() {
   }, []);
 
   const allLeads = useMemo(() => getAllLeads(), []);
-  const lostLeads = useMemo(() => allLeads.filter((l) => l.stage === "lost"), [allLeads]);
+  const lostLeads = useMemo(() => allLeads.filter((l) => l.status === "LOST"), [allLeads]);
 
   const stats = useMemo(() => ({
     total: lostLeads.length,
@@ -50,7 +49,7 @@ export default function LostLeadsPage() {
     lostPercentage: allLeads.length > 0
       ? Math.round((lostLeads.length / allLeads.length) * 100)
       : 0,
-    wonCount: allLeads.filter((l) => l.stage === "won").length,
+    wonCount: allLeads.filter((l) => l.status === "CLIENT").length,
   }), [lostLeads, allLeads]);
 
   const filtered = useMemo(() => {
@@ -62,10 +61,9 @@ export default function LostLeadsPage() {
         (l.company && l.company.toLowerCase().includes(q)) ||
         (l.notes && l.notes.toLowerCase().includes(q));
       const matchSource = sourceFilter === "all" || l.source === sourceFilter;
-      const matchAssignee = assigneeFilter === "all" || l.assignee === assigneeFilter;
-      return matchQ && matchSource && matchAssignee;
+      return matchQ && matchSource;
     });
-  }, [search, sourceFilter, assigneeFilter, lostLeads]);
+  }, [search, sourceFilter, lostLeads]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -102,13 +100,6 @@ export default function LostLeadsPage() {
                 <SelectContent>
                   <SelectItem value="all">All sources</SelectItem>
                   {LEAD_SOURCES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Select value={assigneeFilter} onValueChange={(v) => { setAssigneeFilter(v); setPage(1); }}>
-                <SelectTrigger className="w-[140px]"><SelectValue placeholder="Assignee" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All assignees</SelectItem>
-                  {SALES_REPS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

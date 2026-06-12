@@ -3,6 +3,7 @@ import { Briefcase, CalendarDays, DollarSign, MapPin, TrendingUp, Users } from "
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { projectStore } from "@/shared/store/projectStore";
 import { INITIAL_EMPLOYEES } from "@/modules/admin/data/employees";
@@ -36,10 +37,13 @@ export default function EmployeeProjectsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="My Projects"
-        description="Projects you are assigned to. Click a project to view details."
-      />
+      <div className="flex items-center justify-between">
+        <PageHeader
+          title="My Projects"
+          description="Projects you are assigned to. Click a project to view details."
+        />
+        <Button>Start QAS</Button>
+      </div>
 
       <div className="grid gap-6 xl:grid-cols-[320px_1fr]">
         {/* Project list */}

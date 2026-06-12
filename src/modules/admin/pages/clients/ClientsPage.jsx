@@ -1,11 +1,11 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  MoreHorizontal, Plus, Search, UserCheck, UserPlus, Users,
+  MoreHorizontal, Plus, Search, Users,
 } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
-import { INITIAL_CLIENTS, CLIENT_STATUSES } from "../../data/clients";
 import { ROUTES } from "@/shared/constants/routes";
+import { fetchAllClients } from "../../api/clients.api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -21,15 +21,16 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const STATUS_VARIANT = {
-  Active: "success", Inactive: "secondary", Prospect: "warning", VIP: "default",
+  Active: "success", Inactive: "secondary",
 };
+
+function getClientStatus(client) {
+  return client.active ? "Active" : "Inactive";
+}
 
 const AVATAR_HEX = ["7C3AED","0284C7","059669","B45309","BE123C","4338CA","0F766E","C2410C"];
 function avatarUrl(name = "") {
@@ -40,127 +41,73 @@ function initials(name = "") {
   return name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
 }
 
-// ─── Convert Lead dialog ──────────────────────────────────────────────────────
-const LEADS_FOR_CONVERT = [
-  { id: "l4", name: "Helen Frost",  company: "Frost & Co Legal",     email: "helen@frostandco.com.au",  phone: "+61 456 789 012" },
-  { id: "l5", name: "Oliver Grant", company: "Grant Hospitality",     email: "oliver@granthospitality.com", phone: "+61 467 890 123" },
-  { id: "l6", name: "Yuki Tanaka",  company: "Tanaka Foods",          email: "yuki.tanaka@tanakafoods.com.au", phone: "+61 478 901 234" },
-];
-
-function ConvertLeadDialog({ open, onClose, onSave }) {
-  const [selected, setSelected] = useState("");
-  const lead = LEADS_FOR_CONVERT.find((l) => l.id === selected);
-
-  const handleSave = () => {
-    if (!selected) return;
-    onSave({ lead });
-    onClose();
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Convert Lead to Client</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div className="space-y-1.5">
-            <Label>Select Lead <span className="text-destructive">*</span></Label>
-            <Select value={selected} onValueChange={setSelected}>
-              <SelectTrigger><SelectValue placeholder="Choose a qualified lead" /></SelectTrigger>
-              <SelectContent>
-                {LEADS_FOR_CONVERT.map((l) => (
-                  <SelectItem key={l.id} value={l.id}>{l.name} — {l.company}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {lead && (
-            <div className="rounded-lg bg-muted/30 border border-border/50 p-4 space-y-1.5">
-              <p className="font-medium">{lead.name}</p>
-              <p className="text-sm text-muted-foreground">{lead.company}</p>
-              <p className="text-xs text-muted-foreground">{lead.email}</p>
-              <p className="text-xs text-muted-foreground">{lead.phone}</p>
-            </div>
-          )}
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button disabled={!selected} onClick={handleSave}>
-            Convert to Client
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function ClientsPage() {
   const navigate = useNavigate();
-  const [clients, setClients] = useState(INITIAL_CLIENTS);
+  const [clients, setClients] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [convertOpen, setConvertOpen] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchAllClients()
+      .then((data) => { if (!cancelled) setClients(data); })
+      .catch((err) => { if (!cancelled) console.error("Failed to fetch clients:", err); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
 
   const stats = useMemo(() => ({
-    total:   clients.length,
-    active:  clients.filter((c) => c.status === "Active" || c.status === "VIP").length,
-    vip:     clients.filter((c) => c.status === "VIP").length,
-    revenue: clients.reduce((s, c) => s + (c.totalSpend || 0), 0),
+    total: clients.length,
+    active: clients.filter((c) => c.active).length,
+    inactive: clients.filter((c) => !c.active).length,
   }), [clients]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return clients.filter((c) => {
-      const mQ = !q || c.name.toLowerCase().includes(q) || c.company.toLowerCase().includes(q) || c.email.toLowerCase().includes(q);
-      const mS = statusFilter === "all" || c.status === statusFilter;
+      const mQ = !q || c.fullName.toLowerCase().includes(q) || c.companyName.toLowerCase().includes(q) || c.email.toLowerCase().includes(q);
+      const status = getClientStatus(c);
+      const mS = statusFilter === "all" || status === statusFilter;
       return mQ && mS;
     });
   }, [clients, search, statusFilter]);
-
-  const handleConvert = ({ lead }) => {
-    const newClient = {
-      id: `cl-${Date.now()}`,
-      name: lead.name,
-      company: lead.company,
-      email: lead.email,
-      phone: lead.phone,
-      location: "—",
-      status: "Active",
-      joinedDate: new Date().toISOString().split("T")[0],
-      projectCount: 0,
-      totalSpend: 0,
-      assignee: "Admin",
-      notes: "Converted from lead.",
-      lastContact: new Date().toISOString().split("T")[0],
-    };
-    setClients((prev) => [newClient, ...prev]);
-  };
-
-  const handleStatusChange = (clientId, status) => {
-    setClients((prev) => prev.map((c) => c.id === clientId ? { ...c, status } : c));
-  };
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Clients"
-        description="Manage client accounts, statuses and communications."
+        description="Manage client accounts and communications."
         actions={
-          <div className="flex flex-wrap items-center gap-2">
-            <Button variant="outline" size="sm" className="gap-2" onClick={() => setConvertOpen(true)}>
-              <UserPlus className="h-4 w-4" />
-              Convert Lead to Client
-            </Button>
-            <Button size="sm" className="gap-2" onClick={() => navigate(ROUTES.ADMIN.CLIENT_NEW)}>
-              <Plus className="h-4 w-4" />
-              Add Client
-            </Button>
-          </div>
+          <Button size="sm" className="gap-2" onClick={() => navigate(ROUTES.ADMIN.CLIENT_NEW)}>
+            <Plus className="h-4 w-4" />
+            Add Client
+          </Button>
         }
       />
+
+      {/* Stats */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Card className="border-border/60 shadow-sm">
+          <CardContent className="p-4">
+            <p className="text-xs font-medium text-muted-foreground">Total Clients</p>
+            <p className="text-2xl font-bold">{stats.total}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-border/60 shadow-sm">
+          <CardContent className="p-4">
+            <p className="text-xs font-medium text-muted-foreground">Active</p>
+            <p className="text-2xl font-bold text-emerald-600">{stats.active}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-border/60 shadow-sm">
+          <CardContent className="p-4">
+            <p className="text-xs font-medium text-muted-foreground">Inactive</p>
+            <p className="text-2xl font-bold text-muted-foreground">{stats.inactive}</p>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Filters */}
       <Card className="border-border/60 shadow-sm">
@@ -179,7 +126,8 @@ export default function ClientsPage() {
               <SelectTrigger className="w-[150px]"><SelectValue placeholder="All statuses" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All statuses</SelectItem>
-                {CLIENT_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                <SelectItem value="Active">Active</SelectItem>
+                <SelectItem value="Inactive">Inactive</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -202,63 +150,72 @@ export default function ClientsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.length === 0 ? (
+              {loading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell className="pl-6"><Skeleton className="h-9 w-9 rounded-full" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-16 rounded-full" /></TableCell>
+                    <TableCell className="pr-6 text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+                  </TableRow>
+                ))
+              ) : filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="h-40 text-center">
+                  <TableCell colSpan={7} className="h-40 text-center">
                     <Users className="mx-auto mb-2 h-8 w-8 text-muted-foreground/40" />
                     <p className="text-sm font-medium">No clients found</p>
                   </TableCell>
                 </TableRow>
-              ) : filtered.map((client) => (
-                <TableRow
-                  key={client.id}
-                  className="cursor-pointer"
-                  onClick={() => navigate(ROUTES.ADMIN.CLIENT_DETAIL.replace(":clientId", client.id))}
-                >
-                  <TableCell className="pl-6">
-                    <Avatar className="h-9 w-9">
-                      <img src={avatarUrl(client.name)} alt={client.name} className="h-full w-full rounded-full object-cover" />
-                      <AvatarFallback className="bg-primary/10 text-xs font-bold text-primary">
-                        {initials(client.name)}
-                      </AvatarFallback>
-                    </Avatar>
-                  </TableCell>
-                  <TableCell className="font-medium">{client.name}</TableCell>
-                  <TableCell className="text-muted-foreground">{client.company}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{client.email}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{client.phone}</TableCell>
-                  <TableCell>
-                    <Badge variant={STATUS_VARIANT[client.status]}>{client.status}</Badge>
-                  </TableCell>
-                  <TableCell className="pr-6 text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                        <DropdownMenuItem onClick={() => navigate(ROUTES.ADMIN.CLIENT_DETAIL.replace(":clientId", client.id))}>
-                          View Details
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate(ROUTES.ADMIN.CLIENT_EMAIL + `?to=${client.email}&name=${client.name}`)}>
-                          Send Email
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        {CLIENT_STATUSES.filter((s) => s !== client.status).map((s) => (
-                          <DropdownMenuItem key={s} onClick={() => handleStatusChange(client.id, s)}>
-                            Mark as {s}
+              ) : filtered.map((client) => {
+                const status = getClientStatus(client);
+                return (
+                  <TableRow
+                    key={client.id}
+                    className="cursor-pointer"
+                    onClick={() => navigate(ROUTES.ADMIN.CLIENT_DETAIL.replace(":clientId", client.id))}
+                  >
+                    <TableCell className="pl-6">
+                      <Avatar className="h-9 w-9">
+                        <img src={avatarUrl(client.fullName)} alt={client.fullName} className="h-full w-full rounded-full object-cover" />
+                        <AvatarFallback className="bg-primary/10 text-xs font-bold text-primary">
+                          {initials(client.fullName)}
+                        </AvatarFallback>
+                      </Avatar>
+                    </TableCell>
+                    <TableCell className="font-medium">{client.fullName}</TableCell>
+                    <TableCell className="text-muted-foreground">{client.companyName || "—"}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{client.email}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{client.phone || "—"}</TableCell>
+                    <TableCell>
+                      <Badge variant={STATUS_VARIANT[status]}>{status}</Badge>
+                    </TableCell>
+                    <TableCell className="pr-6 text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                          <DropdownMenuItem onClick={() => navigate(ROUTES.ADMIN.CLIENT_DETAIL.replace(":clientId", client.id))}>
+                            View Details
                           </DropdownMenuItem>
-                        ))}
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive focus:text-destructive">
-                          Delete Client
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
+                          <DropdownMenuItem onClick={() => navigate(ROUTES.ADMIN.CLIENT_EMAIL + `?to=${client.email}&name=${client.fullName}`)}>
+                            Send Email
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem className="text-destructive focus:text-destructive">
+                            Deactivate
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>
@@ -268,8 +225,6 @@ export default function ClientsPage() {
           </p>
         </div>
       </Card>
-
-      <ConvertLeadDialog open={convertOpen} onClose={() => setConvertOpen(false)} onSave={handleConvert} />
     </div>
   );
 }
