@@ -26,7 +26,12 @@ import {
   SiteVisitsPage,
   SiteVisitSchedulePage,
   SiteVisitReportPage,
+  UpcomingVisitsPage,
+  CompletedVisitsPage,
+  VisitReportsPage,
+  ChecklistsPage,
   LeadsListPage,
+  NewLeadsPage,
   FollowUpsPage,
   FollowUpDetailPage,
   LeadSourcesPage,
@@ -47,6 +52,15 @@ import {
   RoomConfigurationPage,
   WorkItemConfigurationPage,
 } from "./modules/admin/pages";
+
+import {
+  DesignRequestsPage,
+  DesignOptionsPage,
+  DesignApprovalsPage,
+} from "./modules/admin/pages/design-qas";
+
+import { BoqFlowPage } from "./modules/admin/pages/boq";
+
 import AdminDashboard from "./modules/admin/pages/dashboard";
 import BusinessOwnerDashboard from "./modules/business-owner/pages/dashboard";
 import ProjectManagerDashboard from "./modules/project-manager/pages/dashboard";
@@ -102,13 +116,13 @@ function App() {
               <Route path="tenants" element={<TenantsPage />} />
               <Route path="plans" element={<PlansPage />} />
               <Route path="users" element={<UsersPage />} />
-            <Route path="permissions" element={<PermissionsPage />} />
-            <Route path="reports" element={<ReportsPage />} />
-            <Route path="site-visits" element={<SiteVisitsPage />} />
-            <Route path="site-visits/schedule" element={<SiteVisitSchedulePage />} />
-            <Route path="site-visits/:visitId/report" element={<SiteVisitReportPage />} />
-            <Route path="settings" element={<SettingsPage />} />
-          </Route>
+              <Route path="permissions" element={<PermissionsPage />} />
+              <Route path="reports" element={<ReportsPage />} />
+              <Route path="site-visits" element={<SiteVisitsPage />} />
+              <Route path="site-visits/schedule" element={<SiteVisitSchedulePage />} />
+              <Route path="site-visits/:visitId/report" element={<SiteVisitReportPage />} />
+              <Route path="settings" element={<SettingsPage />} />
+            </Route>
 
             {/* ADMIN — leads & site visits only */}
             <Route
@@ -122,6 +136,7 @@ function App() {
               }>
               <Route index element={<AdminDashboard />} />
               <Route path="leads" element={<LeadsListPage />} />
+              <Route path="leads/recent" element={<NewLeadsPage />} />
               <Route path="leads/new" element={<LeadIntakePage />} />
               <Route path="leads/qualified" element={<QualifiedLeadsPage />} />
               <Route path="leads/:leadId" element={<LeadDetailPage />} />
@@ -131,7 +146,14 @@ function App() {
               <Route path="lost-leads" element={<LostLeadsPage />} />
               <Route path="site-visits" element={<SiteVisitsPage />} />
               <Route path="site-visits/schedule" element={<SiteVisitSchedulePage />} />
+              <Route path="site-visits/upcoming" element={<UpcomingVisitsPage />} />
+              <Route path="site-visits/completed" element={<CompletedVisitsPage />} />
+              <Route path="site-visits/reports" element={<VisitReportsPage />} />
+              <Route path="site-visits/checklists" element={<ChecklistsPage />} />
               <Route path="site-visits/:visitId/report" element={<SiteVisitReportPage />} />
+              <Route path="design-qas/requests" element={<DesignRequestsPage />} />
+              <Route path="design-qas/options" element={<DesignOptionsPage />} />
+              <Route path="design-qas/approvals" element={<DesignApprovalsPage />} />
               <Route path="employees" element={<EmployeesPage />} />
               <Route path="employees/new" element={<AddEmployeePage />} />
               <Route path="employees/:employeeId" element={<EmployeeDetailPage />} />
@@ -146,6 +168,7 @@ function App() {
               <Route path="clients/:clientId" element={<ClientDetailPage />} />
               <Route path="project-configuration/room" element={<RoomConfigurationPage />} />
               <Route path="project-configuration/work-item" element={<WorkItemConfigurationPage />} />
+              <Route path="boq" element={<BoqFlowPage />} />
             </Route>
             <Route
               path={ROUTES.BUSINESS_OWNER.DASHBOARD}
@@ -218,17 +241,17 @@ function App() {
               }
             >
               <Route index element={<ClientDashboard />} />
-              <Route path="designs"            element={<MyDesignsPage />} />
-              <Route path="designs/pending"    element={<PendingApprovalPage />} />
-              <Route path="designs/revisions"  element={<RevisionHistoryPage />} />
-              <Route path="designs/approved"   element={<ApprovedDesignsPage />} />
-              <Route path="designs/:id"        element={<DesignDetailPage />} />
-              <Route path="documents"          element={<ClientDocumentsPage />} />
-              <Route path="invoices"           element={<ClientInvoicesPage />} />
-              <Route path="communications"     element={<ClientCommsPage />} />
-              <Route path="settings"           element={<ClientSettingsPage />} />
-              <Route path="projects/my"        element={<MyProjectsPage />} />
-              <Route path="projects/request"   element={<NewProjectRequestPage />} />
+              <Route path="designs" element={<MyDesignsPage />} />
+              <Route path="designs/pending" element={<PendingApprovalPage />} />
+              <Route path="designs/revisions" element={<RevisionHistoryPage />} />
+              <Route path="designs/approved" element={<ApprovedDesignsPage />} />
+              <Route path="designs/:id" element={<DesignDetailPage />} />
+              <Route path="documents" element={<ClientDocumentsPage />} />
+              <Route path="invoices" element={<ClientInvoicesPage />} />
+              <Route path="communications" element={<ClientCommsPage />} />
+              <Route path="settings" element={<ClientSettingsPage />} />
+              <Route path="projects/my" element={<MyProjectsPage />} />
+              <Route path="projects/request" element={<NewProjectRequestPage />} />
               <Route path="projects/:projectId" element={<ClientProjectDetailPage />} />
             </Route>
             <Route

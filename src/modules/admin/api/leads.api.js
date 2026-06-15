@@ -79,6 +79,11 @@ export const updateLeadStatus = (id, status, updatedBy, notes, lostReason) =>
     params: { status, updatedBy, notes, lostReason },
   }).then((r) => normalizeLead(r.data?.data));
 
+export const assignLead = (id, assigneeId) =>
+  axiosInstance.put(`/leads/${id}/assign`, null, {
+    params: { assigneeId },
+  }).then((r) => normalizeLead(r.data?.data));
+
 export const deleteLead = (id) =>
   axiosInstance.delete(`/leads/${id}`).then((r) => r.data?.data);
 

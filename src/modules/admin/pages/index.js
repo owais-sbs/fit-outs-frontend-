@@ -3,8 +3,13 @@ export { default as LeadDetailPage } from "./LeadDetailPage";
 export { default as SiteVisitsPage } from "./SiteVisitsPage";
 export { default as SiteVisitSchedulePage } from "./SiteVisitSchedulePage";
 export { default as SiteVisitReportPage } from "./SiteVisitReportPage";
+export { default as UpcomingVisitsPage } from "./UpcomingVisitsPage";
+export { default as CompletedVisitsPage } from "./CompletedVisitsPage";
+export { default as VisitReportsPage } from "./VisitReportsPage";
+export { default as ChecklistsPage } from "./ChecklistsPage";
 
 export { default as LeadsListPage } from "./LeadsListPage";
+export { default as NewLeadsPage } from "./NewLeadsPage";
 export { default as FollowUpsPage } from "./FollowUpsPage";
 export { default as FollowUpDetailPage } from "./FollowUpDetailPage";
 export { default as LeadSourcesPage } from "./LeadSourcesPage";

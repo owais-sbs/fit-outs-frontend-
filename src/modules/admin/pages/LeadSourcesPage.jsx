@@ -1,221 +1,210 @@
-import { useEffect, useMemo, useState } from "react";
-import { Search, Globe, Share2, MessageCircle, Camera, ExternalLink, Link, BarChart3 } from "lucide-react";
+import { useEffect, useState, useMemo } from "react";
+import { Search, Globe, Smartphone, Users, BarChart3, Activity, CheckCircle } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import StatCard from "@/modules/super-admin/components/StatCard";
-import { getAllLeads, LEAD_SOURCES } from "../data/leads";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
+import { fetchAllLeads } from "../api/leads.api";
 
 const SOURCE_ICONS = {
-  "Walk-in": MessageCircle,
-  Referral: Share2,
-  Website: Globe,
-  "Social Media": ExternalLink,
-  "Facebook Ads": BarChart3,
-  Instagram: Camera,
-  "Google Ads": Link,
+  "Google": Search,
+  "Website": Globe,
+  "Social": Smartphone,
+  "Referral": Users,
+  "Other": Activity
 };
 
-const SOURCE_COLORS = {
-  "Walk-in": "border-blue-500/20 bg-blue-500/10 text-blue-600 dark:text-blue-400",
-  Referral: "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-  Website: "border-violet-500/20 bg-violet-500/10 text-violet-600 dark:text-violet-400",
-  "Social Media": "border-cyan-500/20 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400",
-  "Facebook Ads": "border-indigo-500/20 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400",
-  Instagram: "border-pink-500/20 bg-pink-500/10 text-pink-600 dark:text-pink-400",
-  "Google Ads": "border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+const COLOR_MAP = {
+  blue: { bg: "bg-blue-50", border: "border-blue-100", text: "text-blue-600", iconBg: "bg-blue-100", bar: "bg-blue-500" },
+  purple: { bg: "bg-purple-50", border: "border-purple-100", text: "text-purple-600", iconBg: "bg-purple-100", bar: "bg-purple-500" },
+  rose: { bg: "bg-rose-50", border: "border-rose-100", text: "text-rose-600", iconBg: "bg-rose-100", bar: "bg-rose-500" },
+  teal: { bg: "bg-teal-50", border: "border-teal-100", text: "text-teal-600", iconBg: "bg-teal-100", bar: "bg-teal-500" },
+  amber: { bg: "bg-amber-50", border: "border-amber-100", text: "text-amber-600", iconBg: "bg-amber-100", bar: "bg-amber-500" },
 };
 
-function formatCurrency(n) {
-  return n ? `$${n.toLocaleString()}` : "$0";
-}
+const COLORS = ["blue", "purple", "rose", "teal", "amber"];
 
-function getSourceStats() {
-  const allLeads = getAllLeads();
-  return LEAD_SOURCES.map((source) => {
-    const fromSource = allLeads.filter((l) => l.source === source);
-    const qualified = fromSource.filter((l) => l.stage === "qualified" || l.stage === "siteVisit" || l.stage === "proposalSent");
-    const won = fromSource.filter((l) => l.stage === "won");
-    const totalBudget = fromSource.reduce((s, l) => s + (l.budget || 0), 0);
-    return {
-      name: source,
-      total: fromSource.length,
-      qualified: qualified.length,
-      won: won.length,
-      conversionRate: fromSource.length > 0
-        ? Math.round((won.length / fromSource.length) * 100)
-        : 0,
-      revenue: won.reduce((s, l) => s + (l.budget || 0), 0),
-      totalBudget,
-    };
-  });
+function SourceCard({ source }) {
+  const colors = COLOR_MAP[source.color];
+  const Icon = source.icon || Activity;
+  
+  return (
+    <Card className={`border ${colors.border} ${colors.bg} shadow-sm`}>
+      <CardContent className="p-5">
+        <div className="flex justify-between items-start mb-4">
+          <div className={`p-2 rounded-lg ${colors.iconBg} ${colors.text}`}>
+            <Icon className="w-5 h-5" />
+          </div>
+          <Badge variant="outline" className="bg-white text-emerald-600 border-emerald-100">
+            {source.convRate}% conv.
+          </Badge>
+        </div>
+        
+        <div className="mb-6">
+          <h3 className="font-semibold text-lg text-slate-900">{source.name}</h3>
+          <div className="flex items-baseline gap-1 mt-1">
+            <span className="text-3xl font-bold text-slate-900">{source.total}</span>
+            <span className="text-sm font-medium text-slate-600">leads</span>
+          </div>
+        </div>
+        
+        <div className="space-y-2 text-sm">
+          <div className="flex justify-between items-center">
+            <span className="text-slate-600 font-medium">Converted</span>
+            <span className="text-emerald-600 font-semibold">{source.converted}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-slate-600 font-medium">Pending</span>
+            <span className="text-amber-600 font-semibold">{source.pending}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-slate-600 font-medium">Lost</span>
+            <span className="text-rose-600 font-semibold">{source.lost}</span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 export default function LeadSourcesPage() {
+  const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState("total");
 
   useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 600);
-    return () => clearTimeout(t);
+    fetchAllLeads()
+      .then(data => setLeads(data))
+      .catch(console.error)
+      .finally(() => setLoading(false));
   }, []);
 
-  const sourceStats = useMemo(() => getSourceStats(), []);
+  const sourceStats = useMemo(() => {
+    if (!leads.length) return [];
+    
+    const sourceMap = {};
+    leads.forEach(lead => {
+      let source = lead.source || "Other";
+      if (source === "—") source = "Other";
+      
+      if (!sourceMap[source]) {
+        sourceMap[source] = {
+          name: source,
+          total: 0,
+          converted: 0,
+          pending: 0,
+          lost: 0
+        };
+      }
+      
+      sourceMap[source].total += 1;
+      
+      if (lead.status === "CLIENT" || lead.statusLabel === "Converted") {
+        sourceMap[source].converted += 1;
+      } else if (lead.status === "LOST") {
+        sourceMap[source].lost += 1;
+      } else {
+        sourceMap[source].pending += 1;
+      }
+    });
 
-  const totals = useMemo(() => ({
-    totalLeads: sourceStats.reduce((s, src) => s + src.total, 0),
-    totalWon: sourceStats.reduce((s, src) => s + src.won, 0),
-    totalRevenue: sourceStats.reduce((s, src) => s + src.revenue, 0),
-    avgConversion: sourceStats.length > 0
-      ? Math.round(sourceStats.reduce((s, src) => s + src.conversionRate, 0) / sourceStats.length)
-      : 0,
-  }), [sourceStats]);
+    return Object.values(sourceMap)
+      .sort((a, b) => b.total - a.total)
+      .map((s, idx) => ({
+        ...s,
+        convRate: s.total > 0 ? Math.round((s.converted / s.total) * 100) : 0,
+        icon: SOURCE_ICONS[s.name] || Activity,
+        color: COLORS[idx % COLORS.length]
+      }));
+  }, [leads]);
 
-  const sorted = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    const filtered = sourceStats.filter((s) => !q || s.name.toLowerCase().includes(q));
-    return [...filtered].sort((a, b) => b[sortBy] - a[sortBy]);
-  }, [search, sortBy, sourceStats]);
+  const maxLeads = Math.max(...sourceStats.map(s => s.total), 1);
+  const totalConverted = sourceStats.reduce((acc, s) => acc + s.converted, 0);
+  const overallConvRate = leads.length > 0 ? Math.round((totalConverted / leads.length) * 100) : 0;
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Lead Sources"
-        description="Analyse performance across all lead acquisition channels."
+        description="Performance breakdown by acquisition channel"
       />
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Total Leads" value={totals.totalLeads} icon={Globe} growth={12} growthLabel="vs last month" />
-        <StatCard title="Total Won" value={totals.totalWon} icon={Share2} growth={8} growthLabel="vs last month" />
-        <StatCard title="Total Revenue" value={formatCurrency(totals.totalRevenue)} icon={Link} growth={15} growthLabel="vs last month" />
-        <StatCard title="Avg Conversion" value={`${totals.avgConversion}%`} icon={MessageCircle} growth={totals.avgConversion > 20 ? 5 : -3} growthLabel="vs last month" />
+        <StatCard title="Total Leads" value={loading ? "..." : leads.length} icon={Users} />
+        <StatCard title="Converted" value={loading ? "..." : totalConverted} icon={CheckCircle} valueColor="text-emerald-600" />
+        <StatCard title="Overall Conv. Rate" value={loading ? "..." : `${overallConvRate}%`} icon={BarChart3} valueColor="text-blue-600" />
+        <StatCard title="Active Sources" value={loading ? "..." : sourceStats.length} icon={Activity} />
       </section>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7">
-        {sourceStats.map((src) => {
-          const Icon = SOURCE_ICONS[src.name] || Globe;
-          const colorClass = SOURCE_COLORS[src.name] || "border-border/60 bg-muted/30 text-muted-foreground";
-          return (
-            <Card key={src.name} className="border-border/60 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-              <CardContent className="p-4">
-                <div className="flex flex-col items-center gap-2 text-center">
-                  <div className={`flex h-9 w-9 items-center justify-center rounded-xl border ${colorClass}`}>
-                    <Icon className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <p className="text-[13px] font-semibold leading-tight">{src.name}</p>
-                    <p className="mt-2 text-2xl font-bold tracking-tight">{src.total}</p>
-                    <p className="text-[11px] text-muted-foreground">leads</p>
-                  </div>
-                  <div className="flex w-full items-center justify-center gap-2 text-[11px] text-muted-foreground">
-                    <span className="tabular-nums"><span className="font-medium text-foreground">{src.qualified}</span> qualified</span>
-                    <span className="text-border">|</span>
-                    <span className="tabular-nums"><span className="font-medium text-foreground">{src.won}</span> won</span>
-                  </div>
-                  <Badge variant={src.conversionRate >= 30 ? "success" : src.conversionRate >= 15 ? "warning" : "secondary"} className="mt-1 text-[10px]">
-                    {src.conversionRate}% conversion
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+      {loading ? (
+        <div className="py-12 text-center text-muted-foreground">Loading source analytics...</div>
+      ) : sourceStats.length === 0 ? (
+        <div className="py-12 text-center text-muted-foreground">No leads data available to show sources.</div>
+      ) : (
+        <>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {sourceStats.map((source) => (
+              <SourceCard key={source.name} source={source} />
+            ))}
+          </div>
 
-      <Card className="overflow-hidden border-border/60 shadow-sm">
-        <CardHeader className="border-b border-border/60 pb-3">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <CardTitle className="text-base">Source comparison</CardTitle>
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Search sources..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="h-9 pl-9 w-[200px]"
-                />
+          <Card className="border-border/60 shadow-sm">
+            <CardContent className="p-6">
+              <h3 className="font-semibold text-base mb-6">Lead Volume by Source</h3>
+              
+              <div className="space-y-8">
+                {sourceStats.map((source) => {
+                  const Icon = source.icon;
+                  const colors = COLOR_MAP[source.color];
+                  const totalPct = (source.total / maxLeads) * 100;
+                  
+                  const convPct = source.total > 0 ? (source.converted / source.total) * 100 : 0;
+                  const pendPct = source.total > 0 ? (source.pending / source.total) * 100 : 0;
+                  const lostPct = source.total > 0 ? (source.lost / source.total) * 100 : 0;
+
+                  return (
+                    <div key={source.name}>
+                      <div className="flex justify-between items-center mb-2">
+                        <div className="flex items-center gap-2 font-medium text-sm">
+                          <Icon className={`w-4 h-4 ${colors.text}`} />
+                          {source.name}
+                        </div>
+                        <div className="font-bold text-sm">{source.total}</div>
+                      </div>
+                      
+                      {/* Total Bar */}
+                      <div className="h-2 w-full bg-slate-100 rounded-full mb-1 overflow-hidden">
+                        <div className={`h-full ${colors.bar} rounded-full`} style={{ width: `${totalPct}%` }} />
+                      </div>
+                      
+                      {/* Status Breakdown Bar */}
+                      <div className="flex h-1.5 w-full bg-transparent gap-1" style={{ width: `${totalPct}%` }}>
+                        <div className="h-full bg-emerald-400 rounded-full" style={{ width: `${convPct}%` }} title={`Converted: ${source.converted}`} />
+                        <div className="h-full bg-amber-400 rounded-full" style={{ width: `${pendPct}%` }} title={`Pending: ${source.pending}`} />
+                        <div className="h-full bg-rose-400 rounded-full" style={{ width: `${lostPct}%` }} title={`Lost: ${source.lost}`} />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Sort by" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="total">Total leads</SelectItem>
-                  <SelectItem value="qualified">Qualified</SelectItem>
-                  <SelectItem value="won">Won</SelectItem>
-                  <SelectItem value="conversionRate">Conversion rate</SelectItem>
-                  <SelectItem value="revenue">Revenue</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardHeader>
-        <div className="overflow-auto">
-          <Table>
-            <TableHeader className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm">
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="pl-6">Source</TableHead>
-                <TableHead>Total Leads</TableHead>
-                <TableHead>Qualified</TableHead>
-                <TableHead>Won</TableHead>
-                <TableHead>Conversion Rate</TableHead>
-                <TableHead>Total Budget</TableHead>
-                <TableHead className="pr-6">Revenue</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading
-                ? Array.from({ length: 5 }).map((_, i) => (
-                    <TableRow key={i}>
-                      {Array.from({ length: 7 }).map((__, j) => (
-                        <TableCell key={j}><Skeleton className="h-4 w-full max-w-[100px]" /></TableCell>
-                      ))}
-                    </TableRow>
-                  ))
-                : sorted.map((src) => {
-                    const Icon = SOURCE_ICONS[src.name] || Globe;
-                    return (
-                      <TableRow key={src.name}>
-                        <TableCell className="pl-6">
-                          <div className="flex items-center gap-3">
-                            <div className={`flex h-8 w-8 items-center justify-center rounded-lg border ${SOURCE_COLORS[src.name] || "border-border/60 bg-muted/30"}`}>
-                              <Icon className="h-4 w-4" />
-                            </div>
-                            <span className="font-medium">{src.name}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="tabular-nums font-medium">{src.total}</TableCell>
-                        <TableCell className="tabular-nums">{src.qualified}</TableCell>
-                        <TableCell className="tabular-nums">{src.won}</TableCell>
-                        <TableCell>
-                          <Badge variant={src.conversionRate >= 30 ? "success" : src.conversionRate >= 15 ? "warning" : "secondary"}>
-                            {src.conversionRate}%
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="tabular-nums">{formatCurrency(src.totalBudget)}</TableCell>
-                        <TableCell className="pr-6 tabular-nums font-medium">{formatCurrency(src.revenue)}</TableCell>
-                      </TableRow>
-                    );
-                  })}
-            </TableBody>
-          </Table>
-        </div>
-        {!loading && sorted.length === 0 && (
-          <div className="py-12 text-center">
-            <Globe className="mx-auto mb-3 h-10 w-10 text-muted-foreground/50" />
-            <p className="font-medium">No sources found</p>
-            <p className="text-sm text-muted-foreground">Adjust your search terms</p>
-          </div>
-        )}
-      </Card>
+
+              <div className="mt-8 flex gap-4 text-xs font-medium text-slate-600">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+                  Converted
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+                  Pending
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-rose-400" />
+                  Lost
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      )}
     </div>
   );
 }

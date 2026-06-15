@@ -1,173 +1,161 @@
-import { useEffect, useMemo, useState } from "react";
+import { useState, useEffect } from "react";
+import { Search, Phone, Mail, CheckCircle, Clock, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { CalendarDays, CheckCircle2, Clock, MoreHorizontal, Search, AlertCircle } from "lucide-react";
-import { ROUTES } from "@/shared/constants/routes";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import StatCard from "@/modules/super-admin/components/StatCard";
-import { getAllLeads } from "../data/leads";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious,
-} from "@/components/ui/pagination";
-
-const PAGE_SIZE = 10;
-
-function getFollowUpData() {
-  const leads = getAllLeads();
-  return leads
-    .filter((l) => l.followUp && l.followUp !== "\u2014")
-    .map((l) => ({
-      id: `fu-${l.id}`,
-      leadId: l.id,
-      clientName: l.clientName,
-      company: l.company,
-      date: l.followUp,
-      assignee: l.assignee,
-      priority: l.priority,
-      budget: l.budget,
-      stage: l.stage,
-    }))
-    .sort((a, b) => new Date(a.date) - new Date(b.date));
-}
-
-function formatDate(dateStr) {
-  if (!dateStr || dateStr === "\u2014") return "\u2014";
-  const d = new Date(dateStr);
-  return new Intl.DateTimeFormat("en-AU", { day: "numeric", month: "short", year: "numeric" }).format(d);
-}
-
-function getRelativeStatus(dateStr) {
-  if (!dateStr || dateStr === "\u2014") return { label: "Unknown", variant: "secondary" };
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const target = new Date(dateStr);
-  target.setHours(0, 0, 0, 0);
-  const diff = Math.ceil((target - today) / (1000 * 60 * 60 * 24));
-
-  if (diff < 0) return { label: `${Math.abs(diff)}d overdue`, variant: "destructive" };
-  if (diff === 0) return { label: "Today", variant: "warning" };
-  if (diff <= 3) return { label: `${diff}d left`, variant: "default" };
-  return { label: formatDate(dateStr), variant: "outline" };
-}
-
-const PRIORITY_VARIANTS = {
-  high: "destructive",
-  medium: "warning",
-  low: "secondary",
-};
+import { ROUTES } from "@/shared/constants/routes";
+import { fetchAllLeads, updateLeadStatus } from "../api/leads.api";
+import { fetchAllEmployees } from "../api/employees.api";
+import { useAuth } from "@/shared/context/auth-context";
 
 export default function FollowUpsPage() {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [page, setPage] = useState(1);
+  const [userFilter, setUserFilter] = useState("all");
+
+  const [followUps, setFollowUps] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 600);
-    return () => clearTimeout(t);
-  }, []);
-
-  const followUps = useMemo(() => getFollowUpData(), []);
-
-  const today = useMemo(() => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d;
-  }, []);
-
-  const stats = useMemo(() => ({
-    today: followUps.filter((f) => {
-      const d = new Date(f.date);
-      d.setHours(0, 0, 0, 0);
-      return d.getTime() === today.getTime();
-    }).length,
-    thisWeek: followUps.filter((f) => {
-      const d = new Date(f.date);
-      d.setHours(0, 0, 0, 0);
-      const weekEnd = new Date(today);
-      weekEnd.setDate(weekEnd.getDate() + 7);
-      return d >= today && d <= weekEnd;
-    }).length,
-    overdue: followUps.filter((f) => {
-      const d = new Date(f.date);
-      d.setHours(0, 0, 0, 0);
-      return d < today;
-    }).length,
-    total: followUps.length,
-  }), [followUps, today]);
-
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return followUps.filter((f) => {
-      const matchQ =
-        !q ||
-        f.clientName.toLowerCase().includes(q) ||
-        (f.company && f.company.toLowerCase().includes(q));
-      const d = new Date(f.date);
-      d.setHours(0, 0, 0, 0);
-      const isOverdue = d < today;
-      const isToday = d.getTime() === today.getTime();
-      const isUpcoming = d > today;
-      const matchStatus =
-        statusFilter === "all" ||
-        (statusFilter === "overdue" && isOverdue) ||
-        (statusFilter === "today" && isToday) ||
-        (statusFilter === "upcoming" && isUpcoming);
-      return matchQ && matchStatus;
+    let cancelled = false;
+    Promise.all([
+      fetchAllLeads(),
+      fetchAllEmployees().catch(() => [])
+    ])
+    .then(([allLeads, allEmployees]) => {
+      if (cancelled) return;
+      
+      // Filter out LOST and CLIENT leads to get those needing follow-up
+      const activeLeads = allLeads.filter(l => l.status !== "LOST" && l.status !== "CLIENT");
+      
+      const mappedFollowUps = activeLeads.map(lead => {
+        // Mock follow-up data since we don't have dedicated fields
+        const dateObj = new Date(lead.lastActivityDate || lead.createdAt);
+        const nextDate = new Date(dateObj);
+        nextDate.setDate(nextDate.getDate() + 2); // Next follow-up is 2 days later
+        
+        const isOverdue = nextDate < new Date();
+        
+        return {
+          id: lead.id,
+          name: lead.clientName,
+          email: lead.email || "No email",
+          phone: lead.phone || "No phone",
+          assignee: lead.assignedTo ? (lead.assignedTo.employeeName || lead.assignedTo.fullName) : "Unassigned",
+          assigneeId: lead.assignedTo?.id,
+          lastContact: dateObj.toLocaleDateString("en-AU", { day: '2-digit', month: 'short', year: 'numeric' }),
+          nextFollowUp: nextDate.toLocaleDateString("en-AU", { day: '2-digit', month: 'short', year: 'numeric' }),
+          status: isOverdue ? "Overdue" : "Upcoming",
+          rawLead: lead
+        };
+      });
+      
+      setFollowUps(mappedFollowUps);
+      setEmployees(allEmployees.filter(e => e.isActive));
+    })
+    .finally(() => {
+      if (!cancelled) setLoading(false);
     });
-  }, [search, statusFilter, followUps, today]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+    return () => { cancelled = true; };
+  }, []);
+
+  const filtered = followUps.filter(item => {
+    const matchSearch = item.name.toLowerCase().includes(search.toLowerCase()) || 
+                        item.email.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = statusFilter === "all" || item.status === statusFilter;
+    const matchUser = userFilter === "all" || String(item.assigneeId) === userFilter;
+    return matchSearch && matchStatus && matchUser;
+  });
+
+  const handleCall = (phone) => {
+    if (phone && phone !== "No phone") {
+      window.location.href = `tel:${phone}`;
+    }
+  };
+
+  const handleEmail = (email, name) => {
+    if (email && email !== "No email") {
+      // Navigate to Email page with state
+      navigate(ROUTES.ADMIN.CLIENT_EMAIL, { state: { to: email, name: name } });
+    }
+  };
+
+  const handleDone = async (id) => {
+    try {
+      await updateLeadStatus(id, "CONTACTED", user?.id || 1, "Follow-up completed");
+      // Remove from list or update next follow-up date
+      setFollowUps(followUps.filter(f => f.id !== id));
+    } catch (error) {
+      console.error("Failed to mark follow-up as done", error);
+    }
+  };
+
+  const overdueCount = followUps.filter(f => f.status === "Overdue").length;
+  const upcomingCount = followUps.filter(f => f.status === "Upcoming").length;
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Follow-ups"
-        description="Track and manage all scheduled follow-up activities across leads."
+        description="Leads requiring follow-up action"
       />
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Total Follow-ups" value={stats.total} icon={CalendarDays} growth={10} growthLabel="vs last month" />
-        <StatCard title="Today" value={stats.today} icon={Clock} growth={0} growthLabel="vs yesterday" />
-        <StatCard title="This Week" value={stats.thisWeek} icon={CheckCircle2} growth={15} growthLabel="vs last week" />
-        <StatCard title="Overdue" value={stats.overdue} icon={AlertCircle} growth={stats.overdue > 0 ? 25 : 0} growthLabel="vs last month" />
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <StatCard title="Total" value={followUps.length} icon={Clock} />
+        <StatCard title="Overdue" value={overdueCount} icon={AlertTriangle} valueColor="text-red-500" />
+        <StatCard title="Upcoming" value={upcomingCount} icon={CheckCircle} valueColor="text-orange-500" />
       </section>
 
       <Card className="border-border/60 shadow-sm">
         <CardContent className="p-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-            <div className="relative flex-1">
+            <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search follow-ups..."
+                placeholder="Search by name or email..."
                 value={search}
-                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                className="pl-9"
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 bg-muted/30"
               />
             </div>
             <div className="flex flex-wrap gap-2">
-              <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
-                <SelectTrigger className="w-[140px]"><SelectValue placeholder="Status" /></SelectTrigger>
+              <Select value={statusFilter} onValueChange={setStatusFilter} disabled={loading}>
+                <SelectTrigger className="w-[140px] bg-muted/30">
+                  <SelectValue placeholder="All Statuses" />
+                </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All status</SelectItem>
-                  <SelectItem value="overdue">Overdue</SelectItem>
-                  <SelectItem value="today">Today</SelectItem>
-                  <SelectItem value="upcoming">Upcoming</SelectItem>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="Overdue">Overdue</SelectItem>
+                  <SelectItem value="Upcoming">Upcoming</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Select value={userFilter} onValueChange={setUserFilter} disabled={loading}>
+                <SelectTrigger className="w-[180px] bg-muted/30">
+                  <SelectValue placeholder="All Users" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Assignees</SelectItem>
+                  {employees.map(emp => (
+                    <SelectItem key={emp.id} value={String(emp.id)}>
+                      {emp.employeeName || emp.fullName}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="undefined">Unassigned</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -176,108 +164,85 @@ export default function FollowUpsPage() {
       </Card>
 
       <Card className="overflow-hidden border-border/60 shadow-sm">
-        <div className="max-h-[calc(100vh-26rem)] overflow-auto">
+        <div className="overflow-x-auto">
           <Table>
-            <TableHeader className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm">
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="pl-6">Client</TableHead>
-                <TableHead>Company</TableHead>
-                <TableHead>Due Date</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Assignee</TableHead>
-                <TableHead>Priority</TableHead>
-                <TableHead>Stage</TableHead>
-                <TableHead className="pr-6 text-right">Actions</TableHead>
+            <TableHeader className="bg-muted/30">
+              <TableRow>
+                <TableHead className="text-xs font-semibold uppercase">Lead Name</TableHead>
+                <TableHead className="text-xs font-semibold uppercase">Assigned To</TableHead>
+                <TableHead className="text-xs font-semibold uppercase">Last Contact</TableHead>
+                <TableHead className="text-xs font-semibold uppercase">Next Follow-up</TableHead>
+                <TableHead className="text-xs font-semibold uppercase">Status</TableHead>
+                <TableHead className="text-xs font-semibold uppercase text-right pr-6">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {loading
-                ? Array.from({ length: 5 }).map((_, i) => (
-                    <TableRow key={i}>
-                      {Array.from({ length: 8 }).map((__, j) => (
-                        <TableCell key={j}><Skeleton className="h-4 w-full max-w-[100px]" /></TableCell>
-                      ))}
-                    </TableRow>
-                  ))
-                : paginated.length === 0
-                  ? (
-                    <TableRow>
-                      <TableCell colSpan={8} className="h-48 text-center">
-                        <CalendarDays className="mx-auto mb-3 h-10 w-10 text-muted-foreground/50" />
-                        <p className="font-medium">No follow-ups found</p>
-                        <p className="text-sm text-muted-foreground">Adjust filters or search terms</p>
-                      </TableCell>
-                    </TableRow>
-                  )
-                  : paginated.map((fu) => {
-                    const status = getRelativeStatus(fu.date);
-                    return (
-                      <TableRow
-                        key={fu.id}
-                        className="cursor-pointer"
-                        onClick={() => navigate(ROUTES.ADMIN.LEAD_DETAIL.replace(":leadId", fu.leadId))}
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">Loading follow-ups...</TableCell>
+                </TableRow>
+              ) : filtered.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                    No follow-ups found.
+                  </TableCell>
+                </TableRow>
+              ) : filtered.map((item) => (
+                <TableRow key={item.id} className="hover:bg-muted/20">
+                  <TableCell>
+                    <div className="font-semibold">{item.name}</div>
+                    <div className="text-xs text-muted-foreground">{item.email}</div>
+                  </TableCell>
+                  <TableCell className="font-medium">{item.assignee}</TableCell>
+                  <TableCell className="text-muted-foreground text-sm">{item.lastContact}</TableCell>
+                  <TableCell className="text-sm font-medium">{item.nextFollowUp}</TableCell>
+                  <TableCell>
+                    <Badge 
+                      variant="outline" 
+                      className={item.status === "Overdue" ? "text-red-600 bg-red-50 border-red-100" : "text-orange-600 bg-orange-50 border-orange-100"}
+                    >
+                      {item.status === "Overdue" ? <AlertTriangle className="w-3 h-3 mr-1" /> : <div className="w-2 h-2 rounded-full bg-orange-500 mr-1.5"></div>}
+                      {item.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right pr-6">
+                    <div className="flex justify-end items-center gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="h-8"
+                        onClick={() => handleCall(item.phone)}
+                        disabled={item.phone === "No phone"}
                       >
-                        <TableCell className="pl-6 font-medium">{fu.clientName}</TableCell>
-                        <TableCell className="text-muted-foreground">{fu.company || "\u2014"}</TableCell>
-                        <TableCell className="tabular-nums">{formatDate(fu.date)}</TableCell>
-                        <TableCell>
-                          <Badge variant={status.variant}>{status.label}</Badge>
-                        </TableCell>
-                        <TableCell>{fu.assignee}</TableCell>
-                        <TableCell>
-                          <Badge variant={PRIORITY_VARIANTS[fu.priority]} className="capitalize">{fu.priority}</Badge>
-                        </TableCell>
-                        <TableCell className="capitalize text-muted-foreground">{fu.stage}</TableCell>
-                        <TableCell className="pr-6 text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(ROUTES.ADMIN.LEAD_DETAIL.replace(":leadId", fu.leadId)); }}>View Lead</DropdownMenuItem>
-                              <DropdownMenuItem onClick={(e) => e.stopPropagation()}>Mark Completed</DropdownMenuItem>
-                              <DropdownMenuItem onClick={(e) => e.stopPropagation()}>Reschedule</DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                        <Phone className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
+                        Call
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="h-8"
+                        onClick={() => handleEmail(item.email, item.name)}
+                        disabled={item.email === "No email"}
+                      >
+                        <Mail className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
+                        Email
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                        onClick={() => handleDone(item.id)}
+                      >
+                        <CheckCircle className="w-3.5 h-3.5 mr-1.5" />
+                        Done
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </div>
-        {!loading && filtered.length > 0 && (
-          <div className="flex items-center justify-between border-t px-4 py-3">
-            <p className="text-xs text-muted-foreground">
-              {filtered.length} follow-up{filtered.length !== 1 ? "s" : ""} &middot; Page {page} of {totalPages}
-            </p>
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    className={page <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                  />
-                </PaginationItem>
-                {Array.from({ length: totalPages }).map((_, i) => (
-                  <PaginationItem key={i}>
-                    <PaginationLink isActive={page === i + 1} onClick={() => setPage(i + 1)} className="cursor-pointer">
-                      {i + 1}
-                    </PaginationLink>
-                  </PaginationItem>
-                ))}
-                <PaginationItem>
-                  <PaginationNext
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    className={page >= totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-          </div>
-        )}
       </Card>
     </div>
   );
