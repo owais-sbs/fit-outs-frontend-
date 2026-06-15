@@ -37,7 +37,7 @@ function SidebarNavItem({ item }) {
 
 export default function AppSidebar() {
   return (
-    <Sidebar collapsible="icon" variant="inset">
+    <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border">
         <SidebarMenu>
           <SidebarMenuItem>
