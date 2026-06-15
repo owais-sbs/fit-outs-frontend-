@@ -43,6 +43,8 @@ import {
   AddClientPage,
   ClientEmailPage,
   ClientDetailPage,
+  RoomConfigurationPage,
+  WorkItemConfigurationPage,
 } from "./modules/admin/pages";
 import AdminDashboard from "./modules/admin/pages/dashboard";
 import BusinessOwnerDashboard from "./modules/business-owner/pages/dashboard";
@@ -141,6 +143,8 @@ function App() {
               <Route path="clients/new" element={<AddClientPage />} />
               <Route path="clients/email" element={<ClientEmailPage />} />
               <Route path="clients/:clientId" element={<ClientDetailPage />} />
+              <Route path="project-configuration/room" element={<RoomConfigurationPage />} />
+              <Route path="project-configuration/work-item" element={<WorkItemConfigurationPage />} />
             </Route>
             <Route
               path={ROUTES.BUSINESS_OWNER.DASHBOARD}

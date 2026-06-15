@@ -25,3 +25,6 @@ export { default as AddClientPage } from "./clients/AddClientPage";
 export { default as ClientEmailPage } from "./clients/ClientEmailPage";
 export { default as ClientDetailPage } from "./clients/ClientDetailPage";
 
+// Project Configuration
+export { default as RoomConfigurationPage } from "./project-configuration/RoomConfigurationPage";
+export { default as WorkItemConfigurationPage } from "./project-configuration/WorkItemConfigurationPage";

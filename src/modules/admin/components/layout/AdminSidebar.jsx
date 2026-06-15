@@ -4,7 +4,7 @@ import {
   Sparkles, LayoutDashboard, Users, MapPin,
   List, XCircle, ChevronRight,
   UserSquare2, CalendarRange, Briefcase,
-  UserCheck, Mail,
+  UserCheck, Mail, Grid, Wrench, Settings,
 } from "lucide-react";
 import {
   Sidebar,
@@ -37,6 +37,7 @@ const ADMIN_NAV_GROUPS = [
       { label: "Employees",            href: ROUTES.ADMIN.EMPLOYEES,   icon: UserSquare2 },
       { label: "Calendar",             href: ROUTES.ADMIN.CALENDAR,    icon: CalendarRange },
       { label: "Projects",             href: ROUTES.ADMIN.PROJECTS,    icon: Briefcase },
+      { label: "PROJECT_CONFIG_PLACEHOLDER" },
     ],
   },
 ];
@@ -49,6 +50,11 @@ const LEADS_SUB_ITEMS = [
 const CLIENTS_SUB_ITEMS = [
   { label: "All Clients", href: ROUTES.ADMIN.CLIENTS,      icon: UserCheck },
   { label: "Email",       href: ROUTES.ADMIN.CLIENT_EMAIL, icon: Mail },
+];
+
+const PROJECT_CONFIG_SUB_ITEMS = [
+  { label: "Room Configuration", href: ROUTES.ADMIN.ROOM_CONFIG, icon: Grid },
+  { label: "Work Item Config", href: ROUTES.ADMIN.WORK_ITEM_CONFIG, icon: Wrench },
 ];
 
 // ─── Reusable collapsible submenu ─────────────────────────────────────────────
@@ -150,6 +156,8 @@ export default function AdminSidebar() {
                     return <Submenu key="leads" label="Leads" icon={Users} items={LEADS_SUB_ITEMS} />;
                   if (item.label === "CLIENTS_PLACEHOLDER")
                     return <Submenu key="clients" label="Clients" icon={UserCheck} items={CLIENTS_SUB_ITEMS} />;
+                  if (item.label === "PROJECT_CONFIG_PLACEHOLDER")
+                    return <Submenu key="project-config" label="Project Configuration" icon={Settings} items={PROJECT_CONFIG_SUB_ITEMS} />;
                   return <AdminNavItem key={item.href} item={item} />;
                 })}
               </SidebarMenu>
