@@ -6,9 +6,9 @@ import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-lea
 import "leaflet/dist/leaflet.css";
 import { ROUTES } from "@/shared/constants/routes";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
-import { SALES_REPS } from "../data/leads";
 import { fetchAllLeads } from "../api/leads.api";
-import axiosInstance from "@/lib/axiosInstance";
+import { fetchAllEmployees } from "../api/employees.api";
+import { createSiteVisit, addLocationDetails } from "../api/site-visits.api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,7 +41,6 @@ L.Icon.Default.mergeOptions({
   shadowUrl: markerShadow,
 });
 
-const STAFF_MEMBERS = ["Tom Bradley", "James Wu", "Emma Walsh", "Lisa Park"];
 const DEFAULT_COORDINATES = { lat: -33.86882, lng: 151.20929 };
 const toDateInput = (date) => date.toISOString().slice(0, 10);
 const addDays = (days) => {
@@ -135,7 +134,7 @@ export default function SiteVisitSchedulePage() {
   const reverseGeocodeControllerRef = useRef(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [leads, setLeads] = useState([]);
-  const [templates, setTemplates] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [loadingOptions, setLoadingOptions] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -150,7 +149,6 @@ export default function SiteVisitSchedulePage() {
     date: "",
     time: "",
     location: "",
-    checklist: "",
     latitude: "-33.868820",
     longitude: "151.209290",
     notes: "",
@@ -160,16 +158,16 @@ export default function SiteVisitSchedulePage() {
     let cancelled = false;
     Promise.all([
       fetchAllLeads(),
-      axiosInstance.get("/checklist-templates/GetAllCheckList").then((r) => r.data?.data || []),
+      fetchAllEmployees().catch(() => []),
     ])
-      .then(([leadList, templateList]) => {
+      .then(([leadList, empList]) => {
         if (cancelled) return;
         setLeads(leadList);
-        setTemplates(templateList);
+        setEmployees(empList.filter((e) => e.isActive));
       })
       .catch((err) => {
         if (cancelled) return;
-        setError(err.response?.data?.error || err.response?.data?.message || "Unable to load leads or checklist templates");
+        setError(err.response?.data?.error || err.response?.data?.message || "Unable to load options");
       })
       .finally(() => {
         if (!cancelled) setLoadingOptions(false);
@@ -182,20 +180,19 @@ export default function SiteVisitSchedulePage() {
   }, [form.location]);
 
   const selectedLead = leads.find((l) => l.id === form.leadId);
-  const selectedTemplate = templates.find((t) => String(t.uuid) === form.checklist);
+  const selectedEmployee = employees.find((e) => String(e.id) === String(form.staff));
 
   const summaryItems = useMemo(
     () => [
       {
         label: "Lead",
-        value: selectedLead ? `${selectedLead.clientName} - ${selectedLead.company}` : "Select a lead",
+        value: selectedLead ? `${selectedLead.clientName}` : "Select a lead",
       },
       { label: "Date", value: form.date || "Pending" },
       { label: "Time", value: form.time || "Pending" },
-      { label: "Staff", value: form.staff || "Assign staff" },
-      { label: "Checklist", value: selectedTemplate?.name || "Select template" },
+      { label: "Staff", value: selectedEmployee?.employeeName || "Assign staff" },
     ],
-    [form.date, form.staff, form.time, selectedLead, selectedTemplate]
+    [form.date, form.time, selectedLead, selectedEmployee]
   );
 
   const update = (field, value) => {
@@ -308,8 +305,8 @@ export default function SiteVisitSchedulePage() {
   };
 
   const handleConfirm = async () => {
-    if (!form.leadId || !form.staff || !form.date || !form.time || !form.location || !form.checklist) {
-      setError("Select a lead, staff member, date, time, location, and checklist template.");
+    if (!form.leadId || !form.staff || !form.date || !form.time || !form.location) {
+      setError("Select a lead, staff member, date, time, and location.");
       return;
     }
     const latitude = Number(form.latitude);
@@ -319,26 +316,23 @@ export default function SiteVisitSchedulePage() {
       return;
     }
 
-    const assignedTo = Math.max(1, SALES_REPS.indexOf(form.staff) + 1);
     setSubmitting(true);
     setError("");
     try {
-      const { data } = await axiosInstance.post("/site-visits/CreateSite-Visits", {
-        leadId: Number(form.leadId),
-        assignedTo,
+      const visit = await createSiteVisit({
+        leadId: form.leadId,
+        assignedTo: form.staff,
         scheduledDate: form.date,
         scheduledTime: form.time,
-        latitude,
-        longitude,
-        checklistTemplateUuid: form.checklist,
+        latitude: form.latitude,
+        longitude: form.longitude,
         notes: form.notes || "",
-        createdBy: assignedTo,
+        createdBy: form.staff,
       });
 
-      const uuid = data?.data?.uuid;
-      if (uuid) {
+      if (visit.uuid) {
         const [addressLine1, ...rest] = form.location.split(",").map((part) => part.trim()).filter(Boolean);
-        await axiosInstance.post(`/site-visits/Site/${uuid}/location-details`, {
+        await addLocationDetails(visit.uuid, {
           addressLine1: addressLine1 || form.location,
           addressLine2: rest.join(", "),
           city: "Sydney",
@@ -457,34 +451,14 @@ export default function SiteVisitSchedulePage() {
 
               <div className="space-y-2">
                 <Label>Assigned staff *</Label>
-                <Select value={form.staff} onValueChange={(v) => update("staff", v)}>
+                <Select value={form.staff} onValueChange={(v) => update("staff", v)} disabled={loadingOptions}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Staff" />
+                    <SelectValue placeholder={loadingOptions ? "Loading staff..." : "Select staff member"} />
                   </SelectTrigger>
                   <SelectContent>
-                    {STAFF_MEMBERS.map((member) => (
-                      <SelectItem key={member} value={member}>
-                        {member}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Checklist template *</Label>
-                <Select
-                  value={form.checklist}
-                  onValueChange={(v) => update("checklist", v)}
-                  disabled={loadingOptions}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={loadingOptions ? "Loading templates..." : "Template"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {templates.map((template) => (
-                      <SelectItem key={template.uuid} value={String(template.uuid)}>
-                        {template.name}
+                    {employees.map((emp) => (
+                      <SelectItem key={emp.id} value={emp.id}>
+                        {emp.employeeName || emp.fullName}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -653,7 +627,7 @@ export default function SiteVisitSchedulePage() {
               ))}
               <Separator className="my-2" />
               <div className="rounded-lg border border-primary/15 bg-primary/5 p-3 text-xs text-muted-foreground">
-                Choose a lead and checklist template to keep the inspection workflow consistent across every visit.
+                Choose a lead and fill in the details to schedule a site inspection.
               </div>
             </CardContent>
           </Card>
@@ -688,7 +662,7 @@ export default function SiteVisitSchedulePage() {
               {form.date || "Date pending"} at {form.time || "Time pending"}
             </p>
             <p>
-              Assigned to {form.staff || "staff"} with {selectedTemplate?.name || "no checklist selected"}.
+              Assigned to {selectedEmployee?.employeeName || "staff"}.
             </p>
           </div>
           <DialogFooter>

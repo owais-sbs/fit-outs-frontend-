@@ -2,8 +2,9 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { CheckCircle2, Eye, EyeOff, FileText, Paperclip, User, Upload, X } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
-import { CLIENT_STATUSES } from "../../data/clients";
+import { createClient } from "../../api/clients.api";
 import { ROUTES } from "@/shared/constants/routes";
+import { useAuth } from "@/shared/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -66,6 +67,7 @@ function pwStrength(pw) {
 
 export default function AddClientPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [showPw, setShowPw] = useState(false);
   const [showCpw, setShowCpw] = useState(false);
   const [errors, setErrors] = useState({});
@@ -116,11 +118,28 @@ export default function AddClientPage() {
     return e;
   };
 
-  const handleSave = () => {
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSave = async () => {
     const e = validate();
     if (Object.keys(e).length) { setErrors(e); return; }
-    setSaved(true);
-    setTimeout(() => navigate(ROUTES.ADMIN.CLIENTS), 1500);
+    setSubmitting(true);
+    try {
+      await createClient({
+        fullName: `${form.firstName.trim()} ${form.lastName.trim()}`,
+        email: form.email.trim(),
+        password: form.password,
+        phone: form.phone.trim() || null,
+        companyName: form.company.trim() || null,
+        companyUuid: user?.companyId || null,
+      });
+      setSaved(true);
+      setTimeout(() => navigate(ROUTES.ADMIN.CLIENTS), 1500);
+    } catch (err) {
+      setErrors({ submit: err.response?.data?.message || "Failed to create client" });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const strength = pwStrength(form.password);
@@ -133,6 +152,12 @@ export default function AddClientPage() {
         <div className="flex items-center gap-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-400">
           <CheckCircle2 className="h-4 w-4 shrink-0" />
           Client added successfully!
+        </div>
+      )}
+
+      {errors.submit && (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {errors.submit}
         </div>
       )}
 
@@ -297,13 +322,14 @@ export default function AddClientPage() {
         <div className="space-y-6">
           <Section title="Client Status" desc="Set the initial status.">
             <div className="space-y-2">
-              {CLIENT_STATUSES.map((s) => {
-                const variants = { Active: "success", Inactive: "secondary", Prospect: "warning", VIP: "default" };
+              {["Active", "Inactive"].map((s) => {
+                const variants = { Active: "success", Inactive: "secondary" };
+                const isActive = s === "Active" ? form.status === "Active" : form.status === "Inactive";
                 return (
-                  <label key={s} className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-all ${form.status === s ? "border-primary/40 bg-primary/5" : "border-border/60 hover:bg-muted/20"}`}>
-                    <input type="radio" name="status" value={s} checked={form.status === s} onChange={() => set("status", s)} className="accent-primary" />
+                  <label key={s} className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-all ${isActive ? "border-primary/40 bg-primary/5" : "border-border/60 hover:bg-muted/20"}`}>
+                    <input type="radio" name="status" value={s} checked={isActive} onChange={() => set("status", s)} className="accent-primary" />
                     <Badge variant={variants[s]}>{s}</Badge>
-                    <span className="text-xs text-muted-foreground">{s}</span>
+                    <span className="text-xs text-muted-foreground">{s === "Active" ? "Client can access portal" : "Client cannot access portal"}</span>
                   </label>
                 );
               })}
@@ -327,7 +353,9 @@ export default function AddClientPage() {
           <p className="text-xs text-muted-foreground"><span className="text-destructive">*</span> required fields</p>
           <div className="flex items-center gap-2">
             <Button variant="outline" asChild><Link to={ROUTES.ADMIN.CLIENTS}>Cancel</Link></Button>
-            <Button onClick={handleSave}>Save Client</Button>
+            <Button onClick={handleSave} disabled={submitting}>
+              {submitting ? "Saving..." : "Save Client"}
+            </Button>
           </div>
         </div>
       </div>

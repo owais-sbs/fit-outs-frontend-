@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { projectStore } from "@/shared/store/projectStore";
+import { fetchProjectById } from "../api/projects.api";
 import { INITIAL_EMPLOYEES } from "@/modules/admin/data/employees";
 
 function InfoItem({ label, value, mono = false }) {
@@ -36,20 +37,27 @@ export default function ProjectDetailPage() {
   const { projectId } = useParams();
   const navigate = useNavigate();
   const [project, setProject] = useState(null);
-  const [siteVisits, setSiteVisits] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const load = useCallback(() => {
-    const proj = projectStore.getProjectById(projectId);
-    if (!proj) return;
-    setProject(proj);
-    setSiteVisits(projectStore.getSiteVisits(projectId));
+    setLoading(true);
+    fetchProjectById(projectId)
+      .then(setProject)
+      .catch(() => setProject(null))
+      .finally(() => setLoading(false));
   }, [projectId]);
 
   useEffect(() => {
     load();
-    window.addEventListener("storage_update", load);
-    return () => window.removeEventListener("storage_update", load);
   }, [load]);
+
+  if (loading) {
+    return (
+      <div className="space-y-6 max-w-6xl mx-auto">
+        <Card className="border-border/60 shadow-sm"><CardContent className="py-24"><Skeleton className="h-8 w-48 mx-auto" /></CardContent></Card>
+      </div>
+    );
+  }
 
   if (!project) {
     return (
@@ -79,7 +87,7 @@ export default function ProjectDetailPage() {
         </div>
         <div className="flex items-center gap-2">
           <StatusBadge status={project.status} />
-          <Select value={project.status} onValueChange={(s) => { projectStore.updateProject(projectId, { status: s }); load(); }}>
+          <Select value={project.status} onValueChange={(s) => setProject((p) => ({ ...p, status: s }))}>
             <SelectTrigger className="w-[135px] h-8 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
               {["Planning","In Progress","On Hold","Completed","Cancelled"].map((s) => (
@@ -226,17 +234,20 @@ export default function ProjectDetailPage() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {INITIAL_EMPLOYEES.slice(0, 8).map((emp) => (
-              <div key={emp.id} className="flex items-center gap-3 rounded-lg border border-border/50 bg-muted/20 p-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                  {emp.firstName[0]}{emp.lastName[0]}
+            {INITIAL_EMPLOYEES.slice(0, 8).map((emp) => {
+              const inits = (emp.employeeName || "").split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
+              return (
+                <div key={emp.id} className="flex items-center gap-3 rounded-lg border border-border/50 bg-muted/20 p-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                    {inits}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{emp.employeeName}</p>
+                    <p className="text-xs text-muted-foreground truncate">{emp.designation}</p>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">{emp.firstName} {emp.lastName}</p>
-                  <p className="text-xs text-muted-foreground truncate">{emp.designation}</p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </CardContent>
       </Card>
@@ -252,9 +263,9 @@ export default function ProjectDetailPage() {
         <CardContent>
           <div className="grid grid-cols-3 gap-3 text-center mb-4">
             {[
-              { label: "Total",     value: siteVisits.length,                                         c: "text-foreground" },
-              { label: "Scheduled", value: siteVisits.filter((v) => v.status === "Scheduled").length, c: "text-amber-600" },
-              { label: "Completed", value: siteVisits.filter((v) => v.status === "Completed").length, c: "text-emerald-600" },
+              { label: "Total",     value: 0, c: "text-foreground" },
+              { label: "Scheduled", value: 0, c: "text-amber-600" },
+              { label: "Completed", value: 0, c: "text-emerald-600" },
             ].map(({ label, value, c }) => (
               <div key={label} className="rounded-lg bg-muted/30 p-3">
                 <p className={`text-xl font-bold ${c}`}>{value}</p>
@@ -262,27 +273,7 @@ export default function ProjectDetailPage() {
               </div>
             ))}
           </div>
-          {siteVisits.length === 0 ? (
-            <p className="text-center text-sm text-muted-foreground py-4">No site visits scheduled yet.</p>
-          ) : (
-            <div className="space-y-2">
-              {siteVisits.map((sv) => (
-                <div key={sv.id} className="flex items-center justify-between rounded-lg border border-border/50 px-3 py-2.5">
-                  <div>
-                    <p className="text-sm font-medium">{sv.employee}</p>
-                    <p className="text-xs text-muted-foreground">{sv.date} · {sv.time} · {sv.purpose}</p>
-                  </div>
-                  <Badge
-                    className={sv.status === "Completed"
-                      ? "bg-emerald-500/15 text-emerald-700 border-none"
-                      : "bg-amber-500/15 text-amber-700 border-none"}
-                  >
-                    {sv.status}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          )}
+          <p className="text-center text-sm text-muted-foreground py-4">No site visits scheduled yet.</p>
         </CardContent>
       </Card>
     </div>

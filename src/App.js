@@ -12,6 +12,7 @@ import RolesManagement from "./modules/auth/pages/roles-management";
 import SuperAdminLayout from "./modules/super-admin/layouts/SuperAdminLayout";
 import SuperAdminDashboard from "./modules/super-admin/pages/SuperAdminDashboard";
 import TenantsPage from "./modules/super-admin/pages/TenantsPage";
+import CreateCompanyPage from "./modules/super-admin/pages/CreateCompanyPage";
 import TenantDetailPage from "./modules/super-admin/pages/TenantDetailPage";
 import PlansPage from "./modules/super-admin/pages/PlansPage";
 import UsersPage from "./modules/super-admin/pages/UsersPage";
@@ -96,7 +97,7 @@ function App() {
                 </ProtectedRoute>
               }>
               <Route index element={<SuperAdminDashboard />} />
-              <Route path="tenants/new" element={<TenantsPage />} />
+              <Route path="tenants/new" element={<CreateCompanyPage />} />
               <Route path="tenants/:tenantId" element={<TenantDetailPage />} />
               <Route path="tenants" element={<TenantsPage />} />
               <Route path="plans" element={<PlansPage />} />

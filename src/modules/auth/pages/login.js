@@ -1,23 +1,51 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/shared/context/auth-context";
+import { ROUTES } from "@/shared/constants/routes";
+import { ROLES } from "@/shared/constants/roles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Lock, Mail, ArrowRight, Sparkles, AlertCircle } from "lucide-react";
+import { Lock, Mail, ArrowRight, Sparkles, AlertCircle, Loader2 } from "lucide-react";
+
+const ROLE_ROUTES = {
+  [ROLES.SUPER_ADMIN]: ROUTES.SUPER_ADMIN.DASHBOARD,
+  [ROLES.ADMIN]: ROUTES.ADMIN.DASHBOARD,
+  [ROLES.CLIENT]: ROUTES.CLIENT.DASHBOARD,
+  [ROLES.EMPLOYEE]: ROUTES.EMPLOYEE.DASHBOARD,
+};
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, isAuthenticated, role, isLoading: authLoading } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const VALID_EMAIL = "admin@opbs.com";
-  const VALID_PASSWORD = "123456";
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      if (role) {
+        const route = ROLE_ROUTES[role];
+        if (route) {
+          navigate(route, { replace: true });
+        }
+      } else {
+        navigate("/roles", { replace: true });
+      }
+    }
+  }, [authLoading, isAuthenticated, role, navigate]);
+
+  if (authLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-background">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <span className="mt-4 text-sm text-muted-foreground animate-pulse font-medium">Checking session...</span>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -26,39 +54,46 @@ export default function Login() {
       return;
     }
 
-    if (email !== VALID_EMAIL || password !== VALID_PASSWORD) {
-      setError("Invalid credentials. Please check your email and password.");
-      return;
-    }
-
     setIsLoading(true);
     setError("");
 
     try {
-      await login({ email, password });
-      navigate("/roles");
+      const result = await login({ email, password });
+
+      if (result?.noValidRole) {
+        setError("Your account does not have access to any available portal.");
+        return;
+      }
+
+      if (result?.singleRole) {
+        const route = ROLE_ROUTES[result.singleRole];
+        if (route) {
+          navigate(route);
+        } else {
+          setError("Invalid role assigned to your account.");
+        }
+        return;
+      }
+
+      if (result?.multipleRoles) {
+        navigate("/roles");
+        return;
+      }
     } catch (err) {
-      setError("Login failed. Please try again.");
+      setError(err.message || "Login failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleDemoMode = () => {
-    navigate("/roles?demo=true");
-  };
-
   return (
     <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-background px-4">
-      {/* Decorative premium background light flares (OKLCH based) */}
       <div className="absolute -top-[40%] -left-[20%] w-[80%] h-[80%] rounded-full bg-primary/10 blur-[120px] pointer-events-none" />
       <div className="absolute -bottom-[40%] -right-[20%] w-[80%] h-[80%] rounded-full bg-primary/10 blur-[120px] pointer-events-none" />
       <div className="absolute top-[30%] right-[10%] w-[40%] h-[40%] rounded-full bg-secondary/15 blur-[100px] pointer-events-none" />
 
-      {/* Main Glassmorphic Card Container */}
       <div className="relative z-10 w-full max-w-md transition-all duration-300 hover:scale-[1.01]">
         <Card className="border border-border bg-card/60 backdrop-blur-xl shadow-2xl relative overflow-hidden">
-          {/* Subtle colored top bar for premium feel */}
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-secondary to-primary/80" />
 
           <CardHeader className="space-y-1 text-center pt-8">
@@ -128,39 +163,6 @@ export default function Login() {
                 {!isLoading && <ArrowRight className="h-4 w-4" />}
               </Button>
             </form>
-
-            <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-border" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">Or simulate system</span>
-              </div>
-            </div>
-
-            {/* Premium Simulation Mode CTA */}
-            <div
-              onClick={handleDemoMode}
-              className="group cursor-pointer rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/10 p-4 transition-all duration-300 hover:border-primary/40 relative overflow-hidden"
-            >
-              <div className="absolute right-0 bottom-0 translate-x-2 translate-y-2 opacity-5 group-hover:scale-110 transition-transform duration-300 text-primary">
-                <Sparkles className="h-24 w-24" />
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 text-primary mt-0.5 group-hover:scale-105 transition-transform duration-200">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                </div>
-                <div className="space-y-1">
-                  <h4 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors duration-200 flex items-center gap-1.5">
-                    Demo / Training Portal
-                    <ArrowRight className="h-3 w-3 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-250" />
-                  </h4>
-                  <p className="text-xs text-muted-foreground leading-normal">
-                    Explore all 10 roles & portals immediately from a unified training dashboard.
-                  </p>
-                </div>
-              </div>
-            </div>
           </CardContent>
 
           <CardFooter className="pb-8 justify-center">

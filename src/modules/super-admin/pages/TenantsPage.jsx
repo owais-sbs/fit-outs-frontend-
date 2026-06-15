@@ -45,45 +45,41 @@ const STATUS_VARIANT = {
   active: "success",
   trial: "warning",
   suspended: "secondary",
-  expired: "destructive",
+  terminated: "destructive",
 };
 
 function formatDate(value) {
-  return new Intl.DateTimeFormat("en-AU", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  }).format(new Date(value));
-}
-
-function formatRevenue(value) {
-  return value ? `$${value.toLocaleString()}` : "-";
+  if (!value) return "—";
+  try {
+    return new Intl.DateTimeFormat("en-AU", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    }).format(new Date(value));
+  } catch {
+    return "—";
+  }
 }
 
 export default function TenantsPage() {
   const navigate = useNavigate();
   const { tenants, tenantsLoading: loading } = useTenantManagement();
   const [search, setSearch] = useState("");
-  const [plan, setPlan] = useState("all");
   const [status, setStatus] = useState("all");
-  const [renewal, setRenewal] = useState("all");
   const [page, setPage] = useState(1);
-
-  // loading state now comes from the context (real API fetch)
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
     return tenants.filter((tenant) => {
-      const matchQuery =
-        !query ||
-        tenant.company.toLowerCase().includes(query) ||
-        tenant.name.toLowerCase().includes(query);
-      const matchPlan = plan === "all" || tenant.plan.toLowerCase() === plan;
-      const matchStatus = status === "all" || tenant.status === status;
-      const matchRenewal = renewal === "all" || tenant.renewalState === renewal;
-      return matchQuery && matchPlan && matchStatus && matchRenewal;
+      if (query &&
+        !tenant.company.toLowerCase().includes(query) &&
+        !tenant.domainSlug.toLowerCase().includes(query)) {
+        return false;
+      }
+      if (status !== "all" && tenant.status !== status) return false;
+      return true;
     });
-  }, [tenants, search, plan, status, renewal]);
+  }, [tenants, search, status]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -94,7 +90,7 @@ export default function TenantsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Tenants"
+        title="Companies"
         description="Manage fit-out companies, subscriptions, and renewal status across the platform."
         actions={<TenantQuickActions />}
       />
@@ -116,28 +112,12 @@ export default function TenantsPage() {
             </div>
             <div className="flex flex-wrap gap-2">
               <Select
-                value={plan}
-                onValueChange={(value) => {
-                  setPlan(value);
-                  setPage(1);
-                }}>
-                <SelectTrigger className="w-[130px]">
-                  <SelectValue placeholder="Plan" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All plans</SelectItem>
-                  <SelectItem value="starter">Starter</SelectItem>
-                  <SelectItem value="pro">Pro</SelectItem>
-                  <SelectItem value="enterprise">Enterprise</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select
                 value={status}
                 onValueChange={(value) => {
                   setStatus(value);
                   setPage(1);
                 }}>
-                <SelectTrigger className="w-[130px]">
+                <SelectTrigger className="w-[140px]">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -145,24 +125,7 @@ export default function TenantsPage() {
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="trial">Trial</SelectItem>
                   <SelectItem value="suspended">Suspended</SelectItem>
-                  <SelectItem value="expired">Expired</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select
-                value={renewal}
-                onValueChange={(value) => {
-                  setRenewal(value);
-                  setPage(1);
-                }}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Renewal" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All renewal</SelectItem>
-                  <SelectItem value="auto">Auto-renew</SelectItem>
-                  <SelectItem value="manual">Manual</SelectItem>
-                  <SelectItem value="overdue">Overdue</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                  <SelectItem value="terminated">Terminated</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -178,9 +141,8 @@ export default function TenantsPage() {
                 <TableHead className="pl-6">Company</TableHead>
                 <TableHead>Plan</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Users</TableHead>
-                <TableHead>Renewal</TableHead>
-                <TableHead>Revenue</TableHead>
+                <TableHead>Domain</TableHead>
+                <TableHead>Created</TableHead>
                 <TableHead className="pr-6 text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -188,7 +150,7 @@ export default function TenantsPage() {
               {loading
                 ? Array.from({ length: 6 }).map((_, rowIndex) => (
                     <TableRow key={rowIndex}>
-                      {Array.from({ length: 7 }).map((__, cellIndex) => (
+                      {Array.from({ length: 6 }).map((__, cellIndex) => (
                         <TableCell key={cellIndex}>
                           <Skeleton className="h-4 w-full max-w-[100px]" />
                         </TableCell>
@@ -198,9 +160,9 @@ export default function TenantsPage() {
                 : paginated.length === 0
                   ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="h-48 text-center">
+                      <TableCell colSpan={6} className="h-48 text-center">
                         <Building2 className="mx-auto mb-3 h-10 w-10 text-muted-foreground/50" />
-                        <p className="font-medium">No tenants found</p>
+                        <p className="font-medium">No companies found</p>
                         <p className="text-sm text-muted-foreground">
                           Adjust filters or search terms
                         </p>
@@ -215,13 +177,16 @@ export default function TenantsPage() {
                       <TableCell className="pl-6 font-medium">{tenant.company}</TableCell>
                       <TableCell>{tenant.plan}</TableCell>
                       <TableCell>
-                        <Badge variant={STATUS_VARIANT[tenant.status]}>{tenant.status}</Badge>
+                        <Badge variant={STATUS_VARIANT[tenant.status] || "secondary"}>
+                          {tenant.status}
+                        </Badge>
                       </TableCell>
-                      <TableCell>{tenant.activeUsers}</TableCell>
+                      <TableCell className="font-mono text-xs text-muted-foreground">
+                        {tenant.domainSlug || "—"}
+                      </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {formatDate(tenant.renewalDate)}
+                        {formatDate(tenant.createdAt)}
                       </TableCell>
-                      <TableCell>{formatRevenue(tenant.revenue)}</TableCell>
                       <TableCell className="pr-6 text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -261,7 +226,7 @@ export default function TenantsPage() {
         {!loading && filtered.length > 0 && (
           <div className="flex items-center justify-between border-t px-4 py-3">
             <p className="text-xs text-muted-foreground">
-              {filtered.length} tenant{filtered.length !== 1 ? "s" : ""} - Page {page} of{" "}
+              {filtered.length} compan{filtered.length !== 1 ? "ies" : "y"} - Page {page} of{" "}
               {totalPages}
             </p>
             <Pagination>

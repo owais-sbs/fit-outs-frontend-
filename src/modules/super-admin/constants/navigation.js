@@ -14,7 +14,7 @@ export const SUPER_ADMIN_NAV_GROUPS = [
     label: "Platform",
     items: [
       { label: "Dashboard", href: ROUTES.SUPER_ADMIN.DASHBOARD, icon: LayoutDashboard, end: true },
-      { label: "Tenants", href: ROUTES.SUPER_ADMIN.TENANTS, icon: Building2 },
+      { label: "Companies", href: ROUTES.SUPER_ADMIN.TENANTS, icon: Building2 },
       { label: "Subscription Plans", href: ROUTES.SUPER_ADMIN.PLANS, icon: CreditCard },
     ],
   },

@@ -9,6 +9,7 @@ export const ROLES = {
   SUBCONTRACTOR: "subcontractor",
   CLIENT: "client",
   SALES: "sales",
+  EMPLOYEE: "employee",
 };
 
 export const ROLE_LABELS = {
@@ -22,6 +23,7 @@ export const ROLE_LABELS = {
   [ROLES.SUBCONTRACTOR]: "Subcontractor",
   [ROLES.CLIENT]: "Client",
   [ROLES.SALES]: "Sales",
+  [ROLES.EMPLOYEE]: "Employee",
 };
 
 export const ROLE_PERMISSIONS = {
@@ -91,5 +93,10 @@ export const ROLE_PERMISSIONS = {
     "clients.write",
     "proposals.read",
     "proposals.write",
+  ],
+  [ROLES.EMPLOYEE]: [
+    "projects.read",
+    "tasks.read",
+    "tasks.write",
   ],
 };

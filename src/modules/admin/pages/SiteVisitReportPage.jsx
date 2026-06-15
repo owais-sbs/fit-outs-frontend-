@@ -24,7 +24,6 @@ import { MapContainer, Marker, TileLayer } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { ROUTES } from "@/shared/constants/routes";
 import { REPORT_CHECKLIST } from "../data/site-visits";
-import { SALES_REPS } from "../data/leads";
 import axiosInstance from "@/lib/axiosInstance";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -257,10 +256,7 @@ export default function SiteVisitReportPage() {
 
   const clientName = lead?.clientName || "Client";
   const companyName = lead?.company || visit?.locationDetails?.buildingName || "—";
-  const assigneeIndex = Number(visit?.assignedTo) - 1;
-  const assignee = Number.isFinite(assigneeIndex) && SALES_REPS[assigneeIndex]
-    ? SALES_REPS[assigneeIndex]
-    : "Unassigned";
+  const assignee = visit?.assignedTo ? `Employee #${visit.assignedTo}` : "Unassigned";
   const templateName = template?.name && template.name !== "string" ? template.name : "Standard inspection checklist";
   const latitude = Number(visit?.latitude);
   const longitude = Number(visit?.longitude);

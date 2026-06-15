@@ -1,61 +1,30 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Save,
-  UserCheck,
-  ArrowRight,
-  User,
-  Phone,
-  Mail,
-  DollarSign,
-  MapPin,
-  Calendar,
-  Building2,
-  Info,
-  CheckCircle2,
-  FileText,
-  Paperclip,
-  X,
+  Save, UserCheck, ArrowRight, User, Phone, Mail,
+  MapPin, Building2, Info, CheckCircle2,
 } from "lucide-react";
 import { ROUTES } from "@/shared/constants/routes";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
-import {
-  LEAD_SOURCES,
-  PROJECT_TYPES,
-  PRIORITIES,
-  SALES_REPS,
-} from "../data/leads";
+import { LEAD_SOURCES, PROJECT_TYPES } from "../data/leads";
 import { createLead } from "../api/leads.api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+  Card, CardContent, CardDescription, CardHeader, CardTitle,
 } from "@/components/ui/card";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
-// ─── Reusable form field ─────────────────────────────────────────────────────
 function FormField({ label, required, error, icon: Icon, children }) {
   return (
     <div className="space-y-1.5">
@@ -75,7 +44,6 @@ function FormField({ label, required, error, icon: Icon, children }) {
   );
 }
 
-// ─── Validation ──────────────────────────────────────────────────────────────
 function validate(form) {
   const e = {};
   if (!form.clientName.trim()) e.clientName = "Client name is required";
@@ -84,18 +52,10 @@ function validate(form) {
     e.email = "Valid email address required";
   if (!form.projectType) e.projectType = "Project type is required";
   if (!form.source) e.source = "Lead source is required";
-  if (!form.assignee) e.assignee = "Assigned rep is required";
-  if (!form.budget || isNaN(Number(form.budget)) || Number(form.budget) <= 0)
-    e.budget = "Valid budget amount required";
-  if (!form.priority) e.priority = "Priority is required";
+  if (form.source === "Other" && !form.otherSource.trim())
+    e.otherSource = "Please specify the source";
   return e;
 }
-
-const PRIORITY_CONFIG = {
-  High:   { variant: "destructive", className: "" },
-  Medium: { variant: "warning",     className: "" },
-  Low:    { variant: "secondary",   className: "" },
-};
 
 const EMPTY_FORM = {
   clientName: "",
@@ -103,19 +63,10 @@ const EMPTY_FORM = {
   email: "",
   projectType: "",
   source: "",
-  assignee: "",
+  otherSource: "",
+  assignedTo: "",
   notes: "",
-  budget: "",
-  location: "",
-  priority: "",
-  expectedStartDate: "",
 };
-
-// ─── Document types for leads ────────────────────────────────────────────────
-const LEAD_DOC_TYPES = [
-  "Site Brief", "Floor Plan", "Scope of Works",
-  "Client Proposal", "Quote Request", "Other",
-];
 
 export default function LeadIntakePage() {
   const navigate = useNavigate();
@@ -124,30 +75,6 @@ export default function LeadIntakePage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
-  const [docs, setDocs] = useState([]);
-  const [docForm, setDocForm] = useState({ file: null, name: "", type: "Site Brief" });
-
-  const addDoc = () => {
-    if (!docForm.name.trim()) return;
-    
-    let sizeStr = "—";
-    if (docForm.file) {
-      const kb = docForm.file.size / 1024;
-      if (kb > 1024) {
-        sizeStr = (kb / 1024).toFixed(1) + " MB";
-      } else {
-        sizeStr = kb.toFixed(0) + " KB";
-      }
-    }
-    
-    setDocs((prev) => [...prev, { id: Date.now(), name: docForm.name.trim(), type: docForm.type, size: sizeStr, file: docForm.file }]);
-    setDocForm({ file: null, name: "", type: "Site Brief" });
-    
-    const fileInput = document.getElementById("lead-doc-upload");
-    if (fileInput) fileInput.value = "";
-  };
-
-  const removeDoc = (id) => setDocs((prev) => prev.filter((d) => d.id !== id));
 
   const update = (field, value) => {
     setForm((f) => ({ ...f, [field]: value }));
@@ -198,7 +125,6 @@ export default function LeadIntakePage() {
         }
       />
 
-      {/* Progress bar */}
       <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
         <div
           className="h-full rounded-full bg-primary transition-all duration-500"
@@ -207,9 +133,7 @@ export default function LeadIntakePage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* ── Main form ─────────────────────────────────────────────────── */}
         <div className="space-y-6 lg:col-span-2">
-          {/* Client information */}
           <Card className="border-border/60">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-base">
@@ -250,26 +174,16 @@ export default function LeadIntakePage() {
                   className={cn(errors.email && "border-destructive focus-visible:ring-destructive")}
                 />
               </FormField>
-
-              <FormField label="Location / suburb" icon={MapPin}>
-                <Input
-                  id="location"
-                  placeholder="e.g. Sydney CBD, NSW"
-                  value={form.location}
-                  onChange={(e) => update("location", e.target.value)}
-                />
-              </FormField>
             </CardContent>
           </Card>
 
-          {/* Project details */}
           <Card className="border-border/60">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-base">
                 <Building2 className="h-4 w-4 text-primary" />
                 Project details
               </CardTitle>
-              <CardDescription>Scope, budget, and timeline</CardDescription>
+              <CardDescription>Project type, source, and assignment</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
               <FormField label="Project type" required error={errors.projectType}>
@@ -285,20 +199,6 @@ export default function LeadIntakePage() {
                 </Select>
               </FormField>
 
-              <FormField label="Budget (AUD)" required error={errors.budget} icon={DollarSign}>
-                <div className="relative">
-                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
-                  <Input
-                    id="budget"
-                    type="number"
-                    placeholder="120,000"
-                    value={form.budget}
-                    onChange={(e) => update("budget", e.target.value)}
-                    className={cn("pl-7", errors.budget && "border-destructive focus-visible:ring-destructive")}
-                  />
-                </div>
-              </FormField>
-
               <FormField label="Lead source" required error={errors.source}>
                 <Select value={form.source} onValueChange={(v) => update("source", v)}>
                   <SelectTrigger id="source" className={cn(errors.source && "border-destructive")}>
@@ -312,58 +212,23 @@ export default function LeadIntakePage() {
                 </Select>
               </FormField>
 
-              <FormField label="Priority" required error={errors.priority}>
-                <Select value={form.priority} onValueChange={(v) => update("priority", v)}>
-                  <SelectTrigger id="priority" className={cn(errors.priority && "border-destructive")}>
-                    <SelectValue placeholder="Set priority" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PRIORITIES.map((p) => (
-                      <SelectItem key={p} value={p}>
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={cn(
-                              "h-2 w-2 rounded-full",
-                              p === "High"   && "bg-destructive",
-                              p === "Medium" && "bg-amber-500",
-                              p === "Low"    && "bg-muted-foreground"
-                            )}
-                          />
-                          {p}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </FormField>
-
-              <FormField label="Expected start date" icon={Calendar}>
-                <Input
-                  id="expectedStartDate"
-                  type="date"
-                  value={form.expectedStartDate}
-                  onChange={(e) => update("expectedStartDate", e.target.value)}
-                />
-              </FormField>
-
-              <FormField label="Assigned sales rep" required error={errors.assignee}>
-                <Select value={form.assignee} onValueChange={(v) => update("assignee", v)}>
-                  <SelectTrigger id="assignee" className={cn(errors.assignee && "border-destructive")}>
-                    <SelectValue placeholder="Select rep" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SALES_REPS.map((r) => (
-                      <SelectItem key={r} value={r}>{r}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </FormField>
+              {form.source === "Other" && (
+                <FormField label="Specify source" required error={errors.otherSource} icon={MapPin}>
+                  <Input
+                    id="otherSource"
+                    placeholder="e.g. Google Ads, Billboard"
+                    value={form.otherSource}
+                    onChange={(e) => update("otherSource", e.target.value)}
+                    className={cn(errors.otherSource && "border-destructive focus-visible:ring-destructive")}
+                  />
+                </FormField>
+              )}
 
               <div className="space-y-1.5 sm:col-span-2">
                 <Label className="text-sm font-medium">Notes</Label>
                 <Textarea
                   id="notes"
-                  placeholder="Any additional details about the client's requirements, timeline constraints, or special considerations..."
+                  placeholder="Any additional details about the client's requirements..."
                   value={form.notes}
                   onChange={(e) => update("notes", e.target.value)}
                   rows={4}
@@ -371,119 +236,26 @@ export default function LeadIntakePage() {
               </div>
             </CardContent>
           </Card>
-          {/* Documents */}
-          <Card className="border-border/60">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Paperclip className="h-4 w-4 text-primary" />
-                Documents
-              </CardTitle>
-              <CardDescription>Attach any relevant files to this lead</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Add document row */}
-              <div className="flex gap-2">
-                <Select value={docForm.type} onValueChange={(v) => setDocForm((f) => ({ ...f, type: v }))}>
-                  <SelectTrigger className="w-[160px] shrink-0">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {LEAD_DOC_TYPES.map((t) => (
-                      <SelectItem key={t} value={t}>{t}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Input
-                  id="lead-doc-upload"
-                  type="file"
-                  onChange={(e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                      setDocForm((f) => ({ ...f, file, name: file.name }));
-                    }
-                  }}
-                  className="flex-1 cursor-pointer"
-                />
-                <Button type="button" variant="outline" size="sm" onClick={addDoc} className="shrink-0 gap-1.5">
-                  <Paperclip className="h-3.5 w-3.5" />
-                  Attach
-                </Button>
-              </div>
-
-              {/* Document list */}
-              {docs.length === 0 ? (
-                <div className="flex items-center justify-center rounded-lg border border-dashed border-border/60 py-8 text-sm text-muted-foreground">
-                  <FileText className="mr-2 h-4 w-4 opacity-40" />
-                  No documents attached yet
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {docs.map((doc) => (
-                    <div key={doc.id} className="flex items-center gap-3 rounded-lg border border-border/50 bg-muted/20 px-3 py-2">
-                      <FileText className="h-4 w-4 text-primary shrink-0" />
-                      <div className="flex-1 min-w-0 flex justify-between items-center pr-4">
-                        <div>
-                          <p className="text-sm font-medium truncate">{doc.name}</p>
-                          <p className="text-xs text-muted-foreground">{doc.type}</p>
-                        </div>
-                        {doc.size !== "—" && (
-                          <span className="text-xs text-muted-foreground">{doc.size}</span>
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removeDoc(doc.id)}
-                        className="text-muted-foreground hover:text-destructive transition-colors"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
         </div>
 
-        {/* ── Sidebar ──────────────────────────────────────────────────── */}        <div className="space-y-4">
-          {/* Summary preview */}
-          {(form.clientName || form.projectType || form.budget || form.priority) && (
+        <div className="space-y-4">
+          {(form.clientName || form.projectType || form.source) && (
             <Card className="border-border/60 border-primary/20 bg-primary/3">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm">Lead preview</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
-                {form.clientName && (
-                  <p className="font-semibold">{form.clientName}</p>
-                )}
-                {form.projectType && (
-                  <p className="text-muted-foreground">{form.projectType}</p>
-                )}
-                {form.budget && (
-                  <p className="text-lg font-bold text-primary">
-                    ${Number(form.budget).toLocaleString()}
-                  </p>
-                )}
-                {form.priority && (
-                  <Badge
-                    variant={PRIORITY_CONFIG[form.priority]?.variant || "secondary"}
-                    className="text-[10px]"
-                  >
-                    {form.priority} priority
-                  </Badge>
-                )}
+                {form.clientName && <p className="font-semibold">{form.clientName}</p>}
+                {form.projectType && <p className="text-muted-foreground">{form.projectType}</p>}
                 {form.source && (
-                  <p className="text-xs text-muted-foreground">via {form.source}</p>
-                )}
-                {form.assignee && (
-                  <p className="text-xs text-muted-foreground">→ {form.assignee}</p>
+                  <p className="text-xs text-muted-foreground">
+                    via {form.source}{form.otherSource ? ` — ${form.otherSource}` : ""}
+                  </p>
                 )}
               </CardContent>
             </Card>
           )}
 
-          {/* Quick tips */}
           <Card className="border-border/60">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-sm">
@@ -494,28 +266,19 @@ export default function LeadIntakePage() {
             <CardContent className="space-y-2.5 text-sm text-muted-foreground">
               <p className="flex gap-2">
                 <span className="text-primary">•</span>
-                Confirm budget range before assigning a sales rep.
-              </p>
-              <p className="flex gap-2">
-                <span className="text-primary">•</span>
                 Select <strong className="text-foreground">Walk-in</strong> source for showroom enquiries.
               </p>
               <p className="flex gap-2">
                 <span className="text-primary">•</span>
-                Use <strong className="text-foreground">Site Visit</strong> stage if scope requires inspection.
-              </p>
-              <p className="flex gap-2">
-                <span className="text-primary">•</span>
-                High priority leads should have a follow-up within 24h.
+                Use <strong className="text-foreground">Other</strong> for sources not in the list.
               </p>
               <Separator className="my-2" />
               <p className="text-xs">
-                Lead will appear in <strong className="text-foreground">New</strong> column of the pipeline automatically.
+                Lead will appear in <strong className="text-foreground">New</strong> status automatically.
               </p>
             </CardContent>
           </Card>
 
-          {/* Required fields checklist */}
           <Card className="border-border/60">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm">Required fields</CardTitle>
@@ -523,21 +286,16 @@ export default function LeadIntakePage() {
             <CardContent className="space-y-1.5 text-sm">
               {[
                 { key: "clientName", label: "Client name" },
-                { key: "phone",      label: "Phone" },
-                { key: "email",      label: "Email" },
-                { key: "projectType",label: "Project type" },
-                { key: "source",     label: "Lead source" },
-                { key: "budget",     label: "Budget" },
-                { key: "priority",   label: "Priority" },
-                { key: "assignee",   label: "Assigned rep" },
+                { key: "phone", label: "Phone" },
+                { key: "email", label: "Email" },
+                { key: "projectType", label: "Project type" },
+                { key: "source", label: "Lead source" },
               ].map(({ key, label }) => (
                 <div key={key} className="flex items-center gap-2">
                   <CheckCircle2
                     className={cn(
                       "h-3.5 w-3.5 transition-colors",
-                      form[key]
-                        ? "text-emerald-600"
-                        : "text-muted-foreground/30"
+                      form[key] ? "text-emerald-600" : "text-muted-foreground/30"
                     )}
                   />
                   <span className={cn(
@@ -553,7 +311,6 @@ export default function LeadIntakePage() {
         </div>
       </div>
 
-      {/* ── Sticky action footer ─────────────────────────────────────────── */}
       <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-border bg-background/95 p-4 backdrop-blur md:left-[var(--sidebar-width)]">
         <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4">
           <p className="hidden text-sm text-muted-foreground sm:block">
@@ -565,26 +322,14 @@ export default function LeadIntakePage() {
             {submitError && <span className="text-destructive">{submitError}</span>}
           </p>
           <div className="ml-auto flex flex-wrap items-center gap-2">
-            <Button
-              variant="outline"
-              onClick={() => navigate(ROUTES.ADMIN.LEADS_LIST)}
-            >
+            <Button variant="outline" onClick={() => navigate(ROUTES.ADMIN.LEADS_LIST)}>
               Cancel
             </Button>
-            <Button
-              variant="outline"
-              className="gap-2"
-              onClick={handleSaveAndContinue}
-              disabled={submitting}
-            >
+            <Button variant="outline" className="gap-2" onClick={handleSaveAndContinue} disabled={submitting}>
               Save &amp; continue
               <ArrowRight className="h-4 w-4" />
             </Button>
-            <Button
-              className="gap-2"
-              onClick={handleSave}
-              disabled={submitting}
-            >
+            <Button className="gap-2" onClick={handleSave} disabled={submitting}>
               {submitting ? (
                 <>
                   <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
@@ -601,7 +346,6 @@ export default function LeadIntakePage() {
         </div>
       </div>
 
-      {/* ── Success dialog ────────────────────────────────────────────── */}
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -614,26 +358,19 @@ export default function LeadIntakePage() {
             <div className="rounded-lg border border-border/60 bg-muted/30 p-4 space-y-2">
               <p><span className="text-muted-foreground">Client: </span><strong>{form.clientName}</strong></p>
               <p><span className="text-muted-foreground">Project: </span>{form.projectType}</p>
-              <p><span className="text-muted-foreground">Budget: </span>{form.budget ? `$${Number(form.budget).toLocaleString()}` : "—"}</p>
-              <p><span className="text-muted-foreground">Assigned to: </span>{form.assignee}</p>
+              <p><span className="text-muted-foreground">Source: </span>{form.source}{form.otherSource ? ` — ${form.otherSource}` : ""}</p>
             </div>
             <p className="text-muted-foreground text-xs">
-              The lead has been added to the <strong className="text-foreground">New</strong> column in the CRM pipeline.
+              The lead has been added with <strong className="text-foreground">New</strong> status.
             </p>
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              variant="outline"
-              onClick={() => { setConfirmOpen(false); setForm(EMPTY_FORM); setErrors({}); setSubmitError(""); }}
-            >
+            <Button variant="outline" onClick={() => { setConfirmOpen(false); setForm(EMPTY_FORM); setErrors({}); setSubmitError(""); }}>
               Add another lead
             </Button>
-            <Button
-              className="gap-2"
-              onClick={() => navigate(ROUTES.ADMIN.LEADS_LIST)}
-            >
+            <Button className="gap-2" onClick={() => navigate(ROUTES.ADMIN.LEADS_LIST)}>
               <UserCheck className="h-4 w-4" />
-              View pipeline
+              View leads
             </Button>
           </DialogFooter>
         </DialogContent>

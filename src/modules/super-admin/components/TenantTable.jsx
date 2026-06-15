@@ -26,11 +26,14 @@ const STATUS_VARIANT = {
 };
 
 function formatDate(dateStr) {
+  if (!dateStr) return "-";
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return "-";
   return new Intl.DateTimeFormat("en-AU", {
     day: "numeric",
     month: "short",
     year: "numeric",
-  }).format(new Date(dateStr));
+  }).format(date);
 }
 
 function getTenantDetailPath(tenantId) {

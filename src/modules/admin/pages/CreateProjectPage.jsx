@@ -215,8 +215,8 @@ export default function CreateProjectPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {INITIAL_EMPLOYEES.map((emp) => (
-                      <SelectItem key={emp.id} value={`${emp.firstName} ${emp.lastName}`}>
-                        {emp.firstName} {emp.lastName} ({emp.role})
+                      <SelectItem key={emp.id} value={emp.employeeName}>
+                        {emp.employeeName} ({emp.designation})
                       </SelectItem>
                     ))}
                   </SelectContent>

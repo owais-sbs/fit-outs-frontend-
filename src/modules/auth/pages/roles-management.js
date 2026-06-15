@@ -1,83 +1,81 @@
 import React from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/shared/context/auth-context";
-import { ROLES } from "@/shared/constants/roles";
 import { ROUTES } from "@/shared/constants/routes";
+import { ROLES, ROLE_PERMISSIONS } from "@/shared/constants/roles";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   ShieldAlert, Users2, HeartHandshake, UserSquare2,
-  ArrowLeft, Sparkles, ExternalLink,
+  ArrowLeft, ExternalLink, Loader2,
 } from "lucide-react";
 
-// Only 4 portals are visible — others commented out for now
-const VISIBLE_PORTALS = [
-  {
+const PORTAL_CONFIG = {
+  [ROLES.SUPER_ADMIN]: {
     id: "super-admin",
     label: "Super Admin",
     icon: ShieldAlert,
     description: "Root-level control across all sub-organisations, system audits, and global configuration values.",
-    permissions: ["All Permissions"],
-    role: ROLES.SUPER_ADMIN,
     route: ROUTES.SUPER_ADMIN.DASHBOARD,
   },
-  {
+  [ROLES.ADMIN]: {
     id: "admin",
     label: "Admin",
     icon: Users2,
     description: "User management, access level control, global project monitoring, and platform reporting.",
-    permissions: ["users.read", "users.write", "projects.read", "reports.read"],
-    role: ROLES.ADMIN,
     route: ROUTES.ADMIN.DASHBOARD,
   },
-  {
+  [ROLES.CLIENT]: {
     id: "client",
     label: "Client",
     icon: HeartHandshake,
     description: "Client workspace for tracking project milestones, floorplan previews, invoicing approvals, and communications.",
-    permissions: ["projects.read", "documents.read", "invoices.read"],
-    role: ROLES.CLIENT,
     route: ROUTES.CLIENT.DASHBOARD,
   },
-  {
+  [ROLES.EMPLOYEE]: {
     id: "employee",
     label: "Employee Portal",
     icon: UserSquare2,
     description: "View assigned projects, site visit schedules, and personal work calendar in one clean workspace.",
-    permissions: ["projects.read", "schedule.read", "profile.read"],
-    role: ROLES.ADMIN,          // employees use admin role for now
     route: ROUTES.EMPLOYEE.DASHBOARD,
   },
-];
-
-/*
-  Hidden portals — uncomment when needed:
-  - Business Owner  (ROLES.BUSINESS_OWNER → /business-owner)
-  - Project Manager (ROLES.PROJECT_MANAGER → /project-manager)
-  - Designer        (ROLES.DESIGNER        → /designer)
-  - QAS             (ROLES.QAS             → /qas)
-  - Finance         (ROLES.FINANCE         → /finance)
-  - Subcontractor   (ROLES.SUBCONTRACTOR   → /subcontractor)
-  - Sales           (ROLES.SALES           → /sales)
-*/
+};
 
 export default function RolesManagement() {
   const navigate = useNavigate();
-  const { selectRole } = useAuth();
-  const [searchParams] = useSearchParams();
-  const isDemoMode = searchParams.get("demo") === "true";
+  const { user, roles, selectRole, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-background">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <span className="mt-4 text-sm text-muted-foreground animate-pulse font-medium">Loading portals...</span>
+      </div>
+    );
+  }
+
+  if (!user || !roles || roles.length === 0) {
+    navigate("/login", { replace: true });
+    return null;
+  }
 
   const handleLaunch = (portal) => {
-    selectRole(portal.role);
+    selectRole(portal.roleKey);
     navigate(portal.route);
   };
 
+  const availablePortals = roles
+    .filter((r) => PORTAL_CONFIG[r])
+    .map((r) => ({
+      roleKey: r,
+      ...PORTAL_CONFIG[r],
+      permissions: ROLE_PERMISSIONS[r] || [],
+    }));
+
   return (
     <div className="relative min-h-screen bg-background text-foreground flex flex-col pb-12">
-      {/* Gradient top */}
       <div className="absolute top-0 left-0 right-0 h-64 bg-gradient-to-b from-primary/5 via-transparent to-transparent pointer-events-none" />
 
-      {/* Header */}
       <header className="relative border-b border-border bg-card/40 backdrop-blur-md sticky top-0 z-30 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Button
@@ -91,40 +89,36 @@ export default function RolesManagement() {
           <div>
             <div className="flex items-center gap-1.5">
               <span className="text-sm font-semibold tracking-wide uppercase text-primary">Workspace</span>
-              {isDemoMode && (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary border border-primary/20 flex items-center gap-1">
-                  <Sparkles className="h-3 w-3" /> Training Mode
-                </span>
-              )}
             </div>
             <h1 className="text-xl font-bold">Portal Selector</h1>
           </div>
         </div>
-        <Button variant="outline" size="sm" onClick={() => navigate("/login")} className="text-sm">
-          Log Out
-        </Button>
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-muted-foreground hidden sm:block">{user.email}</span>
+          <Button variant="outline" size="sm" onClick={() => navigate("/login")} className="text-sm">
+            Log Out
+          </Button>
+        </div>
       </header>
 
-      {/* Main */}
       <main className="flex-1 max-w-5xl w-full mx-auto px-6 pt-10">
         <div className="space-y-6">
           <div>
             <h2 className="text-2xl font-semibold tracking-tight">Select Portal</h2>
             <p className="text-sm text-muted-foreground mt-1">
-              Choose a workspace to launch. Each portal provides role-specific access.
+              Your account has access to multiple portals. Choose one to continue.
             </p>
           </div>
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {VISIBLE_PORTALS.map((portal) => {
+            {availablePortals.map((portal) => {
               const Icon = portal.icon;
               return (
                 <Card
-                  key={portal.id}
+                  key={portal.roleKey}
                   className="flex flex-col border border-border bg-card/40 hover:bg-card/75 hover:border-primary/30 transition-all duration-300 shadow-md group relative overflow-hidden cursor-pointer"
                   onClick={() => handleLaunch(portal)}
                 >
-                  {/* Top accent */}
                   <div className="absolute top-0 left-0 right-0 h-1 bg-transparent group-hover:bg-gradient-to-r group-hover:from-primary group-hover:to-secondary transition-all duration-300" />
 
                   <CardHeader className="flex flex-row items-center gap-4 space-y-0 pb-4">

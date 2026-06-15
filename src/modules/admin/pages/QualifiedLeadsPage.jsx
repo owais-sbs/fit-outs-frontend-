@@ -4,7 +4,7 @@ import { MoreHorizontal, Search, Users, DollarSign, Target, Star } from "lucide-
 import { ROUTES } from "@/shared/constants/routes";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import StatCard from "@/modules/super-admin/components/StatCard";
-import { getAllLeads, LEAD_SOURCES, PRIORITIES, SALES_REPS } from "../data/leads";
+import { getAllLeads, LEAD_SOURCES } from "../data/leads";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -40,8 +40,6 @@ export default function QualifiedLeadsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [sourceFilter, setSourceFilter] = useState("all");
-  const [priorityFilter, setPriorityFilter] = useState("all");
-  const [assigneeFilter, setAssigneeFilter] = useState("all");
   const [page, setPage] = useState(1);
 
   useEffect(() => {
@@ -50,7 +48,7 @@ export default function QualifiedLeadsPage() {
   }, []);
 
   const qualifiedLeads = useMemo(
-    () => getAllLeads().filter((l) => l.stage === "qualified"),
+    () => getAllLeads().filter((l) => l.status === "QUALIFIED"),
     [],
   );
 
@@ -71,11 +69,9 @@ export default function QualifiedLeadsPage() {
         l.clientName.toLowerCase().includes(q) ||
         (l.company && l.company.toLowerCase().includes(q));
       const matchSource = sourceFilter === "all" || l.source === sourceFilter;
-      const matchPriority = priorityFilter === "all" || l.priority === priorityFilter;
-      const matchAssignee = assigneeFilter === "all" || l.assignee === assigneeFilter;
-      return matchQ && matchSource && matchPriority && matchAssignee;
+      return matchQ && matchSource;
     });
-  }, [search, sourceFilter, priorityFilter, assigneeFilter, qualifiedLeads]);
+  }, [search, sourceFilter, qualifiedLeads]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -112,20 +108,6 @@ export default function QualifiedLeadsPage() {
                 <SelectContent>
                   <SelectItem value="all">All sources</SelectItem>
                   {LEAD_SOURCES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Select value={priorityFilter} onValueChange={(v) => { setPriorityFilter(v); setPage(1); }}>
-                <SelectTrigger className="w-[120px]"><SelectValue placeholder="Priority" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All priorities</SelectItem>
-                  {PRIORITIES.map((p) => <SelectItem key={p} value={p.toLowerCase()}>{p}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Select value={assigneeFilter} onValueChange={(v) => { setAssigneeFilter(v); setPage(1); }}>
-                <SelectTrigger className="w-[140px]"><SelectValue placeholder="Assignee" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All assignees</SelectItem>
-                  {SALES_REPS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
