@@ -168,7 +168,9 @@ function App() {
               <Route path="clients/:clientId" element={<ClientDetailPage />} />
               <Route path="project-configuration/room" element={<RoomConfigurationPage />} />
               <Route path="project-configuration/work-item" element={<WorkItemConfigurationPage />} />
+              <Route path="qas" element={<BoqFlowPage />} />
               <Route path="boq" element={<BoqFlowPage />} />
+
             </Route>
             <Route
               path={ROUTES.BUSINESS_OWNER.DASHBOARD}
