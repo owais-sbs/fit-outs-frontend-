@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { 
-  Grid, Search, Eye, Filter, Check, X, Layout, 
-  Layers, Square, Trash2, Play, Power, 
-  ChevronRight, ChevronDown, AlertCircle, CheckSquare, Plus, Edit2, Folder, ChevronLeft
+  Search, Filter, X, 
+  Trash2, AlertCircle, Plus, Edit2, Folder, ChevronRight, ChevronDown
 } from "lucide-react";
 import ConfigurationLayout from "../../components/shared/configuration/ConfigurationLayout";
 import PageHeader from "../../components/shared/configuration/PageHeader";
@@ -33,12 +32,9 @@ import {
   deleteRoomMaster
 } from "../../api/room-type.api";
 
-import { fetchWorkItems } from "../../api/work-item.api";
-
 export default function RoomConfigurationPage() {
   const [rooms, setRooms] = useState([]);
   const [roomMasters, setRoomMasters] = useState([]);
-  const [workItems, setWorkItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -75,11 +71,7 @@ export default function RoomConfigurationPage() {
     name: "",
     code: "",
     description: "",
-    active: true,
-    ceilingRequired: true,
-    wallRequired: true,
-    floorRequired: true,
-    defaultWorkItemIds: []
+    active: true
   });
 
   // Validation States
@@ -117,18 +109,8 @@ export default function RoomConfigurationPage() {
     }
   };
 
-  const loadAllWorkItems = async () => {
-    try {
-      const res = await fetchWorkItems({ active: true }, 0, 1000);
-      setWorkItems(res.content || []);
-    } catch (e) {
-      console.error("Error loading work items catalog", e);
-    }
-  };
-
   useEffect(() => {
     loadRoomMasters();
-    loadAllWorkItems();
   }, []);
 
   useEffect(() => {
@@ -201,11 +183,7 @@ export default function RoomConfigurationPage() {
       name: "",
       code: "",
       description: "",
-      active: true,
-      ceilingRequired: true,
-      wallRequired: true,
-      floorRequired: true,
-      defaultWorkItemIds: []
+      active: true
     });
     setSelectedRoom(null);
     setIsFormModalOpen(true);
@@ -215,7 +193,6 @@ export default function RoomConfigurationPage() {
     setFormErrors({});
     setFormStep(1);
     setParentMode("existing");
-    const itemIds = room.workItems ? Array.from(room.workItems).map(item => item.id) : [];
     
     setFormData({
       roomMasterId: room.roomMasterId || "",
@@ -224,11 +201,7 @@ export default function RoomConfigurationPage() {
       name: room.roomTypeName,
       code: room.roomCode,
       description: room.description || "",
-      active: room.active ?? true,
-      ceilingRequired: room.ceilingMeasurementRequired ?? false,
-      wallRequired: room.wallMeasurementRequired ?? false,
-      floorRequired: room.floorMeasurementRequired ?? false,
-      defaultWorkItemIds: itemIds
+      active: room.active ?? true
     });
     setSelectedRoom(room);
     setIsFormModalOpen(true);
@@ -259,20 +232,6 @@ export default function RoomConfigurationPage() {
     }
   };
 
-  const handleWorkItemToggle = (itemId) => {
-    setFormData(prev => {
-      const current = prev.defaultWorkItemIds || [];
-      const index = current.indexOf(itemId);
-      const next = [...current];
-      if (index === -1) {
-        next.push(itemId);
-      } else {
-        next.splice(index, 1);
-      }
-      return { ...prev, defaultWorkItemIds: next };
-    });
-  };
-
   // Step 1 Validation
   const validateStep1 = () => {
     const errors = {};
@@ -295,10 +254,6 @@ export default function RoomConfigurationPage() {
     if (!formData.code.trim()) errors.code = "Room code is required.";
     else if (!codeRegex.test(formData.code)) {
       errors.code = "Code must begin with 'RM-' followed by uppercase letters, numbers, or dashes.";
-    }
-
-    if (!formData.ceilingRequired && !formData.wallRequired && !formData.floorRequired) {
-      errors.applicability = "Please select at least one applicable surface.";
     }
 
     setFormErrors(errors);
@@ -336,11 +291,7 @@ export default function RoomConfigurationPage() {
         roomTypeName: formData.name.trim(),
         roomCode: formData.code.trim().toUpperCase(),
         roomMasterId: masterId,
-        description: formData.description.trim(),
-        ceilingMeasurementRequired: formData.ceilingRequired,
-        wallMeasurementRequired: formData.wallRequired,
-        floorMeasurementRequired: formData.floorRequired,
-        workItemIds: formData.defaultWorkItemIds
+        description: formData.description.trim()
       };
 
       if (selectedRoom) {
@@ -860,82 +811,6 @@ export default function RoomConfigurationPage() {
               />
             </div>
 
-            {/* Surface checklist */}
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground uppercase font-bold">Measurement Applicability</Label>
-              <div className="grid grid-cols-3 gap-2">
-                <div 
-                  onClick={() => handleInputChange("ceilingRequired", !formData.ceilingRequired)}
-                  className={`flex flex-col items-center justify-center p-3 border rounded-lg cursor-pointer transition-all ${
-                    formData.ceilingRequired ? "border-primary bg-primary/5 text-primary font-bold shadow-xs" : "bg-background border-muted text-muted-foreground"
-                  }`}
-                >
-                  <Layers className="w-5 h-5 mb-1.5" />
-                  <span className="text-[11px]">Ceiling</span>
-                </div>
-                <div 
-                  onClick={() => handleInputChange("wallRequired", !formData.wallRequired)}
-                  className={`flex flex-col items-center justify-center p-3 border rounded-lg cursor-pointer transition-all ${
-                    formData.wallRequired ? "border-primary bg-primary/5 text-primary font-bold shadow-xs" : "bg-background border-muted text-muted-foreground"
-                  }`}
-                >
-                  <Square className="w-5 h-5 mb-1.5" />
-                  <span className="text-[11px]">Wall</span>
-                </div>
-                <div 
-                  onClick={() => handleInputChange("floorRequired", !formData.floorRequired)}
-                  className={`flex flex-col items-center justify-center p-3 border rounded-lg cursor-pointer transition-all ${
-                    formData.floorRequired ? "border-primary bg-primary/5 text-primary font-bold shadow-xs" : "bg-background border-muted text-muted-foreground"
-                  }`}
-                >
-                  <Grid className="w-5 h-5 mb-1.5" />
-                  <span className="text-[11px]">Floor</span>
-                </div>
-              </div>
-              {formErrors.applicability && (
-                <p className="text-[11px] text-destructive flex items-center gap-1 mt-1">
-                  <AlertCircle className="w-3.5 h-3.5" /> {formErrors.applicability}
-                </p>
-              )}
-            </div>
-
-            {/* Scope bindings */}
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground uppercase font-bold">Default Work Scope Items</Label>
-              <div className="border rounded-lg bg-background p-2 max-h-[160px] overflow-y-auto space-y-1">
-                {workItems.length > 0 ? (
-                  workItems.map(item => {
-                    const isChecked = formData.defaultWorkItemIds.includes(item.id);
-                    return (
-                      <div 
-                        key={item.id} 
-                        onClick={() => handleWorkItemToggle(item.id)}
-                        className={`flex items-center justify-between p-2 rounded border cursor-pointer hover:bg-muted/30 transition-colors ${
-                          isChecked ? "border-primary/50 bg-primary/5" : ""
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <div className={`h-4 w-4 shrink-0 rounded-sm border border-primary flex items-center justify-center transition-colors pointer-events-none ${
-                            isChecked ? "bg-primary text-primary-foreground" : "bg-background"
-                          }`}>
-                            {isChecked && <Check className="h-3 w-3" />}
-                          </div>
-                          <span className="text-xs font-semibold text-foreground truncate max-w-[200px]">
-                            {item.workItemName}
-                          </span>
-                        </div>
-                        <code className="text-[9px] text-muted-foreground uppercase bg-muted border px-1.5 py-0.5 rounded font-mono">
-                          {item.workItemCode}
-                        </code>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <p className="text-xs text-muted-foreground text-center py-4 italic">No active work items cataloged.</p>
-                )}
-              </div>
-            </div>
-
             <div className="flex items-center gap-3 p-3 bg-muted/40 border rounded-lg">
               <Switch 
                 id="roomActive" 
@@ -950,7 +825,7 @@ export default function RoomConfigurationPage() {
 
             <div className="flex justify-between pt-4 border-t">
               <Button type="button" variant="outline" onClick={() => setFormStep(1)}>
-                <ChevronLeft className="w-4 h-4 mr-1" /> Back
+                ← Back
               </Button>
               <div className="flex gap-2">
                 <Button type="button" variant="outline" onClick={() => setIsFormModalOpen(false)}>
