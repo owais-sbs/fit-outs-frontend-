@@ -42,3 +42,27 @@ export const cloneWorkItem = (id) => {
     .post(`/work-items/${id}/clone`)
     .then((r) => r.data?.data ?? r.data);
 };
+
+export const fetchWorkItemMasters = () => {
+  return axiosInstance
+    .get("/work-item-masters")
+    .then((r) => r.data?.data ?? r.data);
+};
+
+export const createWorkItemMaster = (data) => {
+  return axiosInstance
+    .post("/work-item-masters", data)
+    .then((r) => r.data?.data ?? r.data);
+};
+
+export const updateWorkItemMaster = (id, data) => {
+  return axiosInstance
+    .put(`/work-item-masters/${id}`, data)
+    .then((r) => r.data?.data ?? r.data);
+};
+
+export const deleteWorkItemMaster = (id) => {
+  return axiosInstance
+    .delete(`/work-item-masters/${id}`)
+    .then((r) => r.data?.data ?? r.data);
+};

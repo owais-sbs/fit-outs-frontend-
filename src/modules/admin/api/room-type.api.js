@@ -35,3 +35,27 @@ export const deactivateRoomType = (id) => {
     .patch(`/room-types/${id}/deactivate`)
     .then((r) => r.data?.data ?? r.data);
 };
+
+export const fetchRoomMasters = () => {
+  return axiosInstance
+    .get("/room-masters")
+    .then((r) => r.data?.data ?? r.data);
+};
+
+export const createRoomMaster = (data) => {
+  return axiosInstance
+    .post("/room-masters", data)
+    .then((r) => r.data?.data ?? r.data);
+};
+
+export const updateRoomMaster = (id, data) => {
+  return axiosInstance
+    .put(`/room-masters/${id}`, data)
+    .then((r) => r.data?.data ?? r.data);
+};
+
+export const deleteRoomMaster = (id) => {
+  return axiosInstance
+    .delete(`/room-masters/${id}`)
+    .then((r) => r.data?.data ?? r.data);
+};
