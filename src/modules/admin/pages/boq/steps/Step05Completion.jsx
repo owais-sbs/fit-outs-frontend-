@@ -1,12 +1,13 @@
 import { useEffect } from "react";
-import { CheckCircle2, Building2, DoorOpen, RotateCcw, ClipboardCheck } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { CheckCircle2, RotateCcw, FileSpreadsheet, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useBoq, QAS_TOTAL_STEPS, QAS_STATUS } from "../BoqEngine";
+import QasSummaryStats from "../QasSummaryStats";
+import { getQasStats } from "../boqDataUtils";
 
 export default function Step05Completion() {
-  const { session, floors, rooms, completeSession, resetSession, prevStep } = useBoq();
+  const { session, floors, rooms, completeSession, resetSession, prevStep, goToStep } = useBoq();
 
   useEffect(() => {
     if (session?.status !== QAS_STATUS.COMPLETED) {
@@ -14,18 +15,14 @@ export default function Step05Completion() {
     }
   }, [session?.status, completeSession]);
 
-  const wallCount = rooms.reduce((n, r) => n + (window.__boq_walls?.[r.id]?.length || 0), 0);
-  const workItemCount = rooms.reduce((n, r) => {
-    const walls = window.__boq_walls?.[r.id] || [];
-    return n + walls.reduce((w, wall) => w + (wall.workScopeEntries?.length || 0), 0);
-  }, 0);
+  const stats = getQasStats(floors, rooms);
 
   return (
     <div className="space-y-8 max-w-2xl mx-auto text-center py-4">
       <div>
         <div className="flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-wider text-primary mb-1">
           <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-white text-[10px] font-bold">5</span>
-          Step {QAS_TOTAL_STEPS} of {QAS_TOTAL_STEPS}
+          Step 5 of {QAS_TOTAL_STEPS}
         </div>
       </div>
 
@@ -50,44 +47,30 @@ export default function Step05Completion() {
         )}
       </div>
 
-      <Card className="border-emerald-200/60 bg-emerald-50/30 text-left">
-        <CardContent className="p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <ClipboardCheck className="h-5 w-5 text-emerald-600" />
-            <h3 className="font-bold text-sm text-foreground">Summary</h3>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="rounded-lg border border-border/40 bg-background p-3 text-center">
-              <Building2 className="h-4 w-4 text-primary mx-auto mb-1" />
-              <p className="text-2xl font-bold text-foreground">{floors.length}</p>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Floors</p>
-            </div>
-            <div className="rounded-lg border border-border/40 bg-background p-3 text-center">
-              <DoorOpen className="h-4 w-4 text-primary mx-auto mb-1" />
-              <p className="text-2xl font-bold text-foreground">{rooms.length}</p>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Rooms</p>
-            </div>
-            <div className="rounded-lg border border-border/40 bg-background p-3 text-center">
-              <p className="text-2xl font-bold text-foreground">{wallCount}</p>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Walls</p>
-            </div>
-            <div className="rounded-lg border border-border/40 bg-background p-3 text-center">
-              <p className="text-2xl font-bold text-foreground">{workItemCount}</p>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Work Items</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <QasSummaryStats stats={stats} />
 
       <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
         <Button variant="outline" onClick={prevStep}>
           Back to Review
         </Button>
-        <Button onClick={resetSession} className="gap-2 bg-primary text-white hover:bg-primary/90">
+        <Button
+          onClick={() => goToStep(6)}
+          disabled={stats.workItems === 0}
+          className="gap-2 bg-primary text-white hover:bg-primary/90"
+        >
+          <FileSpreadsheet className="h-4 w-4" />
+          Generate BOQ
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+        <Button variant="outline" onClick={resetSession} className="gap-2">
           <RotateCcw className="h-4 w-4" />
           Start New QAS
         </Button>
       </div>
+
+      {stats.workItems === 0 && (
+        <p className="text-xs text-amber-700">Add work items in Step 3 to enable BOQ generation.</p>
+      )}
     </div>
   );
 }

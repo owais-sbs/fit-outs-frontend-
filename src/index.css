@@ -127,3 +127,75 @@
     letter-spacing: var(--tracking-normal);
   }
 }
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 8mm;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    height: auto !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body.boq-print-active * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide entire app shell — only show BOQ document */
+  body.boq-print-active header,
+  body.boq-print-active aside,
+  body.boq-print-active nav,
+  body.boq-print-active [data-sidebar],
+  body.boq-print-active [data-boq-chrome],
+  body.boq-print-active .boq-app-chrome {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  body.boq-print-active * {
+    visibility: hidden !important;
+  }
+
+  body.boq-print-active #boq-invoice-print,
+  body.boq-print-active #boq-invoice-print *,
+  body.boq-print-active #qas-review-print,
+  body.boq-print-active #qas-review-print * {
+    visibility: visible !important;
+  }
+
+  body.boq-print-active #boq-invoice-print,
+  body.boq-print-active #qas-review-print {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+
+  .print\:hidden {
+    display: none !important;
+  }
+}
+
+body.boq-export-active header,
+body.boq-export-active aside,
+body.boq-export-active nav,
+body.boq-export-active [data-sidebar],
+body.boq-export-active [data-boq-chrome],
+body.boq-export-active .boq-app-chrome {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}

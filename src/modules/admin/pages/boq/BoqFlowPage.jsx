@@ -6,6 +6,7 @@ import Step02FloorSetup from "./steps/Step02FloorSetup";
 import Step03RoomCreation from "./steps/Step03RoomCreation";
 import Step04Review from "./steps/Step04Review";
 import Step05Completion from "./steps/Step05Completion";
+import Step06BoqGeneration from "./steps/Step06BoqGeneration";
 
 const STEP_COMPONENTS = {
   1: Step01ProjectSelection,
@@ -13,6 +14,7 @@ const STEP_COMPONENTS = {
   3: Step03RoomCreation,
   4: Step04Review,
   5: Step05Completion,
+  6: Step06BoqGeneration,
 };
 
 function QasWorkspace() {
@@ -22,7 +24,7 @@ function QasWorkspace() {
 
   return (
     <div className="flex flex-col min-h-0">
-      <div className="border-b border-border/60 bg-background px-6 py-4">
+      <div className="border-b border-border/60 bg-background px-6 py-4 print:hidden boq-app-chrome" data-boq-chrome>
         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-xl font-bold tracking-tight">QAS Management</h1>
@@ -54,10 +56,12 @@ function QasWorkspace() {
         </div>
       </div>
 
-      <BoqProgressBar />
+      <div className="print:hidden boq-app-chrome" data-boq-chrome>
+        <BoqProgressBar />
+      </div>
 
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-7xl mx-auto p-6">
+      <div className="flex-1 overflow-y-auto print:overflow-visible">
+        <div className={`mx-auto p-6 ${currentStep === 6 ? "max-w-5xl" : "max-w-7xl"} print:max-w-none print:p-0`}>
           <StepComponent />
         </div>
       </div>

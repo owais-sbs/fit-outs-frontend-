@@ -19,7 +19,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { useBoq } from "../BoqEngine";
+import { useBoq, QAS_TOTAL_STEPS } from "../BoqEngine";
 
 const WALL_AREA_UNITS = [
   { id: "SQM", label: "Sq Mtr" },
@@ -85,6 +85,97 @@ const ROOM_SUB_TYPES = ["Master Room", "Bedroom", "Living Room", "Dining Room", 
 const SELECT_CLASS =
   "w-full h-9 rounded-md border border-input bg-background px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2";
 
+const TABLE_INPUT_CLASS = "h-9 text-xs w-[88px]";
+
+function unitLabel(unitId) {
+  return UNIT_LABELS[unitId] || UNIT_LABELS.SQM;
+}
+
+/** Flat rows for unified wall + work item tables */
+function buildRoomDetailRows(walls = []) {
+  const rows = [];
+  walls.forEach((wall) => {
+    const entries = wall.workScopeEntries?.length
+      ? wall.workScopeEntries
+      : (wall.workItems || []).map((id) => ({
+          entryId: id,
+          itemId: id,
+          itemName: getScopeItemById(id)?.name || id,
+          categoryLabel: getScopeItemById(id)?.parentLabel,
+          unit: getScopeItemById(id)?.unit,
+          qty: null,
+          dims: null,
+        }));
+    if (entries.length === 0) {
+      rows.push({ key: wall.id, wall, entry: null });
+    } else {
+      entries.forEach((entry) => rows.push({ key: entry.entryId || entry.itemId, wall, entry }));
+    }
+  });
+  return rows;
+}
+
+function RoomSummaryTable({ walls, compact = false }) {
+  const rows = buildRoomDetailRows(walls);
+  if (!walls?.length) {
+    return (
+      <p className="text-xs text-muted-foreground italic text-center py-6 border border-dashed rounded-lg">
+        No wall or work item data recorded yet.
+      </p>
+    );
+  }
+  return (
+    <div className="rounded-lg border border-border/60 overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-muted/40 hover:bg-muted/40">
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap">Wall</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap">Length</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap">Height</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap">Area</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap">Unit</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap">Parent</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap">Work Item</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap">Qty</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap">Dims</TableHead>
+            {!compact && <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap">Photo</TableHead>}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map(({ key, wall, entry }) => (
+            <TableRow key={key}>
+              <TableCell className="text-xs font-semibold align-middle whitespace-nowrap">{wall.name}</TableCell>
+              <TableCell className="text-xs align-middle">{wall.length ? `${wall.length} m` : "—"}</TableCell>
+              <TableCell className="text-xs align-middle">{wall.height ? `${wall.height} m` : "—"}</TableCell>
+              <TableCell className="text-xs font-bold text-primary align-middle">{calcWallSqMtr(wall.length, wall.height)}</TableCell>
+              <TableCell className="text-xs align-middle">{unitLabel(wall.areaUnit || "SQM")}</TableCell>
+              <TableCell className="align-middle">
+                {entry?.categoryLabel ? (
+                  <Badge variant="outline" className="text-[9px] font-normal">{entry.categoryLabel}</Badge>
+                ) : "—"}
+              </TableCell>
+              <TableCell className="text-xs font-medium align-middle">{entry?.itemName || "—"}</TableCell>
+              <TableCell className="text-xs font-bold text-primary align-middle">{entry?.qty || "—"}</TableCell>
+              <TableCell className="text-xs text-muted-foreground align-middle whitespace-nowrap">
+                {entry?.dims?.width && entry?.dims?.height ? `${entry.dims.width}m × ${entry.dims.height}m` : "—"}
+              </TableCell>
+              {!compact && (
+                <TableCell className="align-middle">
+                  {wall.photo ? (
+                    <img src={wall.photo} alt={wall.name} className="h-9 w-14 rounded border object-cover" />
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  )}
+                </TableCell>
+              )}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
 const PHASE = {
   CREATE: "create",
   OVERVIEW: "overview",
@@ -92,15 +183,12 @@ const PHASE = {
   WORK_ITEMS: "workItems",
 };
 
-function calcWallSqMtr(length, breadth) {
+function calcWallSqMtr(length, height) {
   const l = parseFloat(length);
-  const b = parseFloat(breadth);
+  const b = parseFloat(height);
   if (isNaN(l) || isNaN(b) || l <= 0 || b <= 0) return "—";
   return (l * b).toFixed(2);
 }
-
-// Items that require width × height dimensions (window, door, etc.)
-const ITEMS_NEED_DIMS = new Set(["scope_dem_window", "scope_dem_door"]);
 
 function normalizeWorkUnit(unit) {
   if (!unit) return "SQM";
@@ -128,7 +216,7 @@ function RoomWorkItemsPanel({ walls, activeWallIndex, onSelectWall, onWallPatch,
   const confirmedParents = wall.confirmedParents || [];
   const activeGroup = WALL_SCOPE_GROUPS.find((g) => g.id === parentCat);
   const isCustom = childItem === "__custom__";
-  const showDims = isCustom || ITEMS_NEED_DIMS.has(childItem);
+  const showDims = Boolean(childItem) || isCustom;
   const wallSqMtr = calcWallSqMtr(wall.length, wall.height);
 
   const resetChildForm = () => {
@@ -190,16 +278,22 @@ function RoomWorkItemsPanel({ walls, activeWallIndex, onSelectWall, onWallPatch,
       unit = childUnit || normalizeWorkUnit(child.unit);
     }
 
-    if (showDims && (!dimW || !dimH)) {
-      alert("Please enter width and height for this item.");
+    if ((dimW && !dimH) || (!dimW && dimH)) {
+      alert("Please enter both width and height, or leave both empty.");
       return;
     }
 
     let qty = "";
     const unitKey = normalizeWorkUnit(unit);
-    if (unitKey === "SQM" && wallSqMtr !== "—") qty = wallSqMtr;
-    else if (unitKey === "MTR" && wall.length) qty = String(parseFloat(wall.length) || "");
-    else if (showDims && dimW && dimH) qty = (parseFloat(dimW) * parseFloat(dimH)).toFixed(2);
+    if (dimW && dimH) {
+      qty = (parseFloat(dimW) * parseFloat(dimH)).toFixed(2);
+    } else if (unitKey === "SQM" && wallSqMtr !== "—") {
+      qty = wallSqMtr;
+    } else if (unitKey === "MTR" && wall.length) {
+      qty = String(parseFloat(wall.length) || "");
+    } else if (unitKey === "NOS") {
+      qty = "1";
+    }
 
     onUpdateEntries(activeWallIndex, [
       ...entries,
@@ -211,7 +305,7 @@ function RoomWorkItemsPanel({ walls, activeWallIndex, onSelectWall, onWallPatch,
         itemName,
         unit,
         qty,
-        dims: showDims ? { width: dimW, height: dimH } : null,
+        dims: dimW && dimH ? { width: dimW, height: dimH } : null,
         notes: notes.trim(),
       },
     ]);
@@ -287,7 +381,7 @@ function RoomWorkItemsPanel({ walls, activeWallIndex, onSelectWall, onWallPatch,
       <div className="rounded-lg border border-primary/20 p-4 space-y-3 bg-primary/5">
         <p className="text-xs font-bold text-foreground uppercase tracking-wide">Step 2 — Add Child Work Item</p>
         <p className="text-[11px] text-muted-foreground">
-          Select a parent category first, then add child items with dimensions where required.
+          Select a parent category first, then add child items. Enter width × height for any item when needed.
           Wall area: <span className="font-bold text-primary">{wallSqMtr} Sq Mtr</span>
         </p>
         <div className="space-y-2">
@@ -358,11 +452,23 @@ function RoomWorkItemsPanel({ walls, activeWallIndex, onSelectWall, onWallPatch,
             <>
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-muted-foreground uppercase">Width (m)</label>
-                <Input type="number" value={dimW} onChange={(e) => setDimW(e.target.value)} className="h-9 text-xs" />
+                <Input
+                  type="number"
+                  value={dimW}
+                  onChange={(e) => setDimW(e.target.value)}
+                  placeholder="e.g. 1.2"
+                  className="h-9 text-xs"
+                />
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-muted-foreground uppercase">Height (m)</label>
-                <Input type="number" value={dimH} onChange={(e) => setDimH(e.target.value)} className="h-9 text-xs" />
+                <Input
+                  type="number"
+                  value={dimH}
+                  onChange={(e) => setDimH(e.target.value)}
+                  placeholder="e.g. 1.5"
+                  className="h-9 text-xs"
+                />
               </div>
             </>
           )}
@@ -470,108 +576,60 @@ function RoomDetailsPopup({ open, onOpenChange, room, floor, measurements, walls
   if (!room) return null;
 
   const dims = measurements[room.id] || {};
-  const isComplete = walls?.length > 0 && walls.every((w) => w.length && w.height) &&
-    walls.some((w) => (w.workScopeEntries?.length || 0) > 0);
+  const wallList = walls || [];
+  const workCount = wallList.reduce((n, w) => n + (w.workScopeEntries?.length || 0), 0);
+  const isComplete =
+    wallList.length > 0 &&
+    wallList.every((w) => w.length && w.height) &&
+    wallList.some((w) => (w.workScopeEntries?.length || 0) > 0);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto sm:max-w-xl">
-        <DialogHeader>
-          <div className="flex items-start justify-between gap-3 pr-6">
-            <div className="min-w-0">
-              <DialogTitle className="text-lg font-bold truncate">{room.name}</DialogTitle>
-              <p className="text-xs text-muted-foreground mt-1">
-                {floor?.name || "—"} · {room.roomCategory}
-              </p>
-            </div>
-            {isComplete && (
-              <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 shrink-0">
-                Complete
-              </Badge>
-            )}
-          </div>
-        </DialogHeader>
-
-        <div className="space-y-4 text-sm">
-          {room.description && (
-            <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Description</p>
-              <p className="text-sm text-foreground">{room.description}</p>
-            </div>
-          )}
-
-          {(dims.length || dims.width) && (
-            <div className="rounded-lg border border-border/60 p-3">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Room Dimensions</p>
-              <div className="grid grid-cols-3 gap-3 text-xs">
-                <div>
-                  <span className="text-muted-foreground">Length</span>
-                  <p className="font-bold">{dims.length} m</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Width</span>
-                  <p className="font-bold">{dims.width} m</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Height</span>
-                  <p className="font-bold">{dims.height ? `${Number(dims.height).toFixed(2)} m` : "—"}</p>
-                </div>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0 gap-0">
+        <div className="border-b border-border/60 bg-muted/20 px-6 py-5">
+          <DialogHeader className="space-y-3 text-left">
+            <div className="flex items-start justify-between gap-4 pr-8">
+              <div className="min-w-0">
+                <DialogTitle className="text-xl font-bold tracking-tight">{room.name}</DialogTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {floor?.name || "—"} · {room.roomCategory}
+                </p>
               </div>
+              <Badge
+                className={
+                  isComplete
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-200 shrink-0"
+                    : "bg-amber-50 text-amber-700 border-amber-200 shrink-0"
+                }
+              >
+                {isComplete ? "Complete" : "In Progress"}
+              </Badge>
             </div>
-          )}
-
-          {walls?.length > 0 ? (
-            <div className="space-y-3">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Walls &amp; Work Items</p>
-              {walls.map((wall) => (
-                <div key={wall.id} className="rounded-lg border border-border/60 overflow-hidden">
-                  <div className="flex items-center justify-between gap-2 px-3 py-2 bg-muted/30 border-b border-border/40">
-                    <span className="font-semibold text-xs">{wall.name}</span>
-                    <span className="text-[10px] text-muted-foreground">
-                      {wall.length && wall.height ? `${wall.length}m × ${wall.height}m` : "No dimensions"}
-                    </span>
-                  </div>
-                  <div className="p-3 space-y-2">
-                    {(wall.workScopeEntries?.length > 0 ? wall.workScopeEntries : (wall.workItems || []).map((id) => ({ itemId: id, itemName: getScopeItemById(id)?.name || id, categoryLabel: getScopeItemById(id)?.parentLabel, notes: wall.workItemDescriptions?.[id] }))).map((entry) => (
-                      <div key={entry.entryId || entry.itemId} className="text-xs border-l-2 border-primary/40 pl-2.5">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {entry.categoryLabel && (
-                            <Badge variant="outline" className="text-[9px] h-4 px-1">{entry.categoryLabel}</Badge>
-                          )}
-                          <span className="font-semibold text-foreground">{entry.itemName}</span>
-                        </div>
-                        {entry.dims?.width && entry.dims?.height && (
-                          <p className="text-[11px] text-primary mt-0.5">{entry.dims.width}m × {entry.dims.height}m</p>
-                        )}
-                        {entry.notes && (
-                          <p className="text-muted-foreground mt-0.5 text-[11px]">{entry.notes}</p>
-                        )}
-                      </div>
-                    ))}
-                    {!(wall.workScopeEntries?.length || wall.workItems?.length) && (
-                      <p className="text-[11px] text-muted-foreground italic">No work items added</p>
-                    )}
-                    {wall.photo && (
-                      <img src={wall.photo} alt={wall.name} className="h-16 w-24 rounded border object-cover mt-2" />
-                    )}
-                  </div>
-                </div>
-              ))}
+            <div className="flex flex-wrap gap-2">
+              {dims.length && dims.width && (
+                <Badge variant="secondary" className="text-[10px] font-normal">
+                  Room {dims.length}m × {dims.width}m{dims.height ? ` · H ${Number(dims.height).toFixed(2)}m` : ""}
+                </Badge>
+              )}
+              <Badge variant="secondary" className="text-[10px] font-normal">{wallList.length} walls</Badge>
+              <Badge variant="secondary" className="text-[10px] font-normal">{workCount} work items</Badge>
             </div>
-          ) : (
-            <p className="text-xs text-muted-foreground italic text-center py-4 border border-dashed rounded-lg">
-              No wall data recorded yet.
-            </p>
-          )}
+          </DialogHeader>
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-2">
+        <div className="px-6 py-5">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
+            Walls &amp; Work Items
+          </p>
+          <RoomSummaryTable walls={wallList} />
+        </div>
+
+        <DialogFooter className="px-6 py-4 border-t border-border/60 bg-muted/10 gap-2 sm:gap-2">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Close
           </Button>
           {onEdit && (
-            <Button type="button" onClick={onEdit} className="gap-1.5">
-              <ArrowLeft className="h-3.5 w-3.5 rotate-180" />
+            <Button type="button" onClick={onEdit} className="gap-1.5 bg-primary text-primary-foreground">
               Edit Room
             </Button>
           )}
@@ -765,7 +823,7 @@ export default function Step03RoomCreation() {
       return;
     }
     if (!wallsAreComplete()) {
-      alert("Please enter length and breadth for every wall before continuing.");
+      alert("Please enter length and height for every wall before continuing.");
       return;
     }
     setPhase(PHASE.WORK_ITEMS);
@@ -778,15 +836,22 @@ export default function Step03RoomCreation() {
         const sqm = parseFloat(calcWallSqMtr(wall.length, wall.height));
         if (isNaN(sqm)) return wall;
         const updatedEntries = (wall.workScopeEntries || []).map((entry) => {
-          if (entry.unit === "SQM") {
-            return { ...entry, qty: sqm.toFixed(2) };
-          }
-          if (entry.unit === "NOS" && entry.dims?.width && entry.dims?.height) {
+          if (entry.dims?.width && entry.dims?.height) {
             const w = parseFloat(entry.dims.width);
             const h = parseFloat(entry.dims.height);
             if (!isNaN(w) && !isNaN(h)) {
               return { ...entry, qty: (w * h).toFixed(2) };
             }
+          }
+          const unitKey = normalizeWorkUnit(entry.unit);
+          if (unitKey === "SQM") {
+            return { ...entry, qty: sqm.toFixed(2) };
+          }
+          if (unitKey === "MTR" && wall.length) {
+            return { ...entry, qty: String(parseFloat(wall.length) || "") };
+          }
+          if (unitKey === "NOS" && !entry.qty) {
+            return { ...entry, qty: "1" };
           }
           return entry;
         });
@@ -870,7 +935,7 @@ export default function Step03RoomCreation() {
 
   const phaseSubtitle =
     phase === PHASE.WALLS
-      ? `Add all walls with length, breadth and photos for ${activeRoom?.name || "this room"}.`
+      ? `Add all walls with length, height and photos for ${activeRoom?.name || "this room"}.`
       : phase === PHASE.WORK_ITEMS
         ? `Add parent categories, then child work items with dimensions for ${activeRoom?.name || "this room"}.`
         : phase === PHASE.OVERVIEW
@@ -896,7 +961,7 @@ export default function Step03RoomCreation() {
           <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-white text-[10px] font-bold">
             3
           </span>
-          Step 3 of 5
+          Step 3 of {QAS_TOTAL_STEPS}
         </div>
         <h2 className="text-2xl font-bold tracking-tight">{phaseTitle}</h2>
         <p className="text-sm text-muted-foreground mt-0.5">{phaseSubtitle}</p>
@@ -918,74 +983,8 @@ export default function Step03RoomCreation() {
         <div className="min-w-0">
           
           {phase === PHASE.CREATE && (
-            <div className="grid grid-cols-1 lg:grid-cols-[minmax(260px,300px)_1fr] gap-4 items-start">
-            {/* Left — rooms list for selected floor */}
-            <Card className="border-border/60 shadow-sm lg:sticky lg:top-4">
-              <CardHeader className="py-3.5 px-4 border-b border-border/40 bg-muted/10">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="min-w-0">
-                    <CardTitle className="text-sm font-bold truncate">
-                      Rooms on {selectedFloor?.name || "Floor"}
-                    </CardTitle>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {roomsOnSelectedFloor.filter((r) => isRoomCompleted(r.id)).length}/{roomsOnSelectedFloor.length} complete
-                    </p>
-                  </div>
-                  <Badge variant="secondary" className="text-[10px] shrink-0">
-                    {roomsOnSelectedFloor.length}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="p-3">
-                {roomsOnSelectedFloor.length === 0 ? (
-                  <div className="rounded-lg border border-dashed border-border/60 py-10 px-3 text-center">
-                    <DoorOpen className="h-7 w-7 text-muted-foreground/30 mx-auto mb-2" />
-                    <p className="text-xs text-muted-foreground">No rooms on this floor yet.</p>
-                    <p className="text-[11px] text-muted-foreground/70 mt-1">Add a room using the form on the right.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2 max-h-[calc(100vh-280px)] overflow-y-auto pr-0.5">
-                    {roomsOnSelectedFloor.map((r) => {
-                      const done = isRoomCompleted(r.id);
-                      return (
-                        <div
-                          key={r.id}
-                          className={`relative flex flex-col rounded-lg border p-3 transition-all hover:shadow-sm ${
-                            done
-                              ? "border-emerald-200/70 bg-emerald-50/25"
-                              : "border-border/60 bg-background hover:border-primary/30"
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex items-start gap-2 min-w-0 flex-1">
-                              {done ? (
-                                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
-                              ) : (
-                                <Circle className="h-4 w-4 text-muted-foreground/30 shrink-0 mt-0.5" />
-                              )}
-                              <div className="min-w-0">
-                                <p className="font-bold text-sm text-foreground truncate">{r.name}</p>
-                                <Badge variant="outline" className="w-fit mt-1 text-[9px]">{r.roomCategory}</Badge>
-                              </div>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => removeRoom(r.id)}
-                              className="text-muted-foreground hover:text-destructive p-0.5 shrink-0"
-                              title="Remove room"
-                            >
-                              <X className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Right — add new room form */}
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_minmax(260px,320px)] gap-4 items-start">
+            {/* Left — add new room form */}
             <Card className="border-border/60 shadow-sm border-t-4 border-t-primary min-w-0">
               <CardHeader className="pb-3 border-b border-border/40">
                 <CardTitle className="text-base font-bold flex items-center gap-2">
@@ -1096,6 +1095,87 @@ export default function Step03RoomCreation() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Right — rooms list for selected floor */}
+            <Card className="border-border/60 shadow-sm lg:sticky lg:top-4">
+              <CardHeader className="py-3.5 px-4 border-b border-border/40 bg-muted/10">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <CardTitle className="text-sm font-bold truncate">
+                      Rooms on {selectedFloor?.name || "Floor"}
+                    </CardTitle>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      {roomsOnSelectedFloor.filter((r) => isRoomCompleted(r.id)).length}/{roomsOnSelectedFloor.length} complete
+                    </p>
+                  </div>
+                  <Badge variant="secondary" className="text-[10px] shrink-0">
+                    {roomsOnSelectedFloor.length}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="p-3">
+                {roomsOnSelectedFloor.length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-border/60 py-10 px-3 text-center">
+                    <DoorOpen className="h-7 w-7 text-muted-foreground/30 mx-auto mb-2" />
+                    <p className="text-xs text-muted-foreground">No rooms on this floor yet.</p>
+                    <p className="text-[11px] text-muted-foreground/70 mt-1">Add a room using the form on the left.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-[calc(100vh-280px)] overflow-y-auto pr-0.5">
+                    {roomsOnSelectedFloor.map((r) => {
+                      const done = isRoomCompleted(r.id);
+                      const hasData = (window.__boq_walls?.[r.id]?.length || 0) > 0;
+                      return (
+                        <div
+                          key={r.id}
+                          className={`relative flex flex-col rounded-lg border p-3 transition-all hover:shadow-sm ${
+                            done
+                              ? "border-emerald-200/70 bg-emerald-50/25"
+                              : "border-border/60 bg-background hover:border-primary/30"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-start gap-2 min-w-0 flex-1">
+                              {done ? (
+                                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+                              ) : (
+                                <Circle className="h-4 w-4 text-muted-foreground/30 shrink-0 mt-0.5" />
+                              )}
+                              <div className="min-w-0">
+                                <p className="font-bold text-sm text-foreground truncate">{r.name}</p>
+                                <Badge variant="outline" className="w-fit mt-1 text-[9px]">{r.roomCategory}</Badge>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => removeRoom(r.id)}
+                              className="text-muted-foreground hover:text-destructive p-0.5 shrink-0"
+                              title="Remove room"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                          {(hasData || done) && (
+                            <div className="flex gap-2 mt-2.5 pt-2 border-t border-border/30">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openRoomDetails(r.id)}
+                                className="h-7 text-[10px] px-2 gap-1 flex-1"
+                              >
+                                <Eye className="h-3 w-3" />
+                                View
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
             </div>
           )}
 
@@ -1104,7 +1184,7 @@ export default function Step03RoomCreation() {
               <CardHeader className="pb-3 border-b border-border/40">
                 <CardTitle className="text-base font-bold">Floor-wise Rooms</CardTitle>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {completedRooms}/{totalRooms} rooms configured · click a room to add dimensions and work items
+                  {completedRooms}/{totalRooms} rooms configured · use View to preview or Configure to edit
                 </p>
               </CardHeader>
               <CardContent className="p-5 space-y-6">
@@ -1121,15 +1201,15 @@ export default function Step03RoomCreation() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                         {floorRooms.map((r) => {
                           const done = isRoomCompleted(r.id);
+                          const wallList = window.__boq_walls?.[r.id] || [];
+                          const workCount = wallList.reduce((n, w) => n + (w.workScopeEntries?.length || 0), 0);
                           return (
-                            <button
+                            <div
                               key={r.id}
-                              type="button"
-                              onClick={() => startDetailingRoom(r.id)}
-                              className={`text-left rounded-xl border p-4 transition-all hover:shadow-md ${
+                              className={`rounded-xl border p-4 transition-all hover:shadow-md ${
                                 done
-                                  ? "border-emerald-200/70 bg-emerald-50/25 hover:border-emerald-300"
-                                  : "border-border/60 bg-background hover:border-primary/40"
+                                  ? "border-emerald-200/70 bg-emerald-50/25"
+                                  : "border-border/60 bg-background"
                               }`}
                             >
                               <div className="flex items-start justify-between gap-2 mb-2">
@@ -1141,10 +1221,32 @@ export default function Step03RoomCreation() {
                                 <Badge variant="outline" className="text-[9px] shrink-0">{r.roomCategory}</Badge>
                               </div>
                               <p className="font-bold text-sm text-foreground truncate">{r.name}</p>
-                              <p className="text-[10px] font-bold text-primary mt-2 uppercase tracking-wide">
-                                {done ? "Edit Dimensions" : "Take Dimensions"}
-                              </p>
-                            </button>
+                              {(wallList.length > 0 || workCount > 0) && (
+                                <p className="text-[10px] text-muted-foreground mt-1">
+                                  {wallList.length} walls · {workCount} work items
+                                </p>
+                              )}
+                              <div className="flex gap-2 mt-3 pt-3 border-t border-border/30">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => openRoomDetails(r.id)}
+                                  className="h-7 text-[10px] px-2 gap-1 flex-1"
+                                >
+                                  <Eye className="h-3 w-3" />
+                                  View
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  onClick={() => startDetailingRoom(r.id)}
+                                  className="h-7 text-[10px] px-2 flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
+                                >
+                                  {done ? "Edit" : "Configure"}
+                                </Button>
+                              </div>
+                            </div>
                           );
                         })}
                       </div>
@@ -1193,7 +1295,7 @@ export default function Step03RoomCreation() {
                   <div>
                     <h3 className="text-sm font-bold text-foreground">Add Walls</h3>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Enter length, breadth, Sq Mtr and photo for each wall. Continue to work items when all walls are done.
+                      Enter wall name, length, height, area unit and photo for each wall. Continue to work items when all walls are done.
                     </p>
                   </div>
                   <Button type="button" size="sm" onClick={addWall} className="h-8 gap-1 shrink-0">
@@ -1206,76 +1308,84 @@ export default function Step03RoomCreation() {
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/40 hover:bg-muted/40">
-                        <TableHead className="text-xs font-bold">Wall</TableHead>
-                        <TableHead className="text-xs font-bold">Length (m)</TableHead>
-                        <TableHead className="text-xs font-bold">Breadth (m)</TableHead>
-                        <TableHead className="text-xs font-bold">
-                          <div>Area</div>
-                          <div className="text-[9px] font-normal text-muted-foreground normal-case">Unit: Sq Mtr</div>
-                        </TableHead>
-                        <TableHead className="text-xs font-bold">Photo</TableHead>
-                        <TableHead className="text-xs font-bold w-10" />
+                        <TableHead className="text-xs font-bold align-middle min-w-[140px]">Wall Name</TableHead>
+                        <TableHead className="text-xs font-bold align-middle">Length (m)</TableHead>
+                        <TableHead className="text-xs font-bold align-middle">Height (m)</TableHead>
+                        <TableHead className="text-xs font-bold align-middle">Area</TableHead>
+                        <TableHead className="text-xs font-bold align-middle">Unit</TableHead>
+                        <TableHead className="text-xs font-bold align-middle">Photo</TableHead>
+                        <TableHead className="text-xs font-bold w-10 align-middle" />
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {walls.map((wall, idx) => (
                         <TableRow key={wall.id}>
-                          <TableCell className="font-semibold text-xs">{wall.name}</TableCell>
-                          <TableCell>
+                          <TableCell className="align-middle">
+                            <Input
+                              type="text"
+                              value={wall.name}
+                              onChange={(e) => handleWallChange(idx, "name", e.target.value)}
+                              placeholder={`Wall ${idx + 1}`}
+                              className="h-9 text-xs font-semibold min-w-[120px]"
+                            />
+                          </TableCell>
+                          <TableCell className="align-middle">
                             <Input
                               type="number"
                               placeholder="4.0"
                               value={wall.length}
                               onChange={(e) => handleWallChange(idx, "length", e.target.value)}
-                              className="h-8 text-xs w-24"
+                              className={TABLE_INPUT_CLASS}
                             />
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="align-middle">
                             <Input
                               type="number"
                               placeholder="3.0"
                               value={wall.height}
                               onChange={(e) => handleWallChange(idx, "height", e.target.value)}
-                              className="h-8 text-xs w-24"
+                              className={TABLE_INPUT_CLASS}
                             />
                           </TableCell>
-                          <TableCell>
-                            <div className="space-y-1.5">
-                              <span className="text-xs font-bold text-primary block">
-                                {calcWallSqMtr(wall.length, wall.height)}
-                              </span>
-                              <select
-                                value={wall.areaUnit || "SQM"}
-                                onChange={(e) => handleWallChange(idx, "areaUnit", e.target.value)}
-                                className="h-7 w-full min-w-[88px] rounded-md border border-input bg-background px-1.5 text-[10px] focus:outline-none focus:ring-2 focus:ring-ring"
-                              >
-                                {WALL_AREA_UNITS.map((u) => (
-                                  <option key={u.id} value={u.id}>{u.label}</option>
-                                ))}
-                              </select>
+                          <TableCell className="align-middle">
+                            <span className="text-xs font-bold text-primary">
+                              {calcWallSqMtr(wall.length, wall.height)}
+                            </span>
+                          </TableCell>
+                          <TableCell className="align-middle">
+                            <select
+                              value={wall.areaUnit || "SQM"}
+                              onChange={(e) => handleWallChange(idx, "areaUnit", e.target.value)}
+                              className={`${SELECT_CLASS} w-[110px] text-xs`}
+                            >
+                              {WALL_AREA_UNITS.map((u) => (
+                                <option key={u.id} value={u.id}>{u.label}</option>
+                              ))}
+                            </select>
+                          </TableCell>
+                          <TableCell className="align-middle">
+                            <div className="h-9 flex items-center">
+                              {wall.photo ? (
+                                <div className="relative h-9 w-14 rounded border overflow-hidden">
+                                  <img src={wall.photo} alt={wall.name} className="h-full w-full object-cover" />
+                                  <button
+                                    type="button"
+                                    onClick={() => handleWallChange(idx, "photo", null)}
+                                    className="absolute top-0 right-0 h-3 w-3 bg-black/60 text-white text-[8px] flex items-center justify-center"
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              ) : (
+                                <label className="inline-flex h-9 items-center gap-1 rounded-md border border-dashed px-2.5 text-[10px] text-muted-foreground cursor-pointer hover:bg-muted/20">
+                                  <Camera className="h-3 w-3" />
+                                  Upload
+                                  <input type="file" accept="image/*" onChange={(e) => handleWallPhotoUpload(e, idx)} className="hidden" />
+                                </label>
+                              )}
                             </div>
                           </TableCell>
-                          <TableCell>
-                            {wall.photo ? (
-                              <div className="relative h-10 w-14 rounded border overflow-hidden">
-                                <img src={wall.photo} alt={wall.name} className="h-full w-full object-cover" />
-                                <button
-                                  type="button"
-                                  onClick={() => handleWallChange(idx, "photo", null)}
-                                  className="absolute top-0 right-0 h-3 w-3 bg-black/60 text-white text-[8px] flex items-center justify-center"
-                                >
-                                  ×
-                                </button>
-                              </div>
-                            ) : (
-                              <label className="inline-flex h-8 items-center gap-1 rounded border border-dashed px-2 text-[10px] text-muted-foreground cursor-pointer hover:bg-muted/20">
-                                <Camera className="h-3 w-3" />
-                                Upload
-                                <input type="file" accept="image/*" onChange={(e) => handleWallPhotoUpload(e, idx)} className="hidden" />
-                              </label>
-                            )}
-                          </TableCell>
-                          <TableCell>
+                          <TableCell className="align-middle">
                             {walls.length > 1 && (
                               <button type="button" onClick={() => removeWall(idx)} className="text-muted-foreground hover:text-destructive p-1">
                                 <X className="h-3.5 w-3.5" />

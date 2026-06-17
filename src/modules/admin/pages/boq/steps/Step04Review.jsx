@@ -1,4 +1,4 @@
-import { Building2, DoorOpen, ChevronRight, CheckCircle2, Ruler, Wrench } from "lucide-react";
+import { Building2, DoorOpen, ChevronRight, Ruler, Wrench } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,15 +19,88 @@ const UNIT_LABELS = {
   NOS: "Nos",
 };
 
-function calcWallSqMtr(length, breadth) {
+function calcWallSqMtr(length, height) {
   const l = parseFloat(length);
-  const b = parseFloat(breadth);
+  const b = parseFloat(height);
   if (isNaN(l) || isNaN(b) || l <= 0 || b <= 0) return "—";
   return (l * b).toFixed(2);
 }
 
+function unitLabel(unitId) {
+  return UNIT_LABELS[unitId] || UNIT_LABELS.SQM;
+}
+
 function getWallsForRoom(roomId) {
   return window.__boq_walls?.[roomId] || [];
+}
+
+function buildRoomDetailRows(walls = []) {
+  const rows = [];
+  walls.forEach((wall) => {
+    const entries = wall.workScopeEntries?.length ? wall.workScopeEntries : [];
+    if (entries.length === 0) {
+      rows.push({ key: wall.id, wall, entry: null });
+    } else {
+      entries.forEach((entry) => rows.push({ key: entry.entryId || entry.itemId, wall, entry }));
+    }
+  });
+  return rows;
+}
+
+function RoomReviewTable({ walls }) {
+  const rows = buildRoomDetailRows(walls);
+  if (!walls?.length) {
+    return <p className="text-xs text-muted-foreground italic">No wall data for this room.</p>;
+  }
+
+  return (
+    <div className="rounded-lg border border-border/60 overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-muted/40 hover:bg-muted/40">
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap">Wall</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap">Length</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap">Height</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap">Area</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap">Unit</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap">Parent</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap">Work Item</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap">Qty</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap">Dims</TableHead>
+            <TableHead className="text-[10px] font-bold uppercase whitespace-nowrap">Photo</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map(({ key, wall, entry }) => (
+            <TableRow key={key}>
+              <TableCell className="text-xs font-semibold align-middle whitespace-nowrap">{wall.name}</TableCell>
+              <TableCell className="text-xs align-middle">{wall.length ? `${wall.length} m` : "—"}</TableCell>
+              <TableCell className="text-xs align-middle">{wall.height ? `${wall.height} m` : "—"}</TableCell>
+              <TableCell className="text-xs font-bold text-primary align-middle">{calcWallSqMtr(wall.length, wall.height)}</TableCell>
+              <TableCell className="text-xs align-middle">{unitLabel(wall.areaUnit || "SQM")}</TableCell>
+              <TableCell className="align-middle">
+                {entry?.categoryLabel ? (
+                  <Badge variant="outline" className="text-[9px] font-normal">{entry.categoryLabel}</Badge>
+                ) : "—"}
+              </TableCell>
+              <TableCell className="text-xs font-medium align-middle">{entry?.itemName || "—"}</TableCell>
+              <TableCell className="text-xs font-bold text-primary align-middle">{entry?.qty || "—"}</TableCell>
+              <TableCell className="text-xs text-muted-foreground align-middle whitespace-nowrap">
+                {entry?.dims?.width && entry?.dims?.height ? `${entry.dims.width}m × ${entry.dims.height}m` : "—"}
+              </TableCell>
+              <TableCell className="align-middle">
+                {wall.photo ? (
+                  <img src={wall.photo} alt={wall.name} className="h-9 w-14 rounded border object-cover" />
+                ) : (
+                  <span className="text-xs text-muted-foreground">—</span>
+                )}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
 }
 
 export default function Step04Review() {
@@ -122,89 +195,7 @@ export default function Step04Review() {
                         </div>
                       </div>
 
-                      {walls.length > 0 && (
-                        <div className="rounded-lg border border-border/60 overflow-hidden">
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-3 py-2 bg-muted/30 border-b border-border/40">
-                            Walls
-                          </p>
-                          <Table>
-                            <TableHeader>
-                              <TableRow className="bg-muted/20 hover:bg-muted/20">
-                                <TableHead className="text-xs">Wall</TableHead>
-                                <TableHead className="text-xs">Length</TableHead>
-                                <TableHead className="text-xs">Breadth</TableHead>
-                                <TableHead className="text-xs">Area</TableHead>
-                                <TableHead className="text-xs">Unit</TableHead>
-                                <TableHead className="text-xs">Photo</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {walls.map((wall) => (
-                                <TableRow key={wall.id}>
-                                  <TableCell className="text-xs font-semibold">{wall.name}</TableCell>
-                                  <TableCell className="text-xs">{wall.length || "—"} m</TableCell>
-                                  <TableCell className="text-xs">{wall.height || "—"} m</TableCell>
-                                  <TableCell className="text-xs font-bold text-primary">
-                                    {calcWallSqMtr(wall.length, wall.height)}
-                                  </TableCell>
-                                  <TableCell className="text-xs">
-                                    {UNIT_LABELS[wall.areaUnit] || UNIT_LABELS.SQM}
-                                  </TableCell>
-                                  <TableCell>
-                                    {wall.photo ? (
-                                      <img src={wall.photo} alt={wall.name} className="h-8 w-12 rounded border object-cover" />
-                                    ) : (
-                                      <span className="text-xs text-muted-foreground">—</span>
-                                    )}
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </div>
-                      )}
-
-                      {workCount > 0 && (
-                        <div className="rounded-lg border border-border/60 overflow-hidden">
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-3 py-2 bg-muted/30 border-b border-border/40">
-                            Work Items
-                          </p>
-                          <Table>
-                            <TableHeader>
-                              <TableRow className="bg-muted/20 hover:bg-muted/20">
-                                <TableHead className="text-xs">Wall</TableHead>
-                                <TableHead className="text-xs">Parent</TableHead>
-                                <TableHead className="text-xs">Child Item</TableHead>
-                                <TableHead className="text-xs">Unit</TableHead>
-                                <TableHead className="text-xs">Qty</TableHead>
-                                <TableHead className="text-xs">Dimensions</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {walls.flatMap((wall) =>
-                                (wall.workScopeEntries || []).map((entry) => (
-                                  <TableRow key={entry.entryId}>
-                                    <TableCell className="text-xs">{wall.name}</TableCell>
-                                    <TableCell><Badge variant="outline" className="text-[9px]">{entry.categoryLabel}</Badge></TableCell>
-                                    <TableCell className="text-xs font-semibold">{entry.itemName}</TableCell>
-                                    <TableCell className="text-xs">{UNIT_LABELS[(entry.unit || "").toUpperCase()] || entry.unit}</TableCell>
-                                    <TableCell className="text-xs font-bold text-primary">{entry.qty || "—"}</TableCell>
-                                    <TableCell className="text-xs text-muted-foreground">
-                                      {entry.dims?.width && entry.dims?.height
-                                        ? `${entry.dims.width}m × ${entry.dims.height}m`
-                                        : "—"}
-                                    </TableCell>
-                                  </TableRow>
-                                ))
-                              )}
-                            </TableBody>
-                          </Table>
-                        </div>
-                      )}
-
-                      {walls.length === 0 && (
-                        <p className="text-xs text-muted-foreground italic">No wall data for this room.</p>
-                      )}
+                      <RoomReviewTable walls={walls} />
                     </div>
                   );
                 })}

@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useBoq } from "../BoqEngine";
+import { useBoq, QAS_TOTAL_STEPS } from "../BoqEngine";
 import { fetchAllProjects } from "@/modules/admin/api/projects.api";
 import { fetchAllClients } from "@/modules/admin/api/clients.api";
 
@@ -229,7 +229,7 @@ export default function Step01ProjectSelection() {
       <div>
         <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-primary mb-1">
           <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-white text-[10px] font-bold">1</span>
-          Step 1 of 5
+          Step 1 of {QAS_TOTAL_STEPS}
         </div>
         <h2 className="text-2xl font-bold tracking-tight">Project Selection</h2>
         <p className="text-sm text-muted-foreground mt-0.5">

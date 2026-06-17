@@ -1,6 +1,8 @@
 import { createContext, useContext, useState, useCallback } from "react";
 
-export const QAS_TOTAL_STEPS = 5;
+import { generateBoqDocument } from "./boqDataUtils";
+
+export const QAS_TOTAL_STEPS = 6;
 
 export const QAS_STEPS = [
   { id: 1, key: "project",   label: "Project",    short: "Project"   },
@@ -8,6 +10,7 @@ export const QAS_STEPS = [
   { id: 3, key: "rooms",     label: "Rooms",      short: "Rooms"     },
   { id: 4, key: "review",    label: "Review",     short: "Review"    },
   { id: 5, key: "complete",  label: "Complete",   short: "Complete"  },
+  { id: 6, key: "boq",       label: "BOQ",        short: "BOQ"       },
 ];
 
 /** @deprecated use QAS_STEPS */
@@ -35,6 +38,8 @@ export function BoqProvider({ children }) {
   const [measurements, setMeas] = useState({});
   const [photos, setPhotos] = useState({});
   const [workItems, setWorkItems] = useState({});
+  const [generatedBoq, setGeneratedBoq] = useState(null);
+  const [savedBoqs, setSavedBoqs] = useState([]);
 
   const startSession = useCallback((project) => {
     const ref = `QAS-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 99999)).padStart(5, "0")}`;
@@ -52,6 +57,8 @@ export function BoqProvider({ children }) {
     setMeas({});
     setPhotos({});
     setWorkItems({});
+    setGeneratedBoq(null);
+    setSavedBoqs([]);
     window.__boq_walls = {};
   }, []);
 
@@ -88,7 +95,31 @@ export function BoqProvider({ children }) {
     setMeas({});
     setPhotos({});
     setWorkItems({});
+    setGeneratedBoq(null);
+    setSavedBoqs([]);
     window.__boq_walls = {};
+  }, []);
+
+  const generateBoq = useCallback(() => {
+    setGeneratedBoq((prev) => {
+      const doc = generateBoqDocument(floors, rooms, session);
+      if (prev?.ref) {
+        return { ...doc, ref: prev.ref, generatedAt: new Date().toISOString() };
+      }
+      return doc;
+    });
+  }, [floors, rooms, session]);
+
+  const saveBoq = useCallback(() => {
+    setGeneratedBoq((current) => {
+      if (!current) return current;
+      setSavedBoqs((list) => {
+        const exists = list.some((b) => b.ref === current.ref);
+        if (exists) return list;
+        return [...list, { ...current, savedAt: new Date().toISOString() }];
+      });
+      return current;
+    });
   }, []);
 
   const value = {
@@ -104,12 +135,16 @@ export function BoqProvider({ children }) {
     setPhotos,
     workItems,
     setWorkItems,
+    generatedBoq,
+    savedBoqs,
     startSession,
     goToStep,
     nextStep,
     prevStep,
     completeSession,
     resetSession,
+    generateBoq,
+    saveBoq,
   };
 
   return <QasContext.Provider value={value}>{children}</QasContext.Provider>;

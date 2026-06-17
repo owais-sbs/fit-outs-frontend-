@@ -1,5 +1,5 @@
 import { Check } from "lucide-react";
-import { QAS_STEPS } from "./BoqEngine";
+import { QAS_STEPS, QAS_STATUS } from "./BoqEngine";
 import { useBoq } from "./BoqEngine";
 import { cn } from "@/lib/utils";
 
@@ -13,7 +13,8 @@ export default function BoqProgressBar() {
           {QAS_STEPS.map((step, idx) => {
             const isCompleted = step.id < currentStep;
             const isActive = step.id === currentStep;
-            const isLocked = step.id > currentStep && !session;
+            const qasComplete = session?.status === QAS_STATUS.COMPLETED;
+            const isLocked = (step.id > currentStep && !session) || (step.id === 6 && !qasComplete && currentStep < 6);
 
             return (
               <div key={step.id} className="flex items-center shrink-0">

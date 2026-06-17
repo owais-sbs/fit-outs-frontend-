@@ -3,7 +3,7 @@ import { Plus, Trash2, Layers, ChevronRight, Building2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useBoq } from "../BoqEngine";
+import { useBoq, QAS_TOTAL_STEPS } from "../BoqEngine";
 
 const FLOOR_SUGGESTIONS = [
   "Basement", "Ground Floor", "First Floor", "Second Floor",
@@ -37,7 +37,7 @@ export default function Step02FloorSetup() {
           <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-white text-[10px] font-bold">
             2
           </span>
-          Step 2 of 5
+          Step 2 of {QAS_TOTAL_STEPS}
         </div>
         <h2 className="text-2xl font-bold tracking-tight">Floor Setup</h2>
         <p className="text-sm text-muted-foreground mt-0.5">
