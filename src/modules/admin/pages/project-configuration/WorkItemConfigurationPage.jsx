@@ -1,17 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { 
-  Wrench, Search, Plus, Trash2, Copy, Download, Upload, 
-  Filter, Check, X, AlertCircle, Layers, Grid, Square,
-  Paintbrush, Hammer, Lightbulb, Play, Power,
-  ChevronLeft, ChevronDown, ChevronRight, Wind, Layout, Settings,
-  Sparkles, Shield, ShieldAlert, Lock, Zap, Palette, HelpCircle, Edit2, Folder
+  Search, Trash2, Copy, Filter, X, AlertCircle,
+  ChevronLeft, ChevronDown, ChevronRight, Edit2, Folder
 } from "lucide-react";
 import ConfigurationLayout from "../../components/shared/configuration/ConfigurationLayout";
 import PageHeader from "../../components/shared/configuration/PageHeader";
 import MasterFormModal from "../../components/shared/configuration/MasterFormModal";
 import DeleteConfirmationModal from "../../components/shared/configuration/DeleteConfirmationModal";
 import EmptyState from "../../components/shared/configuration/EmptyState";
-import StatusBadge from "../../components/shared/configuration/StatusBadge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,7 +15,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 
 import { 
@@ -27,8 +22,6 @@ import {
   createWorkItem, 
   updateWorkItem, 
   deleteWorkItem, 
-  activateWorkItem, 
-  deactivateWorkItem, 
   cloneWorkItem,
   fetchWorkItemMasters,
   createWorkItemMaster,
@@ -139,6 +132,7 @@ export default function WorkItemConfigurationPage() {
 
   useEffect(() => {
     loadWorkItemMasters();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -491,25 +485,6 @@ export default function WorkItemConfigurationPage() {
     } catch (e) {
       console.error(e);
       triggerToast("error", "Deletion Failed", "Failed to delete category. Ensure it is empty first.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleToggleActive = async (item) => {
-    setIsLoading(true);
-    try {
-      if (item.active) {
-        await deactivateWorkItem(item.id);
-        triggerToast("success", "Deactivated", `"${item.workItemName}" has been deactivated.`);
-      } else {
-        await activateWorkItem(item.id);
-        triggerToast("success", "Activated", `"${item.workItemName}" has been activated.`);
-      }
-      loadData();
-    } catch (e) {
-      console.error(e);
-      triggerToast("error", "Action Failed", "Could not toggle active status.");
     } finally {
       setIsLoading(false);
     }

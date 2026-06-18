@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { 
   Search, Filter, X, 
-  Trash2, AlertCircle, Plus, Edit2, Folder, ChevronRight, ChevronDown
+  Trash2, AlertCircle, Edit2, Folder, ChevronRight, ChevronDown
 } from "lucide-react";
 import ConfigurationLayout from "../../components/shared/configuration/ConfigurationLayout";
 import PageHeader from "../../components/shared/configuration/PageHeader";
@@ -111,6 +111,7 @@ export default function RoomConfigurationPage() {
 
   useEffect(() => {
     loadRoomMasters();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

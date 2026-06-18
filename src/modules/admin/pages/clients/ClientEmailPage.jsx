@@ -1,7 +1,7 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
-  Archive, ChevronDown, Circle, Edit, Inbox, MoreVertical,
+  Archive, ChevronDown, Circle, Edit, Inbox,
   Paperclip, Reply, Search, Send, Star, Trash2, X,
 } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const AVATAR_HEX = ["7C3AED","0284C7","059669","B45309","BE123C","4338CA","0F766E","C2410C"];

@@ -640,7 +640,7 @@ function RoomDetailsPopup({ open, onOpenChange, room, floor, measurements, walls
 }
 
 export default function Step03RoomCreation() {
-  const { floors, rooms, setRooms, measurements, setMeas, workItems, setWorkItems, photos, setPhotos, prevStep, goToStep } = useBoq();
+  const { floors, rooms, setRooms, measurements, setMeas, setWorkItems, setPhotos, prevStep, goToStep } = useBoq();
 
   // Room creation states
   const [selectedFloorId, setSelectedFloorId] = useState(floors[0]?.id || "");

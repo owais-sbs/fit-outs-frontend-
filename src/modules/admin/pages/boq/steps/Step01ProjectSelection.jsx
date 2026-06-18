@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import {
-  Search, RotateCcw, MapPin,
-  ChevronRight, X,
-  Building2, Users, LayoutGrid, CalendarDays, ArrowRight,
-  Eye, PlayCircle, RefreshCw, Info,
+  Search, RotateCcw, MapPin, X,
+  Building2, Users, LayoutGrid, CalendarDays,
+  Eye, PlayCircle, Info,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -91,12 +90,6 @@ const MOCK_CLIENT_MAP = new Map([
 ]);
 
 const PROJECT_TYPES = ["All Types", "Commercial", "Residential", "Interior", "Renovation", "Construction"];
-
-function statusVariant(s) {
-  if (s === "Active")   return "success";
-  if (s === "Planning") return "secondary";
-  return "outline";
-}
 
 // ─── Project Summary Drawer ───────────────────────────────────────────────────
 function ProjectDrawer({ project, clientName, onClose, onStart }) {
