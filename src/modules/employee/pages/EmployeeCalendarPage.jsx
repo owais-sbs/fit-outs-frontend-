@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, MapPin, Clock, X } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,6 +8,10 @@ import { Separator } from "@/components/ui/separator";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
+import { useAuth } from "@/shared/context/auth-context";
+import { fetchEmployeeSiteVisits } from "@/modules/admin/api/site-visits.api";
+import { fetchAllLeads } from "@/modules/admin/api/leads.api";
+import { fetchAllClients } from "@/modules/admin/api/clients.api";
 
 // ── Mock visits for James Wu ──────────────────────────────────────────────────
 function todayObj() { return new Date(); }
@@ -64,11 +68,66 @@ const STATUS_PILL = { Scheduled: "bg-amber-500/15 text-amber-700",  Completed: "
 const PILL_COLOR  = ["bg-primary/15 text-primary border-primary/20", "bg-emerald-500/15 text-emerald-700 border-emerald-500/20"];
 
 export default function EmployeeCalendarPage() {
+  const { user } = useAuth();
   const now = new Date();
   const [year, setYear]   = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [detail, setDetail] = useState(null);
+  const [visits, setVisits] = useState([]);
   const today = todayStr();
+
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    Promise.all([
+      fetchEmployeeSiteVisits(user.id).catch(() => []),
+      fetchAllLeads().catch(() => []),
+      fetchAllClients().catch(() => []),
+    ])
+      .then(([visitsList, leadList, clientList]) => {
+        if (cancelled) return;
+        
+        const leadMap = new Map(leadList.map((l) => [String(l.id), l.clientName]));
+        const clientMap = new Map(clientList.map((c) => [String(c.id), c.fullName]));
+
+        const enriched = (visitsList || []).map((v) => {
+          const projectName = v.locationDetails?.buildingName || leadMap.get(String(v.leadId)) || clientMap.get(String(v.leadId)) || `Lead/Client #${v.leadId}`;
+          let status = "Scheduled";
+          if (v.status === "COMPLETED") status = "Completed";
+          else if (v.status === "CANCELLED") status = "Cancelled";
+
+          const loc = v.locationDetails || {};
+          const siteStr = [loc.buildingName, loc.addressLine1, loc.area, loc.city]
+            .filter(Boolean)
+            .join(", ") || "Location not specified";
+
+          const formatTime = (t) => {
+            if (!t) return "—";
+            const [h, m] = t.split(":");
+            const hr = parseInt(h, 10);
+            const ampm = hr >= 12 ? "PM" : "AM";
+            const displayHr = hr > 12 ? hr - 12 : hr || 12;
+            return `${String(displayHr).padStart(2, "0")}:${m} ${ampm}`;
+          };
+
+          return {
+            id: v.uuid || `v-${Math.random()}`,
+            project: projectName,
+            site: siteStr,
+            date: v.scheduledDate || "",
+            time: formatTime(v.scheduledTime),
+            status: status,
+            purpose: v.notes || "Site inspection",
+          };
+        });
+
+        setVisits(enriched);
+      })
+      .catch((err) => {
+        console.error("Failed to load employee site visits:", err);
+      });
+    return () => { cancelled = true; };
+  }, [user?.id]);
 
   const prevMonth = () => {
     if (month === 1) { setMonth(12); setYear((y) => y - 1); }
@@ -83,16 +142,23 @@ export default function EmployeeCalendarPage() {
 
   const visitsByDate = useMemo(() => {
     const map = {};
-    MY_VISITS.forEach((v) => {
+    visits.forEach((v) => {
       if (!map[v.date]) map[v.date] = [];
       map[v.date].push(v);
     });
     return map;
-  }, []);
+  }, [visits]);
 
-  const upcoming = MY_VISITS.filter((v) => v.date >= today && v.status === "Scheduled")
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .slice(0, 5);
+  const upcoming = useMemo(() => {
+    return visits.filter((v) => v.date >= today && v.status === "Scheduled")
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .slice(0, 5);
+  }, [visits, today]);
+
+  const thisMonthVisits = useMemo(() => {
+    return visits.filter((v) => v.date?.startsWith(`${year}-${String(month).padStart(2,"0")}`))
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [visits, year, month]);
 
   return (
     <div className="space-y-6">
@@ -171,7 +237,7 @@ export default function EmployeeCalendarPage() {
                           className={`w-full rounded border px-1.5 py-0.5 text-left hover:opacity-75 transition-opacity ${PILL_COLOR[i % PILL_COLOR.length]}`}
                         >
                           <p className="truncate text-[10px] font-semibold leading-tight">
-                            {v.project.split(" ").slice(0, 2).join(" ")}
+                            {(v.project || "Unnamed").split(" ").slice(0, 2).join(" ")}
                           </p>
                           <p className="text-[9px] opacity-75">{v.time}</p>
                         </button>
@@ -242,26 +308,25 @@ export default function EmployeeCalendarPage() {
               <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
                 This Month ({MONTHS[month - 1]})
               </p>
-              {MY_VISITS.filter((v) => v.date.startsWith(`${year}-${String(month).padStart(2,"0")}`)).length === 0 ? (
+              {thisMonthVisits.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">No visits this month.</p>
               ) : (
                 <div className="space-y-2">
-                  {MY_VISITS
-                    .filter((v) => v.date.startsWith(`${year}-${String(month).padStart(2,"0")}`))
-                    .sort((a, b) => a.date.localeCompare(b.date))
-                    .map((v) => (
-                      <div
-                        key={v.id}
-                        className="flex items-center justify-between gap-2 rounded-lg bg-muted/30 px-3 py-2 cursor-pointer hover:bg-muted/50 transition-colors"
-                        onClick={() => setDetail(v)}
-                      >
-                        <div>
-                          <p className="text-xs font-medium">{new Date(v.date + "T00:00").getDate()} — {v.project.split(" ").slice(0,3).join(" ")}</p>
-                          <p className="text-[11px] text-muted-foreground">{v.time}</p>
-                        </div>
-                        <span className={`h-2 w-2 rounded-full shrink-0 ${STATUS_DOT[v.status]}`} />
+                  {thisMonthVisits.map((v) => (
+                    <div
+                      key={v.id}
+                      className="flex items-center justify-between gap-2 rounded-lg bg-muted/30 px-3 py-2 cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => setDetail(v)}
+                    >
+                      <div>
+                        <p className="text-xs font-medium">
+                          {v.date ? new Date(v.date + "T00:00").getDate() : "—"} — {(v.project || "Unnamed").split(" ").slice(0,3).join(" ")}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">{v.time}</p>
                       </div>
-                    ))}
+                      <span className={`h-2 w-2 rounded-full shrink-0 ${STATUS_DOT[v.status]}`} />
+                    </div>
+                  ))}
                 </div>
               )}
             </CardContent>

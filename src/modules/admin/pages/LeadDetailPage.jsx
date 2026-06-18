@@ -28,6 +28,7 @@ const STATUS_VARIANT = {
   QUALIFIED: "warning",
   SITE_VISIT_SCHEDULED: "secondary",
   LOST: "destructive",
+  FOLLOWUP: "primary"
 
 };
 
@@ -37,6 +38,7 @@ const STATUS_LABELS = {
   QUALIFIED: "Qualified",
   SITE_VISIT_SCHEDULED: "Site Visit Scheduled",
   LOST: "Lost",
+  FOLLOWUP: "Followup",
 
 };
 

@@ -13,6 +13,7 @@ export function normalizeSiteVisit(item = {}) {
     uuid: item.uuid || null,
     leadId: item.leadId ?? null,
     assignedTo: item.assignedTo ?? null,
+    employeeIds: item.employeeIds ?? (item.assignedTo ? [item.assignedTo] : []),
     scheduledDate: item.scheduledDate || null,
     scheduledTime: item.scheduledTime || null,
     latitude: item.latitude ?? null,
@@ -66,6 +67,14 @@ export const fetchAllSiteVisits = () =>
       return Array.isArray(data) ? data.map(normalizeSiteVisit) : [];
     });
 
+export const fetchEmployeeSiteVisits = (employeeId) =>
+  axiosInstance
+    .get(`/site-visits/employee/${employeeId}`)
+    .then((r) => {
+      const data = r.data?.data ?? r.data;
+      return Array.isArray(data) ? data.map(normalizeSiteVisit) : [];
+    });
+
 export const fetchSiteVisitByUuid = (uuid) =>
   axiosInstance
     .get(`/site-visits/GetSiteVisitByUuid/${uuid}`)
@@ -75,7 +84,7 @@ export const createSiteVisit = (form) =>
   axiosInstance
     .post("/site-visits/CreateSite-Visits", {
       leadId: Number(form.leadId),
-      assignedTo: Number(form.assignedTo),
+      employeeIds: Array.isArray(form.employeeIds) ? form.employeeIds.map(Number) : [],
       scheduledDate: form.scheduledDate,
       scheduledTime: form.scheduledTime,
       latitude: Number(form.latitude),

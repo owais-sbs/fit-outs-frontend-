@@ -100,7 +100,9 @@ export default function SiteVisitsPage() {
             company: lead?.company || loc.buildingName || loc.area || "—",
             date: dateTime,
             location: locationStr,
-            assignee: v.assignedTo ? `Employee #${v.assignedTo}` : "Unassigned",
+            assignee: (Array.isArray(v.employeeIds) && v.employeeIds.length > 0)
+              ? v.employeeIds.map((id) => `Employee #${id}`).join(", ")
+              : (v.assignedTo ? `Employee #${v.assignedTo}` : "Unassigned"),
             isCompleted,
             countdownHours,
           };

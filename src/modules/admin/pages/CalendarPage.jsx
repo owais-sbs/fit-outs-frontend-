@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   CalendarDays, Check, ChevronLeft, ChevronRight,
   Clock, MapPin, MoreHorizontal, Plus, Search, X,
@@ -9,6 +9,10 @@ import {
   CALENDAR_EMPLOYEES, CALENDAR_PROJECTS, CALENDAR_SITES,
   CALENDAR_VISITS, VISIT_STATUSES, getVisitsForMonth,
 } from "../data/calendar";
+import { fetchAllSiteVisits } from "../api/site-visits.api";
+import { fetchAllEmployees } from "../api/employees.api";
+import { fetchAllLeads } from "../api/leads.api";
+import { fetchAllClients } from "../api/clients.api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -236,12 +240,74 @@ function ScheduleModal({ initial, onClose, onSave }) {
   );
 }
 
+function enrichVisits(visitsList, empList, leadList, clientList) {
+  const empMap = new Map(empList.map((e) => [String(e.id), e.employeeName || e.fullName]));
+  const leadMap = new Map(leadList.map((l) => [String(l.id), l.clientName]));
+  const clientMap = new Map(clientList.map((c) => [String(c.id), c.fullName]));
+
+  return (visitsList || []).map((v) => {
+    let empName = "Unassigned";
+    if (Array.isArray(v.employeeNames) && v.employeeNames.length > 0) {
+      empName = v.employeeNames.filter(Boolean).join(", ");
+    } else if (Array.isArray(v.employeeIds) && v.employeeIds.length > 0) {
+      empName = v.employeeIds.map(id => empMap.get(String(id)) || `Employee #${id}`).join(", ");
+    } else if (v.assignedTo) {
+      empName = empMap.get(String(v.assignedTo)) || `Employee #${v.assignedTo}`;
+    }
+    const projectName = v.locationDetails?.buildingName || leadMap.get(String(v.leadId)) || clientMap.get(String(v.leadId)) || `Lead/Client #${v.leadId}`;
+    
+    let status = "Scheduled";
+    if (v.status === "COMPLETED") status = "Completed";
+    else if (v.status === "CANCELLED") status = "Cancelled";
+
+    const loc = v.locationDetails || {};
+    const siteStr = [loc.buildingName, loc.addressLine1, loc.area, loc.city]
+      .filter(Boolean)
+      .join(", ") || "Location not specified";
+
+    return {
+      id: v.uuid || `v-${Math.random()}`,
+      employee: empName,
+      project: projectName,
+      site: siteStr,
+      date: v.scheduledDate || "",
+      time: v.scheduledTime || "",
+      status: status,
+      assignedBy: "Admin",
+      remarks: v.notes || "",
+    };
+  });
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function CalendarPage() {
   const now = new Date();
   const [year,  setYear]  = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
-  const [visits, setVisits] = useState(CALENDAR_VISITS);
+  const [visits, setVisits] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([
+      fetchAllSiteVisits().catch(() => []),
+      fetchAllEmployees().catch(() => []),
+      fetchAllLeads().catch(() => []),
+      fetchAllClients().catch(() => []),
+    ])
+      .then(([visitsList, empList, leadList, clientList]) => {
+        if (cancelled) return;
+        const enriched = enrichVisits(visitsList, empList, leadList, clientList);
+        setVisits(enriched);
+      })
+      .catch((err) => {
+        console.error("Failed to fetch calendar data:", err);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   // Filters
   const [search,   setSearch]   = useState("");
@@ -279,7 +345,10 @@ export default function CalendarPage() {
 
   // ── Calendar grid ──────────────────────────────────────────────────────────
   const grid = useMemo(() => buildCalendarGrid(year, month), [year, month]);
-  const monthVisits = useMemo(() => getVisitsForMonth(year, month), [year, month]);
+  const monthVisits = useMemo(() => {
+    const prefix = `${year}-${String(month).padStart(2, "0")}`;
+    return visits.filter((v) => v.date?.startsWith(prefix));
+  }, [visits, year, month]);
 
   // Map date → visits for O(1) lookup
   const visitsByDate = useMemo(() => {

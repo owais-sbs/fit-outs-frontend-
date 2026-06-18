@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Calendar, Check, Clock3, Crosshair, Loader2, MapPin, Navigation2, Search, ShieldCheck, Sparkles } from "lucide-react";
+import { Calendar, Check, Clock3, Crosshair, Loader2, MapPin, Navigation2, Search, ShieldCheck, Sparkles, X } from "lucide-react";
 import L from "leaflet";
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
@@ -9,6 +9,7 @@ import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import { fetchAllLeads } from "../api/leads.api";
 import { fetchAllEmployees } from "../api/employees.api";
 import { createSiteVisit, addLocationDetails } from "../api/site-visits.api";
+import { fetchAllClients } from "../api/clients.api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -134,7 +135,9 @@ export default function SiteVisitSchedulePage() {
   const reverseGeocodeControllerRef = useRef(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [leads, setLeads] = useState([]);
+  const [clients, setClients] = useState([]);
   const [employees, setEmployees] = useState([]);
+  const [targetType, setTargetType] = useState("lead"); // "lead" or "client"
   const [loadingOptions, setLoadingOptions] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -145,7 +148,7 @@ export default function SiteVisitSchedulePage() {
   const [locationSearchLoading, setLocationSearchLoading] = useState(false);
   const [form, setForm] = useState({
     leadId: "",
-    staff: "",
+    employeeIds: [],
     date: "",
     time: "",
     location: "",
@@ -154,16 +157,21 @@ export default function SiteVisitSchedulePage() {
     notes: "",
   });
 
+  const [staffSearchQuery, setStaffSearchQuery] = useState("");
+  const [staffDropdownOpen, setStaffDropdownOpen] = useState(false);
+
   useEffect(() => {
     let cancelled = false;
     Promise.all([
       fetchAllLeads(),
       fetchAllEmployees().catch(() => []),
+      fetchAllClients().catch(() => []),
     ])
-      .then(([leadList, empList]) => {
+      .then(([leadList, empList, clientList]) => {
         if (cancelled) return;
         setLeads(leadList);
         setEmployees(empList.filter((e) => e.isActive));
+        setClients(clientList);
       })
       .catch((err) => {
         if (cancelled) return;
@@ -180,24 +188,46 @@ export default function SiteVisitSchedulePage() {
   }, [form.location]);
 
   const selectedLead = leads.find((l) => l.id === form.leadId);
-  const selectedEmployee = employees.find((e) => String(e.id) === String(form.staff));
+  const selectedClient = clients.find((c) => c.id === form.leadId);
+  const selectedEntity = targetType === "lead" ? selectedLead : selectedClient;
+  const selectedEmployees = employees.filter((e) => form.employeeIds.includes(Number(e.id)));
+
+  const filteredEmployees = useMemo(() => {
+    const query = staffSearchQuery.toLowerCase().trim();
+    if (!query) return employees;
+    return employees.filter(
+      (e) => (e.employeeName || e.fullName || "").toLowerCase().includes(query)
+    );
+  }, [employees, staffSearchQuery]);
 
   const summaryItems = useMemo(
     () => [
       {
-        label: "Lead",
-        value: selectedLead ? `${selectedLead.clientName}` : "Select a lead",
+        label: targetType === "lead" ? "Lead" : "Client",
+        value: selectedEntity
+          ? (targetType === "lead" ? `${selectedEntity.clientName}` : `${selectedEntity.fullName}`)
+          : (targetType === "lead" ? "Select a lead" : "Select a client"),
       },
       { label: "Date", value: form.date || "Pending" },
       { label: "Time", value: form.time || "Pending" },
-      { label: "Staff", value: selectedEmployee?.employeeName || "Assign staff" },
+      {
+        label: "Staff",
+        value: selectedEmployees.length > 0
+          ? selectedEmployees.map((e) => e.employeeName || e.fullName).join(", ")
+          : "Assign staff",
+      },
     ],
-    [form.date, form.time, selectedLead, selectedEmployee]
+    [form.date, form.time, selectedEntity, selectedEmployees, targetType]
   );
 
   const update = (field, value) => {
     setForm((f) => ({ ...f, [field]: value }));
     setError("");
+  };
+
+  const handleTypeChange = (type) => {
+    setTargetType(type);
+    update("leadId", "");
   };
 
   const updateCoordinates = (latitude, longitude) => {
@@ -305,8 +335,8 @@ export default function SiteVisitSchedulePage() {
   };
 
   const handleConfirm = async () => {
-    if (!form.leadId || !form.staff || !form.date || !form.time || !form.location) {
-      setError("Select a lead, staff member, date, time, and location.");
+    if (!form.leadId || form.employeeIds.length === 0 || !form.date || !form.time || !form.location) {
+      setError(`Select a ${targetType === "lead" ? "lead" : "client"}, at least one staff member, date, time, and location.`);
       return;
     }
     const latitude = Number(form.latitude);
@@ -321,13 +351,13 @@ export default function SiteVisitSchedulePage() {
     try {
       const visit = await createSiteVisit({
         leadId: form.leadId,
-        assignedTo: form.staff,
+        employeeIds: form.employeeIds,
         scheduledDate: form.date,
         scheduledTime: form.time,
         latitude: form.latitude,
         longitude: form.longitude,
         notes: form.notes || "",
-        createdBy: form.staff,
+        createdBy: form.employeeIds[0] || null,
       });
 
       if (visit.uuid) {
@@ -339,8 +369,10 @@ export default function SiteVisitSchedulePage() {
           state: "NSW",
           country: "Australia",
           pincode: "2000",
-          area: selectedLead?.location || "",
-          buildingName: selectedLead?.company || selectedLead?.clientName || "",
+          area: targetType === "lead" ? (selectedEntity?.location || "") : "",
+          buildingName: targetType === "lead"
+            ? (selectedEntity?.company || selectedEntity?.clientName || "")
+            : (selectedEntity?.companyName || selectedEntity?.fullName || ""),
           accessNotes: form.notes || "",
         });
       }
@@ -377,18 +409,51 @@ export default function SiteVisitSchedulePage() {
 
           <CardContent className="space-y-6">
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2 md:col-span-2">
-                <Label>Lead *</Label>
+              <div className="space-y-3 md:col-span-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-semibold">Schedule For *</Label>
+                  <div className="flex items-center gap-1 rounded-md border border-border bg-muted/30 p-0.5">
+                    <button
+                      type="button"
+                      onClick={() => handleTypeChange("lead")}
+                      className={`rounded px-3 py-1 text-xs font-medium transition-all ${
+                        targetType === "lead"
+                          ? "bg-background shadow text-foreground font-semibold"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      Lead
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleTypeChange("client")}
+                      className={`rounded px-3 py-1 text-xs font-medium transition-all ${
+                        targetType === "client"
+                          ? "bg-background shadow text-foreground font-semibold"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      Client
+                    </button>
+                  </div>
+                </div>
+
                 <Select value={form.leadId} onValueChange={(v) => update("leadId", v)} disabled={loadingOptions}>
                   <SelectTrigger>
-                    <SelectValue placeholder={loadingOptions ? "Loading leads..." : "Select lead"} />
+                    <SelectValue placeholder={loadingOptions ? `Loading ${targetType === "lead" ? "leads" : "clients"}...` : `Select ${targetType === "lead" ? "lead" : "client"}`} />
                   </SelectTrigger>
                   <SelectContent>
-                    {leads.map((lead) => (
-                      <SelectItem key={lead.id} value={lead.id}>
-                        {lead.clientName}{lead.company ? ` - ${lead.company}` : ""}
-                      </SelectItem>
-                    ))}
+                    {targetType === "lead"
+                      ? leads.map((lead) => (
+                          <SelectItem key={lead.id} value={lead.id}>
+                            {lead.clientName}{lead.company ? ` - ${lead.company}` : ""}
+                          </SelectItem>
+                        ))
+                      : clients.map((client) => (
+                          <SelectItem key={client.id} value={client.id}>
+                            {client.fullName} - {client.companyName} (Company ID: {client.companyUuid || "N/A"})
+                          </SelectItem>
+                        ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -449,20 +514,89 @@ export default function SiteVisitSchedulePage() {
                 />
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2 md:col-span-2">
                 <Label>Assigned staff *</Label>
-                <Select value={form.staff} onValueChange={(v) => update("staff", v)} disabled={loadingOptions}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={loadingOptions ? "Loading staff..." : "Select staff member"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {employees.map((emp) => (
-                      <SelectItem key={emp.id} value={emp.id}>
-                        {emp.employeeName || emp.fullName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="relative">
+                  {/* Selected staff chips */}
+                  {form.employeeIds.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-2 p-2 rounded-lg border border-border/60 bg-muted/20">
+                      {selectedEmployees.map((emp) => (
+                        <Badge
+                          key={emp.id}
+                          variant="secondary"
+                          className="flex items-center gap-1 pl-2.5 pr-1 py-0.5 text-xs bg-primary/10 text-primary border-primary/20 hover:bg-primary/15"
+                        >
+                          <span>{emp.employeeName || emp.fullName}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              update("employeeIds", form.employeeIds.filter((id) => id !== Number(emp.id)));
+                            }}
+                            className="rounded-full p-0.5 hover:bg-muted text-primary/80 hover:text-primary transition-colors"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Dropdown search and selector trigger */}
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      value={staffSearchQuery}
+                      onChange={(e) => {
+                        setStaffSearchQuery(e.target.value);
+                        setStaffDropdownOpen(true);
+                      }}
+                      onFocus={() => setStaffDropdownOpen(true)}
+                      onBlur={() => {
+                        // Delay closing to let select click register
+                        setTimeout(() => setStaffDropdownOpen(false), 250);
+                      }}
+                      placeholder={form.employeeIds.length > 0 ? "Search to add more staff..." : "Search and select staff..."}
+                      className="pl-9 pr-4 bg-background/50 border-border focus-visible:ring-primary"
+                    />
+                  </div>
+
+                  {/* Dropdown list */}
+                  {staffDropdownOpen && (
+                    <div className="absolute z-30 mt-1 max-h-52 w-full overflow-y-auto rounded-md border border-border bg-popover p-1 shadow-md">
+                      {filteredEmployees.length > 0 ? (
+                        filteredEmployees.map((emp) => {
+                          const isSelected = form.employeeIds.includes(Number(emp.id));
+                          return (
+                            <button
+                              key={emp.id}
+                              type="button"
+                              onMouseDown={(e) => {
+                                // Use onMouseDown to trigger before onBlur closes dropdown
+                                e.preventDefault();
+                                if (isSelected) {
+                                  update("employeeIds", form.employeeIds.filter((id) => id !== Number(emp.id)));
+                                } else {
+                                  update("employeeIds", [...form.employeeIds, Number(emp.id)]);
+                                }
+                                setStaffSearchQuery("");
+                              }}
+                              className="flex w-full items-center justify-between rounded-sm px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
+                            >
+                              <span className={isSelected ? "font-semibold text-primary" : ""}>
+                                {emp.employeeName || emp.fullName}
+                              </span>
+                              {isSelected && <Check className="h-4 w-4 text-primary shrink-0" />}
+                            </button>
+                          );
+                        })
+                      ) : (
+                        <div className="px-3 py-2 text-sm text-muted-foreground">
+                          No matching staff found.
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-2 md:col-span-2">
@@ -656,13 +790,15 @@ export default function SiteVisitSchedulePage() {
           </DialogHeader>
           <div className="space-y-2 text-sm text-muted-foreground">
             <p>
-              {selectedLead?.clientName || "Lead"} - {selectedLead?.company || "Company"}
+              {targetType === "lead"
+                ? `${selectedLead?.clientName || "Lead"} - ${selectedLead?.company || "Company"}`
+                : `${selectedClient?.fullName || "Client"} - ${selectedClient?.companyName || "Company"}`}
             </p>
             <p>
               {form.date || "Date pending"} at {form.time || "Time pending"}
             </p>
             <p>
-              Assigned to {selectedEmployee?.employeeName || "staff"}.
+              Assigned to {selectedEmployees.map((e) => e.employeeName || e.fullName).join(", ") || "staff"}.
             </p>
           </div>
           <DialogFooter>

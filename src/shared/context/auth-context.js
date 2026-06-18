@@ -93,6 +93,11 @@ export function AuthProvider({ children }) {
         throw new Error(responseData?.message || "Login failed");
       }
 
+      const token = responseData.token || responseData.accessToken || responseData.jwt || responseData.jwtToken;
+      if (token) {
+        localStorage.setItem("authToken", token);
+      }
+
       const userData = responseData.user;
       const rawRoles = userData?.roles || [];
       const normalizedRoles = rawRoles.map(normalizeRole);
@@ -160,6 +165,7 @@ export function AuthProvider({ children }) {
     setRoles([]);
     setPermissions([]);
     setIsAuthenticated(false);
+    localStorage.removeItem("authToken");
     localStorage.removeItem("selectedRole");
   }, []);
 
