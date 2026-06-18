@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   CalendarDays, Check, ChevronLeft, ChevronRight,
-  Clock, MapPin, MoreHorizontal, Plus, Search, X,
+  MapPin, MoreHorizontal, Plus, Search, X,
 } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import StatCard from "@/modules/super-admin/components/StatCard";

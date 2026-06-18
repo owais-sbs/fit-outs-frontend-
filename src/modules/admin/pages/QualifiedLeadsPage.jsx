@@ -83,7 +83,6 @@ export default function QualifiedLeadsPage() {
   const filteredLeads = leads.filter(lead => {
     const matchSearch = lead.clientName.toLowerCase().includes(search.toLowerCase()) || 
                         (lead.company || "").toLowerCase().includes(search.toLowerCase());
-    const assigneeName = lead.assignedTo ? (lead.assignedTo.employeeName || lead.assignedTo.fullName) : "Unassigned";
     const matchEngineer = engineerFilter === "all" || String(lead.assignedTo?.id) === engineerFilter;
     return matchSearch && matchEngineer;
   });

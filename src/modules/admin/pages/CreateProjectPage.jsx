@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, Save, Briefcase, MapPin, Calendar, DollarSign, UserCheck, FileText } from "lucide-react";
+import { ArrowLeft, Save, Briefcase, MapPin, Calendar, DollarSign } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,7 +15,7 @@ import { INITIAL_EMPLOYEES } from "@/modules/admin/data/employees";
 export default function CreateProjectPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const state = location.state || {};
+  const state = useMemo(() => location.state || {}, [location.state]);
 
   const [form, setForm] = useState({
     projectName: "",

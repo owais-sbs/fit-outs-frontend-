@@ -19,7 +19,7 @@ export default function EmployeeSidebar() {
   const { user } = useAuth();
 
   return (
-    <Sidebar collapsible="icon" variant="inset">
+    <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border">
         <SidebarMenu>
           <SidebarMenuItem>

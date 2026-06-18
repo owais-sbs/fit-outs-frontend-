@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { AlertCircle, CheckCircle2, Loader2, User } from "lucide-react";
+import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import { FEATURE_OPTIONS } from "../../data/employees";
 import { createEmployee } from "../../api/employees.api";
@@ -8,11 +8,7 @@ import { ROUTES } from "@/shared/constants/routes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
 
 function FeatureSelector({ selected, onChange }) {
   return (

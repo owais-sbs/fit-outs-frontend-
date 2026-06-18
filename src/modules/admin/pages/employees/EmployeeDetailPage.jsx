@@ -3,15 +3,12 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft, Mail, Phone, Shield, User,
 } from "lucide-react";
-import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import { fetchEmployeeById } from "../../api/employees.api";
-import { FEATURE_OPTIONS } from "../../data/employees";
 import { ROUTES } from "@/shared/constants/routes";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const AVATAR_COLORS = [

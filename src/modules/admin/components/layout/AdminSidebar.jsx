@@ -4,8 +4,8 @@ import {
   Sparkles, LayoutDashboard, Users, MapPin,
   List, XCircle, ChevronRight,
   UserSquare2, CalendarRange, Briefcase,
-  UserCheck, Mail, Grid, Wrench, Settings, PenTool, ClipboardList,
-  PlusCircle, CheckCircle, Clock, PieChart, CheckSquare, FileText, Calculator, BarChart3
+  UserCheck, Mail, Grid, Wrench, Settings, PenTool,
+  CheckCircle, Clock, PieChart, CheckSquare, FileText, ClipboardList
 } from "lucide-react";
 import {
   Sidebar,
@@ -39,8 +39,8 @@ const ADMIN_NAV_GROUPS = [
       { label: "Employees", href: ROUTES.ADMIN.EMPLOYEES, icon: UserSquare2 },
       { label: "Calendar", href: ROUTES.ADMIN.CALENDAR, icon: CalendarRange },
       { label: "Projects", href: ROUTES.ADMIN.PROJECTS, icon: Briefcase },
+      { label: "QAS", href: ROUTES.ADMIN.QAS, icon: ClipboardList },
       { label: "PROJECT_CONFIG_PLACEHOLDER" },
-      { label: "BOQ & Survey", href: "/admin/boq", icon: ClipboardList },
     ],
   },
 ];
@@ -147,7 +147,7 @@ export default function AdminSidebar() {
   const { user, role } = useAuth();
 
   return (
-    <Sidebar collapsible="icon" variant="inset">
+    <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border">
         <SidebarMenu>
           <SidebarMenuItem>

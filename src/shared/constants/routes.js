@@ -49,6 +49,8 @@ export const ROUTES = {
     CLIENT_CALLS: "/admin/clients/calls",
     ROOM_CONFIG: "/admin/project-configuration/room",
     WORK_ITEM_CONFIG: "/admin/project-configuration/work-item",
+    BOQ: "/admin/boq",
+    QAS: "/admin/qas",
   },
   BUSINESS_OWNER: {
     DASHBOARD: "/business-owner",
