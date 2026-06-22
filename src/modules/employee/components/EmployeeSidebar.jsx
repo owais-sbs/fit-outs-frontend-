@@ -1,5 +1,6 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, Briefcase, CalendarRange, Sparkles } from "lucide-react";
+import { LayoutDashboard, Briefcase, CalendarRange } from "lucide-react";
+import { SidebarBrand } from "@/components/brand/BrandMark";
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup,
   SidebarGroupContent, SidebarGroupLabel, SidebarHeader,
@@ -24,13 +25,7 @@ export default function EmployeeSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" className="pointer-events-none">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                <Sparkles className="h-4 w-4" />
-              </div>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">Employee</span>
-                <span className="truncate text-xs text-sidebar-foreground/70">Fitouts</span>
-              </div>
+              <SidebarBrand portal="Employee Panel" />
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

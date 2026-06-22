@@ -71,8 +71,8 @@ const WON_LOST_DATA = [
   { month: "May", won: 8, lost: 4 },
 ];
 const WON_LOST_CONFIG = {
-  won:  { label: "Won",  colors: { light: { from: "#10b981", to: "#059669" }, dark: { from: "#10b981", to: "#059669" } } },
-  lost: { label: "Lost", colors: { light: { from: "#ef4444", to: "#dc2626" }, dark: { from: "#ef4444", to: "#dc2626" } } },
+  won:  { label: "Won",  colors: { light: ["#3E7A6B", "#1F3A34"], dark: ["#3E7A6B", "#1F3A34"] } },
+  lost: { label: "Lost", colors: { light: ["#E89A66", "#C25E22"], dark: ["#E89A66", "#C25E22"] } },
 };
 
 // ─── Project type distribution ────────────────────────────────────────────────
@@ -84,11 +84,11 @@ const PROJECT_TYPE_DATA = [
   { type: "construction",count: 12 },
 ];
 const PROJECT_TYPE_CONFIG = {
-  commercial:   { label: "Commercial",   colors: { light: { from: "#f59e0b", to: "#d97706" }, dark: { from: "#f59e0b", to: "#d97706" } } },
-  interior:     { label: "Interior",     colors: { light: { from: "#8b5cf6", to: "#7c3aed" }, dark: { from: "#8b5cf6", to: "#7c3aed" } } },
-  renovation:   { label: "Renovation",   colors: { light: { from: "#06b6d4", to: "#0891b2" }, dark: { from: "#06b6d4", to: "#0891b2" } } },
-  residential:  { label: "Residential",  colors: { light: { from: "#10b981", to: "#059669" }, dark: { from: "#10b981", to: "#059669" } } },
-  construction: { label: "Construction", colors: { light: { from: "#f97316", to: "#ea580c" }, dark: { from: "#f97316", to: "#ea580c" } } },
+  commercial:   { label: "Commercial",   colors: { light: ["#3E7A6B", "#1F3A34"], dark: ["#3E7A6B", "#1F3A34"] } },
+  interior:     { label: "Interior",     colors: { light: ["#D9BE97", "#B8965F"], dark: ["#D9BE97", "#B8965F"] } },
+  renovation:   { label: "Renovation",   colors: { light: ["#5E9B8C", "#3A6A5E"], dark: ["#5E9B8C", "#3A6A5E"] } },
+  residential:  { label: "Residential",  colors: { light: ["#E89A66", "#C25E22"], dark: ["#E89A66", "#C25E22"] } },
+  construction: { label: "Construction", colors: { light: ["#A8946E", "#6E5F42"], dark: ["#A8946E", "#6E5F42"] } },
 };
 
 // ─── Extended KPIs (6 cards) ──────────────────────────────────────────────────

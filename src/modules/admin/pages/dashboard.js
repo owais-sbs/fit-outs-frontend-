@@ -51,6 +51,16 @@ const EXTENDED_ICONS = {
   visits:     MapPin,
 };
 
+// Soft, on-theme card tints — light gradient surface + matching icon tile
+const KPI_ACCENTS = {
+  pipeline:   { card: "from-[#1F3A34]/[0.06]", tile: "bg-[#1F3A34]/10 text-[#1F3A34]" },
+  won:        { card: "from-emerald-500/[0.07]", tile: "bg-emerald-500/12 text-emerald-600" },
+  lost:       { card: "from-[#E07B39]/[0.07]", tile: "bg-[#E07B39]/12 text-[#C25E22]" },
+  conversion: { card: "from-[#C8A97E]/[0.12]", tile: "bg-[#C8A97E]/20 text-[#9a7b4f]" },
+  revenue:    { card: "from-[#2E5B4F]/[0.07]", tile: "bg-[#2E5B4F]/10 text-[#2E5B4F]" },
+  visits:     { card: "from-sky-500/[0.07]", tile: "bg-sky-500/12 text-sky-600" },
+};
+
 // ─── Forecast table ──────────────────────────────────────────────────────────
 const FORECAST_ROWS = [
   { month: "Jun", leads: 42, forecast: 520, committed: 428, status: "on-track" },
@@ -73,8 +83,8 @@ const WON_LOST_DATA = [
   { month: "May", won: 8, lost: 4 },
 ];
 const WON_LOST_CONFIG = {
-  won:  { label: "Won",  colors: { light: { from: "#10b981", to: "#059669" }, dark: { from: "#10b981", to: "#059669" } } },
-  lost: { label: "Lost", colors: { light: { from: "#ef4444", to: "#dc2626" }, dark: { from: "#ef4444", to: "#dc2626" } } },
+  won:  { label: "Won",  colors: { light: ["#3E7A6B", "#1F3A34"], dark: ["#3E7A6B", "#1F3A34"] } },
+  lost: { label: "Lost", colors: { light: ["#E89A66", "#C25E22"], dark: ["#E89A66", "#C25E22"] } },
 };
 
 // ─── Project type distribution ────────────────────────────────────────────────
@@ -86,11 +96,11 @@ const PROJECT_TYPE_DATA = [
   { type: "construction",count: 12 },
 ];
 const PROJECT_TYPE_CONFIG = {
-  commercial:   { label: "Commercial",   colors: { light: { from: "#f59e0b", to: "#d97706" }, dark: { from: "#f59e0b", to: "#d97706" } } },
-  interior:     { label: "Interior",     colors: { light: { from: "#8b5cf6", to: "#7c3aed" }, dark: { from: "#8b5cf6", to: "#7c3aed" } } },
-  renovation:   { label: "Renovation",   colors: { light: { from: "#06b6d4", to: "#0891b2" }, dark: { from: "#06b6d4", to: "#0891b2" } } },
-  residential:  { label: "Residential",  colors: { light: { from: "#10b981", to: "#059669" }, dark: { from: "#10b981", to: "#059669" } } },
-  construction: { label: "Construction", colors: { light: { from: "#f97316", to: "#ea580c" }, dark: { from: "#f97316", to: "#ea580c" } } },
+  commercial:   { label: "Commercial",   colors: { light: ["#3E7A6B", "#1F3A34"], dark: ["#3E7A6B", "#1F3A34"] } },
+  interior:     { label: "Interior",     colors: { light: ["#D9BE97", "#B8965F"], dark: ["#D9BE97", "#B8965F"] } },
+  renovation:   { label: "Renovation",   colors: { light: ["#5E9B8C", "#3A6A5E"], dark: ["#5E9B8C", "#3A6A5E"] } },
+  residential:  { label: "Residential",  colors: { light: ["#E89A66", "#C25E22"], dark: ["#E89A66", "#C25E22"] } },
+  construction: { label: "Construction", colors: { light: ["#A8946E", "#6E5F42"], dark: ["#A8946E", "#6E5F42"] } },
 };
 
 export default function AdminDashboard() {
@@ -138,9 +148,13 @@ export default function AdminDashboard() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {EXTENDED_KPIS.map((kpi) => {
           const Icon = EXTENDED_ICONS[kpi.id];
+          const accent = KPI_ACCENTS[kpi.id] || KPI_ACCENTS.pipeline;
           const isPos = kpi.growth >= 0;
           return (
-            <Card key={kpi.id} className="border-border/60 shadow-sm transition-all hover:border-primary/25 hover:shadow-md">
+            <Card
+              key={kpi.id}
+              className={`border-border/60 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-md bg-gradient-to-br ${accent.card} to-card`}
+            >
               <CardContent className="p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-2">
@@ -153,7 +167,7 @@ export default function AdminDashboard() {
                       <span className="text-muted-foreground">{kpi.growthLabel}</span>
                     </div>
                   </div>
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${accent.tile}`}>
                     <Icon className="h-5 w-5" />
                   </div>
                 </div>

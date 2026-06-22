@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Lock, Mail, ArrowRight, Sparkles, AlertCircle, Loader2 } from "lucide-react";
+import { Lock, Mail, ArrowRight, AlertCircle, Loader2 } from "lucide-react";
+import { JctLogoTile } from "@/components/brand/BrandMark";
 
 const ROLE_ROUTES = {
   [ROLES.SUPER_ADMIN]: ROUTES.SUPER_ADMIN.DASHBOARD,
@@ -98,11 +99,9 @@ export default function Login() {
 
           <CardHeader className="space-y-1 text-center pt-8">
             <div className="flex justify-center mb-3">
-              <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 text-primary">
-                <Sparkles className="h-6 w-6 animate-pulse" />
-              </div>
+              <JctLogoTile className="w-12 h-12 rounded-2xl" imgClassName="h-7 w-7" />
             </div>
-            <CardTitle className="text-2xl font-bold tracking-tight"> Fitouts</CardTitle>
+            <CardTitle className="text-2xl font-bold tracking-tight">JCT Contracting</CardTitle>
             <CardDescription className="text-muted-foreground">
               Sign in to manage commercial fit-out projects
             </CardDescription>
@@ -167,7 +166,7 @@ export default function Login() {
 
           <CardFooter className="pb-8 justify-center">
             <p className="text-xs text-muted-foreground">
-              Authorized personnel only.  Fitouts © 2026.
+              Authorized personnel only.  JCT Contracting © 2026.
             </p>
           </CardFooter>
         </Card>

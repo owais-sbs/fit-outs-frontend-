@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
-  Sparkles, LayoutDashboard, ChevronRight,
+  LayoutDashboard, ChevronRight,
   Palette, Inbox, RotateCcw, Award,
   FileText, CreditCard, MessageSquare, Settings,
   Briefcase, ClipboardList,
 } from "lucide-react";
+import { SidebarBrand } from "@/components/brand/BrandMark";
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup,
   SidebarGroupContent, SidebarGroupLabel, SidebarHeader,
@@ -166,13 +167,7 @@ export default function ClientSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" className="pointer-events-none">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                <Sparkles className="h-4 w-4" />
-              </div>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">Client Portal</span>
-                <span className="truncate text-xs text-sidebar-foreground/70">Fitouts</span>
-              </div>
+              <SidebarBrand portal="Client Portal" />
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

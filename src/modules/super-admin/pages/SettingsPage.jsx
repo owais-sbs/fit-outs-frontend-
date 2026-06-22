@@ -100,7 +100,7 @@ export default function SettingsPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Platform name</Label>
-                <Input defaultValue="Fitouts" />
+                <Input defaultValue="JCT Contracting" />
               </div>
               <div className="space-y-2">
                 <Label>Default timezone</Label>
