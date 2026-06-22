@@ -6,6 +6,12 @@ export const fetchRoomTypes = (filter = {}, page = 0, size = 10) => {
     .then((r) => r.data?.data ?? r.data);
 };
 
+export const fetchRoomTypeById = (id) => {
+  return axiosInstance
+    .get(`/room-types/${id}`)
+    .then((r) => r.data?.data ?? r.data);
+};
+
 export const createRoomType = (data) => {
   return axiosInstance
     .post("/room-types", data)

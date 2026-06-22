@@ -2,19 +2,13 @@ import { BoqProvider, useBoq, QAS_STEPS } from "./BoqEngine";
 import BoqProgressBar from "./BoqProgressBar";
 
 import Step01ProjectSelection from "./steps/Step01ProjectSelection";
-import Step02FloorSetup from "./steps/Step02FloorSetup";
-import Step03RoomCreation from "./steps/Step03RoomCreation";
-import Step04Review from "./steps/Step04Review";
-import Step05Completion from "./steps/Step05Completion";
-import Step06BoqGeneration from "./steps/Step06BoqGeneration";
+import Step02SurveyRooms from "./steps/Step02SurveyRooms";
+import Step03GenerateQuotation from "./steps/Step03GenerateQuotation";
 
 const STEP_COMPONENTS = {
   1: Step01ProjectSelection,
-  2: Step02FloorSetup,
-  3: Step03RoomCreation,
-  4: Step04Review,
-  5: Step05Completion,
-  6: Step06BoqGeneration,
+  2: Step02SurveyRooms,
+  3: Step03GenerateQuotation,
 };
 
 function QasWorkspace() {
@@ -61,7 +55,7 @@ function QasWorkspace() {
       </div>
 
       <div className="flex-1 overflow-y-auto print:overflow-visible">
-        <div className={`mx-auto p-6 ${currentStep === 6 ? "max-w-5xl" : "max-w-7xl"} print:max-w-none print:p-0`}>
+        <div className={`mx-auto p-6 ${currentStep === 3 ? "max-w-5xl" : "max-w-7xl"} print:max-w-none print:p-0`}>
           <StepComponent />
         </div>
       </div>

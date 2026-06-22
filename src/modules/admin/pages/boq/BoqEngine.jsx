@@ -1,16 +1,13 @@
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useContext, useState, useCallback, useEffect } from "react";
 
 import { generateBoqDocument } from "./boqDataUtils";
 
-export const QAS_TOTAL_STEPS = 6;
+export const QAS_TOTAL_STEPS = 3;
 
 export const QAS_STEPS = [
-  { id: 1, key: "project",   label: "Project",    short: "Project"   },
-  { id: 2, key: "floors",    label: "Floors",     short: "Floors"    },
-  { id: 3, key: "rooms",     label: "Rooms",      short: "Rooms"     },
-  { id: 4, key: "review",    label: "Review",     short: "Review"    },
-  { id: 5, key: "complete",  label: "Complete",   short: "Complete"  },
-  { id: 6, key: "boq",       label: "BOQ",        short: "BOQ"       },
+  { id: 1, key: "project", label: "Project", short: "Project" },
+  { id: 2, key: "survey", label: "Survey Rooms", short: "Survey" },
+  { id: 3, key: "quotation", label: "Quotation", short: "Quotation" },
 ];
 
 /** @deprecated use QAS_STEPS */
@@ -26,20 +23,46 @@ export const QAS_STATUS = {
 /** @deprecated use QAS_STATUS */
 export const BOQ_STATUS = QAS_STATUS;
 
+const DRAFT_STORAGE_KEY = "fitouts_qas_drafts";
+
 const QasContext = createContext(null);
 export const useBoq = () => useContext(QasContext);
 export const useQas = useBoq;
+
+function loadDrafts() {
+  try {
+    const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveDraftToStorage(session, floors, rooms) {
+  if (!session?.ref) return;
+  const drafts = loadDrafts();
+  drafts[session.ref] = {
+    session,
+    floors,
+    rooms,
+    savedAt: new Date().toISOString(),
+  };
+  localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(drafts));
+}
 
 export function BoqProvider({ children }) {
   const [session, setSession] = useState(null);
   const [currentStep, setStep] = useState(1);
   const [floors, setFloors] = useState([]);
   const [rooms, setRooms] = useState([]);
-  const [measurements, setMeas] = useState({});
-  const [photos, setPhotos] = useState({});
-  const [workItems, setWorkItems] = useState({});
   const [generatedBoq, setGeneratedBoq] = useState(null);
   const [savedBoqs, setSavedBoqs] = useState([]);
+
+  useEffect(() => {
+    if (session?.ref) {
+      saveDraftToStorage(session, floors, rooms);
+    }
+  }, [session, floors, rooms]);
 
   const startSession = useCallback((project) => {
     const ref = `QAS-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 99999)).padStart(5, "0")}`;
@@ -52,14 +75,19 @@ export function BoqProvider({ children }) {
       lastSaved: new Date().toISOString(),
     });
     setStep(2);
-    setFloors([]);
+    setFloors([{ id: "floor-1", name: "Ground Floor" }]);
     setRooms([]);
-    setMeas({});
-    setPhotos({});
-    setWorkItems({});
     setGeneratedBoq(null);
     setSavedBoqs([]);
-    window.__boq_walls = {};
+  }, []);
+
+  const resumeSession = useCallback((draft) => {
+    if (!draft?.session) return;
+    setSession(draft.session);
+    setFloors(draft.floors || []);
+    setRooms(draft.rooms || []);
+    setStep(2);
+    setGeneratedBoq(null);
   }, []);
 
   const goToStep = useCallback((step) => {
@@ -92,12 +120,8 @@ export function BoqProvider({ children }) {
     setStep(1);
     setFloors([]);
     setRooms([]);
-    setMeas({});
-    setPhotos({});
-    setWorkItems({});
     setGeneratedBoq(null);
     setSavedBoqs([]);
-    window.__boq_walls = {};
   }, []);
 
   const generateBoq = useCallback(() => {
@@ -129,15 +153,11 @@ export function BoqProvider({ children }) {
     setFloors,
     rooms,
     setRooms,
-    measurements,
-    setMeas,
-    photos,
-    setPhotos,
-    workItems,
-    setWorkItems,
     generatedBoq,
     savedBoqs,
     startSession,
+    resumeSession,
+    loadDrafts,
     goToStep,
     nextStep,
     prevStep,
@@ -148,4 +168,4 @@ export function BoqProvider({ children }) {
   };
 
   return <QasContext.Provider value={value}>{children}</QasContext.Provider>;
-}
+};

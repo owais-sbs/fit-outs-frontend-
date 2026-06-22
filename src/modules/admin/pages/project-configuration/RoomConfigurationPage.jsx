@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -29,12 +30,16 @@ import {
   fetchRoomMasters,
   createRoomMaster,
   updateRoomMaster,
-  deleteRoomMaster
+  deleteRoomMaster,
+  fetchRoomTypeById,
 } from "../../api/room-type.api";
+import { fetchWorkItems, fetchWorkItemMasters } from "../../api/work-item.api";
 
 export default function RoomConfigurationPage() {
   const [rooms, setRooms] = useState([]);
   const [roomMasters, setRoomMasters] = useState([]);
+  const [allWorkItems, setAllWorkItems] = useState([]);
+  const [workItemMasters, setWorkItemMasters] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -71,7 +76,8 @@ export default function RoomConfigurationPage() {
     name: "",
     code: "",
     description: "",
-    active: true
+    active: true,
+    workItemIds: [],
   });
 
   // Validation States
@@ -90,6 +96,20 @@ export default function RoomConfigurationPage() {
   };
 
   // Load all rooms and work items
+  const loadWorkItems = async () => {
+    try {
+      const [itemsRes, mastersRes] = await Promise.all([
+        fetchWorkItems({}, 0, 500),
+        fetchWorkItemMasters(),
+      ]);
+      const items = itemsRes?.content ?? itemsRes?.items ?? (Array.isArray(itemsRes) ? itemsRes : []);
+      setAllWorkItems(items.filter((w) => w.active !== false));
+      setWorkItemMasters(mastersRes || []);
+    } catch (e) {
+      console.error("Error loading work items", e);
+    }
+  };
+
   const loadRooms = async () => {
     setIsLoading(true);
     try {
@@ -111,6 +131,7 @@ export default function RoomConfigurationPage() {
 
   useEffect(() => {
     loadRoomMasters();
+    loadWorkItems();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -184,17 +205,27 @@ export default function RoomConfigurationPage() {
       name: "",
       code: "",
       description: "",
-      active: true
+      active: true,
+      workItemIds: [],
     });
     setSelectedRoom(null);
     setIsFormModalOpen(true);
   };
 
-  const handleOpenEditModal = (room) => {
+  const handleOpenEditModal = async (room) => {
     setFormErrors({});
     setFormStep(1);
     setParentMode("existing");
-    
+    setSelectedRoom(room);
+
+    let workItemIds = room.workItemIds || [];
+    try {
+      const detail = await fetchRoomTypeById(room.id);
+      workItemIds = detail.workItemIds || workItemIds;
+    } catch (e) {
+      console.error(e);
+    }
+
     setFormData({
       roomMasterId: room.roomMasterId || "",
       newMasterName: "",
@@ -202,10 +233,34 @@ export default function RoomConfigurationPage() {
       name: room.roomTypeName,
       code: room.roomCode,
       description: room.description || "",
-      active: room.active ?? true
+      active: room.active ?? true,
+      workItemIds,
     });
-    setSelectedRoom(room);
     setIsFormModalOpen(true);
+  };
+
+  const toggleWorkItemId = (workItemId, checked) => {
+    setFormData((prev) => {
+      const set = new Set(prev.workItemIds || []);
+      if (checked) set.add(workItemId);
+      else set.delete(workItemId);
+      return { ...prev, workItemIds: Array.from(set) };
+    });
+  };
+
+  const workItemsByMaster = () => {
+    const groups = {};
+    workItemMasters.forEach((m) => {
+      groups[m.id] = { masterName: m.name, items: [] };
+    });
+    allWorkItems.forEach((item) => {
+      const mId = item.workItemMasterId || "unassigned";
+      if (!groups[mId]) {
+        groups[mId] = { masterName: item.workItemMasterName || "Unassigned", items: [] };
+      }
+      groups[mId].items.push(item);
+    });
+    return Object.entries(groups).filter(([, g]) => g.items.length > 0);
   };
 
   const handleInputChange = (field, value) => {
@@ -292,7 +347,8 @@ export default function RoomConfigurationPage() {
         roomTypeName: formData.name.trim(),
         roomCode: formData.code.trim().toUpperCase(),
         roomMasterId: masterId,
-        description: formData.description.trim()
+        description: formData.description.trim(),
+        workItemIds: formData.workItemIds || [],
       };
 
       if (selectedRoom) {
@@ -810,6 +866,38 @@ export default function RoomConfigurationPage() {
                 onChange={(e) => handleInputChange("description", e.target.value)}
                 rows={3}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Assigned work items</Label>
+              <p className="text-[11px] text-muted-foreground">
+                These appear as a checklist when surveying this room type in QAS.
+              </p>
+              <div className="max-h-48 overflow-y-auto border rounded-lg p-3 space-y-3">
+                {workItemsByMaster().length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No work items configured yet. Add them in Work Item Configuration.</p>
+                ) : (
+                  workItemsByMaster().map(([masterId, group]) => (
+                    <div key={masterId}>
+                      <p className="text-[11px] font-semibold uppercase text-muted-foreground mb-1.5">{group.masterName}</p>
+                      <div className="space-y-1.5">
+                        {group.items.map((item) => (
+                          <label key={item.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                            <Checkbox
+                              checked={(formData.workItemIds || []).includes(item.id)}
+                              onCheckedChange={(checked) => toggleWorkItemId(item.id, !!checked)}
+                            />
+                            <span className="flex-1">{item.workItemName}</span>
+                            <span className="text-xs text-muted-foreground tabular-nums">
+                              {item.defaultRate != null ? `${item.defaultRate} / ${item.unitType || "SQM"}` : "—"}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
 
             <div className="flex items-center gap-3 p-3 bg-muted/40 border rounded-lg">

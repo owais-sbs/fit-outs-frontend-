@@ -14,7 +14,10 @@ export default function BoqProgressBar() {
             const isCompleted = step.id < currentStep;
             const isActive = step.id === currentStep;
             const qasComplete = session?.status === QAS_STATUS.COMPLETED;
-            const isLocked = (step.id > currentStep && !session) || (step.id === 6 && !qasComplete && currentStep < 6);
+            const isLocked =
+              (step.id === 2 && !session) ||
+              (step.id === 3 && !session) ||
+              (step.id === 3 && currentStep < 3 && !qasComplete);
 
             return (
               <div key={step.id} className="flex items-center shrink-0">
