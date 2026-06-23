@@ -68,6 +68,38 @@ export function calcLineAmount(quantity, rate) {
   return parseFloat((q * r).toFixed(2));
 }
 
+export function getSelectionDimensions(sel, roomDimensions = {}) {
+  if (sel.dimensionSource === "custom") {
+    return {
+      length: sel.customLength ?? "",
+      width: sel.customWidth ?? "",
+      height: sel.customHeight ?? "",
+    };
+  }
+  return roomDimensions;
+}
+
+export function formatSelectionDims(sel, roomDimensions = {}) {
+  const dims = getSelectionDimensions(sel, roomDimensions);
+  const l = dims.length;
+  const w = dims.width;
+  const h = dims.height;
+  if (l && w && h) return `${l}m × ${w}m × ${h}m`;
+  if (l && w) return `${l}m × ${w}m`;
+  return null;
+}
+
+export function recalcSelection(sel, roomDimensions = {}) {
+  const dims = getSelectionDimensions(sel, roomDimensions);
+  const quantity = resolveWorkItemQuantity(sel, dims);
+  const rate = parseFloat(sel.defaultRate) || 0;
+  return {
+    ...sel,
+    quantity,
+    amount: sel.selected ? calcLineAmount(quantity, rate) : 0,
+  };
+}
+
 export function buildSelectionsFromWorkItems(workItems = [], dimensions = {}, existingSelections = []) {
   const existingMap = new Map(
     (existingSelections || []).map((s) => [s.workItemId, s])
@@ -75,36 +107,29 @@ export function buildSelectionsFromWorkItems(workItems = [], dimensions = {}, ex
 
   return workItems.map((item) => {
     const existing = existingMap.get(item.id);
-    const quantity = existing?.quantity ?? resolveWorkItemQuantity(item, dimensions);
-    const rate = parseFloat(item.defaultRate) || 0;
-    return {
+    const base = {
       workItemId: item.id,
       workItemName: item.workItemName,
       workItemMasterId: item.workItemMasterId,
       workItemMasterName: item.workItemMasterName || "Other",
       unitType: item.unitType,
-      defaultRate: rate,
+      defaultRate: parseFloat(item.defaultRate) || 0,
       quantityFormulaType: item.quantityFormulaType,
       floorApplicable: item.floorApplicable,
       wallApplicable: item.wallApplicable,
       ceilingApplicable: item.ceilingApplicable,
       selected: existing?.selected ?? false,
-      quantity,
-      amount: calcLineAmount(quantity, rate),
+      dimensionSource: existing?.dimensionSource ?? "room",
+      customLength: existing?.customLength ?? "",
+      customWidth: existing?.customWidth ?? "",
+      customHeight: existing?.customHeight ?? "",
     };
+    return recalcSelection(base, dimensions);
   });
 }
 
-export function recalcRoomSelections(selections = [], dimensions = {}) {
-  return selections.map((sel) => {
-    const quantity = resolveWorkItemQuantity(sel, dimensions);
-    const rate = parseFloat(sel.defaultRate) || 0;
-    return {
-      ...sel,
-      quantity,
-      amount: sel.selected ? calcLineAmount(quantity, rate) : 0,
-    };
-  });
+export function recalcRoomSelections(selections = [], roomDimensions = {}) {
+  return selections.map((sel) => recalcSelection(sel, roomDimensions));
 }
 
 export function roomSurveyTotal(selections = []) {

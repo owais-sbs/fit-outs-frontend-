@@ -1,6 +1,7 @@
 import {
   buildSelectionsFromWorkItems,
   calcLineAmount,
+  formatSelectionDims,
   recalcRoomSelections,
   resolveWorkItemQuantity,
   roomSurveyTotal,
@@ -52,10 +53,11 @@ export function buildBoqLines(floors, rooms) {
             qty,
             rate,
             amount,
-            dims:
-              room.length && room.width
-                ? `${room.length}m × ${room.width}m`
-                : null,
+            dims: formatSelectionDims(sel, {
+              length: room.length,
+              width: room.width,
+              height: room.height,
+            }),
           });
         });
     });

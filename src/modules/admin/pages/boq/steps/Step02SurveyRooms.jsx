@@ -19,7 +19,7 @@ import { useBoq, QAS_TOTAL_STEPS } from "../BoqEngine";
 import { fetchRoomTypes, fetchRoomTypeById } from "@/modules/admin/api/room-type.api";
 import {
   buildSelectionsFromWorkItems,
-  recalcRoomSelections,
+  recalcSelection,
   roomSurveyTotal,
   formatCurrency,
   unitLabel,
@@ -43,7 +43,7 @@ function groupSelectionsByMaster(selections = []) {
 
 function RoomSurveyCard({ room, floorName, roomTypes, onUpdate, onRemove }) {
   const [loadingItems, setLoadingItems] = useState(false);
-  const dimensions = useMemo(
+  const roomDimensions = useMemo(
     () => ({
       length: room.length,
       width: room.width,
@@ -96,21 +96,47 @@ function RoomSurveyCard({ room, floorName, roomTypes, onUpdate, onRemove }) {
 
   const patchDimensions = (field, value) => {
     const next = { ...room, [field]: value };
-    const selections = recalcRoomSelections(next.selections || [], {
-      length: next.length,
-      width: next.width,
-      height: next.height,
+    const selections = (next.selections || []).map((sel) => {
+      if (sel.dimensionSource === "custom") return sel;
+      return recalcSelection(sel, {
+        length: next.length,
+        width: next.width,
+        height: next.height,
+      });
     });
     onUpdate({ ...next, selections });
   };
 
-  const toggleSelection = (workItemId, checked) => {
+  const updateSelection = (workItemId, updater) => {
     const selections = (room.selections || []).map((sel) => {
       if (sel.workItemId !== workItemId) return sel;
-      const amount = checked ? sel.quantity * sel.defaultRate : 0;
-      return { ...sel, selected: checked, amount: parseFloat(amount.toFixed(2)) };
+      const next = updater(sel);
+      return recalcSelection(next, roomDimensions);
     });
     onUpdate({ ...room, selections });
+  };
+
+  const toggleSelection = (workItemId, checked) => {
+    updateSelection(workItemId, (sel) => ({ ...sel, selected: checked }));
+  };
+
+  const setDimensionSource = (workItemId, source) => {
+    updateSelection(workItemId, (sel) => {
+      if (source === "custom") {
+        return {
+          ...sel,
+          dimensionSource: "custom",
+          customLength: sel.customLength || room.length || "",
+          customWidth: sel.customWidth || room.width || "",
+          customHeight: sel.customHeight || room.height || "",
+        };
+      }
+      return { ...sel, dimensionSource: "room" };
+    });
+  };
+
+  const patchCustomDimension = (workItemId, field, value) => {
+    updateSelection(workItemId, (sel) => ({ ...sel, [field]: value }));
   };
 
   const grouped = groupSelectionsByMaster(room.selections);
@@ -211,24 +237,104 @@ function RoomSurveyCard({ room, floorName, roomTypes, onUpdate, onRemove }) {
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{masterName}</p>
             <div className="space-y-1.5">
               {items.map((sel) => (
-                <label
+                <div
                   key={sel.workItemId}
-                  className="flex items-center gap-3 rounded-md border px-3 py-2 cursor-pointer hover:bg-muted/40"
+                  className="rounded-md border px-3 py-2 hover:bg-muted/40"
                 >
-                  <Checkbox
-                    checked={!!sel.selected}
-                    onCheckedChange={(checked) => toggleSelection(sel.workItemId, !!checked)}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{sel.workItemName}</p>
-                    <p className="text-[11px] text-muted-foreground">
-                      {sel.quantity} {unitLabel(sel.unitType)} × {formatCurrency(sel.defaultRate)}
-                    </p>
+                  <div className="flex items-center gap-3">
+                    <Checkbox
+                      checked={!!sel.selected}
+                      onCheckedChange={(checked) => toggleSelection(sel.workItemId, !!checked)}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{sel.workItemName}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {sel.quantity} {unitLabel(sel.unitType)} × {formatCurrency(sel.defaultRate)}
+                        {sel.dimensionSource === "custom" && (
+                          <span className="ml-1 text-amber-700">· custom dims</span>
+                        )}
+                      </p>
+                    </div>
+                    <span className="text-sm font-semibold tabular-nums shrink-0">
+                      {sel.selected ? formatCurrency(sel.amount) : "—"}
+                    </span>
                   </div>
-                  <span className="text-sm font-semibold tabular-nums shrink-0">
-                    {sel.selected ? formatCurrency(sel.amount) : "—"}
-                  </span>
-                </label>
+
+                  <div className="mt-2 ml-7 space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
+                        Dimensions
+                      </span>
+                      <div className="flex rounded-md border overflow-hidden">
+                        <button
+                          type="button"
+                          onClick={() => setDimensionSource(sel.workItemId, "room")}
+                          className={`px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                            sel.dimensionSource !== "custom"
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-background text-muted-foreground hover:bg-muted/60"
+                          }`}
+                        >
+                          Use room
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDimensionSource(sel.workItemId, "custom")}
+                          className={`px-2.5 py-1 text-[11px] font-medium border-l transition-colors ${
+                            sel.dimensionSource === "custom"
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-background text-muted-foreground hover:bg-muted/60"
+                          }`}
+                        >
+                          Custom
+                        </button>
+                      </div>
+                      {sel.dimensionSource !== "custom" && (
+                        <span className="text-[11px] text-muted-foreground tabular-nums">
+                          {room.length || "—"} × {room.width || "—"} × {room.height || "—"} m
+                        </span>
+                      )}
+                    </div>
+
+                    {sel.dimensionSource === "custom" && (
+                      <div className="grid grid-cols-3 gap-2 max-w-xs">
+                        <div className="space-y-1">
+                          <Label className="text-[10px] text-muted-foreground">L (m)</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            className="h-8 text-xs"
+                            value={sel.customLength ?? ""}
+                            onChange={(e) => patchCustomDimension(sel.workItemId, "customLength", e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[10px] text-muted-foreground">W (m)</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            className="h-8 text-xs"
+                            value={sel.customWidth ?? ""}
+                            onChange={(e) => patchCustomDimension(sel.workItemId, "customWidth", e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[10px] text-muted-foreground">H (m)</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            className="h-8 text-xs"
+                            value={sel.customHeight ?? ""}
+                            onChange={(e) => patchCustomDimension(sel.workItemId, "customHeight", e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               ))}
             </div>
           </div>
