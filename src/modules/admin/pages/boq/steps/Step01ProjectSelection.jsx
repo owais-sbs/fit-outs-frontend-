@@ -2,13 +2,14 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Search, RotateCcw, MapPin, X,
   Building2, Users, LayoutGrid, CalendarDays,
-  Eye, PlayCircle, Info,
+  Eye, PlayCircle, Info, FileText, ClipboardList,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useBoq, QAS_TOTAL_STEPS } from "../BoqEngine";
+import { formatCurrency } from "../quantityCalcUtils";
 import { fetchAllProjects } from "@/modules/admin/api/projects.api";
 import { fetchAllClients } from "@/modules/admin/api/clients.api";
 
@@ -92,8 +93,9 @@ const MOCK_CLIENT_MAP = new Map([
 const PROJECT_TYPES = ["All Types", "Commercial", "Residential", "Interior", "Renovation", "Construction"];
 
 // ─── Project Summary Drawer ───────────────────────────────────────────────────
-function ProjectDrawer({ project, clientName, onClose, onStart }) {
+function ProjectDrawer({ project, clientName, projectDrafts, onClose, onStart, onResumeBoq, onResumeQas }) {
   if (!project) return null;
+  const { boq: boqDrafts = [], qas: qasDrafts = [] } = projectDrafts || {};
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -127,12 +129,43 @@ function ProjectDrawer({ project, clientName, onClose, onStart }) {
             <InfoRow icon={CalendarDays} label="Created"    value={project.createdAt ? new Date(project.createdAt).toLocaleDateString("en-AU") : "—"} />
           </div>
 
-          <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wider text-primary">QAS Status</p>
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Info className="h-4 w-4 shrink-0" />
-              <p className="text-sm">No QAS started yet — click below to begin.</p>
-            </div>
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-wider text-primary">Saved Work</p>
+            {boqDrafts.length === 0 && qasDrafts.length === 0 ? (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Info className="h-4 w-4 shrink-0" />
+                <p className="text-sm">No saved drafts — click below to begin.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {boqDrafts.map((draft) => (
+                  <div key={draft.projectId} className="flex items-center justify-between gap-2 rounded-lg border bg-background px-3 py-2">
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold truncate">{draft.boqRef}</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {draft.status} · {formatCurrency(draft.grandTotal)}
+                      </p>
+                    </div>
+                    <Button size="sm" variant="outline" className="h-7 text-xs shrink-0" onClick={() => onResumeBoq(draft.entry)}>
+                      Open BOQ
+                    </Button>
+                  </div>
+                ))}
+                {qasDrafts.map((draft) => (
+                  <div key={draft.projectId} className="flex items-center justify-between gap-2 rounded-lg border bg-background px-3 py-2">
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold truncate">{draft.qasRef}</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        Survey in progress · {draft.roomCount} room{draft.roomCount !== 1 ? "s" : ""}
+                      </p>
+                    </div>
+                    <Button size="sm" variant="outline" className="h-7 text-xs shrink-0" onClick={() => onResumeQas(draft.entry)}>
+                      Resume
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -165,7 +198,7 @@ function InfoRow({ icon: Icon, label, value }) {
 
 // ─── Main Step 1 ─────────────────────────────────────────────────────────────
 export default function Step01ProjectSelection() {
-  const { startSession } = useBoq();
+  const { startSession, resumeSession, listStoredBoqDrafts, listStoredQasDrafts, getDraftsForProject } = useBoq();
 
   const [projects, setProjects]   = useState([]);
   const [clientMap, setClientMap] = useState(new Map());
@@ -173,6 +206,17 @@ export default function Step01ProjectSelection() {
   const [search, setSearch]       = useState("");
   const [filterType, setType]     = useState("All Types");
   const [selected, setSelected]   = useState(null);
+  const [boqDrafts, setBoqDrafts] = useState([]);
+  const [qasDrafts, setQasDrafts] = useState([]);
+
+  const refreshDrafts = useCallback(() => {
+    setBoqDrafts(listStoredBoqDrafts());
+    setQasDrafts(listStoredQasDrafts());
+  }, [listStoredBoqDrafts, listStoredQasDrafts]);
+
+  useEffect(() => {
+    refreshDrafts();
+  }, [refreshDrafts]);
 
   const loadData = useCallback(() => {
     setLoading(true);
@@ -216,6 +260,16 @@ export default function Step01ProjectSelection() {
     ? clientMap.get(String(selected.clientId))?.fullName || "—"
     : "";
 
+  const handleResumeBoq = (entry) => {
+    setSelected(null);
+    resumeSession(entry);
+  };
+
+  const handleResumeQas = (entry) => {
+    setSelected(null);
+    resumeSession(entry);
+  };
+
   return (
     <div className="space-y-5">
       {/* ── Step header ── */}
@@ -229,6 +283,82 @@ export default function Step01ProjectSelection() {
           Select a project to begin the QAS workflow.
         </p>
       </div>
+
+      {(boqDrafts.length > 0 || qasDrafts.length > 0) && (
+        <Card className="border-primary/20 shadow-sm">
+          <CardHeader className="border-b border-border/60 bg-primary/5 py-3 px-6">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <FileText className="h-4 w-4 text-primary" />
+              Saved Drafts
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr className="border-b border-border/60 bg-muted/10">
+                    {["Type", "Reference", "Project", "Status", "Saved", "Total", ""].map((h) => (
+                      <th key={h} className="py-2.5 px-4 first:pl-6 last:pr-6 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/40">
+                  {boqDrafts.map((draft) => (
+                    <tr key={draft.projectId} className="hover:bg-muted/20">
+                      <td className="py-3 px-4 pl-6">
+                        <Badge variant="outline" className="text-[10px]">BOQ</Badge>
+                      </td>
+                      <td className="py-3 px-4 font-mono text-xs">{draft.boqRef}</td>
+                      <td className="py-3 px-4 font-medium">{draft.projectName}</td>
+                      <td className="py-3 px-4">
+                        <Badge variant={draft.status === "final" ? "default" : "secondary"} className="text-xs capitalize">
+                          {draft.status}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4 text-xs text-muted-foreground">
+                        {draft.savedAt ? new Date(draft.savedAt).toLocaleString("en-AE") : "—"}
+                      </td>
+                      <td className="py-3 px-4 text-sm font-semibold tabular-nums">
+                        {formatCurrency(draft.grandTotal)}
+                      </td>
+                      <td className="py-3 px-4 pr-6 text-right">
+                        <Button size="sm" className="h-7 text-xs gap-1" onClick={() => handleResumeBoq(draft.entry)}>
+                          <FileText className="h-3.5 w-3.5" /> Open BOQ
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                  {qasDrafts.map((draft) => (
+                    <tr key={draft.projectId} className="hover:bg-muted/20">
+                      <td className="py-3 px-4 pl-6">
+                        <Badge variant="outline" className="text-[10px]">QAS Survey</Badge>
+                      </td>
+                      <td className="py-3 px-4 font-mono text-xs">{draft.qasRef}</td>
+                      <td className="py-3 px-4 font-medium">{draft.projectName}</td>
+                      <td className="py-3 px-4">
+                        <Badge variant="secondary" className="text-xs">In progress</Badge>
+                      </td>
+                      <td className="py-3 px-4 text-xs text-muted-foreground">
+                        {draft.savedAt ? new Date(draft.savedAt).toLocaleString("en-AE") : "—"}
+                      </td>
+                      <td className="py-3 px-4 text-xs text-muted-foreground">
+                        {draft.roomCount} room{draft.roomCount !== 1 ? "s" : ""}
+                      </td>
+                      <td className="py-3 px-4 pr-6 text-right">
+                        <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => handleResumeQas(draft.entry)}>
+                          <ClipboardList className="h-3.5 w-3.5" /> Resume Survey
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* ── Filter bar ── */}
       <Card className="border-border/60 shadow-sm">
@@ -307,6 +437,9 @@ export default function Step01ProjectSelection() {
               ) : (
                 filtered.map((project) => {
                   const clientName = clientMap.get(String(project.clientId))?.fullName || "—";
+                  const projectDrafts = getDraftsForProject(project.id, boqDrafts, qasDrafts);
+                  const projectBoq = projectDrafts.boq[0];
+                  const projectQas = projectDrafts.qas[0];
                   return (
                     <tr
                       key={project.id}
@@ -335,14 +468,27 @@ export default function Step01ProjectSelection() {
                         {project.createdAt ? new Date(project.createdAt).toLocaleDateString("en-AU") : "—"}
                       </td>
                       <td className="py-3.5 px-4">
-                        <Badge variant={project.isActive ? "success" : "secondary"} className="text-xs">
-                          {project.isActive ? "Active" : "Inactive"}
-                        </Badge>
+                        <div className="flex flex-col gap-1 items-start">
+                          <Badge variant={project.isActive ? "success" : "secondary"} className="text-xs">
+                            {project.isActive ? "Active" : "Inactive"}
+                          </Badge>
+                          {projectBoq && (
+                            <Badge variant="outline" className="text-[10px] text-primary border-primary/30">
+                              BOQ draft
+                            </Badge>
+                          )}
+                          {!projectBoq && projectQas && (
+                            <Badge variant="outline" className="text-[10px] text-amber-700 border-amber-300">
+                              Survey in progress
+                            </Badge>
+                          )}
+                        </div>
                       </td>
                       <td className="py-3.5 px-4 pr-6">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <Button
-                            size="sm" variant="ghost"
+                            size="sm"
+                            variant="ghost"
                             className="h-7 gap-1 text-xs"
                             onClick={(e) => { e.stopPropagation(); setSelected(project); }}
                           >
@@ -354,8 +500,13 @@ export default function Step01ProjectSelection() {
                             className="h-7 gap-1 text-xs"
                             onClick={(e) => { e.stopPropagation(); startSession(project); }}
                           >
-                            <PlayCircle className="h-3.5 w-3.5" />
-                            Start QAS
+                            {projectBoq ? (
+                              <><FileText className="h-3.5 w-3.5" /> Open BOQ</>
+                            ) : projectQas ? (
+                              <><ClipboardList className="h-3.5 w-3.5" /> Resume Survey</>
+                            ) : (
+                              <><PlayCircle className="h-3.5 w-3.5" /> Start QAS</>
+                            )}
                           </Button>
                         </div>
                       </td>
@@ -384,8 +535,11 @@ export default function Step01ProjectSelection() {
         <ProjectDrawer
           project={selected}
           clientName={selectedClient}
+          projectDrafts={getDraftsForProject(selected.id, boqDrafts, qasDrafts)}
           onClose={() => setSelected(null)}
           onStart={(p) => { setSelected(null); startSession(p); }}
+          onResumeBoq={handleResumeBoq}
+          onResumeQas={handleResumeQas}
         />
       )}
     </div>

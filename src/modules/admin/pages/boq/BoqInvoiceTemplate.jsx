@@ -4,6 +4,7 @@ import {
   BOQ_THEME,
   BOQ_PRINT_COLOR,
   buildBoqHierarchy,
+  buildAdditionalHierarchy,
   formatBoqAmount,
   resolveSurface,
 } from "./boqTheme";
@@ -34,13 +35,18 @@ export default function BoqInvoiceTemplate({ boq, floors, rooms }) {
   const projectName = project.projectName || project.name || "Project";
   const clientName = project.clientName || project.client || "N/A";
   const hierarchy = buildBoqHierarchy(floors, rooms, boq.lines);
+  const additionalGroups = buildAdditionalHierarchy(boq.lines);
   const currency = boq.currency || "AED";
+  const qasLineCount = (boq.lines || []).filter((l) => l.source !== "additional").length;
+  const additionalLineCount = (boq.lines || []).filter((l) => l.source === "additional").length;
 
   const metaItems = [
     { label: "Project", value: projectName },
     { label: "Client", value: clientName },
     { label: "BOQ Reference", value: boq.ref, highlight: true },
-    { label: "Total Items", value: String(boq.lines.length) },
+    { label: "Status", value: (boq.status || "draft").toUpperCase(), highlight: boq.status === "final" },
+    { label: "Survey Items", value: String(qasLineCount) },
+    { label: "Additional Items", value: String(additionalLineCount) },
     { label: "Grand Total", value: formatBoqAmount(boq.totals.grandTotal, currency), highlight: true },
   ];
 
@@ -96,10 +102,10 @@ export default function BoqInvoiceTemplate({ boq, floors, rooms }) {
             </tr>
           </thead>
           <tbody>
-            {hierarchy.length === 0 && (
+            {hierarchy.length === 0 && additionalGroups.length === 0 && (
               <tr>
                 <td colSpan={7} className="text-center py-12 text-sm text-gray-500">
-                  No billable items. Complete work items in QAS first.
+                  No billable items. Complete the survey or add charges below.
                 </td>
               </tr>
             )}
@@ -218,6 +224,96 @@ export default function BoqInvoiceTemplate({ boq, floors, rooms }) {
                 ))}
               </Fragment>
             ))}
+
+            {additionalGroups.length > 0 && (
+              <Fragment key="additional-block">
+                <tr
+                  style={{
+                    ...BOQ_PRINT_COLOR,
+                    background: `linear-gradient(90deg, ${BOQ_THEME.navy} 0%, ${BOQ_THEME.navyDark} 100%)`,
+                  }}
+                >
+                  <td colSpan={7} className="px-4 py-3 text-white font-bold text-[13px] uppercase tracking-wide">
+                    Additional Charges &amp; Services
+                  </td>
+                </tr>
+
+                {additionalGroups.map((group) => (
+                  <Fragment key={`cat-${group.categoryCode}`}>
+                    <tr style={{ ...BOQ_PRINT_COLOR, backgroundColor: BOQ_THEME.creamRoom }}>
+                      <td colSpan={5} className="px-4 py-2.5">
+                        <div className="flex items-center gap-2 font-bold text-[13px]" style={{ color: "#1f2937" }}>
+                          <span className="font-mono text-[11px] px-1.5 py-0.5 rounded bg-white border">
+                            {group.categoryCode}
+                          </span>
+                          {group.categoryName}
+                        </div>
+                      </td>
+                      <td
+                        colSpan={2}
+                        className="px-4 py-2.5 text-right font-bold text-[13px]"
+                        style={{ color: "#1f2937", fontVariantNumeric: "tabular-nums" }}
+                      >
+                        {formatBoqAmount(group.total, currency)}
+                      </td>
+                    </tr>
+
+                    {group.lines.map((line, lineIdx) => (
+                      <tr
+                        key={line.id}
+                        style={{
+                          ...BOQ_PRINT_COLOR,
+                          backgroundColor: lineIdx % 2 === 1 ? BOQ_THEME.lineAlt : "#ffffff",
+                          borderBottom: `1px solid ${BOQ_THEME.metaBorder}`,
+                        }}
+                      >
+                        <td
+                          className="px-4 py-3 text-xs align-middle"
+                          style={{ color: "#9ca3af", fontVariantNumeric: "tabular-nums" }}
+                        >
+                          {line.sr}
+                        </td>
+                        <td className="px-4 py-3 align-middle">
+                          <p className="text-[13px] font-medium" style={{ color: "#111827" }}>
+                            {line.description || line.categoryName}
+                          </p>
+                          {line.remarks && (
+                            <p className="text-[10px] text-gray-500 mt-0.5">{line.remarks}</p>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 align-middle">
+                          <SurfaceBadge label={line.categoryCode || "—"} />
+                        </td>
+                        <td
+                          className="px-4 py-3 text-right text-[13px] font-semibold align-middle"
+                          style={{ color: "#111827", fontVariantNumeric: "tabular-nums" }}
+                        >
+                          {line.qty.toFixed(2)}
+                        </td>
+                        <td
+                          className="px-4 py-3 text-right text-[13px] align-middle"
+                          style={{ color: "#4b5563" }}
+                        >
+                          {line.unitShort || line.unit}
+                        </td>
+                        <td
+                          className="px-4 py-3 text-right text-[13px] align-middle"
+                          style={{ color: "#374151", fontVariantNumeric: "tabular-nums" }}
+                        >
+                          {formatBoqAmount(line.rate, currency)}
+                        </td>
+                        <td
+                          className="px-4 py-3 text-right text-[13px] font-bold align-middle"
+                          style={{ color: "#111827", fontVariantNumeric: "tabular-nums" }}
+                        >
+                          {formatBoqAmount(line.amount, currency)}
+                        </td>
+                      </tr>
+                    ))}
+                  </Fragment>
+                ))}
+              </Fragment>
+            )}
           </tbody>
         </table>
       </div>

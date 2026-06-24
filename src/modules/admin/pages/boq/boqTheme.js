@@ -59,13 +59,19 @@ export function resolveSurface(wallName, categoryLabel) {
 }
 
 export function buildBoqHierarchy(floors, rooms, lines) {
+  const qasLines = (lines || []).filter((l) => l.source !== "additional");
+
   return floors
     .map((floor) => {
       const floorRooms = rooms.filter((r) => String(r.floorId) === String(floor.id));
       const roomGroups = floorRooms
         .map((room) => {
-          const roomLines = lines.filter((l) => l.room === room.name && l.floor === floor.name);
-          const roomTotal = roomLines.reduce((s, l) => s + l.amount, 0);
+          const roomLines = qasLines.filter(
+            (l) =>
+              String(l.roomId) === String(room.id) ||
+              (l.floor === floor.name && l.room === (room.name || room.roomTypeName))
+          );
+          const roomTotal = roomLines.reduce((s, l) => s + (parseFloat(l.amount) || 0), 0);
           return { room, lines: roomLines, total: roomTotal };
         })
         .filter((g) => g.lines.length > 0);
@@ -74,4 +80,25 @@ export function buildBoqHierarchy(floors, rooms, lines) {
       return { floor, rooms: roomGroups, total: floorTotal };
     })
     .filter((f) => f.rooms.length > 0);
+}
+
+export function buildAdditionalHierarchy(lines = []) {
+  const additional = (lines || []).filter((l) => l.source === "additional");
+  const groups = {};
+
+  additional.forEach((line) => {
+    const key = line.categoryCode || "OTHER";
+    if (!groups[key]) {
+      groups[key] = {
+        categoryCode: key,
+        categoryName: line.categoryName || line.parent || "Other Charges",
+        lines: [],
+        total: 0,
+      };
+    }
+    groups[key].lines.push(line);
+    groups[key].total += parseFloat(line.amount) || 0;
+  });
+
+  return Object.values(groups).sort((a, b) => a.categoryCode.localeCompare(b.categoryCode));
 }

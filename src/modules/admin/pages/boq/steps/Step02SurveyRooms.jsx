@@ -516,7 +516,7 @@ export default function Step02SurveyRooms() {
           disabled={!canContinue}
           className="gap-1"
         >
-          Generate Quotation
+          Generate BOQ Draft
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
