@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useBoq, QAS_TOTAL_STEPS } from "../BoqEngine";
+import { useBoq } from "../BoqEngine";
 import { fetchRoomTypes, fetchRoomTypeById } from "@/modules/admin/api/room-type.api";
 import {
   buildSelectionsFromWorkItems,
@@ -345,7 +345,7 @@ function RoomSurveyCard({ room, floorName, roomTypes, onUpdate, onRemove }) {
 }
 
 export default function Step02SurveyRooms() {
-  const { floors, setFloors, rooms, setRooms, prevStep, nextStep, session } = useBoq();
+  const { floors, setFloors, rooms, setRooms, prevStep, nextStep } = useBoq();
   const [roomTypes, setRoomTypes] = useState([]);
   const [activeFloorId, setActiveFloorId] = useState(floors[0]?.id || null);
   const [newFloorName, setNewFloorName] = useState("");

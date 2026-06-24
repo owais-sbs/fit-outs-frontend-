@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, MapPin, Clock, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, MapPin, Clock } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,28 +13,11 @@ import { fetchEmployeeSiteVisits } from "@/modules/admin/api/site-visits.api";
 import { fetchAllLeads } from "@/modules/admin/api/leads.api";
 import { fetchAllClients } from "@/modules/admin/api/clients.api";
 
-// ── Mock visits for James Wu ──────────────────────────────────────────────────
-function todayObj() { return new Date(); }
-
+// ── Calendar helpers ──────────────────────────────────────────────────────────
 function ds(y, m, d) {
   return `${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
 }
 
-const t = todayObj();
-const y = t.getFullYear();
-const m = t.getMonth() + 1;
-
-const MY_VISITS = [
-  { id: "v1", project: "Luxury Penthouse Fit-Out", site: "Surry Hills, NSW",  date: ds(y, m, 3),  time: "09:00 AM", status: "Completed", purpose: "Pre-plasterboard inspection" },
-  { id: "v2", project: "Moss Interiors Showroom",  site: "Surry Hills, NSW",  date: ds(y, m, 7),  time: "11:00 AM", status: "Completed", purpose: "Client material review" },
-  { id: "v3", project: "Luxury Penthouse Fit-Out", site: "Sydney CBD, NSW",   date: ds(y, m, 12), time: "09:30 AM", status: "Scheduled", purpose: "Electrical inspection" },
-  { id: "v4", project: "Moss Interiors Showroom",  site: "Surry Hills, NSW",  date: ds(y, m, 15), time: "02:00 PM", status: "Scheduled", purpose: "Design signoff walkthrough" },
-  { id: "v5", project: "Luxury Penthouse Fit-Out", site: "Surry Hills, NSW",  date: ds(y, m, 18), time: "10:00 AM", status: "Scheduled", purpose: "Client progress update" },
-  { id: "v6", project: "Luxury Penthouse Fit-Out", site: "Surry Hills, NSW",  date: ds(y, m, 22), time: "09:00 AM", status: "Scheduled", purpose: "Joinery final check" },
-  { id: "v7", project: "Moss Interiors Showroom",  site: "Surry Hills, NSW",  date: ds(y, m, 25), time: "01:00 PM", status: "Scheduled", purpose: "Handover preparation" },
-];
-
-// ── Calendar helpers ──────────────────────────────────────────────────────────
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const DAYS   = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 

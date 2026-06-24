@@ -11,7 +11,6 @@ import { downloadBoqPdf, printBoqDocument } from "../boqPdfExport";
 
 export default function Step03GenerateQuotation() {
   const {
-    session,
     floors,
     rooms,
     additionalLines,

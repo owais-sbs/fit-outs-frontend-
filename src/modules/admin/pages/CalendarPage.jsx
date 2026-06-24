@@ -7,7 +7,7 @@ import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import StatCard from "@/modules/super-admin/components/StatCard";
 import {
   CALENDAR_EMPLOYEES, CALENDAR_PROJECTS, CALENDAR_SITES,
-  CALENDAR_VISITS, VISIT_STATUSES, getVisitsForMonth,
+  VISIT_STATUSES,
 } from "../data/calendar";
 import { fetchAllSiteVisits } from "../api/site-visits.api";
 import { fetchAllEmployees } from "../api/employees.api";
@@ -285,7 +285,6 @@ export default function CalendarPage() {
   const [year,  setYear]  = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [visits, setVisits] = useState([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -302,9 +301,6 @@ export default function CalendarPage() {
       })
       .catch((err) => {
         console.error("Failed to fetch calendar data:", err);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
       });
     return () => { cancelled = true; };
   }, []);
