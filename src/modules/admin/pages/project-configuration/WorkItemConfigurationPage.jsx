@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
 
 import { 
   fetchWorkItems, 
@@ -28,6 +29,7 @@ import {
   updateWorkItemMaster,
   deleteWorkItemMaster
 } from "../../api/work-item.api";
+import { fetchMaterials } from "../../api/material.api";
 
 const UNIT_TYPES = [
   { value: "SQFT", label: "Sq Ft" },
@@ -49,9 +51,35 @@ const FORMULA_TYPES = [
   { value: "MANUAL", label: "Manual Entry" }
 ];
 
+const computeLineCost = (material, line) => {
+  const cost = Number(material?.costPrice || 0);
+  const qty = Number(line.quantityPerUnit ?? 1);
+  const wastage = Number(line.wastagePercent ?? 0);
+  return cost * qty * (1 + wastage / 100);
+};
+
+const computeMaterialCost = (materialLines, allMaterials) => {
+  if (!materialLines?.length) return 0;
+  return materialLines.reduce((sum, line) => {
+    const mat = allMaterials.find((m) => m.id === line.materialId);
+    return sum + computeLineCost(mat, line);
+  }, 0);
+};
+
+const computeAutoSelling = (cost, markup) => {
+  const c = Number(cost) || 0;
+  const m = Number(markup) || 0;
+  return c * (1 + m / 100);
+};
+
+const formatCurrency = (val) =>
+  `AED ${Number(val || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
 export default function WorkItemConfigurationPage() {
   const [workItems, setWorkItems] = useState([]);
   const [workItemMasters, setWorkItemMasters] = useState([]);
+  const [allMaterials, setAllMaterials] = useState([]);
+  const [materialSearch, setMaterialSearch] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -92,6 +120,11 @@ export default function WorkItemConfigurationPage() {
     unit: "SQFT",
     defaultRate: "",
     subcontractorRate: "",
+    markupPercentage: "0",
+    costPrice: "",
+    costPriceOverride: false,
+    sellingPriceOverride: false,
+    materialLines: [],
     formula: "MANUAL",
     active: true
   });
@@ -99,6 +132,16 @@ export default function WorkItemConfigurationPage() {
   // Validation States
   const [formErrors, setFormErrors] = useState({});
   const [toast, setToast] = useState(null);
+
+  const loadMaterials = async () => {
+    try {
+      const res = await fetchMaterials({ active: true }, 0, 500);
+      const list = res?.content ?? (Array.isArray(res) ? res : []);
+      setAllMaterials(list);
+    } catch (e) {
+      console.error("Error loading materials", e);
+    }
+  };
 
   // Load Work Item Masters
   const loadWorkItemMasters = async () => {
@@ -132,6 +175,7 @@ export default function WorkItemConfigurationPage() {
 
   useEffect(() => {
     loadWorkItemMasters();
+    loadMaterials();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -209,9 +253,15 @@ export default function WorkItemConfigurationPage() {
       unit: "SQFT",
       defaultRate: "",
       subcontractorRate: "",
+      markupPercentage: "0",
+      costPrice: "",
+      costPriceOverride: false,
+      sellingPriceOverride: false,
+      materialLines: [],
       formula: "MANUAL",
       active: true
     });
+    setMaterialSearch("");
     setSelectedItem(null);
     setIsFormModalOpen(true);
   };
@@ -236,11 +286,61 @@ export default function WorkItemConfigurationPage() {
       unit: item.unitType || "SQFT",
       defaultRate: item.defaultRate?.toString() || "",
       subcontractorRate: item.subcontractorRate?.toString() || "",
+      markupPercentage: item.markupPercentage?.toString() || "0",
+      costPrice: item.costPrice?.toString() || "",
+      costPriceOverride: item.costPriceOverride ?? false,
+      sellingPriceOverride: item.sellingPriceOverride ?? false,
+      materialLines: (item.materialLines || []).map((line) => ({
+        materialId: line.materialId,
+        quantityPerUnit: line.quantityPerUnit?.toString() || "1",
+        wastagePercent: line.wastagePercent?.toString() || "0",
+      })),
       formula: item.quantityFormulaType || "MANUAL",
       active: item.active ?? true
     });
+    setMaterialSearch("");
     setSelectedItem(item);
     setIsFormModalOpen(true);
+  };
+
+  const handleMaterialToggle = (materialId, checked) => {
+    setFormData((prev) => {
+      const lines = [...(prev.materialLines || [])];
+      const idx = lines.findIndex((l) => l.materialId === materialId);
+      if (checked && idx === -1) {
+        lines.push({ materialId, quantityPerUnit: "1", wastagePercent: "0" });
+      } else if (!checked && idx !== -1) {
+        lines.splice(idx, 1);
+      }
+      const next = { ...prev, materialLines: lines };
+      if (!prev.costPriceOverride) {
+        const computed = computeMaterialCost(lines, allMaterials);
+        next.costPrice = computed.toFixed(2);
+      }
+      if (!prev.sellingPriceOverride) {
+        const cost = prev.costPriceOverride ? parseFloat(prev.costPrice) || 0 : computeMaterialCost(lines, allMaterials);
+        next.defaultRate = computeAutoSelling(cost, prev.markupPercentage).toFixed(2);
+      }
+      return next;
+    });
+  };
+
+  const handleMaterialLineChange = (materialId, field, value) => {
+    setFormData((prev) => {
+      const lines = (prev.materialLines || []).map((l) =>
+        l.materialId === materialId ? { ...l, [field]: value } : l
+      );
+      const next = { ...prev, materialLines: lines };
+      if (!prev.costPriceOverride) {
+        const computed = computeMaterialCost(lines, allMaterials);
+        next.costPrice = computed.toFixed(2);
+      }
+      if (!prev.sellingPriceOverride) {
+        const cost = prev.costPriceOverride ? parseFloat(prev.costPrice) || 0 : computeMaterialCost(lines, allMaterials);
+        next.defaultRate = computeAutoSelling(cost, prev.markupPercentage).toFixed(2);
+      }
+      return next;
+    });
   };
 
   const handleInputChange = (field, value) => {
@@ -256,6 +356,33 @@ export default function WorkItemConfigurationPage() {
       if (field === "name" && !selectedItem && (!prev.code || prev.code.startsWith("WI-"))) {
         next.code = `WI-${value.replace(/\s+/g, "").substring(0, 8).toUpperCase()}`;
       }
+
+      if (field === "markupPercentage" && !prev.sellingPriceOverride) {
+        const cost = prev.costPriceOverride
+          ? parseFloat(prev.costPrice) || 0
+          : computeMaterialCost(prev.materialLines, allMaterials);
+        next.defaultRate = computeAutoSelling(cost, value).toFixed(2);
+      }
+
+      if (field === "costPrice" && prev.costPriceOverride && !prev.sellingPriceOverride) {
+        next.defaultRate = computeAutoSelling(value, prev.markupPercentage).toFixed(2);
+      }
+
+      if (field === "costPriceOverride" && value === false) {
+        const computed = computeMaterialCost(prev.materialLines, allMaterials);
+        next.costPrice = computed.toFixed(2);
+        if (!prev.sellingPriceOverride) {
+          next.defaultRate = computeAutoSelling(computed, prev.markupPercentage).toFixed(2);
+        }
+      }
+
+      if (field === "sellingPriceOverride" && value === false) {
+        const cost = prev.costPriceOverride
+          ? parseFloat(prev.costPrice) || 0
+          : computeMaterialCost(prev.materialLines, allMaterials);
+        next.defaultRate = computeAutoSelling(cost, prev.markupPercentage).toFixed(2);
+      }
+
       return next;
     });
 
@@ -319,8 +446,18 @@ export default function WorkItemConfigurationPage() {
     }
 
     const rate = parseFloat(formData.defaultRate) || 0;
-    if (!formData.defaultRate || rate <= 0) {
-      errors.defaultRate = "Selling Price must be a positive number.";
+    if (formData.sellingPriceOverride && (!formData.defaultRate || rate <= 0)) {
+      errors.defaultRate = "Selling Price must be a positive number when manual.";
+    }
+
+    if (!formData.sellingPriceOverride) {
+      const autoRate = computeAutoSelling(
+        formData.costPriceOverride ? parseFloat(formData.costPrice) : computeMaterialCost(formData.materialLines, allMaterials),
+        formData.markupPercentage
+      );
+      if (autoRate <= 0) {
+        errors.defaultRate = "Auto selling price must be positive. Add materials or set cost/markup.";
+      }
     }
 
     const subRate = parseFloat(formData.subcontractorRate) || 0;
@@ -359,6 +496,13 @@ export default function WorkItemConfigurationPage() {
       }
 
       // 2. Create or Update work item
+      const computedCost = formData.costPriceOverride
+        ? parseFloat(formData.costPrice)
+        : computeMaterialCost(formData.materialLines, allMaterials);
+      const computedSelling = formData.sellingPriceOverride
+        ? parseFloat(formData.defaultRate)
+        : computeAutoSelling(computedCost, formData.markupPercentage);
+
       const payload = {
         workItemName: formData.name.trim(),
         workItemCode: formData.code.trim().toUpperCase(),
@@ -368,8 +512,17 @@ export default function WorkItemConfigurationPage() {
         wallApplicable: formData.surface.includes("Wall"),
         floorApplicable: formData.surface.includes("Floor"),
         unitType: formData.unit,
-        defaultRate: parseFloat(formData.defaultRate),
+        defaultRate: computedSelling,
         subcontractorRate: parseFloat(formData.subcontractorRate),
+        markupPercentage: parseFloat(formData.markupPercentage) || 0,
+        costPrice: computedCost,
+        costPriceOverride: formData.costPriceOverride,
+        sellingPriceOverride: formData.sellingPriceOverride,
+        materialLines: (formData.materialLines || []).map((line) => ({
+          materialId: line.materialId,
+          quantityPerUnit: parseFloat(line.quantityPerUnit) || 1,
+          wastagePercent: parseFloat(line.wastagePercent) || 0,
+        })),
         quantityFormulaType: formData.formula,
         icon: "Wrench",
         colorTag: "blue"
@@ -558,15 +711,16 @@ export default function WorkItemConfigurationPage() {
                 ))}
               </div>
             ) : groupedData.length > 0 ? (
-              <Table className="min-w-[950px]">
+              <Table className="min-w-[1050px]">
                 <TableHeader className="bg-muted/30">
                   <TableRow>
-                    <TableHead className="w-[25%]">Work Category (Parent)</TableHead>
-                    <TableHead className="w-[25%]">Work Items (Child)</TableHead>
-                    <TableHead className="w-[12%]">Unit Type</TableHead>
-                    <TableHead className="w-[12%]">Selling Price (To Customer)</TableHead>
-                    <TableHead className="w-[12%]">Subcontractor Price</TableHead>
-                    <TableHead className="w-[14%] text-right">Actions</TableHead>
+                    <TableHead className="w-[22%]">Work Category (Parent)</TableHead>
+                    <TableHead className="w-[22%]">Work Items (Child)</TableHead>
+                    <TableHead className="w-[10%]">Unit Type</TableHead>
+                    <TableHead className="w-[10%]">Cost Price</TableHead>
+                    <TableHead className="w-[10%]">Selling Price</TableHead>
+                    <TableHead className="w-[10%]">Subcontractor</TableHead>
+                    <TableHead className="w-[16%] text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -605,7 +759,7 @@ export default function WorkItemConfigurationPage() {
                                 </div>
                               </div>
                             </TableCell>
-                            <TableCell colSpan={5} className="text-muted-foreground italic text-xs py-4 text-center">
+                            <TableCell colSpan={6} className="text-muted-foreground italic text-xs py-4 text-center">
                               No work items defined under this category.
                             </TableCell>
                           </TableRow>
@@ -670,11 +824,14 @@ export default function WorkItemConfigurationPage() {
                                         {UNIT_TYPES.find(u => u.value === item.unitType)?.label || item.unitType}
                                       </span>
                                     </TableCell>
+                                    <TableCell className="font-medium text-xs text-muted-foreground">
+                                      {formatCurrency(item.costPrice)}
+                                    </TableCell>
                                     <TableCell className="font-bold text-xs text-foreground">
-                                      AED {item.defaultRate?.toFixed(2) || "0.00"}
+                                      {formatCurrency(item.defaultRate)}
                                     </TableCell>
                                     <TableCell className="font-bold text-xs text-amber-700">
-                                      AED {item.subcontractorRate?.toFixed(2) || "0.00"}
+                                      {formatCurrency(item.subcontractorRate)}
                                     </TableCell>
                                     <TableCell className="text-right">
                                       <div className="flex justify-end gap-1">
@@ -709,7 +866,7 @@ export default function WorkItemConfigurationPage() {
                                     </TableCell>
                                   </>
                                 ) : (
-                                  <TableCell colSpan={5} className="text-xs text-muted-foreground py-3 italic bg-muted/5">
+                                  <TableCell colSpan={6} className="text-xs text-muted-foreground py-3 italic bg-muted/5">
                                     Category items collapsed. Click arrow to expand.
                                   </TableCell>
                                 )}
@@ -927,50 +1084,182 @@ export default function WorkItemConfigurationPage() {
               </div>
             </div>
 
-            {/* Pricing fields (Our Price & Subcontractor Price) */}
-            <div className="grid grid-cols-2 gap-4 p-4 border rounded-lg bg-muted/30">
-              <div className="space-y-2">
-                <Label htmlFor="defaultRate" className="font-bold text-foreground">Selling Price (Our Price) *</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-2.5 text-xs text-muted-foreground">AED</span>
-                  <Input
-                    id="defaultRate"
-                    type="number"
-                    step="0.01"
-                    required
-                    placeholder="0.00"
-                    className={`pl-7 font-bold ${formErrors.defaultRate ? "border-destructive" : ""}`}
-                    value={formData.defaultRate}
-                    onChange={(e) => handleInputChange("defaultRate", e.target.value)}
-                  />
-                </div>
-                {formErrors.defaultRate && (
-                  <p className="text-[11px] text-destructive flex items-center gap-1">
-                    <AlertCircle className="w-3 h-3" /> {formErrors.defaultRate}
-                  </p>
+            {/* Materials selection */}
+            <div className="space-y-3 p-4 border rounded-lg">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs uppercase font-bold tracking-wider text-muted-foreground">Linked Materials</Label>
+                <Input
+                  placeholder="Search materials..."
+                  value={materialSearch}
+                  onChange={(e) => setMaterialSearch(e.target.value)}
+                  className="max-w-[200px] h-8 text-xs"
+                />
+              </div>
+              <div className="max-h-[180px] overflow-y-auto border rounded-md p-2 space-y-3">
+                {allMaterials.length === 0 ? (
+                  <p className="text-xs text-muted-foreground p-2">No materials in catalog. Add materials under Project Configuration → Materials Master.</p>
+                ) : (
+                  Object.entries(
+                    allMaterials
+                      .filter((m) => {
+                        if (!materialSearch.trim()) return true;
+                        const q = materialSearch.toLowerCase();
+                        return m.materialName?.toLowerCase().includes(q) || m.materialCode?.toLowerCase().includes(q);
+                      })
+                      .reduce((acc, m) => {
+                        const cat = m.materialCategoryName || "Uncategorized";
+                        if (!acc[cat]) acc[cat] = [];
+                        acc[cat].push(m);
+                        return acc;
+                      }, {})
+                  ).map(([category, mats]) => (
+                    <div key={category}>
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">{category}</p>
+                      <div className="space-y-1">
+                        {mats.map((mat) => {
+                          const line = (formData.materialLines || []).find((l) => l.materialId === mat.id);
+                          const checked = !!line;
+                          return (
+                            <div key={mat.id} className="flex flex-col gap-2 p-2 rounded hover:bg-muted/30 border border-transparent hover:border-muted">
+                              <div className="flex items-center gap-2">
+                                <Checkbox
+                                  id={`mat-${mat.id}`}
+                                  checked={checked}
+                                  onCheckedChange={(c) => handleMaterialToggle(mat.id, !!c)}
+                                />
+                                <label htmlFor={`mat-${mat.id}`} className="text-xs font-medium cursor-pointer flex-1">
+                                  {mat.materialName}
+                                  <span className="text-muted-foreground ml-1">({mat.materialCode}) — {formatCurrency(mat.costPrice)}</span>
+                                </label>
+                              </div>
+                              {checked && (
+                                <div className="grid grid-cols-2 gap-2 ml-6">
+                                  <div>
+                                    <Label className="text-[10px]">Qty per unit</Label>
+                                    <Input
+                                      type="number"
+                                      step="0.0001"
+                                      className="h-7 text-xs"
+                                      value={line.quantityPerUnit}
+                                      onChange={(e) => handleMaterialLineChange(mat.id, "quantityPerUnit", e.target.value)}
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label className="text-[10px]">Wastage %</Label>
+                                    <Input
+                                      type="number"
+                                      step="0.01"
+                                      className="h-7 text-xs"
+                                      value={line.wastagePercent}
+                                      onChange={(e) => handleMaterialLineChange(mat.id, "wastagePercent", e.target.value)}
+                                    />
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))
                 )}
               </div>
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="subcontractorRate" className="font-bold text-amber-700">Subcontractor Price *</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-2.5 text-xs text-amber-600">AED</span>
+            {/* Cost & selling pricing */}
+            <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="costPrice">Cost Price</Label>
+                    <label className="flex items-center gap-2 text-[10px] text-muted-foreground cursor-pointer">
+                      <Checkbox
+                        checked={formData.costPriceOverride}
+                        onCheckedChange={(c) => handleInputChange("costPriceOverride", !!c)}
+                      />
+                      Manual override
+                    </label>
+                  </div>
                   <Input
-                    id="subcontractorRate"
+                    id="costPrice"
                     type="number"
                     step="0.01"
-                    required
-                    placeholder="0.00"
-                    className={`pl-7 font-bold text-amber-700 ${formErrors.subcontractorRate ? "border-destructive" : ""}`}
-                    value={formData.subcontractorRate}
-                    onChange={(e) => handleInputChange("subcontractorRate", e.target.value)}
+                    readOnly={!formData.costPriceOverride}
+                    className={!formData.costPriceOverride ? "bg-muted" : ""}
+                    value={formData.costPriceOverride ? formData.costPrice : computeMaterialCost(formData.materialLines, allMaterials).toFixed(2)}
+                    onChange={(e) => handleInputChange("costPrice", e.target.value)}
                   />
                 </div>
-                {formErrors.subcontractorRate && (
-                  <p className="text-[11px] text-destructive flex items-center gap-1">
-                    <AlertCircle className="w-3 h-3" /> {formErrors.subcontractorRate}
-                  </p>
-                )}
+                <div className="space-y-2">
+                  <Label htmlFor="markupPercentage">Markup %</Label>
+                  <Input
+                    id="markupPercentage"
+                    type="number"
+                    step="0.01"
+                    value={formData.markupPercentage}
+                    onChange={(e) => handleInputChange("markupPercentage", e.target.value)}
+                    disabled={formData.sellingPriceOverride}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="defaultRate" className="font-bold text-foreground">Selling Price (BOQ Rate)</Label>
+                    <label className="flex items-center gap-2 text-[10px] text-muted-foreground cursor-pointer">
+                      <Checkbox
+                        checked={formData.sellingPriceOverride}
+                        onCheckedChange={(c) => handleInputChange("sellingPriceOverride", !!c)}
+                      />
+                      Manual
+                    </label>
+                  </div>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2.5 text-xs text-muted-foreground">AED</span>
+                    <Input
+                      id="defaultRate"
+                      type="number"
+                      step="0.01"
+                      readOnly={!formData.sellingPriceOverride}
+                      className={`pl-7 font-bold ${!formData.sellingPriceOverride ? "bg-muted" : ""} ${formErrors.defaultRate ? "border-destructive" : ""}`}
+                      value={formData.sellingPriceOverride
+                        ? formData.defaultRate
+                        : computeAutoSelling(
+                            formData.costPriceOverride ? parseFloat(formData.costPrice) : computeMaterialCost(formData.materialLines, allMaterials),
+                            formData.markupPercentage
+                          ).toFixed(2)}
+                      onChange={(e) => handleInputChange("defaultRate", e.target.value)}
+                    />
+                  </div>
+                  {formErrors.defaultRate && (
+                    <p className="text-[11px] text-destructive flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" /> {formErrors.defaultRate}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="subcontractorRate" className="font-bold text-amber-700">Subcontractor Price *</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2.5 text-xs text-amber-600">AED</span>
+                    <Input
+                      id="subcontractorRate"
+                      type="number"
+                      step="0.01"
+                      required
+                      placeholder="0.00"
+                      className={`pl-7 font-bold text-amber-700 ${formErrors.subcontractorRate ? "border-destructive" : ""}`}
+                      value={formData.subcontractorRate}
+                      onChange={(e) => handleInputChange("subcontractorRate", e.target.value)}
+                    />
+                  </div>
+                  {formErrors.subcontractorRate && (
+                    <p className="text-[11px] text-destructive flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" /> {formErrors.subcontractorRate}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
 

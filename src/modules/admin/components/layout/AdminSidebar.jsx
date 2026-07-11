@@ -5,7 +5,8 @@ import {
   List, XCircle, ChevronRight,
   UserSquare2, CalendarRange, Briefcase,
   UserCheck, Mail, Grid, Wrench, Settings, PenTool,
-  CheckCircle, Clock, PieChart, CheckSquare, FileText, ClipboardList
+  CheckCircle, Clock, PieChart, CheckSquare, FileText, ClipboardList,
+  Package, Warehouse, ArrowDownToLine, ArrowUpFromLine, History
 } from "lucide-react";
 import {
   Sidebar,
@@ -42,6 +43,7 @@ const ADMIN_NAV_GROUPS = [
       { label: "Projects", href: ROUTES.ADMIN.PROJECTS, icon: Briefcase },
       { label: "QAS", href: ROUTES.ADMIN.QAS, icon: ClipboardList },
       { label: "PROJECT_CONFIG_PLACEHOLDER" },
+      { label: "PROCUREMENT_PLACEHOLDER" },
     ],
   },
 ];
@@ -77,6 +79,14 @@ const CLIENTS_SUB_ITEMS = [
 const PROJECT_CONFIG_SUB_ITEMS = [
   { label: "Room Configuration", href: ROUTES.ADMIN.ROOM_CONFIG, icon: Grid },
   { label: "Work Item Config", href: ROUTES.ADMIN.WORK_ITEM_CONFIG, icon: Wrench },
+  { label: "Materials Master", href: ROUTES.ADMIN.MATERIAL_CONFIG, icon: Package },
+];
+
+const PROCUREMENT_SUB_ITEMS = [
+  { label: "Stock Dashboard", href: ROUTES.ADMIN.PROCUREMENT_STOCK, icon: Warehouse },
+  { label: "Goods Receipt", href: ROUTES.ADMIN.PROCUREMENT_RECEIPT, icon: ArrowDownToLine },
+  { label: "Stock Issue", href: ROUTES.ADMIN.PROCUREMENT_ISSUE, icon: ArrowUpFromLine },
+  { label: "Movement History", href: ROUTES.ADMIN.PROCUREMENT_MOVEMENTS, icon: History },
 ];
 
 // ─── Reusable collapsible submenu ─────────────────────────────────────────────
@@ -178,6 +188,8 @@ export default function AdminSidebar() {
                     return <Submenu key="clients" label="Clients" icon={UserCheck} items={CLIENTS_SUB_ITEMS} />;
                   if (item.label === "PROJECT_CONFIG_PLACEHOLDER")
                     return <Submenu key="project-config" label="Project Configuration" icon={Settings} items={PROJECT_CONFIG_SUB_ITEMS} />;
+                  if (item.label === "PROCUREMENT_PLACEHOLDER")
+                    return <Submenu key="procurement" label="Procurement" icon={Warehouse} items={PROCUREMENT_SUB_ITEMS} />;
                   return <AdminNavItem key={item.href} item={item} />;
                 })}
               </SidebarMenu>

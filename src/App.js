@@ -51,6 +51,11 @@ import {
   ClientDetailPage,
   RoomConfigurationPage,
   WorkItemConfigurationPage,
+  MaterialConfigurationPage,
+  StockDashboardPage,
+  GoodsReceiptPage,
+  StockIssuePage,
+  MovementHistoryPage,
 } from "./modules/admin/pages";
 
 import {
@@ -168,6 +173,11 @@ function App() {
               <Route path="clients/:clientId" element={<ClientDetailPage />} />
               <Route path="project-configuration/room" element={<RoomConfigurationPage />} />
               <Route path="project-configuration/work-item" element={<WorkItemConfigurationPage />} />
+              <Route path="project-configuration/materials" element={<MaterialConfigurationPage />} />
+              <Route path="procurement/stock" element={<StockDashboardPage />} />
+              <Route path="procurement/receipt" element={<GoodsReceiptPage />} />
+              <Route path="procurement/issue" element={<StockIssuePage />} />
+              <Route path="procurement/movements" element={<MovementHistoryPage />} />
               <Route path="qas" element={<BoqFlowPage />} />
               <Route path="boq" element={<BoqFlowPage />} />
 

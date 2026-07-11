@@ -33,3 +33,9 @@ export { default as ClientDetailPage } from "./clients/ClientDetailPage";
 // Project Configuration
 export { default as RoomConfigurationPage } from "./project-configuration/RoomConfigurationPage";
 export { default as WorkItemConfigurationPage } from "./project-configuration/WorkItemConfigurationPage";
+export { default as MaterialConfigurationPage } from "./project-configuration/MaterialConfigurationPage";
+
+export { default as StockDashboardPage } from "./procurement/StockDashboardPage";
+export { default as GoodsReceiptPage } from "./procurement/GoodsReceiptPage";
+export { default as StockIssuePage } from "./procurement/StockIssuePage";
+export { default as MovementHistoryPage } from "./procurement/MovementHistoryPage";
