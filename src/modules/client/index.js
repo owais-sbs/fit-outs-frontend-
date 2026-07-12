@@ -12,4 +12,5 @@ export { default as ClientSettingsPage }   from "./pages/ClientSettingsPage";
 export { default as MyProjectsPage }        from "./pages/MyProjectsPage";
 export { default as NewProjectRequestPage }  from "./pages/NewProjectRequestPage";
 export { default as ClientProjectDetailPage } from "./pages/ClientProjectDetailPage";
+export { default as ClientBoqApprovalsPage } from "./pages/ClientBoqApprovalsPage";
 

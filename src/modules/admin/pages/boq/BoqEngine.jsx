@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import {
   BOQ_STATUS,
@@ -6,6 +7,8 @@ import {
   generateBoqDocument,
 } from "./boqDataUtils";
 import { calcLineAmount } from "./quantityCalcUtils";
+import { saveBoqFromSurvey, fetchBoq, submitBoq as submitBoqApi, updateBoq, createBoqRevision } from "../../api/boq.api";
+import { apiBoqToDocument, boqDocumentToApiPayload } from "./boqApiUtils";
 
 export const QAS_TOTAL_STEPS = 3;
 
@@ -177,6 +180,7 @@ export const useBoq = () => useContext(QasContext);
 export const useQas = useBoq;
 
 export function BoqProvider({ children }) {
+  const [searchParams] = useSearchParams();
   const [session, setSession] = useState(null);
   const [currentStep, setStep] = useState(1);
   const [floors, setFloors] = useState([]);
@@ -185,6 +189,26 @@ export function BoqProvider({ children }) {
   const [generatedBoq, setGeneratedBoq] = useState(null);
   const [savedBoqs, setSavedBoqs] = useState([]);
   const [saveNotice, setSaveNotice] = useState(null);
+  const [apiBoqId, setApiBoqId] = useState(null);
+
+  useEffect(() => {
+    const boqId = searchParams.get("boqId");
+    const projectId = searchParams.get("projectId");
+    if (!boqId) return;
+    fetchBoq(boqId)
+      .then((apiBoq) => {
+        setApiBoqId(apiBoq.id);
+        const stubSession = {
+          ref: `QTO-${apiBoq.id?.slice(0, 8)}`,
+          project: { id: projectId || apiBoq.projectId },
+          status: QAS_STATUS.DRAFT,
+        };
+        setSession(stubSession);
+        setGeneratedBoq(apiBoqToDocument(apiBoq, stubSession));
+        setStep(3);
+      })
+      .catch(console.error);
+  }, [searchParams]);
 
   useEffect(() => {
     if (session?.ref && currentStep < 3) {
@@ -366,34 +390,67 @@ export function BoqProvider({ children }) {
         savedAt: new Date().toISOString(),
       };
       saveBoqDraftToStorage(saved, session, floors, rooms, additionalLines);
+      const payload = boqDocumentToApiPayload(saved, session);
+      const persist = apiBoqId
+        ? updateBoq(apiBoqId, { notes: payload.notes, lines: payload.lines })
+        : saveBoqFromSurvey(payload);
+      persist
+        .then((apiBoq) => {
+          if (apiBoq?.id) setApiBoqId(apiBoq.id);
+          setSaveNotice("BOQ draft saved to server.");
+        })
+        .catch(() => setSaveNotice("BOQ saved locally (server sync failed)."));
       setSavedBoqs((list) => {
         const filtered = list.filter((b) => b.ref !== saved.ref);
         return [...filtered, saved];
       });
-      setSaveNotice("BOQ draft saved.");
       markBoqDraft();
       return saved;
     });
-  }, [session, floors, rooms, additionalLines, markBoqDraft]);
+  }, [session, floors, rooms, additionalLines, markBoqDraft, apiBoqId]);
 
-  const finalizeBoq = useCallback(() => {
+  const submitBoqForApproval = useCallback(() => {
     setGeneratedBoq((current) => {
       if (!current) return current;
-      const finalized = {
+      const submitted = {
         ...current,
-        status: BOQ_STATUS.FINAL,
         savedAt: new Date().toISOString(),
       };
-      saveBoqDraftToStorage(finalized, session, floors, rooms, additionalLines);
-      setSavedBoqs((list) => {
-        const filtered = list.filter((b) => b.ref !== finalized.ref);
-        return [...filtered, finalized];
-      });
-      completeSession();
-      setSaveNotice("BOQ finalized.");
-      return finalized;
+      saveBoqDraftToStorage(submitted, session, floors, rooms, additionalLines);
+      const payload = boqDocumentToApiPayload(submitted, session);
+      const saveThenSubmit = async () => {
+        try {
+          let id = apiBoqId;
+          if (!id) {
+            const created = await saveBoqFromSurvey(payload);
+            id = created.id;
+            setApiBoqId(id);
+          } else {
+            await updateBoq(id, { notes: payload.notes, lines: payload.lines });
+          }
+          const apiBoq = await submitBoqApi(id);
+          setGeneratedBoq(apiBoqToDocument(apiBoq, session));
+          setSaveNotice("BOQ submitted for Senior QS approval.");
+        } catch (e) {
+          setSaveNotice(e.response?.data?.message || "Failed to submit BOQ for approval.");
+        }
+      };
+      saveThenSubmit();
+      return submitted;
     });
-  }, [session, floors, rooms, additionalLines, completeSession]);
+  }, [session, floors, rooms, additionalLines, apiBoqId]);
+
+  const createRevision = useCallback(async (revisionLabel) => {
+    if (!apiBoqId) return;
+    try {
+      const apiBoq = await createBoqRevision(apiBoqId, revisionLabel);
+      setApiBoqId(apiBoq.id);
+      setGeneratedBoq(apiBoqToDocument(apiBoq, session));
+      setSaveNotice(`Revision v${apiBoq.version} created as draft.`);
+    } catch (e) {
+      setSaveNotice(e.response?.data?.message || "Failed to create revision.");
+    }
+  }, [apiBoqId, session]);
 
   const saveBoq = saveBoqDraft;
 
@@ -428,7 +485,9 @@ export function BoqProvider({ children }) {
     updateAdditionalLine,
     removeAdditionalLine,
     saveBoqDraft,
-    finalizeBoq,
+    submitBoqForApproval,
+    createRevision,
+    apiBoqId,
     saveBoq,
   };
 

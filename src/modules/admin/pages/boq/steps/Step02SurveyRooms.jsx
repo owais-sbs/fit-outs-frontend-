@@ -254,6 +254,26 @@ function RoomSurveyCard({ room, floorName, roomTypes, onUpdate, onRemove }) {
                           <span className="ml-1 text-amber-700">· custom dims</span>
                         )}
                       </p>
+                      {sel.materialLines?.length > 0 && (
+                        <div className="mt-1.5 space-y-0.5">
+                          {sel.materialLines.map((line) => (
+                            <p key={line.materialId} className="text-[10px] text-muted-foreground">
+                              <span className="font-medium text-foreground/80">{line.materialName}</span>
+                              {" · "}
+                              {line.quantityPerUnit} {unitLabel(line.unitType)}
+                              {line.wastagePercent > 0 ? ` + ${line.wastagePercent}% wastage` : ""}
+                              {" · "}
+                              cost {formatCurrency(line.lineCost)}
+                            </p>
+                          ))}
+                          <p className="text-[10px] text-emerald-700">
+                            Material cost {formatCurrency(sel.costPrice)}
+                            {sel.markupPercentage > 0 ? ` + ${sel.markupPercentage}% markup` : ""}
+                            {" → "}
+                            rate {formatCurrency(sel.defaultRate)}/{unitLabel(sel.unitType)}
+                          </p>
+                        </div>
+                      )}
                     </div>
                     <span className="text-sm font-semibold tabular-nums shrink-0">
                       {sel.selected ? formatCurrency(sel.amount) : "—"}

@@ -9,11 +9,24 @@ const VALID_PORTAL_ROLES = new Set([
   ROLES.ADMIN,
   ROLES.EMPLOYEE,
   ROLES.CLIENT,
+  ROLES.QS,
+  ROLES.SENIOR_QS,
+  ROLES.PROJECT_MANAGER,
+  ROLES.BUSINESS_OWNER,
 ]);
 
 function normalizeRole(role) {
   if (typeof role === "string") return role.toLowerCase().replace(/_/g, "-");
-  return role;
+  if (role && typeof role === "object") {
+    if (typeof role.name === "string") return normalizeRole(role.name);
+    if (typeof role.value === "string") return normalizeRole(role.value);
+  }
+  return String(role ?? "").toLowerCase().replace(/_/g, "-");
+}
+
+async function fetchCurrentUser() {
+  const { data } = await axiosInstance.get("/auth/me");
+  return data?.data ?? null;
 }
 
 export function AuthProvider({ children }) {
@@ -25,59 +38,86 @@ export function AuthProvider({ children }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
+
+    const applyUserSession = (userData) => {
+      const rawRoles = userData.roles || [];
+      const normalizedRoles = rawRoles.map(normalizeRole);
+
+      setUser({
+        id: userData.id,
+        name: userData.fullName,
+        fullName: userData.fullName,
+        email: userData.email,
+        phone: userData.phone,
+        companyId: userData.companyId,
+        companyName: userData.companyName,
+        roles: normalizedRoles,
+      });
+      setRoles(normalizedRoles);
+
+      const validRoles = normalizedRoles.filter((r) => VALID_PORTAL_ROLES.has(r));
+      if (validRoles.length > 0) {
+        const savedRole = localStorage.getItem("selectedRole");
+        if (savedRole && validRoles.includes(savedRole)) {
+          setRole(savedRole);
+          setPermissions(ROLE_PERMISSIONS[savedRole] || []);
+        } else if (validRoles.length === 1) {
+          const singleRole = validRoles[0];
+          setRole(singleRole);
+          setPermissions(ROLE_PERMISSIONS[singleRole] || []);
+          localStorage.setItem("selectedRole", singleRole);
+        } else {
+          setRole(null);
+          setPermissions([]);
+        }
+        setIsAuthenticated(true);
+      } else {
+        setRole(null);
+        setPermissions([]);
+        setIsAuthenticated(false);
+      }
+    };
+
     const checkSession = async () => {
       try {
-        const { data } = await axiosInstance.get("/auth/me");
-        const userData = data?.data;
-        if (userData) {
-          const rawRoles = userData.roles || [];
-          const normalizedRoles = rawRoles.map(normalizeRole);
-
-          setUser({
-            id: userData.id,
-            name: userData.fullName,
-            fullName: userData.fullName,
-            email: userData.email,
-            phone: userData.phone,
-            companyId: userData.companyId,
-            companyName: userData.companyName,
-            roles: normalizedRoles,
-          });
-          setRoles(normalizedRoles);
-
-          const validRoles = normalizedRoles.filter((r) => VALID_PORTAL_ROLES.has(r));
-          if (validRoles.length > 0) {
-            const savedRole = localStorage.getItem("selectedRole");
-            if (savedRole && validRoles.includes(savedRole)) {
-              setRole(savedRole);
-              setPermissions(ROLE_PERMISSIONS[savedRole] || []);
-            } else if (validRoles.length === 1) {
-              const singleRole = validRoles[0];
-              setRole(singleRole);
-              setPermissions(ROLE_PERMISSIONS[singleRole] || []);
-              localStorage.setItem("selectedRole", singleRole);
-            } else {
-              setRole(null);
-              setPermissions([]);
-            }
-            setIsAuthenticated(true);
+        let userData = null;
+        try {
+          userData = await fetchCurrentUser();
+        } catch (error) {
+          if (!error.response || error.response.status >= 500) {
+            await new Promise((resolve) => setTimeout(resolve, 400));
+            userData = await fetchCurrentUser();
+          } else if (error.response.status === 400 || error.response.status === 401) {
+            userData = null;
           } else {
-            setRole(null);
-            setPermissions([]);
-            setIsAuthenticated(false);
+            throw error;
           }
+        }
+
+        if (cancelled) return;
+
+        if (userData) {
+          applyUserSession(userData);
         } else {
           setIsAuthenticated(false);
         }
       } catch (error) {
+        if (cancelled) return;
         console.error("Session check failed:", error);
         setIsAuthenticated(false);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       }
     };
 
     checkSession();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const login = useCallback(async (credentials) => {
@@ -96,6 +136,8 @@ export function AuthProvider({ children }) {
       const token = responseData.token || responseData.accessToken || responseData.jwt || responseData.jwtToken;
       if (token) {
         localStorage.setItem("authToken", token);
+      } else {
+        localStorage.removeItem("authToken");
       }
 
       const userData = responseData.user;

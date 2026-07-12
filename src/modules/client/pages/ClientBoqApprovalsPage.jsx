@@ -1,0 +1,210 @@
+import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { CheckCircle2, Eye, FileText, XCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ROUTES } from "@/shared/constants/routes";
+import { formatCurrency } from "@/modules/admin/pages/boq/quantityCalcUtils";
+import { BoqStatusBadge } from "@/modules/admin/pages/boq/BoqApprovalTimeline";
+import {
+  approveBoq,
+  fetchBoq,
+  fetchBoqInbox,
+  rejectBoq,
+} from "@/modules/admin/api/boq.api";
+
+function formatDate(value) {
+  if (!value) return "—";
+  return new Date(value).toLocaleString();
+}
+
+export default function ClientBoqApprovalsPage() {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState("");
+  const [actionItem, setActionItem] = useState(null);
+  const [actionType, setActionType] = useState(null);
+  const [comments, setComments] = useState("");
+  const [detailBoq, setDetailBoq] = useState(null);
+  const [acting, setActing] = useState(false);
+
+  const loadInbox = useCallback(() => {
+    setLoading(true);
+    fetchBoqInbox()
+      .then((list) => setItems(Array.isArray(list) ? list : []))
+      .catch(() => setItems([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    loadInbox();
+  }, [loadInbox]);
+
+  const openAction = (item, type) => {
+    setActionItem(item);
+    setActionType(type);
+    setComments("");
+    fetchBoq(item.id).then(setDetailBoq).catch(() => setDetailBoq(null));
+  };
+
+  const closeAction = () => {
+    setActionItem(null);
+    setActionType(null);
+    setComments("");
+    setDetailBoq(null);
+  };
+
+  const confirmAction = async () => {
+    if (!actionItem) return;
+    if (actionType === "reject" && !comments.trim()) {
+      setMessage("Please provide a reason for rejection.");
+      return;
+    }
+    setActing(true);
+    setMessage("");
+    try {
+      if (actionType === "approve") {
+        await approveBoq(actionItem.id, comments.trim() || null);
+        setMessage("BOQ approved. The quotation is now finalized.");
+      } else {
+        await rejectBoq(actionItem.id, comments.trim());
+        setMessage("BOQ returned to the QS team for revision.");
+      }
+      closeAction();
+      loadInbox();
+    } catch (e) {
+      setMessage(e.response?.data?.message || "Action failed.");
+    } finally {
+      setActing(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold flex items-center gap-2">
+          <FileText className="h-6 w-6" /> BOQ Approvals
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Review quotation BOQs submitted for your final sign-off.
+        </p>
+      </div>
+
+      {message && (
+        <p className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-3 py-2">
+          {message}
+        </p>
+      )}
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Awaiting your approval</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {loading ? (
+            <p className="p-6 text-sm text-muted-foreground">Loading…</p>
+          ) : items.length === 0 ? (
+            <p className="p-6 text-sm text-muted-foreground">No BOQs pending your approval.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Project</TableHead>
+                  <TableHead>Version</TableHead>
+                  <TableHead className="text-right">Total (AED)</TableHead>
+                  <TableHead>Submitted</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {items.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell className="font-medium">{item.projectName}</TableCell>
+                    <TableCell className="font-mono text-xs">v{item.version}</TableCell>
+                    <TableCell className="text-right font-mono tabular-nums">
+                      {formatCurrency(item.grandTotal)}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {formatDate(item.submittedAt)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button size="sm" variant="outline" onClick={() => openAction(item, "approve")}>
+                          <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Approve
+                        </Button>
+                        <Button size="sm" variant="outline" className="text-destructive" onClick={() => openAction(item, "reject")}>
+                          <XCircle className="h-3.5 w-3.5 mr-1" /> Reject
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={!!actionItem} onOpenChange={(open) => !open && closeAction()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {actionType === "approve" ? "Approve quotation BOQ" : "Request BOQ changes"}
+            </DialogTitle>
+          </DialogHeader>
+          {detailBoq && (
+            <div className="rounded-md border p-3 text-sm space-y-2 max-h-48 overflow-y-auto">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Project</span>
+                <span className="font-medium">{detailBoq.projectName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Grand total</span>
+                <span className="font-bold">{formatCurrency(detailBoq.grandTotal)}</span>
+              </div>
+              <BoqStatusBadge status={detailBoq.status} />
+              <ul className="text-xs text-muted-foreground space-y-1 pt-2 border-t">
+                {(detailBoq.lines || []).slice(0, 8).map((line) => (
+                  <li key={line.id}>{line.description} — {line.quantity} {line.unit}</li>
+                ))}
+                {(detailBoq.lines || []).length > 8 && (
+                  <li>…and {detailBoq.lines.length - 8} more lines</li>
+                )}
+              </ul>
+            </div>
+          )}
+          <div className="space-y-2">
+            <Label htmlFor="client-boq-comments">
+              {actionType === "reject" ? "What should be revised? (required)" : "Comments (optional)"}
+            </Label>
+            <Input
+              id="client-boq-comments"
+              value={comments}
+              onChange={(e) => setComments(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={closeAction}>Cancel</Button>
+            <Button
+              onClick={confirmAction}
+              disabled={acting}
+              variant={actionType === "reject" ? "destructive" : "default"}
+            >
+              {acting ? "Processing…" : actionType === "approve" ? "Approve BOQ" : "Send back"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

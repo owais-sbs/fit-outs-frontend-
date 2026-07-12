@@ -58,9 +58,25 @@ export function resolveAdditionalLineMeta(overrides = {}) {
 }
 
 export const BOQ_STATUS = {
-  DRAFT: "draft",
-  FINAL: "final",
+  DRAFT: "DRAFT",
+  PENDING_SENIOR_QS: "PENDING_SENIOR_QS",
+  PENDING_PM: "PENDING_PM",
+  PENDING_DIRECTOR: "PENDING_DIRECTOR",
+  PENDING_CLIENT: "PENDING_CLIENT",
+  APPROVED: "APPROVED",
+  /** @deprecated */
+  FINAL: "APPROVED",
 };
+
+export function isBoqEditable(status) {
+  const s = String(status || BOQ_STATUS.DRAFT).toUpperCase();
+  return s === BOQ_STATUS.DRAFT;
+}
+
+export function isBoqApproved(status) {
+  const s = String(status || "").toUpperCase();
+  return s === BOQ_STATUS.APPROVED || s === "FINAL";
+}
 
 export function createAdditionalLine(overrides = {}) {
   const qty = parseFloat(overrides.qty) || 1;

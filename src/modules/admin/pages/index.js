@@ -39,3 +39,6 @@ export { default as StockDashboardPage } from "./procurement/StockDashboardPage"
 export { default as GoodsReceiptPage } from "./procurement/GoodsReceiptPage";
 export { default as StockIssuePage } from "./procurement/StockIssuePage";
 export { default as MovementHistoryPage } from "./procurement/MovementHistoryPage";
+
+export { default as ProjectDrawingsPage } from "./drawings/ProjectDrawingsPage";
+export { default as QtoWorkspacePage } from "./drawings/QtoWorkspacePage";

@@ -56,6 +56,8 @@ import {
   GoodsReceiptPage,
   StockIssuePage,
   MovementHistoryPage,
+  ProjectDrawingsPage,
+  QtoWorkspacePage,
 } from "./modules/admin/pages";
 
 import {
@@ -65,6 +67,7 @@ import {
 } from "./modules/admin/pages/design-qas";
 
 import { BoqFlowPage } from "./modules/admin/pages/boq";
+import BoqApprovalInboxPage from "./modules/admin/pages/boq/BoqApprovalInboxPage";
 
 import AdminDashboard from "./modules/admin/pages/dashboard";
 import BusinessOwnerDashboard from "./modules/business-owner/pages/dashboard";
@@ -88,6 +91,7 @@ import {
   MyProjectsPage,
   NewProjectRequestPage,
   ClientProjectDetailPage,
+  ClientBoqApprovalsPage,
 } from "./modules/client";
 import SalesDashboard from "./modules/sales/pages/dashboard";
 import EmployeeLayout from "./modules/employee/layouts/EmployeeLayout";
@@ -134,7 +138,7 @@ function App() {
               path="/admin"
               element={
                 <ProtectedRoute>
-                  <RoleRoute allowedRoles={[ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.SALES]}>
+                  <RoleRoute allowedRoles={[ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.SALES, ROLES.QS, ROLES.SENIOR_QS]}>
                     <AdminLayout />
                   </RoleRoute>
                 </ProtectedRoute>
@@ -166,6 +170,8 @@ function App() {
               <Route path="projects" element={<ProjectsPage />} />
               <Route path="projects/new" element={<CreateProjectPage />} />
               <Route path="projects/:projectId" element={<ProjectDetailPage />} />
+              <Route path="projects/:projectId/drawings" element={<ProjectDrawingsPage />} />
+              <Route path="projects/:projectId/drawings/:drawingId/qto" element={<QtoWorkspacePage />} />
               <Route path="leads/project-requests" element={<ProjectRequestsPage />} />
               <Route path="clients" element={<ClientsPage />} />
               <Route path="clients/new" element={<AddClientPage />} />
@@ -180,6 +186,7 @@ function App() {
               <Route path="procurement/movements" element={<MovementHistoryPage />} />
               <Route path="qas" element={<BoqFlowPage />} />
               <Route path="boq" element={<BoqFlowPage />} />
+              <Route path="boq/inbox" element={<BoqApprovalInboxPage />} />
 
             </Route>
             <Route
@@ -193,11 +200,31 @@ function App() {
               }
             />
             <Route
+              path={ROUTES.BUSINESS_OWNER.BOQ_INBOX}
+              element={
+                <ProtectedRoute>
+                  <RoleRoute allowedRoles={[ROLES.BUSINESS_OWNER]}>
+                    <div className="p-6"><BoqApprovalInboxPage /></div>
+                  </RoleRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path={ROUTES.PROJECT_MANAGER.DASHBOARD}
               element={
                 <ProtectedRoute>
                   <RoleRoute allowedRoles={[ROLES.PROJECT_MANAGER]}>
                     <ProjectManagerDashboard />
+                  </RoleRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path={ROUTES.PROJECT_MANAGER.BOQ_INBOX}
+              element={
+                <ProtectedRoute>
+                  <RoleRoute allowedRoles={[ROLES.PROJECT_MANAGER]}>
+                    <div className="p-6"><BoqApprovalInboxPage /></div>
                   </RoleRoute>
                 </ProtectedRoute>
               }
@@ -257,6 +284,7 @@ function App() {
               <Route path="designs/pending" element={<PendingApprovalPage />} />
               <Route path="designs/revisions" element={<RevisionHistoryPage />} />
               <Route path="designs/approved" element={<ApprovedDesignsPage />} />
+              <Route path="boq-approvals" element={<ClientBoqApprovalsPage />} />
               <Route path="designs/:id" element={<DesignDetailPage />} />
               <Route path="documents" element={<ClientDocumentsPage />} />
               <Route path="invoices" element={<ClientInvoicesPage />} />

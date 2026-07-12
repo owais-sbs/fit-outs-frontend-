@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   ArrowLeft, DollarSign, CalendarDays, Clock,
-  TrendingUp, Building2, Briefcase, Users, MapPin,
+  TrendingUp, Building2, Briefcase, Users, MapPin, FileImage, FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +11,10 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fetchProjectById } from "../api/projects.api";
+import { fetchBoqsByProject } from "../api/boq.api";
+import { ROUTES } from "@/shared/constants/routes";
+import { BoqStatusBadge } from "./boq/BoqApprovalTimeline";
+import { formatCurrency } from "./boq/quantityCalcUtils";
 import { INITIAL_EMPLOYEES } from "@/modules/admin/data/employees";
 
 function InfoItem({ label, value, mono = false }) {
@@ -38,6 +42,8 @@ export default function ProjectDetailPage() {
   const navigate = useNavigate();
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [boqs, setBoqs] = useState([]);
+  const [boqsLoading, setBoqsLoading] = useState(true);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -47,9 +53,18 @@ export default function ProjectDetailPage() {
       .finally(() => setLoading(false));
   }, [projectId]);
 
+  const loadBoqs = useCallback(() => {
+    setBoqsLoading(true);
+    fetchBoqsByProject(projectId)
+      .then((list) => setBoqs(Array.isArray(list) ? list : []))
+      .catch(() => setBoqs([]))
+      .finally(() => setBoqsLoading(false));
+  }, [projectId]);
+
   useEffect(() => {
     load();
-  }, [load]);
+    loadBoqs();
+  }, [load, loadBoqs]);
 
   if (loading) {
     return (
@@ -87,6 +102,11 @@ export default function ProjectDetailPage() {
         </div>
         <div className="flex items-center gap-2">
           <StatusBadge status={project.status} />
+          <Button asChild size="sm" variant="outline">
+            <Link to={ROUTES.ADMIN.PROJECT_DRAWINGS.replace(":projectId", projectId)}>
+              <FileImage className="w-4 h-4 mr-1" /> Drawings
+            </Link>
+          </Button>
           <Select value={project.status} onValueChange={(s) => setProject((p) => ({ ...p, status: s }))}>
             <SelectTrigger className="w-[135px] h-8 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -134,6 +154,54 @@ export default function ProjectDetailPage() {
           <div className="mt-2 flex justify-between text-[11px] text-muted-foreground">
             <span>Planning</span><span>Design</span><span>Build</span><span>Handover</span>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* BOQ documents */}
+      <Card className="border-border/60 shadow-sm">
+        <CardHeader className="pb-2 flex flex-row items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+            <FileText className="h-4 w-4 text-primary" />
+            BOQ Documents
+          </CardTitle>
+          <Button asChild size="sm" variant="outline">
+            <Link to={`${ROUTES.ADMIN.QAS}?projectId=${projectId}`}>New survey BOQ</Link>
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {boqsLoading ? (
+            <p className="text-sm text-muted-foreground">Loading BOQs…</p>
+          ) : boqs.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No BOQs saved for this project yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {boqs.map((boq) => (
+                <div
+                  key={boq.id}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg border px-3 py-2.5"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-mono text-xs font-semibold">v{boq.version}</span>
+                      <BoqStatusBadge status={boq.status} />
+                      {boq.revisionLabel && (
+                        <span className="text-xs text-muted-foreground">{boq.revisionLabel}</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {boq.lines?.length || 0} lines · Updated {boq.updatedAt ? new Date(boq.updatedAt).toLocaleString() : "—"}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="font-bold tabular-nums text-sm">{formatCurrency(boq.grandTotal)}</span>
+                    <Button asChild size="sm" variant="ghost">
+                      <Link to={`${ROUTES.ADMIN.BOQ}?boqId=${boq.id}&projectId=${projectId}`}>Open</Link>
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 

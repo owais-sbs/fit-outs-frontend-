@@ -19,6 +19,10 @@ export default function RoleRoute({ allowedRoles, children }) {
     return <Navigate to="/login" replace />;
   }
 
+  if (!role) {
+    return <Navigate to="/roles" replace />;
+  }
+
   if (allowedRoles && !allowedRoles.includes(role)) {
     const roleDefaultRoutes = {
       [ROLES.SUPER_ADMIN]: "/super-admin",
@@ -27,6 +31,8 @@ export default function RoleRoute({ allowedRoles, children }) {
       [ROLES.PROJECT_MANAGER]: "/project-manager",
       [ROLES.DESIGNER]: "/designer",
       [ROLES.QAS]: "/qas",
+      [ROLES.QS]: "/admin/qas",
+      [ROLES.SENIOR_QS]: "/admin/boq/inbox",
       [ROLES.FINANCE]: "/finance",
       [ROLES.SUBCONTRACTOR]: "/subcontractor",
       [ROLES.CLIENT]: "/client",

@@ -20,6 +20,7 @@ import { useAuth } from "@/shared/context/auth-context";
 // ─── Design Center sub-items ──────────────────────────────────────────────────
 const DESIGN_SUB_ITEMS = [
   { label: "My Designs",        href: ROUTES.CLIENT.DESIGNS,          icon: Palette },
+  { label: "BOQ Approvals",     href: ROUTES.CLIENT.BOQ_APPROVALS,    icon: FileText },
   { label: "Pending Approval",  href: ROUTES.CLIENT.DESIGNS_PENDING,  icon: Inbox },
   { label: "Revision History",  href: ROUTES.CLIENT.DESIGNS_REVISIONS,icon: RotateCcw },
   { label: "Approved Designs",  href: ROUTES.CLIENT.DESIGNS_APPROVED, icon: Award },

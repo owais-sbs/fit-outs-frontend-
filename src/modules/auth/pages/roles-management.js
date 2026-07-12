@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from "@/components/ui/button";
 import {
   ShieldAlert, Users2, HeartHandshake, UserSquare2,
-  ArrowLeft, ExternalLink, Loader2,
+  ArrowLeft, ExternalLink, Loader2, ClipboardList, Inbox, Briefcase,
 } from "lucide-react";
 
 const PORTAL_CONFIG = {
@@ -38,6 +38,34 @@ const PORTAL_CONFIG = {
     icon: UserSquare2,
     description: "View assigned projects, site visit schedules, and personal work calendar in one clean workspace.",
     route: ROUTES.EMPLOYEE.DASHBOARD,
+  },
+  [ROLES.QS]: {
+    id: "qs",
+    label: "Quantity Surveyor",
+    icon: ClipboardList,
+    description: "Room survey, BOQ drafting, and submission for approval.",
+    route: ROUTES.ADMIN.QAS,
+  },
+  [ROLES.SENIOR_QS]: {
+    id: "senior-qs",
+    label: "Senior QS",
+    icon: Inbox,
+    description: "Review and approve BOQs from the QS team.",
+    route: ROUTES.ADMIN.BOQ_INBOX,
+  },
+  [ROLES.PROJECT_MANAGER]: {
+    id: "project-manager",
+    label: "Project Manager",
+    icon: Briefcase,
+    description: "Project oversight and BOQ approval workflow.",
+    route: ROUTES.PROJECT_MANAGER.BOQ_INBOX,
+  },
+  [ROLES.BUSINESS_OWNER]: {
+    id: "business-owner",
+    label: "Director",
+    icon: ShieldAlert,
+    description: "Director-level BOQ sign-off before client review.",
+    route: ROUTES.BUSINESS_OWNER.BOQ_INBOX,
   },
 };
 

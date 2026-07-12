@@ -41,6 +41,8 @@ export const ROUTES = {
     PROJECTS: "/admin/projects",
     PROJECT_CREATE: "/admin/projects/new",
     PROJECT_DETAIL: "/admin/projects/:projectId",
+    PROJECT_DRAWINGS: "/admin/projects/:projectId/drawings",
+    PROJECT_QTO: "/admin/projects/:projectId/drawings/:drawingId/qto",
     PROJECT_REQUESTS: "/admin/leads/project-requests",
     CLIENTS: "/admin/clients",
     CLIENT_DETAIL: "/admin/clients/:clientId",
@@ -55,10 +57,12 @@ export const ROUTES = {
     PROCUREMENT_ISSUE: "/admin/procurement/issue",
     PROCUREMENT_MOVEMENTS: "/admin/procurement/movements",
     BOQ: "/admin/boq",
+    BOQ_INBOX: "/admin/boq/inbox",
     QAS: "/admin/qas",
   },
   BUSINESS_OWNER: {
     DASHBOARD: "/business-owner",
+    BOQ_INBOX: "/business-owner/boq/inbox",
     PROJECTS: "/business-owner/projects",
     FINANCE: "/business-owner/finance",
     REPORTS: "/business-owner/reports",
@@ -66,6 +70,7 @@ export const ROUTES = {
   },
   PROJECT_MANAGER: {
     DASHBOARD: "/project-manager",
+    BOQ_INBOX: "/project-manager/boq/inbox",
     PROJECTS: "/project-manager/projects",
     TASKS: "/project-manager/tasks",
     TEAM: "/project-manager/team",
@@ -111,6 +116,7 @@ export const ROUTES = {
     DESIGNS_PENDING: "/client/designs/pending",
     DESIGNS_REVISIONS: "/client/designs/revisions",
     DESIGNS_APPROVED: "/client/designs/approved",
+    BOQ_APPROVALS: "/client/boq-approvals",
     SETTINGS: "/client/settings",
   },
   SALES: {

@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { Link } from "react-router-dom";
 import {
   Search, RotateCcw, MapPin, X,
   Building2, Users, LayoutGrid, CalendarDays,
-  Eye, PlayCircle, Info, FileText, ClipboardList,
+  Eye, PlayCircle, Info, FileText, ClipboardList, FileImage,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +13,7 @@ import { useBoq, QAS_TOTAL_STEPS } from "../BoqEngine";
 import { formatCurrency } from "../quantityCalcUtils";
 import { fetchAllProjects } from "@/modules/admin/api/projects.api";
 import { fetchAllClients } from "@/modules/admin/api/clients.api";
+import { ROUTES } from "@/shared/constants/routes";
 
 // ─── Static fallback projects (shown when API returns nothing) ────────────────
 const MOCK_PROJECTS = [
@@ -173,7 +175,13 @@ function ProjectDrawer({ project, clientName, projectDrafts, onClose, onStart, o
         <div className="border-t border-border/60 p-6 space-y-3">
           <Button className="w-full gap-2 shadow-md shadow-primary/30" onClick={() => onStart(project)}>
             <PlayCircle className="h-4 w-4" />
-            Start QAS
+            Start Room Survey QAS
+          </Button>
+          <Button asChild variant="secondary" className="w-full gap-2">
+            <Link to={ROUTES.ADMIN.PROJECT_DRAWINGS.replace(":projectId", project.id)}>
+              <FileImage className="h-4 w-4" />
+              Drawing QTO (upload & measure)
+            </Link>
           </Button>
           <Button variant="outline" className="w-full" onClick={onClose}>Cancel</Button>
         </div>
