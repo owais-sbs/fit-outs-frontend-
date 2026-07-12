@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, CheckCircle2, Download, FileText, GitBranch, Save, Send, Sparkles } from "lucide-react";
+import { ArrowLeft, Download, FileText, GitBranch, Save, Send, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

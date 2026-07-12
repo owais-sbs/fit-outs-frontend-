@@ -31,7 +31,6 @@ export const ROLE_LABELS = {
 };
 
 const BOQ_READ = ["boq.read"];
-const BOQ_WRITE = ["boq.read", "boq.write"];
 const BOQ_SUBMIT = ["boq.read", "boq.write", "boq.submit"];
 const BOQ_APPROVE = ["boq.read", "boq.approve"];
 

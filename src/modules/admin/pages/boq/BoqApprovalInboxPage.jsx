@@ -24,7 +24,6 @@ import {
   fetchBoqInbox,
   rejectBoq,
 } from "../../api/boq.api";
-import BoqApprovalTimeline from "./BoqApprovalTimeline";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -43,7 +42,6 @@ export default function BoqApprovalInboxPage() {
   const [actionType, setActionType] = useState(null);
   const [comments, setComments] = useState("");
   const [detailBoq, setDetailBoq] = useState(null);
-  const [history, setHistory] = useState(null);
   const [acting, setActing] = useState(false);
 
   const loadInbox = useCallback(() => {
@@ -72,7 +70,6 @@ export default function BoqApprovalInboxPage() {
     setActionType(null);
     setComments("");
     setDetailBoq(null);
-    setHistory(null);
   };
 
   const confirmAction = async () => {
