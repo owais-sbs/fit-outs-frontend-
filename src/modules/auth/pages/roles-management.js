@@ -64,8 +64,8 @@ const PORTAL_CONFIG = {
     id: "business-owner",
     label: "Director",
     icon: ShieldAlert,
-    description: "Director-level BOQ sign-off before client review.",
-    route: ROUTES.BUSINESS_OWNER.BOQ_INBOX,
+    description: "Executive command center with full operations access and BOQ sign-off.",
+    route: ROUTES.BUSINESS_OWNER.DASHBOARD,
   },
 };
 

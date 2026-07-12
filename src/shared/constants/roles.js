@@ -49,12 +49,16 @@ export const ROLE_PERMISSIONS = {
     ...BOQ_APPROVE,
   ],
   [ROLES.BUSINESS_OWNER]: [
+    "users.read",
     "projects.read",
     "projects.write",
+    "leads.read",
+    "clients.read",
     "finance.read",
     "reports.read",
     "settings.read",
     ...BOQ_READ,
+    ...BOQ_SUBMIT,
     ...BOQ_APPROVE,
   ],
   [ROLES.PROJECT_MANAGER]: [

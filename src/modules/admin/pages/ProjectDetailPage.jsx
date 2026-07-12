@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { fetchProjectById } from "../api/projects.api";
+import { fetchProjectById, updateProject } from "../api/projects.api";
 import { fetchBoqsByProject } from "../api/boq.api";
 import { ROUTES } from "@/shared/constants/routes";
 import { BoqStatusBadge } from "./boq/BoqApprovalTimeline";
@@ -42,6 +42,8 @@ export default function ProjectDetailPage() {
   const navigate = useNavigate();
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState("");
   const [boqs, setBoqs] = useState([]);
   const [boqsLoading, setBoqsLoading] = useState(true);
 
@@ -65,6 +67,22 @@ export default function ProjectDetailPage() {
     load();
     loadBoqs();
   }, [load, loadBoqs]);
+
+  const handleStatusChange = async (newStatus) => {
+    setProject((p) => ({ ...p, status: newStatus }));
+    setSaving(true);
+    setSaveMessage("");
+    try {
+      const updated = await updateProject(projectId, { status: newStatus });
+      setProject(updated);
+      setSaveMessage("Status saved.");
+    } catch {
+      setSaveMessage("Failed to save status.");
+      load();
+    } finally {
+      setSaving(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -107,7 +125,7 @@ export default function ProjectDetailPage() {
               <FileImage className="w-4 h-4 mr-1" /> Drawings
             </Link>
           </Button>
-          <Select value={project.status} onValueChange={(s) => setProject((p) => ({ ...p, status: s }))}>
+          <Select value={project.status} onValueChange={handleStatusChange} disabled={saving}>
             <SelectTrigger className="w-[135px] h-8 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
               {["Planning","In Progress","On Hold","Completed","Cancelled"].map((s) => (
@@ -118,13 +136,17 @@ export default function ProjectDetailPage() {
         </div>
       </div>
 
+      {saveMessage && (
+        <p className="text-sm text-muted-foreground">{saveMessage}</p>
+      )}
+
       {/* KPI row */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: "Contract Value",    value: `$${project.budget?.toLocaleString()}`, icon: DollarSign,  bg: "bg-primary/10 text-primary" },
+          { label: "Contract Value",    value: `AED ${Number(project.budget || 0).toLocaleString()}`, icon: DollarSign,  bg: "bg-primary/10 text-primary" },
           { label: "Overall Progress",  value: `${project.progress}%`,                 icon: TrendingUp,  bg: "bg-emerald-500/10 text-emerald-600" },
-          { label: "Start Date",        value: project.startDate,                      icon: CalendarDays, bg: "bg-blue-500/10 text-blue-600" },
-          { label: "Target Completion", value: project.expectedCompletionDate,         icon: Clock,       bg: "bg-amber-500/10 text-amber-600" },
+          { label: "Start Date",        value: project.startDate ? new Date(project.startDate).toLocaleDateString() : "—", icon: CalendarDays, bg: "bg-blue-500/10 text-blue-600" },
+          { label: "Target Completion", value: project.expectedCompletionDate ? new Date(project.expectedCompletionDate).toLocaleDateString() : "—", icon: Clock,       bg: "bg-amber-500/10 text-amber-600" },
         ].map(({ label, value, icon: Icon, bg }) => (
           <Card key={label} className="border-border/60 shadow-sm">
             <CardContent className="p-4 flex items-center gap-3">

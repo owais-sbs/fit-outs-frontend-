@@ -19,7 +19,7 @@ import UsersPage from "./modules/super-admin/pages/UsersPage";
 import PermissionsPage from "./modules/super-admin/pages/PermissionsPage";
 import ReportsPage from "./modules/super-admin/pages/ReportsPage";
 import SettingsPage from "./modules/super-admin/pages/SettingsPage";
-import AdminLayout from "./modules/admin/layouts/AdminLayout";
+import AdminPortalLayout from "./modules/admin/layouts/AdminPortalLayout";
 import {
   LeadIntakePage,
   LeadDetailPage,
@@ -70,7 +70,12 @@ import { BoqFlowPage } from "./modules/admin/pages/boq";
 import BoqApprovalInboxPage from "./modules/admin/pages/boq/BoqApprovalInboxPage";
 
 import AdminDashboard from "./modules/admin/pages/dashboard";
-import BusinessOwnerDashboard from "./modules/business-owner/pages/dashboard";
+import DirectorLayout from "./modules/business-owner/layouts/DirectorLayout";
+import DirectorDashboard from "./modules/business-owner/pages/DirectorDashboard";
+import DirectorProcurementPage from "./modules/business-owner/pages/DirectorProcurementPage";
+import DirectorProjectsPage from "./modules/business-owner/pages/DirectorProjectsPage";
+import DirectorCommercialPage from "./modules/business-owner/pages/DirectorCommercialPage";
+import DirectorCrmPage from "./modules/business-owner/pages/DirectorCrmPage";
 import ProjectManagerDashboard from "./modules/project-manager/pages/dashboard";
 import DesignerDashboard from "./modules/designer/pages/dashboard";
 import QASDashboard from "./modules/qas/pages/dashboard";
@@ -138,8 +143,8 @@ function App() {
               path="/admin"
               element={
                 <ProtectedRoute>
-                  <RoleRoute allowedRoles={[ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.SALES, ROLES.QS, ROLES.SENIOR_QS]}>
-                    <AdminLayout />
+                  <RoleRoute allowedRoles={[ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.SALES, ROLES.QS, ROLES.SENIOR_QS, ROLES.BUSINESS_OWNER]}>
+                    <AdminPortalLayout />
                   </RoleRoute>
                 </ProtectedRoute>
               }>
@@ -189,26 +194,25 @@ function App() {
               <Route path="boq/inbox" element={<BoqApprovalInboxPage />} />
 
             </Route>
+
+            {/* Director Command Center */}
             <Route
-              path={ROUTES.BUSINESS_OWNER.DASHBOARD}
+              path="/business-owner"
               element={
                 <ProtectedRoute>
                   <RoleRoute allowedRoles={[ROLES.BUSINESS_OWNER]}>
-                    <BusinessOwnerDashboard />
+                    <DirectorLayout />
                   </RoleRoute>
                 </ProtectedRoute>
-              }
-            />
-            <Route
-              path={ROUTES.BUSINESS_OWNER.BOQ_INBOX}
-              element={
-                <ProtectedRoute>
-                  <RoleRoute allowedRoles={[ROLES.BUSINESS_OWNER]}>
-                    <div className="p-6"><BoqApprovalInboxPage /></div>
-                  </RoleRoute>
-                </ProtectedRoute>
-              }
-            />
+              }>
+              <Route index element={<DirectorDashboard />} />
+              <Route path="boq/inbox" element={<BoqApprovalInboxPage />} />
+              <Route path="procurement" element={<DirectorProcurementPage />} />
+              <Route path="projects" element={<DirectorProjectsPage />} />
+              <Route path="commercial" element={<DirectorCommercialPage />} />
+              <Route path="crm" element={<DirectorCrmPage />} />
+            </Route>
+
             <Route
               path={ROUTES.PROJECT_MANAGER.DASHBOARD}
               element={

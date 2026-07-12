@@ -15,6 +15,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAuth } from "@/shared/context/auth-context";
 import { ROUTES } from "@/shared/constants/routes";
+import { ROLES } from "@/shared/constants/roles";
 import { formatCurrency } from "./quantityCalcUtils";
 import { BoqStatusBadge } from "./BoqApprovalTimeline";
 import {
@@ -33,6 +34,8 @@ function formatDate(value) {
 export default function BoqApprovalInboxPage() {
   const navigate = useNavigate();
   const { role } = useAuth();
+  const boqWorkspaceUrl = role === ROLES.BUSINESS_OWNER ? ROUTES.BUSINESS_OWNER.COMMERCIAL : ROUTES.ADMIN.BOQ;
+  const boqDetailUrl = ROUTES.ADMIN.BOQ;
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
@@ -155,7 +158,7 @@ export default function BoqApprovalInboxPage() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => navigate(`${ROUTES.ADMIN.BOQ}?boqId=${item.id}`)}
+                          onClick={() => navigate(`${boqDetailUrl}?boqId=${item.id}`)}
                         >
                           <Eye className="h-3.5 w-3.5 mr-1" /> View
                         </Button>
@@ -215,7 +218,7 @@ export default function BoqApprovalInboxPage() {
       </Dialog>
 
       <p className="text-xs text-muted-foreground">
-        <Link to={ROUTES.ADMIN.BOQ} className="underline">Open BOQ workspace</Link>
+        <Link to={boqWorkspaceUrl} className="underline">Open BOQ workspace</Link>
       </p>
     </div>
   );
