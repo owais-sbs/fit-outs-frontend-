@@ -24,6 +24,8 @@ export { default as ProjectsPage } from "./ProjectsPage";
 export { default as CreateProjectPage } from "./CreateProjectPage";
 export { default as ProjectDetailPage } from "./ProjectDetailPage";
 export { default as ProjectRequestsPage } from "./ProjectRequestsPage";
+export { default as RoomTaskDetailPage } from "./roomcollab/RoomTaskDetailPage";
+export { default as RoomChatPage } from "./roomcollab/RoomChatPage";
 
 export { default as ClientsPage } from "./clients/ClientsPage";
 export { default as AddClientPage } from "./clients/AddClientPage";

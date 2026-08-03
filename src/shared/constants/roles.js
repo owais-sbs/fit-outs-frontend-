@@ -12,23 +12,52 @@ export const ROLES = {
   CLIENT: "client",
   SALES: "sales",
   EMPLOYEE: "employee",
+  SITE_ENGINEER: "site-engineer",
 };
 
 export const ROLE_LABELS = {
   [ROLES.SUPER_ADMIN]: "Super Admin",
   [ROLES.ADMIN]: "Admin",
-  [ROLES.BUSINESS_OWNER]: "Director",
+  [ROLES.BUSINESS_OWNER]: "Project Director",
   [ROLES.PROJECT_MANAGER]: "Project Manager",
   [ROLES.DESIGNER]: "Designer",
   [ROLES.QAS]: "QAS",
   [ROLES.QS]: "Quantity Surveyor",
   [ROLES.SENIOR_QS]: "Senior QS",
-  [ROLES.FINANCE]: "Finance",
+  [ROLES.FINANCE]: "Finance / Accounts",
   [ROLES.SUBCONTRACTOR]: "Subcontractor",
   [ROLES.CLIENT]: "Client",
   [ROLES.SALES]: "Sales",
   [ROLES.EMPLOYEE]: "Employee",
+  [ROLES.SITE_ENGINEER]: "Site Engineer",
 };
+
+/** Roles Admin can assign when creating staff via Add Employee */
+export const STAFF_CREATE_ROLES = [
+  ROLES.PROJECT_MANAGER,
+  ROLES.BUSINESS_OWNER,
+  ROLES.QS,
+  ROLES.DESIGNER,
+  ROLES.SITE_ENGINEER,
+  ROLES.FINANCE,
+  ROLES.SALES,
+];
+
+export function toBackendRole(role) {
+  if (!role) return null;
+  return String(role).toUpperCase().replace(/-/g, "_");
+}
+
+export function fromBackendRole(role) {
+  if (!role) return null;
+  return String(role).toLowerCase().replace(/_/g, "-");
+}
+
+export function roleLabel(role) {
+  if (!role) return "—";
+  const key = fromBackendRole(role);
+  return ROLE_LABELS[key] || String(role);
+}
 
 const BOQ_READ = ["boq.read"];
 const BOQ_SUBMIT = ["boq.read", "boq.write", "boq.submit"];
@@ -131,13 +160,18 @@ export const ROLE_PERMISSIONS = {
     "tasks.read",
     "tasks.write",
   ],
+  [ROLES.SITE_ENGINEER]: [
+    "projects.read",
+    "tasks.read",
+    "tasks.write",
+  ],
 };
 
 export const BOQ_STATUS_LABELS = {
   DRAFT: "Draft",
   PENDING_SENIOR_QS: "Pending Senior QS",
   PENDING_PM: "Pending PM",
-  PENDING_DIRECTOR: "Pending Director",
+  PENDING_DIRECTOR: "Pending Project Director",
   PENDING_CLIENT: "Pending Client",
   APPROVED: "Approved",
   FINAL: "Approved",

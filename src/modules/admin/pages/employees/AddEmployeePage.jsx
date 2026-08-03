@@ -5,10 +5,14 @@ import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import { FEATURE_OPTIONS } from "../../data/employees";
 import { createEmployee } from "../../api/employees.api";
 import { ROUTES } from "@/shared/constants/routes";
+import { ROLE_LABELS, STAFF_CREATE_ROLES } from "@/shared/constants/roles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 
 function FeatureSelector({ selected, onChange }) {
   return (
@@ -60,20 +64,22 @@ function FeatureSelector({ selected, onChange }) {
   );
 }
 
+const emptyForm = () => ({
+  employeeName: "",
+  email: "",
+  phone: "",
+  role: "",
+  designation: "",
+  features: [],
+});
+
 export default function AddEmployeePage() {
   const navigate = useNavigate();
   const [errors, setErrors] = useState({});
   const [saved, setSaved] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [apiError, setApiError] = useState(null);
-
-  const [form, setForm] = useState({
-    employeeName: "",
-    email: "",
-    phone: "",
-    designation: "",
-    features: [],
-  });
+  const [form, setForm] = useState(emptyForm);
 
   const set = (k, v) => {
     setForm((f) => ({ ...f, [k]: v }));
@@ -81,10 +87,21 @@ export default function AddEmployeePage() {
     if (apiError) setApiError(null);
   };
 
+  const setRole = (role) => {
+    setForm((f) => ({
+      ...f,
+      role,
+      designation: f.designation.trim() ? f.designation : (ROLE_LABELS[role] || ""),
+    }));
+    setErrors((e) => ({ ...e, role: undefined, designation: undefined }));
+    if (apiError) setApiError(null);
+  };
+
   const validate = () => {
     const e = {};
     if (!form.employeeName.trim()) e.employeeName = "Required";
     if (!form.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = "Valid email required";
+    if (!form.role) e.role = "Required";
     if (!form.designation.trim()) e.designation = "Required";
     return e;
   };
@@ -99,7 +116,7 @@ export default function AddEmployeePage() {
       setSaved(true);
       setTimeout(() => {
         if (andAnother) {
-          setForm({ employeeName: "", email: "", phone: "", designation: "", features: [] });
+          setForm(emptyForm());
           setSaved(false);
           setSubmitting(false);
         } else {
@@ -116,7 +133,7 @@ export default function AddEmployeePage() {
     <div className="space-y-6 pb-28">
       <PageHeader
         title="Add Employee"
-        description="Create a new employee. A login account will be created automatically."
+        description="Create staff with a portal role. Login account password defaults to 123456."
       />
 
       {apiError && (
@@ -143,7 +160,7 @@ export default function AddEmployeePage() {
                 </span>
                 <div>
                   <CardTitle className="text-sm font-semibold">Employee Details</CardTitle>
-                  <CardDescription className="text-xs">Basic information for this employee.</CardDescription>
+                  <CardDescription className="text-xs">Basic information and portal role.</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -166,16 +183,38 @@ export default function AddEmployeePage() {
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
-                  <Label className="text-sm">Phone</Label>
-                  <Input value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="+61 400 000 000" />
+                  <Label className="text-sm">
+                    Role<span className="ml-0.5 text-destructive">*</span>
+                  </Label>
+                  <Select value={form.role} onValueChange={setRole}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STAFF_CREATE_ROLES.map((role) => (
+                        <SelectItem key={role} value={role}>
+                          {ROLE_LABELS[role]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.role && <p className="text-xs text-destructive">{errors.role}</p>}
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-sm">
-                    Designation<span className="ml-0.5 text-destructive">*</span>
-                  </Label>
-                  <Input value={form.designation} onChange={(e) => set("designation", e.target.value)} placeholder="e.g. Site Engineer" />
-                  {errors.designation && <p className="text-xs text-destructive">{errors.designation}</p>}
+                  <Label className="text-sm">Phone</Label>
+                  <Input value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="+971 50 000 0000" />
                 </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-sm">
+                  Designation<span className="ml-0.5 text-destructive">*</span>
+                </Label>
+                <Input
+                  value={form.designation}
+                  onChange={(e) => set("designation", e.target.value)}
+                  placeholder="Auto-filled from role"
+                />
+                {errors.designation && <p className="text-xs text-destructive">{errors.designation}</p>}
               </div>
             </CardContent>
           </Card>

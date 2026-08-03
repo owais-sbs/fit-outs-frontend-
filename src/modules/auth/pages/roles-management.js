@@ -62,7 +62,7 @@ const PORTAL_CONFIG = {
   },
   [ROLES.BUSINESS_OWNER]: {
     id: "business-owner",
-    label: "Director",
+    label: "Project Director",
     icon: ShieldAlert,
     description: "Executive command center with full operations access and BOQ sign-off.",
     route: ROUTES.BUSINESS_OWNER.DASHBOARD,

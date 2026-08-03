@@ -45,6 +45,8 @@ import {
   CreateProjectPage,
   ProjectDetailPage,
   ProjectRequestsPage,
+  RoomTaskDetailPage,
+  RoomChatPage,
   ClientsPage,
   AddClientPage,
   ClientEmailPage,
@@ -98,6 +100,7 @@ import {
   ClientProjectDetailPage,
   ClientBoqApprovalsPage,
 } from "./modules/client";
+import ClientRoomTaskPage from "./modules/client/pages/ClientRoomTaskPage";
 import SalesDashboard from "./modules/sales/pages/dashboard";
 import EmployeeLayout from "./modules/employee/layouts/EmployeeLayout";
 import EmployeeDashboard from "./modules/employee/pages/EmployeeDashboard";
@@ -177,6 +180,8 @@ function App() {
               <Route path="projects/:projectId" element={<ProjectDetailPage />} />
               <Route path="projects/:projectId/drawings" element={<ProjectDrawingsPage />} />
               <Route path="projects/:projectId/drawings/:drawingId/qto" element={<QtoWorkspacePage />} />
+              <Route path="projects/:projectId/room-tasks/:taskId" element={<RoomTaskDetailPage />} />
+              <Route path="projects/:projectId/rooms/:roomId/chat" element={<RoomChatPage />} />
               <Route path="leads/project-requests" element={<ProjectRequestsPage />} />
               <Route path="clients" element={<ClientsPage />} />
               <Route path="clients/new" element={<AddClientPage />} />
@@ -297,6 +302,8 @@ function App() {
               <Route path="projects/my" element={<MyProjectsPage />} />
               <Route path="projects/request" element={<NewProjectRequestPage />} />
               <Route path="projects/:projectId" element={<ClientProjectDetailPage />} />
+              <Route path="projects/:projectId/room-tasks/:taskId" element={<ClientRoomTaskPage />} />
+              <Route path="projects/:projectId/rooms/:roomId/chat" element={<RoomChatPage clientMode />} />
             </Route>
             <Route
               path={ROUTES.SALES.DASHBOARD}
@@ -318,7 +325,9 @@ function App() {
               path="/employee"
               element={
                 <ProtectedRoute>
-                  <EmployeeLayout />
+                  <RoleRoute allowedRoles={[ROLES.EMPLOYEE, ROLES.SITE_ENGINEER]}>
+                    <EmployeeLayout />
+                  </RoleRoute>
                 </ProtectedRoute>
               }
             >

@@ -35,6 +35,8 @@ export function useRoleRedirect() {
       [ROLES.FINANCE]: "/finance",
       [ROLES.SUBCONTRACTOR]: "/subcontractor",
       [ROLES.CLIENT]: "/client",
+      [ROLES.EMPLOYEE]: "/employee",
+      [ROLES.SITE_ENGINEER]: "/employee",
       [ROLES.SALES]: "/sales",
     };
 

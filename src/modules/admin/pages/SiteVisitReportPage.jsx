@@ -32,6 +32,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -39,6 +40,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { RENOVATION_ROOMS } from "../data/renovationChecklist";
 
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
@@ -69,7 +71,24 @@ function normalizeTemplateItem(item) {
     label: item.question || item.sectionName || "Checklist item",
     required: Boolean(item.isRequired),
     sectionName: item.sectionName || "",
+    roomName: item.roomName || "General",
   };
+}
+
+function filterItemsForVisit(items, visitData) {
+  const categories = Array.isArray(visitData?.categories) ? visitData.categories : [];
+  const rooms = Array.isArray(visitData?.rooms) ? visitData.rooms : [];
+  if (categories.length === 0 && rooms.length === 0) return items;
+
+  return items.filter((item) => {
+    const catOk = categories.length === 0 || categories.includes(item.sectionName);
+    const roomOk =
+      rooms.length === 0 ||
+      !item.roomName ||
+      item.roomName === "General" ||
+      rooms.includes(item.roomName);
+    return catOk && roomOk;
+  });
 }
 
 function fullAddress(locationDetails = {}) {
@@ -161,6 +180,7 @@ export default function SiteVisitReportPage() {
   const [checks, setChecks] = useState(() =>
     Object.fromEntries(fallbackChecklistItems().map((item) => [item.id, false]))
   );
+  const [itemNotes, setItemNotes] = useState({});
 
   useEffect(() => {
     let cancelled = false;
@@ -188,11 +208,14 @@ export default function SiteVisitReportPage() {
         if (cancelled) return;
         const templateData = templateResult.status === "fulfilled" ? templateResult.value.data?.data : null;
         setTemplate(templateData);
-        const templateItems = Array.isArray(templateData?.items) && templateData.items.length > 0
+        const rawItems = Array.isArray(templateData?.items) && templateData.items.length > 0
           ? templateData.items.map(normalizeTemplateItem)
           : fallbackChecklistItems();
-        setChecklistItems(templateItems);
-        setChecks(Object.fromEntries(templateItems.map((item) => [item.id, completed])));
+        const templateItems = filterItemsForVisit(rawItems, visitData);
+        const finalItems = templateItems.length > 0 ? templateItems : rawItems;
+        setChecklistItems(finalItems);
+        setChecks(Object.fromEntries(finalItems.map((item) => [item.id, completed])));
+        setItemNotes(Object.fromEntries(finalItems.map((item) => [item.id, ""])));
 
         const leadData = leadResult.status === "fulfilled" ? leadResult.value.data?.data : null;
         setLead(leadData);
@@ -203,6 +226,7 @@ export default function SiteVisitReportPage() {
         const fallbackItems = fallbackChecklistItems();
         setChecklistItems(fallbackItems);
         setChecks(Object.fromEntries(fallbackItems.map((item) => [item.id, completedMockVisit])));
+        setItemNotes(Object.fromEntries(fallbackItems.map((item) => [item.id, ""])));
         setSubmitted(completedMockVisit);
         setNotes(completedMockVisit ? INITIAL_NOTES : "");
         setError(err.response?.data?.error || err.response?.data?.message || "Unable to load site visit report details");
@@ -223,9 +247,54 @@ export default function SiteVisitReportPage() {
   const readOnly = submitted;
   const canSubmit = requiredMissing.length === 0;
 
+  const [activeRoomTab, setActiveRoomTab] = useState("");
+
+  const roomTabs = useMemo(() => {
+    const byRoom = new Map();
+    checklistItems.forEach((item) => {
+      const room = item.roomName || "General";
+      if (!byRoom.has(room)) byRoom.set(room, new Map());
+      const categories = byRoom.get(room);
+      const category = item.sectionName || "General";
+      if (!categories.has(category)) categories.set(category, []);
+      categories.get(category).push(item);
+    });
+
+    const orderIndex = (room) => {
+      const idx = RENOVATION_ROOMS.indexOf(room);
+      return idx === -1 ? 999 : idx;
+    };
+
+    return [...byRoom.entries()]
+      .sort(([a], [b]) => orderIndex(a) - orderIndex(b))
+      .map(([room, categoriesMap]) => {
+        const categories = [...categoriesMap.entries()].map(([category, items]) => ({
+          category,
+          items,
+        }));
+        const total = categories.reduce((sum, c) => sum + c.items.length, 0);
+        return { room, categories, total };
+      });
+  }, [checklistItems]);
+
+  useEffect(() => {
+    if (roomTabs.length === 0) {
+      setActiveRoomTab("");
+      return;
+    }
+    if (!activeRoomTab || !roomTabs.some((t) => t.room === activeRoomTab)) {
+      setActiveRoomTab(roomTabs[0].room);
+    }
+  }, [roomTabs, activeRoomTab]);
+
   const toggle = (id) => {
     if (readOnly) return;
     setChecks((current) => ({ ...current, [id]: !current[id] }));
+  };
+
+  const updateItemNote = (id, value) => {
+    if (readOnly) return;
+    setItemNotes((current) => ({ ...current, [id]: value }));
   };
 
   const handleSubmit = async () => {
@@ -238,7 +307,7 @@ export default function SiteVisitReportPage() {
         items: checklistItems.map((item) => ({
           templateItemUuid: item.id,
           response: checks[item.id] ? "YES" : "",
-          remarks: "",
+          remarks: itemNotes[item.id] || "",
           photoUrls: [],
         })),
       });
@@ -422,6 +491,55 @@ export default function SiteVisitReportPage() {
             </CardContent>
           </Card>
 
+          {(visit?.categories?.length > 0 || visit?.rooms?.length > 0) && (
+            <Card className="border-border/60 shadow-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Check className="h-4 w-4 text-primary" />
+                  Renovation checklist scope
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-5 sm:grid-cols-2">
+                {visit?.categories?.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Categories
+                    </p>
+                    <ul className="space-y-2">
+                      {visit.categories.map((cat) => (
+                        <li
+                          key={cat}
+                          className="flex items-start gap-2.5 rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-sm"
+                        >
+                          <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                          <span className="font-medium">{cat}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {visit?.rooms?.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Rooms
+                    </p>
+                    <ul className="space-y-2">
+                      {visit.rooms.map((room) => (
+                        <li
+                          key={room}
+                          className="flex items-start gap-2.5 rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-sm"
+                        >
+                          <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                          <span className="font-medium">{room}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           <Card className="border-border/60 shadow-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
@@ -550,41 +668,116 @@ export default function SiteVisitReportPage() {
                 Checklist completion
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              {checklistItems.map((item) => {
-                const checked = !!checks[item.id];
-                const isRequiredMissing = item.required && !checked && !readOnly;
-
-                return (
-                  <label
-                    key={item.id}
-                    className={[
-                      "flex items-start gap-3 rounded-xl border p-3 transition-colors",
-                      checked ? "border-primary/20 bg-primary/5" : "border-border/60 bg-card",
-                      isRequiredMissing ? "border-destructive/30 bg-destructive/5" : "",
-                      readOnly ? "cursor-default" : "cursor-pointer hover:bg-muted/30",
-                    ].join(" ")}
-                  >
-                    <Checkbox checked={checked} onCheckedChange={() => toggle(item.id)} disabled={readOnly} />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm font-medium">{item.label}</p>
-                        {item.sectionName && item.sectionName !== "string" && (
-                          <Badge variant="outline" className="text-[10px]">{item.sectionName}</Badge>
-                        )}
-                        {item.required && (
-                          <Badge variant={checked ? "success" : "destructive"} className="text-[10px]">
-                            Required
+            <CardContent>
+              {roomTabs.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No checklist items for this visit scope.</p>
+              ) : (
+                <Tabs value={activeRoomTab} onValueChange={setActiveRoomTab} className="space-y-4">
+                  <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 bg-muted/40 p-1">
+                    {roomTabs.map(({ room, total }) => {
+                      const done = checklistItems
+                        .filter((item) => (item.roomName || "General") === room && checks[item.id])
+                        .length;
+                      return (
+                        <TabsTrigger
+                          key={room}
+                          value={room}
+                          className="gap-1.5 px-3 py-1.5 text-xs data-[state=active]:shadow-sm"
+                        >
+                          <span>{room}</span>
+                          <Badge
+                            variant="secondary"
+                            className="h-5 min-w-5 justify-center rounded-md px-1.5 text-[10px] font-medium"
+                          >
+                            {done}/{total}
                           </Badge>
-                        )}
-                      </div>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {checked ? "Completed" : item.required ? "Must be completed before submission" : "Optional inspection item"}
-                      </p>
-                    </div>
-                  </label>
-                );
-              })}
+                        </TabsTrigger>
+                      );
+                    })}
+                  </TabsList>
+
+                  {roomTabs.map(({ room, categories }) => (
+                    <TabsContent key={room} value={room} className="mt-0 space-y-5">
+                      {categories.map(({ category, items }) => {
+                        const categoryDone = items.filter((item) => checks[item.id]).length;
+                        return (
+                          <section key={`${room}-${category}`} className="space-y-3">
+                            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-2">
+                              <h3 className="text-sm font-semibold">{category}</h3>
+                              <Badge variant="outline" className="text-[10px]">
+                                {categoryDone}/{items.length} done
+                              </Badge>
+                            </div>
+                            <div className="space-y-2">
+                              {items.map((item) => {
+                                const checked = !!checks[item.id];
+                                const isRequiredMissing = item.required && !checked && !readOnly;
+
+                                return (
+                                  <div
+                                    key={item.id}
+                                    className={[
+                                      "rounded-xl border p-3 transition-colors",
+                                      checked ? "border-primary/20 bg-primary/5" : "border-border/60 bg-card",
+                                      isRequiredMissing ? "border-destructive/30 bg-destructive/5" : "",
+                                    ].join(" ")}
+                                  >
+                                    <div className="flex items-start gap-3">
+                                      <Checkbox
+                                        checked={checked}
+                                        onCheckedChange={() => toggle(item.id)}
+                                        disabled={readOnly}
+                                        className="mt-0.5"
+                                      />
+                                      <div className="min-w-0 flex-1 space-y-2">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                          <p className="text-sm font-medium">{item.label}</p>
+                                          {item.required && (
+                                            <Badge
+                                              variant={checked ? "success" : "destructive"}
+                                              className="text-[10px]"
+                                            >
+                                              Required
+                                            </Badge>
+                                          )}
+                                        </div>
+                                        <p className="text-xs text-muted-foreground">
+                                          {checked
+                                            ? "Completed"
+                                            : item.required
+                                              ? "Must be completed before submission"
+                                              : "Optional inspection item"}
+                                        </p>
+                                        <div>
+                                          <Label
+                                            htmlFor={`note-${item.id}`}
+                                            className="mb-1 block text-[11px] font-medium text-muted-foreground"
+                                          >
+                                            Notes (optional)
+                                          </Label>
+                                          <Textarea
+                                            id={`note-${item.id}`}
+                                            value={itemNotes[item.id] || ""}
+                                            onChange={(e) => updateItemNote(item.id, e.target.value)}
+                                            disabled={readOnly}
+                                            rows={2}
+                                            placeholder="Add size, brand, condition, or other remarks…"
+                                            className="min-h-[56px] resize-y text-sm"
+                                          />
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </section>
+                        );
+                      })}
+                    </TabsContent>
+                  ))}
+                </Tabs>
+              )}
             </CardContent>
           </Card>
 

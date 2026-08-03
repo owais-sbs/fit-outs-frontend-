@@ -85,6 +85,9 @@ export default function EmployeeDetailPage() {
             <h1 className="text-xl font-bold">{employee.employeeName}</h1>
             <p className="text-sm text-muted-foreground">{employee.designation}</p>
             <div className="flex items-center gap-1.5 pt-0.5">
+              {employee.roleLabel && employee.roleLabel !== "—" && (
+                <Badge variant="outline">{employee.roleLabel}</Badge>
+              )}
               <Badge variant={employee.isActive ? "success" : "secondary"}>
                 {employee.isActive ? "Active" : "Inactive"}
               </Badge>

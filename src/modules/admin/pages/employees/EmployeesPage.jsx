@@ -72,7 +72,8 @@ export default function EmployeesPage() {
       const matchQ = !q ||
         e.employeeName?.toLowerCase().includes(q) ||
         e.email?.toLowerCase().includes(q) ||
-        e.designation?.toLowerCase().includes(q);
+        e.designation?.toLowerCase().includes(q) ||
+        e.roleLabel?.toLowerCase().includes(q);
       const matchStatus = statusFilter === "all" ||
         (statusFilter === "active" && e.isActive) ||
         (statusFilter === "inactive" && !e.isActive);
@@ -212,7 +213,14 @@ export default function EmployeesPage() {
                         <p className="font-medium leading-tight">{emp.employeeName}</p>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {emp.designation}
+                        <div className="space-y-1">
+                          <p>{emp.designation}</p>
+                          {emp.roleLabel && emp.roleLabel !== "—" && (
+                            <Badge variant="outline" className="text-[10px] font-medium">
+                              {emp.roleLabel}
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">

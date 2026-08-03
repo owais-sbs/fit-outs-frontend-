@@ -16,6 +16,7 @@ import { ROUTES } from "@/shared/constants/routes";
 import { BoqStatusBadge } from "./boq/BoqApprovalTimeline";
 import { formatCurrency } from "./boq/quantityCalcUtils";
 import { INITIAL_EMPLOYEES } from "@/modules/admin/data/employees";
+import ProjectRoomsSection from "./roomcollab/ProjectRoomsSection";
 
 function InfoItem({ label, value, mono = false }) {
   return (
@@ -226,6 +227,8 @@ export default function ProjectDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      <ProjectRoomsSection projectId={projectId} projectName={project.projectName || project.name} />
 
       {/* Main grid */}
       <div className="grid gap-6 lg:grid-cols-3">

@@ -18,6 +18,7 @@ const VALID_PORTAL_ROLES = new Set([
   ROLES.CLIENT,
   ROLES.SALES,
   ROLES.EMPLOYEE,
+  ROLES.SITE_ENGINEER,
 ]);
 
 function normalizeRole(role) {

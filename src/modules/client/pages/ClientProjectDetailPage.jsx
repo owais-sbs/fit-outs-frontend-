@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { projectStore } from "@/shared/store/projectStore";
 import { INITIAL_EMPLOYEES } from "@/modules/admin/data/employees";
+import { fetchProjectById } from "@/modules/admin/api/projects.api";
+import ClientProjectRoomsSection from "./ClientProjectRoomsSection";
 
 // ─── Helper ───────────────────────────────────────────────────────────────────
 function InfoItem({ label, value, mono = false }) {
@@ -40,9 +42,31 @@ export default function ClientProjectDetailPage() {
 
   const load = useCallback(() => {
     const proj = projectStore.getProjectById(projectId);
-    if (!proj) return;
-    setProject(proj);
-    setSiteVisits(projectStore.getSiteVisits(projectId));
+    if (proj) {
+      setProject(proj);
+      setSiteVisits(projectStore.getSiteVisits(projectId));
+      return;
+    }
+    fetchProjectById(projectId)
+      .then((apiProj) => {
+        if (!apiProj) return;
+        setProject({
+          id: apiProj.id,
+          projectName: apiProj.name || apiProj.projectName,
+          clientName: apiProj.clientName || "Client",
+          location: apiProj.location,
+          status: apiProj.status || "Planning",
+          progress: apiProj.progress ?? 0,
+          budget: apiProj.budget,
+          description: apiProj.description,
+          projectType: apiProj.projectType,
+          assignedManager: apiProj.assignedManager,
+          startDate: apiProj.startDate,
+          expectedCompletionDate: apiProj.expectedCompletionDate,
+        });
+        setSiteVisits([]);
+      })
+      .catch(() => setProject(null));
   }, [projectId]);
 
   useEffect(() => {
@@ -79,6 +103,8 @@ export default function ClientProjectDetailPage() {
         </div>
         <StatusBadge status={project.status} />
       </div>
+
+      <ClientProjectRoomsSection projectId={projectId} projectName={project.projectName} />
 
       {/* KPI row */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

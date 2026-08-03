@@ -14,6 +14,7 @@ export function normalizeSiteVisit(item = {}) {
     leadId: item.leadId ?? null,
     assignedTo: item.assignedTo ?? null,
     employeeIds: item.employeeIds ?? (item.assignedTo ? [item.assignedTo] : []),
+    employeeNames: item.employeeNames || [],
     scheduledDate: item.scheduledDate || null,
     scheduledTime: item.scheduledTime || null,
     latitude: item.latitude ?? null,
@@ -23,6 +24,9 @@ export function normalizeSiteVisit(item = {}) {
     createdBy: item.createdBy ?? null,
     createdAt: item.createdAt || null,
     updatedAt: item.updatedAt || null,
+    checklistTemplateUuid: item.checklistTemplateUuid || null,
+    categories: Array.isArray(item.categories) ? item.categories : [],
+    rooms: Array.isArray(item.rooms) ? item.rooms : [],
     locationDetails: {
       uuid: loc.uuid || null,
       addressLine1: loc.addressLine1 || "",
@@ -80,19 +84,26 @@ export const fetchSiteVisitByUuid = (uuid) =>
     .get(`/site-visits/GetSiteVisitByUuid/${uuid}`)
     .then((r) => normalizeSiteVisit(r.data?.data ?? r.data));
 
-export const createSiteVisit = (form) =>
-  axiosInstance
-    .post("/site-visits/CreateSite-Visits", {
-      leadId: Number(form.leadId),
-      employeeIds: Array.isArray(form.employeeIds) ? form.employeeIds.map(Number) : [],
-      scheduledDate: form.scheduledDate,
-      scheduledTime: form.scheduledTime,
-      latitude: Number(form.latitude),
-      longitude: Number(form.longitude),
-      notes: form.notes || "",
-      createdBy: form.createdBy ? Number(form.createdBy) : null,
-    })
+export const createSiteVisit = (form) => {
+  const payload = {
+    leadId: Number(form.leadId),
+    employeeIds: Array.isArray(form.employeeIds) ? form.employeeIds.map(Number) : [],
+    scheduledDate: form.scheduledDate,
+    scheduledTime: form.scheduledTime,
+    latitude: Number(form.latitude),
+    longitude: Number(form.longitude),
+    notes: form.notes || "",
+    createdBy: form.createdBy ? Number(form.createdBy) : null,
+    categories: Array.isArray(form.categories) ? form.categories : [],
+    rooms: Array.isArray(form.rooms) ? form.rooms : [],
+  };
+  if (form.checklistTemplateUuid) {
+    payload.checklistTemplateUuid = form.checklistTemplateUuid;
+  }
+  return axiosInstance
+    .post("/site-visits/CreateSite-Visits", payload)
     .then((r) => normalizeSiteVisit(r.data?.data ?? r.data));
+};
 
 export const addLocationDetails = (siteVisitUuid, details) =>
   axiosInstance
