@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchAllSiteVisits } from "../api/site-visits.api";
 import { fetchAllLeads } from "../api/leads.api";
+import { enrichSiteVisits, isAbortError } from "../utils/siteVisitListUtils";
 
 export function VisitCard({ visit, upcoming }) {
   const initials = visit.assignee && visit.assignee !== "Unassigned"
@@ -67,55 +68,36 @@ export function VisitCard({ visit, upcoming }) {
 export default function UpcomingVisitsPage() {
   const [upcoming, setUpcoming] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    let cancelled = false;
-    Promise.all([
-      fetchAllSiteVisits().catch(() => []),
-      fetchAllLeads().catch(() => []),
-    ])
-      .then(([visits, leads]) => {
-        if (cancelled) return;
-        const leadMap = new Map(leads.map((l) => [String(l.id), l]));
-        const enriched = visits.map((v) => {
-          const lead = leadMap.get(String(v.leadId));
-          const loc = v.locationDetails || {};
-          const locationStr = [loc.addressLine1, loc.buildingName, loc.area, loc.city, loc.state]
-            .filter(Boolean)
-            .join(", ") || "Location not specified";
+    let ignore = false;
 
-          const dateTime = v.scheduledDate && v.scheduledTime
-            ? `${v.scheduledDate}T${v.scheduledTime}`
-            : v.scheduledDate || v.createdAt || new Date().toISOString();
+    (async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const [visits, leads] = await Promise.all([
+          fetchAllSiteVisits(),
+          fetchAllLeads().catch(() => []),
+        ]);
+        if (ignore) return;
+        const enriched = enrichSiteVisits(visits, leads);
+        setUpcoming(enriched.filter((v) => !v.isCompleted && !v.isCancelled));
+      } catch (err) {
+        if (ignore || isAbortError(err)) return;
+        console.error("Failed to fetch site visits:", err);
+        setError(err?.response?.data?.message || err.message || "Failed to load site visits");
+        setUpcoming([]);
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    })();
 
-          const scheduledMs = new Date(dateTime).getTime();
-          const countdownHours = Math.max(0, Math.round((scheduledMs - Date.now()) / 3_600_000));
-          const isCompleted = v.status === "COMPLETED";
-
-          return {
-            ...v,
-            client: lead?.clientName || `Lead #${v.leadId}`,
-            company: lead?.company || loc.buildingName || loc.area || "—",
-            date: dateTime,
-            location: locationStr,
-            assignee: (Array.isArray(v.employeeIds) && v.employeeIds.length > 0)
-              ? v.employeeIds.map((id) => `Employee #${id}`).join(", ")
-              : (v.assignedTo ? `Employee #${v.assignedTo}` : "Unassigned"),
-            isCompleted,
-            countdownHours,
-          };
-        });
-
-        setUpcoming(enriched.filter((v) => !v.isCompleted));
-      })
-      .catch((err) => {
-        if (!cancelled) console.error("Failed to fetch site visits:", err);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => { cancelled = true; };
+    return () => {
+      ignore = true;
+    };
   }, []);
 
   const filtered = upcoming.filter(
@@ -142,6 +124,12 @@ export default function UpcomingVisitsPage() {
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input placeholder="Search upcoming visits..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 bg-muted/30" />
       </div>
+
+      {error ? (
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          {error}
+        </div>
+      ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {loading

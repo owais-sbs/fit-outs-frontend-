@@ -8,7 +8,7 @@ const CONTENT_WIDTH_PX = 794;
 /** html2canvas reliably renders ~this many CSS px per pass */
 const CAPTURE_CHUNK_PX = 900;
 
-const MODERN_COLOR = /oklch|lab\(|color\(/i;
+const MODERN_COLOR = /oklch|oklab|lab\(|lch\(|color\(|color-mix\(/i;
 
 const PAINT_PROPS = [
   "color",
@@ -18,30 +18,127 @@ const PAINT_PROPS = [
   "borderBottomColor",
   "borderLeftColor",
   "outlineColor",
+  "textDecorationColor",
+  "caretColor",
+  "columnRuleColor",
+  "fill",
+  "stroke",
 ];
 
+/** Layout/typography that must survive class stripping for html2canvas. */
+const LAYOUT_PROPS = [
+  "display",
+  "flexDirection",
+  "flexWrap",
+  "justifyContent",
+  "alignItems",
+  "alignContent",
+  "alignSelf",
+  "gap",
+  "rowGap",
+  "columnGap",
+  "gridTemplateColumns",
+  "gridTemplateRows",
+  "gridColumn",
+  "gridRow",
+  "width",
+  "minWidth",
+  "maxWidth",
+  "height",
+  "minHeight",
+  "padding",
+  "paddingTop",
+  "paddingRight",
+  "paddingBottom",
+  "paddingLeft",
+  "margin",
+  "marginTop",
+  "marginRight",
+  "marginBottom",
+  "marginLeft",
+  "fontSize",
+  "fontWeight",
+  "fontFamily",
+  "fontStyle",
+  "lineHeight",
+  "letterSpacing",
+  "textAlign",
+  "textTransform",
+  "whiteSpace",
+  "verticalAlign",
+  "borderCollapse",
+  "borderSpacing",
+  "borderStyle",
+  "borderWidth",
+  "borderTopWidth",
+  "borderRightWidth",
+  "borderBottomWidth",
+  "borderLeftWidth",
+  "borderRadius",
+  "boxSizing",
+  "position",
+  "top",
+  "right",
+  "bottom",
+  "left",
+  "flex",
+  "flexGrow",
+  "flexShrink",
+  "flexBasis",
+  "order",
+  "tableLayout",
+];
+
+const SKIP_LAYOUT_VALUES = new Set(["", "normal", "auto", "none", "static", "start", "stretch"]);
+
+/** Convert modern CSS colors (oklch, etc.) to hex/rgb that html2canvas can parse. */
 function toSafeCssColor(value, property = "color") {
-  if (!value || value === "transparent" || value === "rgba(0, 0, 0, 0)") {
+  if (!value || value === "transparent" || value === "rgba(0, 0, 0, 0)" || value === "none") {
     return value;
   }
   if (!MODERN_COLOR.test(value)) {
     return value;
   }
 
-  const probe = document.createElement("span");
-  probe.style.cssText = "position:fixed;left:-9999px;visibility:hidden;pointer-events:none;";
-  if (property === "backgroundColor") {
-    probe.style.backgroundColor = value;
-  } else {
-    probe.style.color = value;
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = 1;
+    canvas.height = 1;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (ctx) {
+      ctx.fillStyle = "#000000";
+      ctx.fillStyle = value;
+      const parsed = ctx.fillStyle;
+      if (parsed && !MODERN_COLOR.test(parsed)) {
+        return parsed;
+      }
+    }
+  } catch {
+    // fall through
   }
-  document.body.appendChild(probe);
-  const converted =
-    property === "backgroundColor"
-      ? getComputedStyle(probe).backgroundColor
-      : getComputedStyle(probe).color;
-  document.body.removeChild(probe);
-  return converted && converted !== "rgba(0, 0, 0, 0)" ? converted : "#000000";
+
+  try {
+    const probe = document.createElement("span");
+    probe.style.cssText =
+      "position:fixed;left:-9999px;visibility:hidden;pointer-events:none;color:#000;background:#fff;";
+    if (property === "backgroundColor") {
+      probe.style.backgroundColor = value;
+    } else {
+      probe.style.color = value;
+    }
+    document.body.appendChild(probe);
+    const computed = getComputedStyle(probe);
+    const converted =
+      property === "backgroundColor" ? computed.backgroundColor : computed.color;
+    document.body.removeChild(probe);
+    if (converted && !MODERN_COLOR.test(converted) && converted !== "rgba(0, 0, 0, 0)") {
+      return converted;
+    }
+  } catch {
+    // fall through
+  }
+
+  return property === "backgroundColor" ? "#ffffff" : "#111827";
 }
 
 function sanitizeNodeForCanvas(root, win = window) {
@@ -49,22 +146,45 @@ function sanitizeNodeForCanvas(root, win = window) {
 
   const nodes = [root, ...root.querySelectorAll("*")];
   nodes.forEach((node) => {
+    if (node.nodeType !== 1) return;
     const computed = win.getComputedStyle(node);
 
-    PAINT_PROPS.forEach((prop) => {
+    // Preserve layout before removing Tailwind classes.
+    LAYOUT_PROPS.forEach((prop) => {
       const val = computed[prop];
-      if (!val || val === "rgba(0, 0, 0, 0)") return;
-      node.style[prop] = MODERN_COLOR.test(val) ? toSafeCssColor(val, prop) : val;
+      if (val == null || SKIP_LAYOUT_VALUES.has(val)) return;
+      // Avoid inlining huge computed margin:auto as 0px quirks on body clones
+      if ((prop === "marginLeft" || prop === "marginRight") && val === "0px") return;
+      try {
+        node.style[prop] = val;
+      } catch {
+        // ignore
+      }
+    });
+
+    PAINT_PROPS.forEach((prop) => {
+      let val = computed[prop];
+      if (!val || val === "rgba(0, 0, 0, 0)" || val === "none") return;
+      if (MODERN_COLOR.test(val)) {
+        val = toSafeCssColor(val, prop === "backgroundColor" ? "backgroundColor" : "color");
+      }
+      try {
+        node.style[prop] = val;
+      } catch {
+        // ignore read-only SVG presentation attrs handled below
+      }
     });
 
     const bgImage = computed.backgroundImage;
     if (bgImage && bgImage !== "none") {
       if (MODERN_COLOR.test(bgImage)) {
         node.style.backgroundImage = "none";
-        node.style.backgroundColor = toSafeCssColor(computed.backgroundColor, "backgroundColor");
+        node.style.backgroundColor = toSafeCssColor(
+          computed.backgroundColor,
+          "backgroundColor"
+        );
       } else {
         node.style.backgroundImage = bgImage;
-        node.style.backgroundColor = computed.backgroundColor;
       }
     }
 
@@ -77,10 +197,28 @@ function sanitizeNodeForCanvas(root, win = window) {
       });
     }
 
+    // Drop utility classes so theme tokens (often oklch) cannot re-apply.
     node.removeAttribute("class");
     node.style.boxShadow = "none";
+    node.style.filter = "none";
     node.style.overflow = "visible";
     node.style.maxHeight = "none";
+
+    // Nuclear cleanup if any unsupported color leaked into cssText.
+    if (node.style?.cssText && MODERN_COLOR.test(node.style.cssText)) {
+      PAINT_PROPS.forEach((prop) => {
+        const inline = node.style[prop];
+        if (inline && MODERN_COLOR.test(inline)) {
+          node.style[prop] = toSafeCssColor(
+            inline,
+            prop === "backgroundColor" ? "backgroundColor" : "color"
+          );
+        }
+      });
+      if (node.style.backgroundImage && MODERN_COLOR.test(node.style.backgroundImage)) {
+        node.style.backgroundImage = "none";
+      }
+    }
   });
 }
 
@@ -123,6 +261,8 @@ function mountInExportIframe(sourceElement, fullHeight) {
     margin: 0;
     box-shadow: none;
     border-radius: 0;
+    background: #ffffff;
+    color: #111827;
   `;
 
   const staging = document.createElement("div");
@@ -156,12 +296,12 @@ function mountInExportIframe(sourceElement, fullHeight) {
 <meta charset="utf-8" />
 <style>
   *, *::before, *::after { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  html, body { margin: 0; padding: 0; background: #ffffff; width: ${CONTENT_WIDTH_PX}px; overflow: visible !important; height: auto !important; }
+  html, body { margin: 0; padding: 0; background: #ffffff; color: #111827; width: ${CONTENT_WIDTH_PX}px; overflow: visible !important; height: auto !important; }
   table { border-collapse: collapse; width: 100%; height: auto !important; }
   img { max-width: 100%; }
 </style>
 </head>
-<body style="overflow:visible;height:auto;"></body>
+<body style="overflow:visible;height:auto;background:#ffffff;color:#111827;"></body>
 </html>`);
   doc.close();
 
@@ -169,6 +309,9 @@ function mountInExportIframe(sourceElement, fullHeight) {
   imported.style.overflow = "visible";
   imported.style.minHeight = `${fullHeight}px`;
   doc.body.appendChild(imported);
+
+  // Second pass inside the isolated iframe (no theme stylesheets).
+  sanitizeNodeForCanvas(imported, iframe.contentWindow);
 
   imported.querySelectorAll("table, tbody, thead, tfoot").forEach((node) => {
     node.style.height = "auto";
@@ -182,7 +325,7 @@ function mountInExportIframe(sourceElement, fullHeight) {
 /**
  * html2canvas only paints ~one viewport per call — capture in vertical chunks then stitch.
  */
-async function captureFullHeight(root, totalHeight, scale) {
+async function captureFullHeight(root, totalHeight, scale, win = window) {
   const chunks = [];
 
   for (let offsetY = 0; offsetY < totalHeight; offsetY += CAPTURE_CHUNK_PX) {
@@ -202,6 +345,12 @@ async function captureFullHeight(root, totalHeight, scale) {
       y: offsetY,
       scrollX: 0,
       scrollY: 0,
+      onclone: (clonedDoc) => {
+        const target = clonedDoc.body;
+        if (target) {
+          sanitizeNodeForCanvas(target, clonedDoc.defaultView || win);
+        }
+      },
     });
 
     if (!canvas || canvas.height < 2) {
@@ -306,7 +455,7 @@ export async function downloadBoqPdf(elementId, filename = "BOQ-Invoice.pdf") {
     const remeasured = Math.max(fullHeight, measureElementHeight(imported));
     const scale = remeasured > 12000 ? 1.1 : remeasured > 7000 ? 1.25 : 1.5;
 
-    const canvas = await captureFullHeight(imported, remeasured, scale);
+    const canvas = await captureFullHeight(imported, remeasured, scale, win);
 
     if (!canvas || canvas.height < 20) {
       throw new Error("PDF capture produced empty canvas");

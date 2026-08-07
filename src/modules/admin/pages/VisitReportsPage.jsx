@@ -138,9 +138,13 @@ export default function VisitReportsPage() {
                             View
                           </Link>
                         </Button>
-                        <Button variant="outline" size="sm">
-                          <Download className="w-4 h-4 mr-1.5" />
-                          PDF
+                        <Button variant="outline" size="sm" asChild>
+                          <Link
+                            to={`${ROUTES.ADMIN.SITE_VISIT_REPORT.replace(":visitId", report.id)}?step=cover`}
+                          >
+                            <Download className="w-4 h-4 mr-1.5" />
+                            Draft BoQ / Cover letter
+                          </Link>
                         </Button>
                       </div>
                     </TableCell>

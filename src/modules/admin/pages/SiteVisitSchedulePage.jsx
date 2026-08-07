@@ -5,17 +5,20 @@ import L from "leaflet";
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { ROUTES } from "@/shared/constants/routes";
-import { ROLE_LABELS, STAFF_CREATE_ROLES } from "@/shared/constants/roles";
+import { ROLE_LABELS, SITE_VISIT_ASSIGNABLE_ROLES } from "@/shared/constants/roles";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import { fetchAllLeads } from "../api/leads.api";
 import { fetchAllEmployees } from "../api/employees.api";
 import { createSiteVisit, addLocationDetails } from "../api/site-visits.api";
 import { fetchAllClients } from "../api/clients.api";
 import {
-  RENOVATION_CATEGORIES,
-  RENOVATION_ROOMS,
-  suggestedRoomsForCategories,
+  countScopedItems,
+  countScopedRooms,
+  deriveCategoriesFromScopes,
+  deriveRoomsFromScopes,
+  isValidRoomScopes,
 } from "../data/renovationChecklist";
+import RoomChecklistScopeBuilder from "../components/site-visits/RoomChecklistScopeBuilder";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -162,8 +165,9 @@ export default function SiteVisitSchedulePage() {
     latitude: "-33.868820",
     longitude: "151.209290",
     notes: "",
-    categories: [],
-    rooms: [],
+    propertyType: "RESIDENTIAL",
+    propertyTypeCustom: "",
+    roomScopes: [],
   });
 
   const [staffSearchQuery, setStaffSearchQuery] = useState("");
@@ -171,29 +175,47 @@ export default function SiteVisitSchedulePage() {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([
-      fetchAllLeads(),
-      fetchAllEmployees().catch(() => []),
-      fetchAllClients().catch(() => []),
-    ])
-      .then(([leadList, empList, clientList]) => {
-        if (cancelled) return;
-        setLeads(leadList);
-        setEmployees(() => {
-          const active = empList.filter((e) => e.isActive);
-          const staff = active.filter((e) => !e.role || STAFF_CREATE_ROLES.includes(e.role));
-          return staff.length > 0 ? staff : active;
-        });
-        setClients(clientList);
+
+    const loadLeads = fetchAllLeads()
+      .then((leadList) => {
+        if (!cancelled) setLeads(leadList);
       })
       .catch((err) => {
         if (cancelled) return;
-        setError(err.response?.data?.error || err.response?.data?.message || "Unable to load options");
-      })
-      .finally(() => {
-        if (!cancelled) setLoadingOptions(false);
+        setError(err.response?.data?.error || err.response?.data?.message || "Unable to load leads");
       });
-    return () => { cancelled = true; };
+
+    const loadEmployees = fetchAllEmployees()
+      .then((empList) => {
+        if (cancelled) return;
+        const active = empList.filter((e) => e.isActive !== false);
+        const assignable = active.filter(
+          (e) => !e.role || SITE_VISIT_ASSIGNABLE_ROLES.includes(e.role)
+        );
+        // Prefer assignable roles; if none match (legacy data), still show all active staff
+        setEmployees(assignable.length > 0 ? assignable : active);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setEmployees([]);
+        setError(err.response?.data?.error || err.response?.data?.message || "Unable to load staff");
+      });
+
+    const loadClients = fetchAllClients()
+      .then((clientList) => {
+        if (!cancelled) setClients(clientList);
+      })
+      .catch(() => {
+        if (!cancelled) setClients([]);
+      });
+
+    Promise.allSettled([loadLeads, loadEmployees, loadClients]).finally(() => {
+      if (!cancelled) setLoadingOptions(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -233,45 +255,35 @@ export default function SiteVisitSchedulePage() {
           : "Assign staff",
       },
       {
-        label: "Categories",
-        value: form.categories.length > 0 ? form.categories.join(", ") : "Select scopes",
+        label: "Type",
+        value:
+          form.propertyType === "CUSTOM"
+            ? form.propertyTypeCustom?.trim() || "Custom"
+            : form.propertyType
+              ? form.propertyType.charAt(0) + form.propertyType.slice(1).toLowerCase()
+              : "Select type",
+      },
+      {
+        label: "Floors",
+        value:
+          form.roomScopes.length > 0
+            ? form.roomScopes.map((f) => f.floorName).filter(Boolean).join(", ")
+            : "Add floors",
       },
       {
         label: "Rooms",
-        value: form.rooms.length > 0 ? form.rooms.join(", ") : "Optional",
+        value: `${countScopedRooms(form.roomScopes)} added`,
+      },
+      {
+        label: "Items",
+        value: `${countScopedItems(form.roomScopes)} selected`,
       },
     ],
-    [form.date, form.time, form.categories, form.rooms, selectedEntity, selectedEmployees, targetType]
+    [form.date, form.time, form.propertyType, form.propertyTypeCustom, form.roomScopes, selectedEntity, selectedEmployees, targetType]
   );
 
   const update = (field, value) => {
     setForm((f) => ({ ...f, [field]: value }));
-    setError("");
-  };
-
-  const toggleCategory = (category) => {
-    setForm((f) => {
-      const nextCategories = f.categories.includes(category)
-        ? f.categories.filter((c) => c !== category)
-        : [...f.categories, category];
-      const suggested = suggestedRoomsForCategories(nextCategories);
-      // When adding a category, merge suggested rooms; when removing, keep user picks that still make sense
-      let nextRooms = f.rooms;
-      if (!f.categories.includes(category)) {
-        nextRooms = [...new Set([...f.rooms, ...suggestedRoomsForCategories([category])])];
-      } else if (nextCategories.length > 0) {
-        nextRooms = f.rooms.filter((r) => suggested.includes(r));
-      }
-      return { ...f, categories: nextCategories, rooms: nextRooms };
-    });
-    setError("");
-  };
-
-  const toggleRoom = (room) => {
-    setForm((f) => ({
-      ...f,
-      rooms: f.rooms.includes(room) ? f.rooms.filter((r) => r !== room) : [...f.rooms, room],
-    }));
     setError("");
   };
 
@@ -389,8 +401,16 @@ export default function SiteVisitSchedulePage() {
       setError(`Select a ${targetType === "lead" ? "lead" : "client"}, at least one staff member, date, time, and location.`);
       return;
     }
-    if (form.categories.length === 0) {
-      setError("Select at least one renovation checklist category.");
+    if (!form.propertyType) {
+      setError("Select a property type.");
+      return;
+    }
+    if (form.propertyType === "CUSTOM" && !form.propertyTypeCustom.trim()) {
+      setError("Enter a custom property type label.");
+      return;
+    }
+    if (!isValidRoomScopes(form.roomScopes)) {
+      setError("Add at least one floor with a room, category, and one or more checklist items.");
       return;
     }
     const latitude = Number(form.latitude);
@@ -412,8 +432,11 @@ export default function SiteVisitSchedulePage() {
         longitude: form.longitude,
         notes: form.notes || "",
         createdBy: form.employeeIds[0] || null,
-        categories: form.categories,
-        rooms: form.rooms.length > 0 ? form.rooms : suggestedRoomsForCategories(form.categories),
+        propertyType: form.propertyType,
+        propertyTypeCustom: form.propertyTypeCustom,
+        roomScopes: form.roomScopes,
+        categories: deriveCategoriesFromScopes(form.roomScopes),
+        rooms: deriveRoomsFromScopes(form.roomScopes),
       });
 
       if (visit.uuid) {
@@ -455,7 +478,7 @@ export default function SiteVisitSchedulePage() {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <CardTitle className="text-base">Visit details</CardTitle>
-                <CardDescription>Select lead, time, staff, categories, rooms, and location.</CardDescription>
+                <CardDescription>Select lead, time, staff, property type, rooms, checklist items, and location.</CardDescription>
               </div>
               <Badge variant="outline" className="gap-1">
                 <Sparkles className="h-3 w-3" />
@@ -660,7 +683,11 @@ export default function SiteVisitSchedulePage() {
                         })
                       ) : (
                         <div className="px-3 py-2 text-sm text-muted-foreground">
-                          No matching staff found.
+                          {loadingOptions
+                            ? "Loading staff..."
+                            : employees.length === 0
+                              ? "No active staff found. Add employees first."
+                              : "No matching staff found."}
                         </div>
                       )}
                     </div>
@@ -668,57 +695,21 @@ export default function SiteVisitSchedulePage() {
                 </div>
               </div>
 
-              <div className="space-y-2 md:col-span-2">
-                <Label>Checklist categories *</Label>
-                <p className="text-xs text-muted-foreground">
-                  From the JCT Renovation Checklist (scope sections A–M).
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {RENOVATION_CATEGORIES.map((category) => {
-                    const active = form.categories.includes(category);
-                    return (
-                      <button
-                        key={category}
-                        type="button"
-                        onClick={() => toggleCategory(category)}
-                        className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
-                          active
-                            ? "border-primary bg-primary text-primary-foreground"
-                            : "border-border/60 bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground"
-                        }`}
-                      >
-                        {category}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="space-y-2 md:col-span-2">
-                <Label>Rooms</Label>
-                <p className="text-xs text-muted-foreground">
-                  Optional. Suggested from selected categories; used to filter checklist items on the report.
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {RENOVATION_ROOMS.map((room) => {
-                    const active = form.rooms.includes(room);
-                    return (
-                      <button
-                        key={room}
-                        type="button"
-                        onClick={() => toggleRoom(room)}
-                        className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
-                          active
-                            ? "border-primary bg-primary/10 text-primary border-primary/40"
-                            : "border-border/60 bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground"
-                        }`}
-                      >
-                        {room}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+              <RoomChecklistScopeBuilder
+                propertyType={form.propertyType}
+                propertyTypeCustom={form.propertyTypeCustom}
+                roomScopes={form.roomScopes}
+                onPropertyTypeChange={(value) => {
+                  setForm((f) => ({
+                    ...f,
+                    propertyType: value,
+                    propertyTypeCustom: value === "CUSTOM" ? f.propertyTypeCustom : "",
+                  }));
+                  setError("");
+                }}
+                onPropertyTypeCustomChange={(value) => update("propertyTypeCustom", value)}
+                onRoomScopesChange={(roomScopes) => update("roomScopes", roomScopes)}
+              />
 
               <div className="space-y-2 md:col-span-2">
                 <Label>Location *</Label>
@@ -924,37 +915,39 @@ export default function SiteVisitSchedulePage() {
               </p>
             </div>
 
-            {(form.categories.length > 0 || form.rooms.length > 0) && (
+            {form.roomScopes.length > 0 && (
               <div className="rounded-xl border border-border/60 bg-muted/20 p-3 space-y-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Renovation checklist scope
                 </p>
-                {form.categories.length > 0 && (
-                  <div className="space-y-1.5">
-                    <p className="text-xs font-medium">Categories</p>
-                    <ul className="space-y-1">
-                      {form.categories.map((cat) => (
-                        <li key={cat} className="flex items-start gap-2 text-sm">
-                          <CheckSquare className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-                          <span>{cat}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                {form.rooms.length > 0 && (
-                  <div className="space-y-1.5">
-                    <p className="text-xs font-medium">Rooms</p>
-                    <ul className="space-y-1">
-                      {form.rooms.map((room) => (
-                        <li key={room} className="flex items-start gap-2 text-sm">
-                          <CheckSquare className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-                          <span>{room}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+                <p className="text-sm">
+                  {form.propertyType === "CUSTOM"
+                    ? form.propertyTypeCustom || "Custom"
+                    : form.propertyType
+                      ? form.propertyType.charAt(0) + form.propertyType.slice(1).toLowerCase()
+                      : "—"}
+                  {" · "}
+                  {form.roomScopes.length} floor{form.roomScopes.length === 1 ? "" : "s"}
+                  {" · "}
+                  {countScopedRooms(form.roomScopes)} room
+                  {countScopedRooms(form.roomScopes) === 1 ? "" : "s"}
+                  {" · "}
+                  {countScopedItems(form.roomScopes)} item
+                  {countScopedItems(form.roomScopes) === 1 ? "" : "s"}
+                </p>
+                <ul className="space-y-1">
+                  {form.roomScopes.map((floor) => (
+                    <li key={floor.floorName} className="flex items-start gap-2 text-sm">
+                      <CheckSquare className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                      <span>
+                        {floor.floorName}
+                        {(floor.rooms || []).length > 0
+                          ? ` — ${(floor.rooms || []).map((r) => r.roomName).join(", ")}`
+                          : ""}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
           </div>

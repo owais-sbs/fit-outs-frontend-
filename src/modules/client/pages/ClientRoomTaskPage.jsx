@@ -1,11 +1,16 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Check, Loader2, Upload } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  FileText,
+  Loader2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ROUTES } from "@/shared/constants/routes";
 import {
@@ -14,11 +19,48 @@ import {
   fetchTaskMessages,
   fetchTaskTimeline,
   requestTaskChanges,
-  uploadTaskVersion,
 } from "@/modules/admin/api/room-collab.api";
 import TaskChatPanel from "@/modules/admin/pages/roomcollab/TaskChatPanel";
 
-/** Client-facing task page with approve / request-changes */
+function StatusStrip({ task, timeline, historyOpen, setHistoryOpen }) {
+  const events = (timeline || []).filter((ev) => ev.eventType !== "MESSAGE");
+  return (
+    <div className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5 space-y-2">
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+        <span>Deadline: {task.clientDeadline ? new Date(task.clientDeadline).toLocaleString() : "—"}</span>
+        <span>Sent: {task.firstSentToClientAt ? new Date(task.firstSentToClientAt).toLocaleString() : "—"}</span>
+        <span>Revisions: {task.revisionCount ?? 0}</span>
+      </div>
+      {events.length > 0 && (
+        <div>
+          <button
+            type="button"
+            className="flex items-center gap-1 text-xs font-medium text-foreground/80 hover:text-foreground"
+            onClick={() => setHistoryOpen((o) => !o)}
+          >
+            {historyOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+            History ({events.length})
+          </button>
+          {historyOpen && (
+            <div className="mt-2 max-h-40 space-y-1.5 overflow-y-auto border-t border-border/40 pt-2">
+              {events.map((ev) => (
+                <div key={ev.uuid} className="text-xs">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                    {ev.eventType.replace(/_/g, " ")}
+                    {ev.createdAt ? ` · ${new Date(ev.createdAt).toLocaleString()}` : ""}
+                  </p>
+                  <p className="text-sm text-foreground/90">{ev.message}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Client-facing task page: chat-first review + approve / request changes */
 export default function ClientRoomTaskPage() {
   const { projectId, taskId } = useParams();
   const [task, setTask] = useState(null);
@@ -28,7 +70,8 @@ export default function ClientRoomTaskPage() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [notes, setNotes] = useState("");
-  const [file, setFile] = useState(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [showChanges, setShowChanges] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -80,8 +123,14 @@ export default function ClientRoomTaskPage() {
     }
   };
 
+  const backTo = ROUTES.CLIENT.PROJECT_DETAIL.replace(":projectId", projectId);
+
   if (loading) {
-    return <div className="py-16 flex justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>;
+    return (
+      <div className="py-16 flex justify-center">
+        <Loader2 className="h-6 w-6 animate-spin" />
+      </div>
+    );
   }
 
   if (!task) {
@@ -89,7 +138,7 @@ export default function ClientRoomTaskPage() {
       <div className="py-16 text-center">
         <p>Task not found</p>
         <Button asChild className="mt-4" size="sm">
-          <Link to={ROUTES.CLIENT.PROJECT_DETAIL.replace(":projectId", projectId)}>Back</Link>
+          <Link to={backTo}>Back</Link>
         </Button>
       </div>
     );
@@ -97,12 +146,16 @@ export default function ClientRoomTaskPage() {
 
   const awaiting = task.status === "AWAITING_CLIENT";
   const readOnly = task.status === "APPROVED" || task.status === "CLOSED";
+  const versions = task.versions || [];
+  const latest = versions.length
+    ? [...versions].sort((a, b) => (b.versionNo || 0) - (a.versionNo || 0))[0]
+    : null;
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto pb-16">
+    <div className="mx-auto flex max-w-3xl flex-col gap-4 pb-16">
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-          <Link to={ROUTES.CLIENT.PROJECT_DETAIL.replace(":projectId", projectId)}>
+          <Link to={backTo}>
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
@@ -113,113 +166,105 @@ export default function ClientRoomTaskPage() {
         <Badge variant="outline">{task.status.replace(/_/g, " ")}</Badge>
       </div>
 
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {error && (
+        <p className="text-sm text-destructive border border-destructive/30 bg-destructive/10 rounded-md px-3 py-2">
+          {error}
+        </p>
+      )}
 
-      <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-        <div className="space-y-4">
-          <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-sm">Versions</CardTitle></CardHeader>
-            <CardContent className="space-y-2">
-              {(task.versions || []).map((v) => (
-                <div
-                  key={v.uuid}
-                  className={[
-                    "rounded-lg border px-3 py-2 text-sm",
-                    v.isFinal ? "border-emerald-500/40 bg-emerald-500/5" : "",
-                  ].join(" ")}
-                >
-                  <div className="flex justify-between gap-2">
-                    <div>
-                      <p className="font-medium">
-                        v{v.versionNo} · {v.originalName}
-                        {v.isFinal ? " · Final approved" : ""}
-                      </p>
-                      <p className="text-xs text-muted-foreground">{v.uploaderRole}</p>
-                    </div>
-                    {v.downloadUrl && (
-                      <Button asChild size="sm" variant="outline">
-                        <a href={v.downloadUrl} target="_blank" rel="noreferrer">View</a>
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              ))}
+      <StatusStrip
+        task={task}
+        timeline={timeline}
+        historyOpen={historyOpen}
+        setHistoryOpen={setHistoryOpen}
+      />
 
-              {awaiting && (
-                <div className="border-t pt-3 space-y-3">
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      disabled={busy}
-                      onClick={() => run(() => approveRoomTask(projectId, taskId))}
-                    >
-                      <Check className="h-3.5 w-3.5 mr-1" /> Approve final
-                    </Button>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Request changes</Label>
-                    <Textarea
-                      rows={3}
-                      placeholder="Describe the changes you need…"
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                    />
-                    <Label>Upload marked-up file (optional)</Label>
-                    <Input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} />
-                    <Button
-                      variant="outline"
-                      disabled={busy || !notes.trim()}
-                      onClick={() =>
-                        run(async () => {
-                          if (file) {
-                            await uploadTaskVersion(projectId, taskId, file, notes);
-                          }
-                          await requestTaskChanges(projectId, taskId, notes);
-                          setNotes("");
-                          setFile(null);
-                        })
-                      }
-                    >
-                      <Upload className="h-3.5 w-3.5 mr-1" /> Submit change request
-                    </Button>
-                  </div>
-                </div>
+      {latest && (
+        <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-card px-3 py-2 text-sm">
+          <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-medium">
+              Latest: v{latest.versionNo} · {latest.originalName}
+              {latest.isFinal && (
+                <Badge className="ml-1.5 bg-emerald-600 text-white text-[10px] gap-1 align-middle">
+                  <CheckCircle2 className="h-3 w-3" /> Final
+                </Badge>
               )}
-
-              {readOnly && (
-                <p className="text-sm text-emerald-700">
-                  This item is finalized
-                  {task.clientApprovalDays != null ? ` (you took ${task.clientApprovalDays} day(s) to approve)` : ""}.
-                  Conversation remains available below.
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          <TaskChatPanel
-            projectId={projectId}
-            taskId={taskId}
-            messages={messages}
-            versions={task.versions || []}
-            onSent={softReload}
-          />
+            </p>
+            <p className="text-xs text-muted-foreground">{latest.uploaderRole}</p>
+          </div>
+          {latest.downloadUrl && (
+            <Button asChild size="sm" variant="outline">
+              <a href={latest.downloadUrl} target="_blank" rel="noreferrer">View</a>
+            </Button>
+          )}
         </div>
+      )}
 
-        <Card className="h-fit">
-          <CardHeader className="pb-2"><CardTitle className="text-sm">Timeline</CardTitle></CardHeader>
-          <CardContent className="space-y-2">
-            {timeline
-              .filter((ev) => ev.eventType !== "MESSAGE")
-              .map((ev) => (
-              <div key={ev.uuid} className="border-l-2 border-primary/30 pl-3 py-1 text-sm">
-                <p className="text-[10px] text-muted-foreground uppercase">
-                  {ev.eventType.replace(/_/g, " ")} · {ev.createdAt ? new Date(ev.createdAt).toLocaleString() : ""}
-                </p>
-                <p>{ev.message}</p>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
+      {awaiting && (
+        <div className="space-y-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+          <p className="text-sm font-medium">This item is waiting for your review</p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              disabled={busy}
+              onClick={() => run(() => approveRoomTask(projectId, taskId))}
+            >
+              <Check className="h-3.5 w-3.5 mr-1" /> Approve
+            </Button>
+            <Button
+              variant="outline"
+              disabled={busy}
+              onClick={() => setShowChanges((s) => !s)}
+            >
+              Request changes
+            </Button>
+          </div>
+          {showChanges && (
+            <div className="space-y-2 border-t border-border/40 pt-3">
+              <Textarea
+                rows={3}
+                placeholder="Describe the changes you need…"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Optional: attach a marked-up file in the conversation below before submitting.
+              </p>
+              <Button
+                variant="secondary"
+                disabled={busy || !notes.trim()}
+                onClick={() =>
+                  run(async () => {
+                    await requestTaskChanges(projectId, taskId, notes);
+                    setNotes("");
+                    setShowChanges(false);
+                  })
+                }
+              >
+                Submit change request
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {readOnly && (
+        <p className="text-sm text-emerald-700 rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3 py-2">
+          This item is finalized
+          {task.clientApprovalDays != null
+            ? ` (you took ${task.clientApprovalDays} day(s) to approve)`
+            : ""}
+          . Conversation remains available below.
+        </p>
+      )}
+
+      <TaskChatPanel
+        projectId={projectId}
+        taskId={taskId}
+        messages={messages}
+        onSent={softReload}
+        disabled={readOnly}
+      />
     </div>
   );
 }

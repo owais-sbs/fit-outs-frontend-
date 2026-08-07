@@ -1,4 +1,9 @@
 import axiosInstance from "@/lib/axiosInstance";
+import {
+  deriveCategoriesFromScopes,
+  deriveRoomsFromScopes,
+  normalizeRoomScopes,
+} from "../data/renovationChecklist";
 
 const STATUS_TO_STAGE = {
   SCHEDULED: "SCHEDULED",
@@ -9,6 +14,7 @@ const STATUS_TO_STAGE = {
 
 export function normalizeSiteVisit(item = {}) {
   const loc = item.locationDetails || {};
+  const roomScopes = normalizeRoomScopes(item.roomScopes);
   return {
     uuid: item.uuid || null,
     leadId: item.leadId ?? null,
@@ -25,8 +31,13 @@ export function normalizeSiteVisit(item = {}) {
     createdAt: item.createdAt || null,
     updatedAt: item.updatedAt || null,
     checklistTemplateUuid: item.checklistTemplateUuid || null,
-    categories: Array.isArray(item.categories) ? item.categories : [],
-    rooms: Array.isArray(item.rooms) ? item.rooms : [],
+    propertyType: item.propertyType || null,
+    propertyTypeCustom: item.propertyTypeCustom || "",
+    roomScopes,
+    categories: Array.isArray(item.categories)
+      ? item.categories
+      : deriveCategoriesFromScopes(roomScopes),
+    rooms: Array.isArray(item.rooms) ? item.rooms : deriveRoomsFromScopes(roomScopes),
     locationDetails: {
       uuid: loc.uuid || null,
       addressLine1: loc.addressLine1 || "",
@@ -85,6 +96,7 @@ export const fetchSiteVisitByUuid = (uuid) =>
     .then((r) => normalizeSiteVisit(r.data?.data ?? r.data));
 
 export const createSiteVisit = (form) => {
+  const roomScopes = normalizeRoomScopes(form.roomScopes);
   const payload = {
     leadId: Number(form.leadId),
     employeeIds: Array.isArray(form.employeeIds) ? form.employeeIds.map(Number) : [],
@@ -94,8 +106,13 @@ export const createSiteVisit = (form) => {
     longitude: Number(form.longitude),
     notes: form.notes || "",
     createdBy: form.createdBy ? Number(form.createdBy) : null,
-    categories: Array.isArray(form.categories) ? form.categories : [],
-    rooms: Array.isArray(form.rooms) ? form.rooms : [],
+    propertyType: form.propertyType || null,
+    propertyTypeCustom: form.propertyTypeCustom || null,
+    roomScopes,
+    categories: Array.isArray(form.categories)
+      ? form.categories
+      : deriveCategoriesFromScopes(roomScopes),
+    rooms: Array.isArray(form.rooms) ? form.rooms : deriveRoomsFromScopes(roomScopes),
   };
   if (form.checklistTemplateUuid) {
     payload.checklistTemplateUuid = form.checklistTemplateUuid;
@@ -104,6 +121,22 @@ export const createSiteVisit = (form) => {
     .post("/site-visits/CreateSite-Visits", payload)
     .then((r) => normalizeSiteVisit(r.data?.data ?? r.data));
 };
+
+export const updateSiteVisitChecklistScope = (uuid, form) => {
+  const roomScopes = normalizeRoomScopes(form.roomScopes);
+  return axiosInstance
+    .patch(`/site-visits/${uuid}/checklist-scope`, {
+      propertyType: form.propertyType || null,
+      propertyTypeCustom: form.propertyTypeCustom || null,
+      roomScopes,
+    })
+    .then((r) => normalizeSiteVisit(r.data?.data ?? r.data));
+};
+
+export const submitSiteVisitReport = (uuid, payload) =>
+  axiosInstance
+    .post(`/site-visits/EmployeeSiteVisitByUuid/${uuid}/report`, payload)
+    .then((r) => r.data?.data ?? r.data);
 
 export const addLocationDetails = (siteVisitUuid, details) =>
   axiosInstance

@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchAllSiteVisits } from "../api/site-visits.api";
 import { fetchAllLeads } from "../api/leads.api";
+import { enrichSiteVisits, isAbortError } from "../utils/siteVisitListUtils";
 
 function VisitCard({ visit, upcoming }) {
   const initials = visit.assignee
@@ -68,56 +69,38 @@ export default function SiteVisitsPage() {
   const [upcoming, setUpcoming] = useState([]);
   const [completed, setCompleted] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    let cancelled = false;
-    Promise.all([
-      fetchAllSiteVisits(),
-      fetchAllLeads().catch(() => []),
-    ])
-      .then(([visits, leads]) => {
-        if (cancelled) return;
-        const leadMap = new Map(leads.map((l) => [String(l.id), l]));
-        const enriched = visits.map((v) => {
-          const lead = leadMap.get(String(v.leadId));
-          const loc = v.locationDetails || {};
-          const locationStr = [loc.addressLine1, loc.buildingName, loc.area, loc.city, loc.state]
-            .filter(Boolean)
-            .join(", ") || "Location not specified";
+    let ignore = false;
 
-          const dateTime = v.scheduledDate && v.scheduledTime
-            ? `${v.scheduledDate}T${v.scheduledTime}`
-            : v.scheduledDate || v.createdAt;
-
-          const scheduledMs = new Date(dateTime).getTime();
-          const countdownHours = Math.max(0, Math.round((scheduledMs - Date.now()) / 3_600_000));
-          const isCompleted = v.status === "COMPLETED";
-
-          return {
-            ...v,
-            client: lead?.clientName || `Lead #${v.leadId}`,
-            company: lead?.company || loc.buildingName || loc.area || "—",
-            date: dateTime,
-            location: locationStr,
-            assignee: (Array.isArray(v.employeeIds) && v.employeeIds.length > 0)
-              ? v.employeeIds.map((id) => `Employee #${id}`).join(", ")
-              : (v.assignedTo ? `Employee #${v.assignedTo}` : "Unassigned"),
-            isCompleted,
-            countdownHours,
-          };
-        });
-
-        setUpcoming(enriched.filter((v) => !v.isCompleted));
+    (async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const [visits, leads] = await Promise.all([
+          fetchAllSiteVisits(),
+          fetchAllLeads().catch(() => []),
+        ]);
+        if (ignore) return;
+        const enriched = enrichSiteVisits(visits, leads);
+        setUpcoming(enriched.filter((v) => !v.isCompleted && !v.isCancelled));
         setCompleted(enriched.filter((v) => v.isCompleted));
-      })
-      .catch((err) => {
-        if (!cancelled) console.error("Failed to fetch site visits:", err);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => { cancelled = true; };
+      } catch (err) {
+        if (ignore || isAbortError(err)) return;
+        console.error("Failed to fetch site visits:", err);
+        setError(err?.response?.data?.message || err.message || "Failed to load site visits");
+        setUpcoming([]);
+        setCompleted([]);
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    })();
+
+    return () => {
+      ignore = true;
+    };
   }, []);
 
   const filter = (list) =>
@@ -145,6 +128,12 @@ export default function SiteVisitsPage() {
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input placeholder="Search visits..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
       </div>
+
+      {error ? (
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          {error}
+        </div>
+      ) : null}
 
       <Tabs defaultValue="upcoming">
         <TabsList>

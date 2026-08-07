@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
   Briefcase,
@@ -9,6 +9,8 @@ import {
   Check,
   ClipboardList,
   Clock3,
+  Download,
+  FileText,
   IndianRupee,
   ImagePlus,
   LockKeyhole,
@@ -24,6 +26,26 @@ import { MapContainer, Marker, TileLayer } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { ROUTES } from "@/shared/constants/routes";
 import { REPORT_CHECKLIST } from "../data/site-visits";
+import {
+  checklistItemsFromScopes,
+  countScopedItems,
+  countScopedRooms,
+  isValidRoomScopes,
+} from "../data/renovationChecklist";
+import {
+  fetchSiteVisitByUuid,
+  submitSiteVisitReport,
+  updateSiteVisitChecklistScope,
+} from "../api/site-visits.api";
+import {
+  fetchSiteVisitEstimate,
+  issueSiteVisitEstimate,
+  saveSiteVisitEstimate,
+} from "../api/site-visit-estimate.api";
+import RoomChecklistScopeBuilder from "../components/site-visits/RoomChecklistScopeBuilder";
+import VisitDraftBoqEditor from "../components/site-visits/VisitDraftBoqEditor";
+import CoverLetterStep from "../components/site-visits/CoverLetterStep";
+import { downloadCoverLetterPdf } from "../components/site-visits/coverLetterPdfExport";
 import axiosInstance from "@/lib/axiosInstance";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -40,7 +62,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { RENOVATION_ROOMS } from "../data/renovationChecklist";
 
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
@@ -52,6 +73,12 @@ L.Icon.Default.mergeOptions({
   shadowUrl: markerShadow,
 });
 
+const REPORT_STEPS = [
+  { id: "checklist", label: "Checklist" },
+  { id: "estimate", label: "Draft BoQ" },
+  { id: "cover", label: "Cover letter" },
+];
+
 const INITIAL_NOTES =
   "Ceiling grid is suitable for LED panels. Client requested premium finish in reception and a clear path for cable runs.";
 
@@ -62,33 +89,26 @@ function fallbackChecklistItems() {
     id: item.id,
     label: item.label,
     required: item.required,
+    roomName: "General",
+    sectionName: "General",
+    question: item.label,
   }));
 }
 
-function normalizeTemplateItem(item) {
-  return {
-    id: String(item.uuid),
-    label: item.question || item.sectionName || "Checklist item",
-    required: Boolean(item.isRequired),
-    sectionName: item.sectionName || "",
-    roomName: item.roomName || "General",
-  };
+function itemsFromVisit(visitData) {
+  const scoped = checklistItemsFromScopes(visitData?.roomScopes || []);
+  if (scoped.length > 0) return scoped;
+  return fallbackChecklistItems();
 }
 
-function filterItemsForVisit(items, visitData) {
-  const categories = Array.isArray(visitData?.categories) ? visitData.categories : [];
-  const rooms = Array.isArray(visitData?.rooms) ? visitData.rooms : [];
-  if (categories.length === 0 && rooms.length === 0) return items;
-
-  return items.filter((item) => {
-    const catOk = categories.length === 0 || categories.includes(item.sectionName);
-    const roomOk =
-      rooms.length === 0 ||
-      !item.roomName ||
-      item.roomName === "General" ||
-      rooms.includes(item.roomName);
-    return catOk && roomOk;
+function syncChecksForItems(items, previousChecks = {}, previousNotes = {}, completed = false) {
+  const checks = {};
+  const notes = {};
+  items.forEach((item) => {
+    checks[item.id] = completed ? true : !!previousChecks[item.id];
+    notes[item.id] = previousNotes[item.id] || "";
   });
+  return { checks, notes };
 }
 
 function fullAddress(locationDetails = {}) {
@@ -166,59 +186,105 @@ function statusLabel(status = "") {
 
 export default function SiteVisitReportPage() {
   const { visitId } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const stepFromUrl = searchParams.get("step");
+  const [activeStep, setActiveStep] = useState(
+    REPORT_STEPS.some((s) => s.id === stepFromUrl) ? stepFromUrl : "checklist"
+  );
   const [submitted, setSubmitted] = useState(false);
   const [submitOpen, setSubmitOpen] = useState(false);
   const [notes, setNotes] = useState("");
   const [visit, setVisit] = useState(null);
   const [lead, setLead] = useState(null);
-  const [template, setTemplate] = useState(null);
   const [checklistItems, setChecklistItems] = useState(fallbackChecklistItems);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [savingScope, setSavingScope] = useState(false);
   const [error, setError] = useState("");
   const [conversion, setConversion] = useState(null);
   const [checks, setChecks] = useState(() =>
     Object.fromEntries(fallbackChecklistItems().map((item) => [item.id, false]))
   );
   const [itemNotes, setItemNotes] = useState({});
+  const [editingScope, setEditingScope] = useState(false);
+  const [draftPropertyType, setDraftPropertyType] = useState("RESIDENTIAL");
+  const [draftPropertyTypeCustom, setDraftPropertyTypeCustom] = useState("");
+  const [draftRoomScopes, setDraftRoomScopes] = useState([]);
+  const [estimate, setEstimate] = useState(null);
+  const [estimateLoading, setEstimateLoading] = useState(false);
+  const [estimateSaving, setEstimateSaving] = useState(false);
+  const [pdfExporting, setPdfExporting] = useState(false);
+  const coverLetterRef = useRef(null);
+
+  const goToStep = (step) => {
+    setActiveStep(step);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("step", step);
+      return next;
+    });
+  };
+
+  const loadEstimate = async () => {
+    setEstimateLoading(true);
+    try {
+      const data = await fetchSiteVisitEstimate(visitId);
+      setEstimate(data);
+      return data;
+    } catch (err) {
+      setError(err.response?.data?.error || err.response?.data?.message || "Unable to load draft BoQ");
+      return null;
+    } finally {
+      setEstimateLoading(false);
+    }
+  };
+
+  const applyVisitChecklist = (visitData, completed, previousChecks = {}, previousNotes = {}) => {
+    const finalItems = itemsFromVisit(visitData);
+    const synced = syncChecksForItems(finalItems, previousChecks, previousNotes, completed);
+    setChecklistItems(finalItems);
+    setChecks(synced.checks);
+    setItemNotes(synced.notes);
+  };
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError("");
 
-    axiosInstance.get(`/site-visits/GetSiteVisitByUuid/${visitId}`)
-      .then(async ({ data }) => {
+    fetchSiteVisitByUuid(visitId)
+      .then(async (visitData) => {
         if (cancelled) return;
-        const visitData = data?.data;
         setVisit(visitData);
         const completed = String(visitData?.status || "").toUpperCase() === "COMPLETED";
         setSubmitted(completed);
         setNotes(visitData?.notes || (completed ? INITIAL_NOTES : ""));
+        setDraftPropertyType(visitData?.propertyType || "RESIDENTIAL");
+        setDraftPropertyTypeCustom(visitData?.propertyTypeCustom || "");
+        setDraftRoomScopes(visitData?.roomScopes || []);
+        applyVisitChecklist(visitData, completed);
+        if (completed) {
+          fetchSiteVisitEstimate(visitId)
+            .then((est) => {
+              if (cancelled) return;
+              setEstimate(est);
+              if (stepFromUrl === "estimate" || stepFromUrl === "cover") {
+                setActiveStep(stepFromUrl);
+              } else if (est?.status === "ISSUED") {
+                setActiveStep("cover");
+              }
+            })
+            .catch(() => {});
+        }
 
-        const [templateResult, leadResult] = await Promise.allSettled([
-          visitData?.checklistTemplateUuid
-            ? axiosInstance.get(`/checklist-templates/GetCheckListByUuid/${visitData.checklistTemplateUuid}`)
-            : Promise.resolve({ data: { data: null } }),
-          visitData?.leadId
-            ? axiosInstance.get(`/leads/${visitData.leadId}`)
-            : Promise.resolve({ data: { data: null } }),
-        ]);
-
-        if (cancelled) return;
-        const templateData = templateResult.status === "fulfilled" ? templateResult.value.data?.data : null;
-        setTemplate(templateData);
-        const rawItems = Array.isArray(templateData?.items) && templateData.items.length > 0
-          ? templateData.items.map(normalizeTemplateItem)
-          : fallbackChecklistItems();
-        const templateItems = filterItemsForVisit(rawItems, visitData);
-        const finalItems = templateItems.length > 0 ? templateItems : rawItems;
-        setChecklistItems(finalItems);
-        setChecks(Object.fromEntries(finalItems.map((item) => [item.id, completed])));
-        setItemNotes(Object.fromEntries(finalItems.map((item) => [item.id, ""])));
-
-        const leadData = leadResult.status === "fulfilled" ? leadResult.value.data?.data : null;
-        setLead(leadData);
+        if (visitData?.leadId) {
+          try {
+            const { data } = await axiosInstance.get(`/leads/${visitData.leadId}`);
+            if (!cancelled) setLead(data?.data ?? data);
+          } catch {
+            if (!cancelled) setLead(null);
+          }
+        }
       })
       .catch((err) => {
         if (cancelled) return;
@@ -245,7 +311,7 @@ export default function SiteVisitReportPage() {
   const progress = checklistItems.length > 0 ? Math.round((completedCount / checklistItems.length) * 100) : 0;
   const requiredMissing = checklistItems.filter((item) => item.required && !checks[item.id]);
   const readOnly = submitted;
-  const canSubmit = requiredMissing.length === 0;
+  const canSubmit = requiredMissing.length === 0 && checklistItems.length > 0 && !editingScope;
 
   const [activeRoomTab, setActiveRoomTab] = useState("");
 
@@ -260,21 +326,14 @@ export default function SiteVisitReportPage() {
       categories.get(category).push(item);
     });
 
-    const orderIndex = (room) => {
-      const idx = RENOVATION_ROOMS.indexOf(room);
-      return idx === -1 ? 999 : idx;
-    };
-
-    return [...byRoom.entries()]
-      .sort(([a], [b]) => orderIndex(a) - orderIndex(b))
-      .map(([room, categoriesMap]) => {
-        const categories = [...categoriesMap.entries()].map(([category, items]) => ({
-          category,
-          items,
-        }));
-        const total = categories.reduce((sum, c) => sum + c.items.length, 0);
-        return { room, categories, total };
-      });
+    return [...byRoom.entries()].map(([room, categoriesMap]) => {
+      const categories = [...categoriesMap.entries()].map(([category, items]) => ({
+        category,
+        items,
+      }));
+      const total = categories.reduce((sum, c) => sum + c.items.length, 0);
+      return { room, categories, total };
+    });
   }, [checklistItems]);
 
   useEffect(() => {
@@ -297,24 +356,71 @@ export default function SiteVisitReportPage() {
     setItemNotes((current) => ({ ...current, [id]: value }));
   };
 
+  const startEditScope = () => {
+    setDraftPropertyType(visit?.propertyType || "RESIDENTIAL");
+    setDraftPropertyTypeCustom(visit?.propertyTypeCustom || "");
+    setDraftRoomScopes(visit?.roomScopes || []);
+    setEditingScope(true);
+    setError("");
+  };
+
+  const cancelEditScope = () => {
+    setDraftPropertyType(visit?.propertyType || "RESIDENTIAL");
+    setDraftPropertyTypeCustom(visit?.propertyTypeCustom || "");
+    setDraftRoomScopes(visit?.roomScopes || []);
+    setEditingScope(false);
+  };
+
+  const saveScope = async () => {
+    if (draftPropertyType === "CUSTOM" && !draftPropertyTypeCustom.trim()) {
+      setError("Enter a custom property type label.");
+      return;
+    }
+    if (!isValidRoomScopes(draftRoomScopes)) {
+      setError("Add at least one floor with a room, category, and one or more checklist items.");
+      return;
+    }
+    setSavingScope(true);
+    setError("");
+    try {
+      const updated = await updateSiteVisitChecklistScope(visitId, {
+        propertyType: draftPropertyType,
+        propertyTypeCustom: draftPropertyTypeCustom,
+        roomScopes: draftRoomScopes,
+      });
+      setVisit(updated);
+      applyVisitChecklist(updated, false, checks, itemNotes);
+      setEditingScope(false);
+    } catch (err) {
+      setError(err.response?.data?.error || err.response?.data?.message || "Unable to update checklist scope");
+    } finally {
+      setSavingScope(false);
+    }
+  };
+
   const handleSubmit = async () => {
     setSubmitting(true);
     setError("");
     try {
-      const { data } = await axiosInstance.post(`/site-visits/EmployeeSiteVisitByUuid/${visitId}/report`, {
+      const data = await submitSiteVisitReport(visitId, {
         outcome: "QUALIFIED",
         notes,
         items: checklistItems.map((item) => ({
-          templateItemUuid: item.id,
-          response: checks[item.id] ? "YES" : "",
+          response: checks[item.id] ? "YES" : "NO",
           remarks: itemNotes[item.id] || "",
+          roomName: item.roomName || "",
+          sectionName: item.sectionName || "",
+          question: item.question || item.label || "",
           photoUrls: [],
         })),
       });
 
-      setConversion(data?.data || null);
+      setConversion(data || null);
       setSubmitted(true);
       setSubmitOpen(false);
+      setVisit((current) => (current ? { ...current, status: "COMPLETED" } : current));
+      const est = await loadEstimate();
+      if (est) goToStep("estimate");
     } catch (err) {
       setError(err.response?.data?.error || err.response?.data?.message || "Unable to submit site visit report");
       setSubmitOpen(false);
@@ -323,16 +429,86 @@ export default function SiteVisitReportPage() {
     }
   };
 
+  const handleSaveEstimate = async () => {
+    if (!estimate) return false;
+    setEstimateSaving(true);
+    setError("");
+    try {
+      const saved = await saveSiteVisitEstimate(visitId, estimate);
+      setEstimate(saved);
+      return true;
+    } catch (err) {
+      setError(err.response?.data?.error || err.response?.data?.message || "Unable to save draft BoQ");
+      return false;
+    } finally {
+      setEstimateSaving(false);
+    }
+  };
+
+  const handleIssueAndDownload = async () => {
+    if (!estimate) return;
+    setEstimateSaving(true);
+    setError("");
+    try {
+      let issued = estimate;
+      if (estimate.status !== "ISSUED") {
+        await saveSiteVisitEstimate(visitId, estimate);
+        issued = await issueSiteVisitEstimate(visitId);
+        setEstimate(issued);
+      }
+      setPdfExporting(true);
+      await downloadCoverLetterPdf(
+        "site-visit-cover-letter",
+        `${issued.quoteNo || "JCT-Cover-Letter"}.pdf`
+      );
+    } catch (err) {
+      setError(err.response?.data?.error || err.response?.data?.message || "Unable to issue cover letter");
+    } finally {
+      setEstimateSaving(false);
+      setPdfExporting(false);
+    }
+  };
+
+  const handleDownloadPdfOnly = async () => {
+    if (!estimate) return;
+    setPdfExporting(true);
+    setError("");
+    try {
+      await downloadCoverLetterPdf(
+        "site-visit-cover-letter",
+        `${estimate.quoteNo || "JCT-Cover-Letter"}.pdf`
+      );
+    } catch (err) {
+      setError(err.message || "Unable to download cover letter PDF");
+    } finally {
+      setPdfExporting(false);
+    }
+  };
+
+  const estimateReadOnly = estimate?.status === "ISSUED";
+  const canOpenEstimateSteps = submitted;
+  const effectiveStep =
+    !canOpenEstimateSteps && activeStep !== "checklist" ? "checklist" : activeStep;
   const clientName = lead?.clientName || "Client";
   const companyName = lead?.company || visit?.locationDetails?.buildingName || "—";
-  const assignee = visit?.assignedTo ? `Employee #${visit.assignedTo}` : "Unassigned";
-  const templateName = template?.name && template.name !== "string" ? template.name : "Standard inspection checklist";
+  const assignee = visit?.employeeNames?.length
+    ? visit.employeeNames.join(", ")
+    : visit?.assignedTo
+      ? `Employee #${visit.assignedTo}`
+      : "Unassigned";
+  const propertyTypeLabel =
+    visit?.propertyType === "CUSTOM"
+      ? visit?.propertyTypeCustom || "Custom"
+      : visit?.propertyType
+        ? visit.propertyType.charAt(0) + visit.propertyType.slice(1).toLowerCase()
+        : null;
   const latitude = Number(visit?.latitude);
   const longitude = Number(visit?.longitude);
   const hasCoords = Number.isFinite(latitude) && Number.isFinite(longitude);
   const mapPosition = hasCoords ? [latitude, longitude] : null;
   const scheduledLabel = formatScheduledDateTime(visit?.scheduledDate, visit?.scheduledTime);
   const address = visit ? fullAddress(visit.locationDetails) : "Location not specified";
+  const scopedItemCount = countScopedItems(visit?.roomScopes || []);
 
   return (
     <div className="space-y-6 pb-28">
@@ -355,11 +531,47 @@ export default function SiteVisitReportPage() {
             {readOnly && <Check className="h-3 w-3" />}
             {statusLabel(visit?.status) || "Pending"}
           </Badge>
-          {!readOnly && <Badge variant="warning">{progress}% complete</Badge>}
+          {!readOnly && effectiveStep === "checklist" && (
+            <Badge variant="warning">{progress}% complete</Badge>
+          )}
+          {estimate?.status === "ISSUED" && (
+            <Badge variant="success">Draft BoQ issued</Badge>
+          )}
         </div>
       </div>
 
-      {readOnly && (
+      <div className="flex flex-wrap gap-2">
+        {REPORT_STEPS.map((step) => {
+          const locked = step.id !== "checklist" && !canOpenEstimateSteps;
+          const active = effectiveStep === step.id;
+          return (
+            <button
+              key={step.id}
+              type="button"
+              disabled={locked}
+              onClick={() => {
+                if (locked) return;
+                if ((step.id === "estimate" || step.id === "cover") && !estimate) {
+                  loadEstimate().then(() => goToStep(step.id));
+                } else {
+                  goToStep(step.id);
+                }
+              }}
+              className={`rounded-md border px-3 py-1.5 text-sm font-medium transition-all ${
+                active
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : locked
+                    ? "cursor-not-allowed border-border/40 bg-muted/30 text-muted-foreground"
+                    : "border-border/60 bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground"
+              }`}
+            >
+              {step.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {readOnly && effectiveStep === "checklist" && (
         <Card className="border-primary/20 bg-primary/5">
           <CardContent className="flex items-center gap-3 p-4 text-sm text-primary">
             <LockKeyhole className="h-4 w-4" />
@@ -380,7 +592,53 @@ export default function SiteVisitReportPage() {
         </Card>
       )}
 
-      {!loading && (
+      {!loading && effectiveStep === "estimate" && (
+        <Card className="border-border/60 shadow-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <ClipboardList className="h-4 w-4 text-primary" />
+              Draft BoQ
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {estimateLoading || !estimate ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">Loading draft BoQ...</p>
+            ) : (
+              <VisitDraftBoqEditor
+                estimate={estimate}
+                roomScopes={visit?.roomScopes || []}
+                disabled={estimateReadOnly || estimateSaving}
+                onChange={setEstimate}
+              />
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {!loading && effectiveStep === "cover" && (
+        <Card className="border-border/60 shadow-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <FileText className="h-4 w-4 text-primary" />
+              Cover letter
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {estimateLoading || !estimate ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">Loading cover letter...</p>
+            ) : (
+              <CoverLetterStep
+                estimate={estimate}
+                disabled={estimateReadOnly || estimateSaving}
+                onChange={setEstimate}
+                previewRef={coverLetterRef}
+              />
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {!loading && effectiveStep === "checklist" && (
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(340px,0.9fr)]">
         <div className="space-y-6">
           <Card className="border-border/60 shadow-sm">
@@ -482,63 +740,91 @@ export default function SiteVisitReportPage() {
                 </p>
               </div>
               <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Checklist template</p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Property type</p>
                 <p className="flex items-center gap-1.5 font-medium">
                   <ClipboardList className="h-3.5 w-3.5 text-muted-foreground" />
-                  {templateName}
+                  {propertyTypeLabel || "Not set"}
                 </p>
               </div>
             </CardContent>
           </Card>
 
-          {(visit?.categories?.length > 0 || visit?.rooms?.length > 0) && (
-            <Card className="border-border/60 shadow-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Check className="h-4 w-4 text-primary" />
-                  Renovation checklist scope
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-5 sm:grid-cols-2">
-                {visit?.categories?.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      Categories
-                    </p>
-                    <ul className="space-y-2">
-                      {visit.categories.map((cat) => (
-                        <li
-                          key={cat}
-                          className="flex items-start gap-2.5 rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-sm"
-                        >
-                          <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-                          <span className="font-medium">{cat}</span>
-                        </li>
-                      ))}
-                    </ul>
+          <Card className="border-border/60 shadow-sm">
+            <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3 space-y-0">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Check className="h-4 w-4 text-primary" />
+                Renovation checklist scope
+              </CardTitle>
+              {!readOnly ? (
+                editingScope ? (
+                  <div className="flex flex-wrap gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={cancelEditScope} disabled={savingScope}>
+                      Cancel
+                    </Button>
+                    <Button type="button" size="sm" onClick={saveScope} disabled={savingScope}>
+                      {savingScope ? "Saving..." : "Save scope"}
+                    </Button>
                   </div>
-                )}
-                {visit?.rooms?.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      Rooms
-                    </p>
-                    <ul className="space-y-2">
-                      {visit.rooms.map((room) => (
-                        <li
-                          key={room}
-                          className="flex items-start gap-2.5 rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-sm"
-                        >
-                          <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-                          <span className="font-medium">{room}</span>
-                        </li>
-                      ))}
-                    </ul>
+                ) : (
+                  <Button type="button" variant="outline" size="sm" onClick={startEditScope}>
+                    Refine scope
+                  </Button>
+                )
+              ) : null}
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {editingScope ? (
+                <RoomChecklistScopeBuilder
+                  propertyType={draftPropertyType}
+                  propertyTypeCustom={draftPropertyTypeCustom}
+                  roomScopes={draftRoomScopes}
+                  onPropertyTypeChange={setDraftPropertyType}
+                  onPropertyTypeCustomChange={setDraftPropertyTypeCustom}
+                  onRoomScopesChange={setDraftRoomScopes}
+                  disabled={savingScope}
+                />
+              ) : visit?.roomScopes?.length > 0 ? (
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    {propertyTypeLabel || "Type not set"} · {visit.roomScopes.length} floor
+                    {visit.roomScopes.length === 1 ? "" : "s"} · {countScopedRooms(visit.roomScopes)}{" "}
+                    room
+                    {countScopedRooms(visit.roomScopes) === 1 ? "" : "s"} · {scopedItemCount} item
+                    {scopedItemCount === 1 ? "" : "s"}
+                  </p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {visit.roomScopes.map((floor) => (
+                      <div
+                        key={floor.floorName}
+                        className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-sm"
+                      >
+                        <p className="font-medium">{floor.floorName}</p>
+                        <ul className="mt-1 space-y-1 text-xs text-muted-foreground">
+                          {(floor.rooms || []).map((room) => (
+                            <li key={`${floor.floorName}-${room.roomName}`}>
+                              <span className="font-medium text-foreground">{room.roomName}</span>
+                              {(room.selections || []).length > 0
+                                ? `: ${(room.selections || [])
+                                    .map(
+                                      (sel) =>
+                                        `${sel.category} (${(sel.items || []).length})`
+                                    )
+                                    .join(", ")}`
+                                : ""}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No room scope saved yet. Use Refine scope to add floors, rooms, categories, and items.
+                </p>
+              )}
+            </CardContent>
+          </Card>
 
           <Card className="border-border/60 shadow-sm">
             <CardHeader>
@@ -669,7 +955,11 @@ export default function SiteVisitReportPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {roomTabs.length === 0 ? (
+              {editingScope ? (
+                <p className="text-sm text-muted-foreground">
+                  Save the refined floor/room scope above to update checklist items for completion.
+                </p>
+              ) : roomTabs.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No checklist items for this visit scope.</p>
               ) : (
                 <Tabs value={activeRoomTab} onValueChange={setActiveRoomTab} className="space-y-4">
@@ -859,8 +1149,14 @@ export default function SiteVisitReportPage() {
                   <span className="max-w-[60%] text-right font-medium">{assignee}</span>
                 </div>
                 <div className="flex items-start justify-between gap-3">
-                  <span className="text-muted-foreground">Checklist</span>
-                  <span className="max-w-[60%] text-right font-medium">{templateName}</span>
+                  <span className="text-muted-foreground">Property type</span>
+                  <span className="max-w-[60%] text-right font-medium">{propertyTypeLabel || "—"}</span>
+                </div>
+                <div className="flex items-start justify-between gap-3">
+                  <span className="text-muted-foreground">Scope</span>
+                  <span className="max-w-[60%] text-right font-medium">
+                    {scopedItemCount} item{scopedItemCount === 1 ? "" : "s"}
+                  </span>
                 </div>
               </div>
 
@@ -911,7 +1207,7 @@ export default function SiteVisitReportPage() {
       </div>
       )}
 
-      {!readOnly && (
+      {effectiveStep === "checklist" && !readOnly && (
         <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-border bg-background/95 p-4 backdrop-blur md:left-[var(--sidebar-width)]">
           <div className="mx-auto flex max-w-[1600px] flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
             <Button variant="outline" asChild>
@@ -925,13 +1221,76 @@ export default function SiteVisitReportPage() {
         </div>
       )}
 
+      {effectiveStep === "estimate" && canOpenEstimateSteps && (
+        <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-border bg-background/95 p-4 backdrop-blur md:left-[var(--sidebar-width)]">
+          <div className="mx-auto flex max-w-[1600px] flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+            <Button variant="outline" onClick={() => goToStep("checklist")}>
+              Back to checklist
+            </Button>
+            {!estimateReadOnly && (
+              <Button
+                variant="outline"
+                disabled={!estimate || estimateSaving}
+                onClick={handleSaveEstimate}
+              >
+                {estimateSaving ? "Saving..." : "Save draft BoQ"}
+              </Button>
+            )}
+            <Button
+              disabled={!estimate || estimateLoading || estimateSaving}
+              onClick={async () => {
+                if (!estimateReadOnly) {
+                  const ok = await handleSaveEstimate();
+                  if (!ok) return;
+                }
+                goToStep("cover");
+              }}
+              className="gap-2"
+            >
+              Continue to cover letter
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {effectiveStep === "cover" && canOpenEstimateSteps && (
+        <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-border bg-background/95 p-4 backdrop-blur md:left-[var(--sidebar-width)]">
+          <div className="mx-auto flex max-w-[1600px] flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+            <Button variant="outline" onClick={() => goToStep("estimate")}>
+              Back to draft BoQ
+            </Button>
+            {!estimateReadOnly && (
+              <Button
+                variant="outline"
+                disabled={!estimate || estimateSaving}
+                onClick={handleSaveEstimate}
+              >
+                {estimateSaving ? "Saving..." : "Save draft"}
+              </Button>
+            )}
+            <Button
+              disabled={!estimate || estimateSaving || pdfExporting}
+              onClick={estimateReadOnly ? handleDownloadPdfOnly : handleIssueAndDownload}
+              className="gap-2"
+            >
+              <Download className="h-4 w-4" />
+              {pdfExporting
+                ? "Preparing PDF..."
+                : estimateReadOnly
+                  ? "Download PDF"
+                  : "Issue & download PDF"}
+            </Button>
+          </div>
+        </div>
+      )}
+
       <Dialog open={submitOpen} onOpenChange={setSubmitOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Submit report?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            The report will switch to read-only mode after submission.
+            The report will switch to read-only mode after submission. You can then prepare a draft BoQ and cover letter.
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setSubmitOpen(false)}>
@@ -955,7 +1314,9 @@ export default function SiteVisitReportPage() {
             <DialogTitle>Report submitted</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 text-sm">
-            <p className="text-muted-foreground">The site visit is complete and the linked lead is now a client.</p>
+            <p className="text-muted-foreground">
+              The site visit is complete and the linked lead is now a client. Next, prepare a draft BoQ and cover letter.
+            </p>
             {conversion?.clientEmail && (
               <div className="rounded-lg border border-border/60 p-3">
                 <p className="text-xs text-muted-foreground">Client email</p>
@@ -973,7 +1334,23 @@ export default function SiteVisitReportPage() {
             )}
           </div>
           <DialogFooter>
-            <Button onClick={() => setConversion(null)}>Done</Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setConversion(null);
+                goToStep("checklist");
+              }}
+            >
+              Stay on checklist
+            </Button>
+            <Button
+              onClick={() => {
+                setConversion(null);
+                goToStep("estimate");
+              }}
+            >
+              Continue to draft BoQ
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

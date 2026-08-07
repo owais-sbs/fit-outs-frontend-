@@ -1,44 +1,38 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Briefcase, Sliders, CheckCircle, MapPin, Eye, Search } from "lucide-react";
+import { Briefcase, Sliders, CheckCircle, MapPin, Eye, Search, Loader2 } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import StatCard from "@/modules/super-admin/components/StatCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { projectStore } from "@/shared/store/projectStore";
 import { ROUTES } from "@/shared/constants/routes";
-import { useAuth } from "@/shared/context/auth-context";
+import { fetchAllProjects } from "@/modules/admin/api/projects.api";
 
 export default function MyProjectsPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  
   const [projects, setProjects] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  // Filter projects by current logged-in client name/ID
-  // In mock data, the current client user name might be "Claire Moss" or "client-001"
-  const loadClientProjects = useCallback(() => {
-    const allProjects = projectStore.getProjects();
-    const clientName = user?.name || "Claire Moss";
-    const clientProjects = allProjects.filter(
-      (p) => p.clientName.toLowerCase() === clientName.toLowerCase() || p.clientId === "client-001"
-    );
-    setProjects(clientProjects);
-  }, [user]);
+  const loadClientProjects = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const list = await fetchAllProjects();
+      setProjects(list);
+    } catch (err) {
+      setError(err.response?.data?.error || "Unable to load projects");
+      setProjects([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     loadClientProjects();
-    const timer = setTimeout(() => setLoading(false), 500);
-    
-    window.addEventListener("storage_update", loadClientProjects);
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener("storage_update", loadClientProjects);
-    };
   }, [loadClientProjects]);
 
   const stats = useMemo(() => {
@@ -53,9 +47,9 @@ export default function MyProjectsPage() {
     return projects.filter((p) => {
       return (
         !query ||
-        p.id.toLowerCase().includes(query) ||
-        p.projectName.toLowerCase().includes(query) ||
-        p.location.toLowerCase().includes(query)
+        String(p.id).toLowerCase().includes(query) ||
+        (p.projectName || "").toLowerCase().includes(query) ||
+        (p.location || "").toLowerCase().includes(query)
       );
     });
   }, [projects, search]);
@@ -81,17 +75,21 @@ export default function MyProjectsPage() {
     <div className="space-y-6">
       <PageHeader
         title="My Projects"
-        description="Track your fit-out and construction project execution progress, timeline, and site audits."
+        description="Track your fit-out and construction project execution progress, timeline, and approvals."
       />
 
-      {/* Stats */}
+      {error && (
+        <p className="text-sm text-destructive border border-destructive/30 bg-destructive/10 rounded-md px-3 py-2">
+          {error}
+        </p>
+      )}
+
       <section className="grid gap-4 sm:grid-cols-3">
         <StatCard title="Total Assigned Projects" value={stats.total} icon={Briefcase} growth={0} growthLabel="Total contracted" />
         <StatCard title="Active In Execution" value={stats.active} icon={Sliders} growth={0} growthLabel="Underway" />
         <StatCard title="Completed" value={stats.completed} icon={CheckCircle} growth={0} growthLabel="Delivered" />
       </section>
 
-      {/* Search Filter */}
       <Card className="border-border/60 shadow-sm bg-card/65 backdrop-blur-sm">
         <CardContent className="p-4">
           <div className="relative w-full max-w-sm">
@@ -106,7 +104,6 @@ export default function MyProjectsPage() {
         </CardContent>
       </Card>
 
-      {/* Table */}
       <Card className="overflow-hidden border-border/60 shadow-sm bg-card/50 backdrop-blur-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
@@ -124,18 +121,11 @@ export default function MyProjectsPage() {
             </thead>
             <tbody className="divide-y divide-border/60 text-sm">
               {loading ? (
-                Array.from({ length: 2 }).map((_, i) => (
-                  <tr key={i} className="animate-pulse">
-                    <td className="py-4 px-4 pl-6"><div className="h-4 w-12 bg-muted rounded" /></td>
-                    <td className="py-4 px-4"><div className="h-4 w-40 bg-muted rounded" /></td>
-                    <td className="py-4 px-4"><div className="h-4 w-16 bg-muted rounded" /></td>
-                    <td className="py-4 px-4"><div className="h-4 w-24 bg-muted rounded" /></td>
-                    <td className="py-4 px-4"><div className="h-4 w-24 bg-muted rounded" /></td>
-                    <td className="py-4 px-4"><div className="h-3 w-full bg-muted rounded" /></td>
-                    <td className="py-4 px-4"><div className="h-4 w-16 bg-muted rounded" /></td>
-                    <td className="py-4 px-4 pr-6 text-right"><div className="h-8 w-16 bg-muted rounded ml-auto" /></td>
-                  </tr>
-                ))
+                <tr>
+                  <td colSpan={8} className="py-12 text-center text-muted-foreground">
+                    <Loader2 className="h-6 w-6 mx-auto animate-spin" />
+                  </td>
+                </tr>
               ) : filteredProjects.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="py-12 text-center text-muted-foreground">

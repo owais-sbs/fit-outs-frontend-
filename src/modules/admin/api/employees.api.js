@@ -3,12 +3,13 @@ import { fromBackendRole, roleLabel, toBackendRole } from "@/shared/constants/ro
 
 export function normalizeEmployee(item = {}) {
   const role = fromBackendRole(item.role);
+  const activeFlag = item.active ?? item.isActive;
   return {
     ...item,
     id: String(item.id),
     employeeName: item.employeeName || "",
     fullName: item.employeeName || "",
-    isActive: item.active ?? true,
+    isActive: activeFlag === undefined || activeFlag === null ? true : Boolean(activeFlag),
     features: item.features || [],
     role,
     roleLabel: roleLabel(role || item.role),

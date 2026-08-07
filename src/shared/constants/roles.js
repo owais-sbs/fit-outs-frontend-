@@ -43,6 +43,15 @@ export const STAFF_CREATE_ROLES = [
   ROLES.SALES,
 ];
 
+/** Roles that can be assigned to a site visit (any active field/office staff) */
+export const SITE_VISIT_ASSIGNABLE_ROLES = [
+  ...STAFF_CREATE_ROLES,
+  ROLES.EMPLOYEE,
+  ROLES.ADMIN,
+  ROLES.QAS,
+  ROLES.SENIOR_QS,
+];
+
 export function toBackendRole(role) {
   if (!role) return null;
   return String(role).toUpperCase().replace(/-/g, "_");
@@ -50,7 +59,7 @@ export function toBackendRole(role) {
 
 export function fromBackendRole(role) {
   if (!role) return null;
-  return String(role).toLowerCase().replace(/_/g, "-");
+  return String(role).toLowerCase().replace(/_/g, "-").replace(/\s+/g, "-");
 }
 
 export function roleLabel(role) {

@@ -3,16 +3,14 @@ import { Link, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  FileText,
   Loader2,
   Send,
-  Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { ROUTES } from "@/shared/constants/routes";
 import {
   closeRoomTask,
@@ -20,11 +18,81 @@ import {
   fetchTaskMessages,
   fetchTaskTimeline,
   submitTaskToClient,
-  uploadTaskVersion,
 } from "../../api/room-collab.api";
 import TaskChatPanel from "./TaskChatPanel";
 
-export default function RoomTaskDetailPage({ clientMode = false }) {
+function StatusStrip({ task, timeline, historyOpen, setHistoryOpen }) {
+  const events = (timeline || []).filter((ev) => ev.eventType !== "MESSAGE");
+  return (
+    <div className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5 space-y-2">
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+        <span>Deadline: {task.clientDeadline ? new Date(task.clientDeadline).toLocaleString() : "—"}</span>
+        <span>First sent: {task.firstSentToClientAt ? new Date(task.firstSentToClientAt).toLocaleString() : "—"}</span>
+        <span>Revisions: {task.revisionCount ?? 0}</span>
+        {task.approvedAt && (
+          <span>Approved: {new Date(task.approvedAt).toLocaleString()}</span>
+        )}
+      </div>
+      {events.length > 0 && (
+        <div>
+          <button
+            type="button"
+            className="flex items-center gap-1 text-xs font-medium text-foreground/80 hover:text-foreground"
+            onClick={() => setHistoryOpen((o) => !o)}
+          >
+            {historyOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+            History ({events.length})
+          </button>
+          {historyOpen && (
+            <div className="mt-2 max-h-40 space-y-1.5 overflow-y-auto border-t border-border/40 pt-2">
+              {events.map((ev) => (
+                <div key={ev.uuid} className="text-xs">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                    {ev.eventType.replace(/_/g, " ")}
+                    {ev.createdAt ? ` · ${new Date(ev.createdAt).toLocaleString()}` : ""}
+                  </p>
+                  <p className="text-sm text-foreground/90">{ev.message}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LatestFile({ versions }) {
+  const list = versions || [];
+  if (!list.length) return null;
+  const latest = [...list].sort((a, b) => (b.versionNo || 0) - (a.versionNo || 0))[0];
+  return (
+    <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-card px-3 py-2 text-sm">
+      <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-medium">
+          Latest: v{latest.versionNo} · {latest.originalName}
+          {latest.isFinal && (
+            <Badge className="ml-1.5 bg-emerald-600 text-white text-[10px] gap-1 align-middle">
+              <CheckCircle2 className="h-3 w-3" /> Final
+            </Badge>
+          )}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          {latest.uploaderRole}
+          {latest.createdAt ? ` · ${new Date(latest.createdAt).toLocaleString()}` : ""}
+        </p>
+      </div>
+      {latest.downloadUrl && (
+        <Button asChild size="sm" variant="outline">
+          <a href={latest.downloadUrl} target="_blank" rel="noreferrer">Open</a>
+        </Button>
+      )}
+    </div>
+  );
+}
+
+export default function RoomTaskDetailPage() {
   const { projectId, taskId } = useParams();
   const [task, setTask] = useState(null);
   const [timeline, setTimeline] = useState([]);
@@ -32,8 +100,8 @@ export default function RoomTaskDetailPage({ clientMode = false }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [file, setFile] = useState(null);
-  const [changeNotes, setChangeNotes] = useState("");
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [versionsOpen, setVersionsOpen] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -73,9 +141,7 @@ export default function RoomTaskDetailPage({ clientMode = false }) {
     load();
   }, [load]);
 
-  const backTo = clientMode
-    ? ROUTES.CLIENT.PROJECT_DETAIL.replace(":projectId", projectId)
-    : ROUTES.ADMIN.PROJECT_DETAIL.replace(":projectId", projectId);
+  const backTo = ROUTES.ADMIN.PROJECT_DETAIL.replace(":projectId", projectId);
 
   const run = async (fn) => {
     setBusy(true);
@@ -108,9 +174,14 @@ export default function RoomTaskDetailPage({ clientMode = false }) {
   }
 
   const closed = task.status === "APPROVED" || task.status === "CLOSED";
+  const versions = task.versions || [];
+  const latest = versions.length
+    ? [...versions].sort((a, b) => (b.versionNo || 0) - (a.versionNo || 0))[0]
+    : null;
+  const canSubmit = !closed && latest && latest.uploaderRole === "STAFF";
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto pb-16">
+    <div className="mx-auto flex max-w-3xl flex-col gap-4 pb-16">
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
           <Link to={backTo}><ArrowLeft className="h-4 w-4" /></Link>
@@ -130,133 +201,86 @@ export default function RoomTaskDetailPage({ clientMode = false }) {
         </p>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-        <div className="space-y-4">
-          <Card className="border-border/60">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">File versions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {(task.versions || []).length === 0 ? (
-                <p className="text-sm text-muted-foreground">No files uploaded yet.</p>
-              ) : (
-                task.versions.map((v) => (
-                  <div
+      <StatusStrip
+        task={task}
+        timeline={timeline}
+        historyOpen={historyOpen}
+        setHistoryOpen={setHistoryOpen}
+      />
+
+      <LatestFile versions={versions} />
+
+      {versions.length > 1 && (
+        <div>
+          <button
+            type="button"
+            className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+            onClick={() => setVersionsOpen((o) => !o)}
+          >
+            {versionsOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+            Earlier versions ({versions.length - 1})
+          </button>
+          {versionsOpen && (
+            <ul className="mt-2 space-y-1.5">
+              {[...versions]
+                .sort((a, b) => (b.versionNo || 0) - (a.versionNo || 0))
+                .slice(1)
+                .map((v) => (
+                  <li
                     key={v.uuid}
-                    className={[
-                      "rounded-lg border px-3 py-2.5 text-sm",
-                      v.isFinal ? "border-emerald-500/40 bg-emerald-500/5" : "border-border/60",
-                    ].join(" ")}
+                    className="flex items-center justify-between gap-2 rounded-md border border-border/50 px-2.5 py-1.5 text-xs"
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="font-medium flex items-center gap-1.5">
-                          v{v.versionNo} · {v.originalName}
-                          {v.isFinal && (
-                            <Badge className="bg-emerald-600 text-white text-[10px] gap-1">
-                              <CheckCircle2 className="h-3 w-3" /> Final approved
-                            </Badge>
-                          )}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {v.uploaderRole} · {v.createdAt ? new Date(v.createdAt).toLocaleString() : ""}
-                          {v.changeNotes ? ` · ${v.changeNotes}` : ""}
-                        </p>
-                      </div>
-                      {v.downloadUrl && (
-                        <Button asChild size="sm" variant="outline">
-                          <a href={v.downloadUrl} target="_blank" rel="noreferrer">Open</a>
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                ))
-              )}
-
-              {!closed && !clientMode && (
-                <div className="pt-2 space-y-2 border-t">
-                  <Label>Upload design / file</Label>
-                  <Input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} />
-                  <Textarea
-                    placeholder="Notes for this version (optional)"
-                    value={changeNotes}
-                    onChange={(e) => setChangeNotes(e.target.value)}
-                    rows={2}
-                  />
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      disabled={!file || busy}
-                      onClick={() =>
-                        run(async () => {
-                          await uploadTaskVersion(projectId, taskId, file, changeNotes);
-                          setFile(null);
-                          setChangeNotes("");
-                        })
-                      }
-                    >
-                      <Upload className="h-3.5 w-3.5 mr-1" /> Upload
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      disabled={busy || (task.versions || []).length === 0}
-                      onClick={() => run(() => submitTaskToClient(projectId, taskId))}
-                    >
-                      <Send className="h-3.5 w-3.5 mr-1" /> Submit to client
-                    </Button>
-                    {task.status === "APPROVED" && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={busy}
-                        onClick={() => run(() => closeRoomTask(projectId, taskId))}
+                    <span className="truncate">
+                      v{v.versionNo} · {v.originalName}
+                    </span>
+                    {v.downloadUrl && (
+                      <a
+                        href={v.downloadUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="shrink-0 text-primary hover:underline"
                       >
-                        Close task
-                      </Button>
+                        Open
+                      </a>
                     )}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <TaskChatPanel
-            projectId={projectId}
-            taskId={taskId}
-            messages={messages}
-            versions={task.versions || []}
-            onSent={softReload}
-          />
+                  </li>
+                ))}
+            </ul>
+          )}
         </div>
+      )}
 
-        <Card className="border-border/60 h-fit">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Timeline &amp; SLA</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <div className="rounded-lg border border-border/60 bg-muted/20 p-3 space-y-1 text-xs">
-              <p>Deadline: {task.clientDeadline ? new Date(task.clientDeadline).toLocaleString() : "—"}</p>
-              <p>First sent: {task.firstSentToClientAt ? new Date(task.firstSentToClientAt).toLocaleString() : "—"}</p>
-              <p>Approved: {task.approvedAt ? new Date(task.approvedAt).toLocaleString() : "—"}</p>
-              <p>Client approval days: {task.clientApprovalDays ?? "—"}</p>
-              <p>Revisions: {task.revisionCount}</p>
-            </div>
-            <div className="space-y-2 max-h-[420px] overflow-y-auto">
-              {timeline
-                .filter((ev) => ev.eventType !== "MESSAGE")
-                .map((ev) => (
-                <div key={ev.uuid} className="border-l-2 border-primary/30 pl-3 py-1">
-                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                    {ev.eventType.replace(/_/g, " ")} · {ev.createdAt ? new Date(ev.createdAt).toLocaleString() : ""}
-                  </p>
-                  <p className="text-sm">{ev.message}</p>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {(canSubmit || task.status === "APPROVED") && (
+        <div className="flex flex-wrap gap-2">
+          {canSubmit && (
+            <Button
+              size="sm"
+              disabled={busy}
+              onClick={() => run(() => submitTaskToClient(projectId, taskId))}
+            >
+              <Send className="h-3.5 w-3.5 mr-1" /> Submit to client
+            </Button>
+          )}
+          {task.status === "APPROVED" && (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={busy}
+              onClick={() => run(() => closeRoomTask(projectId, taskId))}
+            >
+              Close task
+            </Button>
+          )}
+        </div>
+      )}
+
+      <TaskChatPanel
+        projectId={projectId}
+        taskId={taskId}
+        messages={messages}
+        onSent={softReload}
+        disabled={closed}
+      />
     </div>
   );
 }

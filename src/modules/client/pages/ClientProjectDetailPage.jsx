@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { projectStore } from "@/shared/store/projectStore";
 import { INITIAL_EMPLOYEES } from "@/modules/admin/data/employees";
 import { fetchProjectById } from "@/modules/admin/api/projects.api";
+import { ROUTES } from "@/shared/constants/routes";
 import ClientProjectRoomsSection from "./ClientProjectRoomsSection";
 
 // ─── Helper ───────────────────────────────────────────────────────────────────
@@ -39,17 +40,14 @@ export default function ClientProjectDetailPage() {
   const navigate = useNavigate();
   const [project, setProject] = useState(null);
   const [siteVisits, setSiteVisits] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const load = useCallback(() => {
-    const proj = projectStore.getProjectById(projectId);
-    if (proj) {
-      setProject(proj);
-      setSiteVisits(projectStore.getSiteVisits(projectId));
-      return;
-    }
+    setLoading(true);
+    // Prefer live API so numeric backend project ids work for real clients.
     fetchProjectById(projectId)
       .then((apiProj) => {
-        if (!apiProj) return;
+        if (!apiProj) throw new Error("empty");
         setProject({
           id: apiProj.id,
           projectName: apiProj.name || apiProj.projectName,
@@ -64,9 +62,18 @@ export default function ClientProjectDetailPage() {
           startDate: apiProj.startDate,
           expectedCompletionDate: apiProj.expectedCompletionDate,
         });
-        setSiteVisits([]);
+        setSiteVisits(projectStore.getSiteVisits(String(projectId)) || []);
       })
-      .catch(() => setProject(null));
+      .catch(() => {
+        const proj = projectStore.getProjectById(projectId);
+        if (proj) {
+          setProject(proj);
+          setSiteVisits(projectStore.getSiteVisits(projectId));
+        } else {
+          setProject(null);
+        }
+      })
+      .finally(() => setLoading(false));
   }, [projectId]);
 
   useEffect(() => {
@@ -75,11 +82,19 @@ export default function ClientProjectDetailPage() {
     return () => window.removeEventListener("storage_update", load);
   }, [load]);
 
+  if (loading) {
+    return (
+      <div className="py-16 text-center text-muted-foreground text-sm">Loading project…</div>
+    );
+  }
+
   if (!project) {
     return (
       <div className="py-16 text-center text-muted-foreground">
         <p className="font-semibold text-lg">Project not found</p>
-        <Button onClick={() => navigate(-1)} className="mt-4" size="sm">Go Back</Button>
+        <Button onClick={() => navigate(ROUTES.CLIENT.PROJECTS_MY)} className="mt-4" size="sm">
+          Back to My Projects
+        </Button>
       </div>
     );
   }
