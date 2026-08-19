@@ -302,7 +302,7 @@ export default function SiteVisitReportPage() {
       });
 
     return () => { cancelled = true; };
-  }, [visitId]);
+  }, [visitId, stepFromUrl]);
 
   const completedCount = useMemo(
     () => Object.values(checks).filter(Boolean).length,

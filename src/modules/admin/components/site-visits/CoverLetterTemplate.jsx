@@ -235,7 +235,10 @@ const CoverLetterTemplate = forwardRef(function CoverLetterTemplate(
   { estimate, includeAppendix = true },
   ref
 ) {
-  const lines = Array.isArray(estimate?.lines) ? estimate.lines : [];
+  const lines = useMemo(
+    () => (Array.isArray(estimate?.lines) ? estimate.lines : []),
+    [estimate?.lines]
+  );
   const subtotal = Number(estimate?.subtotal ?? computeSubtotal(lines));
   const currency = estimate?.currency || "AED";
 
