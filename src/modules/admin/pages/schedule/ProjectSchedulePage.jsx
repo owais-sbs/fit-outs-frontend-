@@ -63,7 +63,7 @@ function SimpleGantt({
   baselineActivities = [],
   showBaseline = false,
 }) {
-  const list = activities || [];
+  const list = useMemo(() => activities || [], [activities]);
   const criticalSet = useMemo(
     () => new Set((criticalPathUuids || []).map(String)),
     [criticalPathUuids]
@@ -558,7 +558,7 @@ export default function ProjectSchedulePage() {
       })
       .catch(() => setSchedule(null))
       .finally(() => setLoading(false));
-  }, [projectId, selected?.uuid, selectedBaselineUuid, loadBaselineActivities]);
+  }, [projectId, selected, selectedBaselineUuid, loadBaselineActivities]);
 
   useEffect(() => {
     load();
@@ -578,6 +578,8 @@ export default function ProjectSchedulePage() {
     fetchActivityProgress(selected.uuid)
       .then((list) => setProgressHistory(Array.isArray(list) ? list : []))
       .catch(() => setProgressHistory([]));
+    // Reset progress form when switching activity only (uuid), not on every field tick
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected?.uuid]);
 
   const run = async (fn, okMsg) => {

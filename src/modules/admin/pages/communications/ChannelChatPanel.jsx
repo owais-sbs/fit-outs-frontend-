@@ -41,7 +41,7 @@ export default function ChannelChatPanel({
     !readOnly
     && !disabled
     && channelType !== "EMAIL"
-    && (channelType !== "PROJECT_ROOM" && channelType !== "ROOM_TASK"
+    && ((channelType !== "PROJECT_ROOM" && channelType !== "ROOM_TASK")
       || isProjectRoom
       || isRoomTask);
 

@@ -17,7 +17,6 @@ import {
   Mail,
   MapPin,
   Navigation2,
-  Paperclip,
   Phone,
   User,
   X,
@@ -89,8 +88,6 @@ const REPORT_STEPS = [
 
 const INITIAL_NOTES =
   "Ceiling grid is suitable for LED panels. Client requested premium finish in reception and a clear path for cable runs.";
-
-const MOCK_PHOTOS = ["Reception", "Services", "Floor plan"];
 
 function fallbackChecklistItems() {
   return REPORT_CHECKLIST.map((item) => ({

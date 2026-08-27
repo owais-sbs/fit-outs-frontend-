@@ -274,7 +274,10 @@ export default function RoomChecklistScopeBuilder({
     return [...names];
   }, [roomPresets, floors, activeFloor]);
 
-  const catalogItems = activeCategory ? itemsForCategory(activeCategory) : [];
+  const catalogItems = useMemo(
+    () => (activeCategory ? itemsForCategory(activeCategory) : []),
+    [activeCategory]
+  );
   const filteredCatalogItems = useMemo(() => {
     const q = itemSearch.trim().toLowerCase();
     if (!q) return catalogItems;

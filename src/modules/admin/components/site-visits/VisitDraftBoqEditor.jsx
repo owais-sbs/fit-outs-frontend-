@@ -261,7 +261,7 @@ function RoomBoqCard({ room, floorName, roomTypes, disabled, onUpdate, onRemove 
     onUpdate({ ...room, selections });
   };
 
-  const allSelections = room.selections || [];
+  const allSelections = useMemo(() => room.selections || [], [room.selections]);
   const totalSelectable = allSelections.length;
 
   const masterCategories = useMemo(() => {

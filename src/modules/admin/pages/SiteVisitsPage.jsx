@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   Calendar,
@@ -243,7 +243,7 @@ export default function SiteVisitsPage() {
     };
   }, []);
 
-  const filterAndSort = (list) => {
+  const filterAndSort = useCallback((list) => {
     const q = search.trim().toLowerCase();
     const filtered = list.filter(
       (v) =>
@@ -254,10 +254,10 @@ export default function SiteVisitsPage() {
         v.assignee.toLowerCase().includes(q)
     );
     return sortVisitsLatestFirst(filtered);
-  };
+  }, [search]);
 
-  const filteredUpcoming = useMemo(() => filterAndSort(upcoming), [upcoming, search]);
-  const filteredCompleted = useMemo(() => filterAndSort(completed), [completed, search]);
+  const filteredUpcoming = useMemo(() => filterAndSort(upcoming), [upcoming, filterAndSort]);
+  const filteredCompleted = useMemo(() => filterAndSort(completed), [completed, filterAndSort]);
 
   const stats = useMemo(() => {
     const now = Date.now();
