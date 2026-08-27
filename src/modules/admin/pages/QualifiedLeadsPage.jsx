@@ -103,7 +103,7 @@ export default function QualifiedLeadsPage() {
         <StatCard title="At Proposal" value="0" icon={CheckCircle} valueColor="text-emerald-600" />
       </section>
 
-      <Card className="border-border/60 shadow-sm">
+      <Card className="">
         <CardContent className="p-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
             <div className="relative flex-1">
@@ -135,7 +135,7 @@ export default function QualifiedLeadsPage() {
         </CardContent>
       </Card>
 
-      <Card className="overflow-hidden border-border/60 shadow-sm">
+      <Card className="overflow-hidden">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader className="bg-muted/30">

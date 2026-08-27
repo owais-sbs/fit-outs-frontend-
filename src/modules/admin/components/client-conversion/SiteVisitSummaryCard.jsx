@@ -16,7 +16,7 @@ function formatDate(d) {
 export default function SiteVisitSummaryCard({ lead }) {
   if (!lead || !lead.siteVisitDate) {
     return (
-      <Card className="border-border/60 shadow-sm">
+      <Card className="">
         <CardHeader className="pb-3"><CardTitle className="text-base">Site Visit</CardTitle></CardHeader>
         <CardContent>
           <p className="text-xs text-muted-foreground">No site visit recorded.</p>
@@ -26,7 +26,7 @@ export default function SiteVisitSummaryCard({ lead }) {
   }
 
   return (
-    <Card className="border-border/60 shadow-sm">
+    <Card className="">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
           <MapPin className="h-4 w-4 text-muted-foreground" />

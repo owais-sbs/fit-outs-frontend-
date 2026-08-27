@@ -4,6 +4,7 @@ import {
   Inbox, Users, MapPin, ArrowRight, Package, FileText, ClipboardList,
 } from "lucide-react";
 import DashboardHeader from "@/modules/super-admin/components/DashboardHeader";
+import { PageShell, StatTile } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,11 +25,11 @@ import { formatAed } from "../utils/directorDashboardUtils";
 import { BoqStatusBadge } from "@/modules/admin/pages/boq/BoqApprovalTimeline";
 
 const KPI_CONFIG = [
-  { key: "activeProjects", label: "Active projects", icon: Briefcase, accent: "from-[#1F3A34]/[0.06] text-[#1F3A34]" },
-  { key: "contractValue", label: "Contract value", icon: DollarSign, accent: "from-emerald-500/[0.07] text-emerald-600", format: formatAed },
-  { key: "avgProgress", label: "Avg progress", icon: TrendingUp, accent: "from-[#C8A97E]/[0.12] text-[#9a7b4f]", suffix: "%" },
-  { key: "stockValue", label: "Stock on hand", icon: Warehouse, accent: "from-[#2E5B4F]/[0.07] text-[#2E5B4F]", format: formatAed },
-  { key: "lowStockCount", label: "Low-stock alerts", icon: AlertTriangle, accent: "from-[#E07B39]/[0.07] text-[#C25E22]" },
+  { key: "activeProjects", label: "Active projects", icon: Briefcase, accent: "from-[#18181B]/[0.06] text-[#18181B]" },
+  { key: "contractValue", label: "Contract value", icon: DollarSign, accent: "from-[#C4845A]/[0.10] text-[#C4845A]", format: formatAed },
+  { key: "avgProgress", label: "Avg progress", icon: TrendingUp, accent: "from-[#C4845A]/[0.12] text-[#C4845A]", suffix: "%" },
+  { key: "stockValue", label: "Stock on hand", icon: Warehouse, accent: "from-[#18181B]/[0.07] text-[#18181B]", format: formatAed },
+  { key: "lowStockCount", label: "Low-stock alerts", icon: AlertTriangle, accent: "from-[#C4845A]/[0.10] text-[#C4845A]" },
   { key: "pendingApprovals", label: "BOQ pending approval", icon: Inbox, accent: "from-amber-500/[0.07] text-amber-600" },
   { key: "openLeads", label: "Open leads", icon: Users, accent: "from-sky-500/[0.07] text-sky-600" },
   { key: "siteVisitsThisMonth", label: "Site visits (month)", icon: MapPin, accent: "from-violet-500/[0.07] text-violet-600" },
@@ -43,10 +44,10 @@ const STATUS_COLORS = {
 };
 
 const BAR_CONFIG = {
-  value: { label: "Stock Value", colors: { light: ["#3E7A6B", "#1F3A34"], dark: ["#3E7A6B", "#1F3A34"] } },
+  value: { label: "Stock Value", colors: { light: ["#C4845A", "#18181B"], dark: ["#C4845A", "#18181B"] } },
 };
 
-const PIE_COLORS = ["#3E7A6B", "#C8A97E", "#E07B39", "#5E9B8C", "#A8946E", "#2E5B4F"];
+const PIE_COLORS = ["#18181B", "#C4845A", "#A67C5D", "#3F3F46", "#D4A574", "#52525B"];
 
 function StatusBadge({ status }) {
   return <Badge variant={STATUS_COLORS[status] || "outline"}>{status}</Badge>;
@@ -68,7 +69,7 @@ export default function DirectorDashboard() {
   }, {});
 
   return (
-    <div className="space-y-8">
+    <PageShell className="space-y-8">
       <DashboardHeader
         title={`Good day, ${user?.name?.split(" ")[0] || "Director"}`}
         description="Executive overview — portfolio, procurement, commercial pipeline, and CRM."
@@ -93,29 +94,19 @@ export default function DirectorDashboard() {
       </DashboardHeader>
 
       {/* KPI row */}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {KPI_CONFIG.map(({ key, label, icon: Icon, accent, format, suffix }) => {
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {KPI_CONFIG.map(({ key, label, icon: Icon, format, suffix }) => {
           const raw = kpis[key];
           const value = loading ? "—" : format ? format(raw) : `${raw}${suffix || ""}`;
           return (
-            <Card key={key} className={`border-border/60 bg-gradient-to-br ${accent.split(" ")[0]} to-transparent shadow-sm`}>
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className={`p-2 rounded-lg bg-background/80 ${accent.split(" ").slice(1).join(" ")}`}>
-                  <Icon className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-[10px] font-semibold uppercase text-muted-foreground">{label}</p>
-                  <p className="text-xl font-bold">{value}</p>
-                </div>
-              </CardContent>
-            </Card>
+            <StatTile key={key} label={label} value={value} icon={Icon} />
           );
         })}
       </div>
 
       {/* Analytics grid */}
       <div className="grid gap-6 lg:grid-cols-5">
-        <Card className="lg:col-span-3 border-border/60 shadow-sm">
+        <Card className="lg:col-span-3">
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-base">Project portfolio</CardTitle>
             <Button asChild variant="ghost" size="sm">
@@ -166,7 +157,7 @@ export default function DirectorDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-2 border-border/60 shadow-sm">
+        <Card className="lg:col-span-2">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">BOQ approval funnel</CardTitle>
           </CardHeader>
@@ -189,7 +180,7 @@ export default function DirectorDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-3 border-border/60 shadow-sm">
+        <Card className="lg:col-span-3">
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-base">Stock value by category</CardTitle>
             <Button asChild variant="ghost" size="sm">
@@ -211,7 +202,7 @@ export default function DirectorDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-2 border-border/60 shadow-sm">
+        <Card className="lg:col-span-2">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Recent stock movements</CardTitle>
           </CardHeader>
@@ -236,7 +227,7 @@ export default function DirectorDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-3 border-border/60 shadow-sm">
+        <Card className="lg:col-span-3">
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-base">CRM — leads by status</CardTitle>
             <Button asChild variant="ghost" size="sm">
@@ -256,7 +247,7 @@ export default function DirectorDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-2 border-border/60 shadow-sm">
+        <Card className="lg:col-span-2">
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-base">Commercial pipeline</CardTitle>
             <Button asChild variant="ghost" size="sm">
@@ -348,6 +339,6 @@ export default function DirectorDashboard() {
           ))}
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

@@ -2,22 +2,20 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft, Briefcase, Building2, CalendarDays,
-  Clock, DollarSign, MapPin, TrendingUp, Users,
+  Clock, DollarSign, TrendingUp, Users,
 } from "lucide-react";
+import { PageShell, PageTitle, StatTile, Surface } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { projectStore } from "@/shared/store/projectStore";
-import { INITIAL_EMPLOYEES } from "@/modules/admin/data/employees";
 import { fetchProjectById } from "@/modules/admin/api/projects.api";
+import { fetchIssuedEstimatesForClient } from "@/modules/admin/api/site-visits.api";
 import { ROUTES } from "@/shared/constants/routes";
 import ClientProjectRoomsSection from "./ClientProjectRoomsSection";
 
-// ─── Helper ───────────────────────────────────────────────────────────────────
 function InfoItem({ label, value, mono = false }) {
   return (
-    <div className="flex items-start gap-3 py-2 border-b border-border/40 last:border-0">
+    <div className="flex items-start gap-3 border-b border-border/30 py-2 last:border-0">
       <span className="w-36 shrink-0 text-xs text-muted-foreground">{label}</span>
       <span className={`text-sm font-medium ${mono ? "font-mono text-xs" : ""}`}>{value || "—"}</span>
     </div>
@@ -39,14 +37,16 @@ export default function ClientProjectDetailPage() {
   const { projectId } = useParams();
   const navigate = useNavigate();
   const [project, setProject] = useState(null);
-  const [siteVisits, setSiteVisits] = useState([]);
+  const [estimates, setEstimates] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(() => {
     setLoading(true);
-    // Prefer live API so numeric backend project ids work for real clients.
-    fetchProjectById(projectId)
-      .then((apiProj) => {
+    Promise.all([
+      fetchProjectById(projectId),
+      fetchIssuedEstimatesForClient().catch(() => []),
+    ])
+      .then(([apiProj, issued]) => {
         if (!apiProj) throw new Error("empty");
         setProject({
           id: apiProj.id,
@@ -55,273 +55,233 @@ export default function ClientProjectDetailPage() {
           location: apiProj.location,
           status: apiProj.status || "Planning",
           progress: apiProj.progress ?? 0,
-          budget: apiProj.budget,
+          budget: apiProj.budget ?? 0,
           description: apiProj.description,
           projectType: apiProj.projectType,
           assignedManager: apiProj.assignedManager,
           startDate: apiProj.startDate,
           expectedCompletionDate: apiProj.expectedCompletionDate,
         });
-        setSiteVisits(projectStore.getSiteVisits(String(projectId)) || []);
+        setEstimates(Array.isArray(issued) ? issued : []);
       })
       .catch(() => {
-        const proj = projectStore.getProjectById(projectId);
-        if (proj) {
-          setProject(proj);
-          setSiteVisits(projectStore.getSiteVisits(projectId));
-        } else {
-          setProject(null);
-        }
+        setProject(null);
+        setEstimates([]);
       })
       .finally(() => setLoading(false));
   }, [projectId]);
 
   useEffect(() => {
     load();
-    window.addEventListener("storage_update", load);
-    return () => window.removeEventListener("storage_update", load);
   }, [load]);
 
   if (loading) {
     return (
-      <div className="py-16 text-center text-muted-foreground text-sm">Loading project…</div>
+      <PageShell className="mx-auto max-w-6xl">
+        <div className="py-16 text-center text-sm text-muted-foreground">Loading project…</div>
+      </PageShell>
     );
   }
 
+  const budget = Number(project?.budget) || 0;
+
   if (!project) {
     return (
-      <div className="py-16 text-center text-muted-foreground">
-        <p className="font-semibold text-lg">Project not found</p>
-        <Button onClick={() => navigate(ROUTES.CLIENT.PROJECTS_MY)} className="mt-4" size="sm">
-          Back to My Projects
-        </Button>
-      </div>
+      <PageShell className="mx-auto max-w-6xl">
+        <div className="py-16 text-center text-muted-foreground">
+          <p className="font-display text-lg font-semibold">Project not found</p>
+          <Button onClick={() => navigate(ROUTES.CLIENT.PROJECTS_MY)} className="mt-4" size="sm">
+            Back to My Projects
+          </Button>
+        </div>
+      </PageShell>
     );
   }
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
-      {/* Back */}
+    <PageShell className="mx-auto max-w-6xl">
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <span className="text-sm text-muted-foreground font-medium">Back to projects</span>
+        <span className="text-sm font-medium text-muted-foreground">Back to projects</span>
       </div>
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-        <div>
-          <span className="font-mono text-xs font-semibold text-muted-foreground">{project.id}</span>
-          <h1 className="text-2xl font-bold tracking-tight">{project.projectName}</h1>
-          <p className="text-sm text-muted-foreground">{project.clientName} · {project.location}</p>
-        </div>
-        <StatusBadge status={project.status} />
-      </div>
+      <PageTitle
+        title={project.projectName}
+        subtitle={`${project.id} · ${project.clientName} · ${project.location}`}
+        actions={<StatusBadge status={project.status} />}
+      />
 
       <ClientProjectRoomsSection projectId={projectId} projectName={project.projectName} />
 
-      {/* KPI row */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[
-          { label: "Contract Value",    value: `$${project.budget?.toLocaleString()}`, icon: DollarSign,   bg: "bg-primary/10 text-primary" },
-          { label: "Overall Progress",  value: `${project.progress}%`,                icon: TrendingUp,   bg: "bg-emerald-500/10 text-emerald-600" },
-          { label: "Start Date",        value: project.startDate,                     icon: CalendarDays, bg: "bg-blue-500/10 text-blue-600" },
-          { label: "Target Completion", value: project.expectedCompletionDate,        icon: Clock,        bg: "bg-amber-500/10 text-amber-600" },
-        ].map(({ label, value, icon: Icon, bg }) => (
-          <Card key={label} className="border-border/60 shadow-sm">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className={`p-2 rounded-lg ${bg}`}><Icon className="h-5 w-5" /></div>
-              <div>
-                <p className="text-[10px] font-semibold uppercase text-muted-foreground">{label}</p>
-                <p className="text-base font-bold">{value}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <StatTile
+          label="Contract Value"
+          value={`$${budget.toLocaleString()}`}
+          icon={DollarSign}
+        />
+        <StatTile
+          label="Overall Progress"
+          value={`${project.progress}%`}
+          icon={TrendingUp}
+        />
+        <StatTile
+          label="Start Date"
+          value={project.startDate}
+          icon={CalendarDays}
+        />
+        <StatTile
+          label="Target Completion"
+          value={project.expectedCompletionDate}
+          icon={Clock}
+        />
       </div>
 
-      {/* Progress bar */}
-      <Card className="border-border/60 shadow-sm">
-        <CardContent className="p-5">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm font-semibold">Execution Progress</p>
-            <span className="text-sm font-bold text-primary">{project.progress}%</span>
-          </div>
-          <div className="h-3 w-full overflow-hidden rounded-full bg-muted">
-            <div
-              className="h-full rounded-full bg-primary transition-all duration-700"
-              style={{ width: `${project.progress}%` }}
-            />
-          </div>
-          <div className="mt-2 flex justify-between text-[11px] text-muted-foreground">
-            <span>Planning</span><span>Design</span><span>Build</span><span>Handover</span>
-          </div>
-        </CardContent>
-      </Card>
+      <Surface className="p-5">
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-sm font-semibold">Execution Progress</p>
+          <span className="text-sm font-bold text-primary">{project.progress}%</span>
+        </div>
+        <div className="h-3 w-full overflow-hidden rounded-full bg-muted">
+          <div
+            className="h-full rounded-full bg-primary transition-all duration-700"
+            style={{ width: `${project.progress}%` }}
+          />
+        </div>
+        <div className="mt-2 flex justify-between text-[11px] text-muted-foreground">
+          <span>Planning</span><span>Design</span><span>Build</span><span>Handover</span>
+        </div>
+      </Surface>
 
-      {/* Main grid */}
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Project scope */}
-        <Card className="border-border/60 shadow-sm lg:col-span-2">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-              <Briefcase className="h-4 w-4 text-primary" />
-              Project Scope
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground leading-relaxed">{project.description}</p>
-            <Separator />
-            <div className="grid gap-x-6 sm:grid-cols-2">
-              <div>
-                <InfoItem label="Project ID"   value={project.id} mono />
-                <InfoItem label="Project Type" value={project.projectType} />
-                <InfoItem label="Location"     value={project.location} />
-                <InfoItem label="Start Date"   value={project.startDate} />
-                <InfoItem label="Target Date"  value={project.expectedCompletionDate} />
-              </div>
-              <div>
-                <InfoItem label="Status"    value={project.status} />
-                <InfoItem label="Manager"   value={project.assignedManager || "Unassigned"} />
-                <InfoItem label="Budget"    value={`$${project.budget?.toLocaleString()}`} />
-                <InfoItem label="Progress"  value={`${project.progress}%`} />
+        <Surface className="space-y-4 p-5 lg:col-span-2">
+          <h2 className="flex items-center gap-2 text-sm font-semibold">
+            <Briefcase className="h-4 w-4 text-primary" />
+            Project Scope
+          </h2>
+          <p className="text-sm leading-relaxed text-muted-foreground">{project.description}</p>
+          <Separator className="opacity-40" />
+          <div className="grid gap-x-6 sm:grid-cols-2">
+            <div>
+              <InfoItem label="Project ID"   value={project.id} mono />
+              <InfoItem label="Project Type" value={project.projectType} />
+              <InfoItem label="Location"     value={project.location} />
+              <InfoItem label="Start Date"   value={project.startDate} />
+              <InfoItem label="Target Date"  value={project.expectedCompletionDate} />
+            </div>
+            <div>
+              <InfoItem label="Status"    value={project.status} />
+              <InfoItem label="Manager"   value={project.assignedManager || "Unassigned"} />
+              <InfoItem label="Budget"    value={`$${budget.toLocaleString()}`} />
+              <InfoItem label="Progress"  value={`${project.progress}%`} />
+            </div>
+          </div>
+        </Surface>
+
+        <div className="space-y-4">
+          <Surface className="space-y-3 p-5 text-sm">
+            <h2 className="flex items-center gap-2 text-sm font-semibold">
+              <Building2 className="h-4 w-4 text-primary" />
+              Support Contacts
+            </h2>
+            <div>
+              <span className="block text-xs text-muted-foreground">Project Manager</span>
+              <span className="font-semibold">{project.assignedManager || "Unassigned"}</span>
+              <span className="mt-0.5 block text-xs text-muted-foreground">pm@fitouts.com.au</span>
+            </div>
+            <Separator className="opacity-40" />
+            <div>
+              <span className="block text-xs text-muted-foreground">Support Line</span>
+              <span className="font-medium">+61 2 9876 5432</span>
+            </div>
+            <Separator className="opacity-40" />
+            <div className="rounded-xl bg-secondary/50 p-3">
+              <p className="mb-1.5 text-[11px] font-semibold text-muted-foreground">Project Health</p>
+              <div className="flex items-center gap-2">
+                <span className={`h-2 w-2 rounded-full ${project.progress >= 70 ? "bg-emerald-500" : project.progress >= 30 ? "bg-amber-500" : "bg-primary"}`} />
+                <span className="text-xs font-medium">
+                  {project.progress >= 70 ? "On Track" : project.progress >= 30 ? "In Progress" : "Early Stage"}
+                </span>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </Surface>
 
-        {/* Support contacts + Health */}
-        <div className="space-y-4">
-          <Card className="border-border/60 shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-                <Building2 className="h-4 w-4 text-primary" />
-                Support Contacts
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <div>
-                <span className="text-xs text-muted-foreground block">Project Manager</span>
-                <span className="font-semibold">{project.assignedManager || "Unassigned"}</span>
-                <span className="text-xs text-muted-foreground block mt-0.5">pm@fitouts.com.au</span>
-              </div>
-              <Separator />
-              <div>
-                <span className="text-xs text-muted-foreground block">Support Line</span>
-                <span className="font-medium">+61 2 9876 5432</span>
-              </div>
-              <Separator />
-              <div className="rounded-lg bg-muted/30 p-3">
-                <p className="text-[11px] font-semibold text-muted-foreground mb-1.5">Project Health</p>
-                <div className="flex items-center gap-2">
-                  <span className={`h-2 w-2 rounded-full ${project.progress >= 70 ? "bg-emerald-500" : project.progress >= 30 ? "bg-amber-500" : "bg-primary"}`} />
-                  <span className="text-xs font-medium">
-                    {project.progress >= 70 ? "On Track" : project.progress >= 30 ? "In Progress" : "Early Stage"}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-border/60 shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-                <DollarSign className="h-4 w-4 text-primary" />
-                Payment Summary
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="grid grid-cols-3 gap-2 text-center">
-                {[
-                  { label: "Total",       value: `$${project.budget?.toLocaleString()}`,                   c: "text-foreground" },
-                  { label: "Paid",        value: `$${Math.round(project.budget * 0.45).toLocaleString()}`, c: "text-emerald-600" },
-                  { label: "Outstanding", value: `$${Math.round(project.budget * 0.55).toLocaleString()}`, c: "text-amber-600" },
-                ].map(({ label, value, c }) => (
-                  <div key={label} className="rounded-lg bg-muted/30 p-2">
-                    <p className={`text-xs font-bold ${c}`}>{value}</p>
-                    <p className="text-[10px] text-muted-foreground">{label}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                <div className="h-full bg-emerald-500 rounded-full" style={{ width: "45%" }} />
-              </div>
-              <p className="text-[11px] text-muted-foreground">45% collected</p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* Team */}
-      <Card className="border-border/60 shadow-sm">
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-            <Users className="h-4 w-4 text-primary" />
-            Project Team
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {INITIAL_EMPLOYEES.slice(0, 8).map((emp) => (
-              <div key={emp.id} className="flex items-center gap-3 rounded-lg border border-border/50 bg-muted/20 p-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                  {emp.firstName[0]}{emp.lastName[0]}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">{emp.firstName} {emp.lastName}</p>
-                  <p className="text-xs text-muted-foreground truncate">{emp.designation}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Site visits */}
-      <Card className="border-border/60 shadow-sm">
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-            <MapPin className="h-4 w-4 text-primary" />
-            Site Visits
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-3 gap-3 text-center mb-4">
-            {[
-              { label: "Total",     value: siteVisits.length,                                         c: "text-foreground" },
-              { label: "Scheduled", value: siteVisits.filter((v) => v.status === "Scheduled").length, c: "text-amber-600" },
-              { label: "Completed", value: siteVisits.filter((v) => v.status === "Completed").length, c: "text-emerald-600" },
-            ].map(({ label, value, c }) => (
-              <div key={label} className="rounded-lg bg-muted/30 p-3">
-                <p className={`text-xl font-bold ${c}`}>{value}</p>
-                <p className="text-[10px] text-muted-foreground">{label}</p>
-              </div>
-            ))}
-          </div>
-          {siteVisits.length === 0 ? (
-            <p className="text-center text-sm text-muted-foreground py-4">No site visits scheduled yet.</p>
-          ) : (
-            <div className="space-y-2">
-              {siteVisits.map((sv) => (
-                <div key={sv.id} className="flex items-center justify-between rounded-lg border border-border/50 px-3 py-2.5">
-                  <div>
-                    <p className="text-sm font-medium">{sv.employee}</p>
-                    <p className="text-xs text-muted-foreground">{sv.date} · {sv.time} · {sv.purpose}</p>
-                  </div>
-                  <Badge
-                    className={sv.status === "Completed"
-                      ? "bg-emerald-500/15 text-emerald-700 border-none"
-                      : "bg-amber-500/15 text-amber-700 border-none"}
-                  >
-                    {sv.status}
-                  </Badge>
+          <Surface className="space-y-3 p-5">
+            <h2 className="flex items-center gap-2 text-sm font-semibold">
+              <DollarSign className="h-4 w-4 text-primary" />
+              Payment Summary
+            </h2>
+            <div className="grid grid-cols-3 gap-2 text-center">
+              {[
+                { label: "Total",       value: `$${budget.toLocaleString()}`,                   c: "text-foreground" },
+                { label: "Paid",        value: `$${Math.round(budget * 0.45).toLocaleString()}`, c: "text-emerald-600" },
+                { label: "Outstanding", value: `$${Math.round(budget * 0.55).toLocaleString()}`, c: "text-amber-600" },
+              ].map(({ label, value, c }) => (
+                <div key={label} className="rounded-xl bg-secondary/50 p-2">
+                  <p className={`text-xs font-bold ${c}`}>{value}</p>
+                  <p className="text-[10px] text-muted-foreground">{label}</p>
                 </div>
               ))}
             </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+            <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+              <div className="h-full rounded-full bg-emerald-500" style={{ width: "45%" }} />
+            </div>
+            <p className="text-[11px] text-muted-foreground">45% collected</p>
+          </Surface>
+        </div>
+      </div>
+
+      {project.assignedManager && (
+        <Surface className="p-5">
+          <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold">
+            <Users className="h-4 w-4 text-primary" />
+            Project Team
+          </h2>
+          <div className="flex items-center gap-3 rounded-xl bg-secondary/40 p-3 sm:max-w-sm">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+              {project.assignedManager
+                .split(" ")
+                .map((part) => part[0])
+                .join("")
+                .slice(0, 2)
+                .toUpperCase()}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium">{project.assignedManager}</p>
+              <p className="truncate text-xs text-muted-foreground">Project Manager</p>
+            </div>
+          </div>
+        </Surface>
+      )}
+
+      <Surface className="p-5">
+        <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold">
+          <DollarSign className="h-4 w-4 text-primary" />
+          Issued Estimates
+        </h2>
+        {estimates.length === 0 ? (
+          <p className="py-4 text-center text-sm text-muted-foreground">No issued estimates yet.</p>
+        ) : (
+          <div className="space-y-2">
+            {estimates.map((est) => (
+              <div
+                key={est.uuid || est.quoteNo}
+                className="flex items-center justify-between rounded-xl bg-secondary/40 px-3 py-2.5"
+              >
+                <div>
+                  <p className="text-sm font-medium">{est.quoteNo || est.projectLabel || "Estimate"}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {est.subject || est.locationLabel || "—"}
+                    {est.validUntil ? ` · Valid until ${est.validUntil}` : ""}
+                  </p>
+                </div>
+                <Badge variant="secondary">{est.status || "ISSUED"}</Badge>
+              </div>
+            ))}
+          </div>
+        )}
+      </Surface>
+    </PageShell>
   );
 }

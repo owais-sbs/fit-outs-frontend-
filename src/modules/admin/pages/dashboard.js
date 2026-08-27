@@ -7,6 +7,7 @@ import DashboardHeader from "../../super-admin/components/DashboardHeader";
 import AnalyticsToolbar from "@/modules/shared/components/AnalyticsToolbar";
 import AnalyticsChartCard from "@/modules/super-admin/components/dashboard/AnalyticsChartCard";
 import DashboardSection from "@/modules/super-admin/components/dashboard/DashboardSection";
+import { PageShell, StatTile } from "@/components/layout/PageShell";
 import {
   EvilLineChart, Line, XAxis, Legend, Tooltip,
 } from "@/components/evilcharts/charts/line-chart";
@@ -51,16 +52,6 @@ const EXTENDED_ICONS = {
   visits:     MapPin,
 };
 
-// Soft, on-theme card tints — light gradient surface + matching icon tile
-const KPI_ACCENTS = {
-  pipeline:   { card: "from-[#1F3A34]/[0.06]", tile: "bg-[#1F3A34]/10 text-[#1F3A34]" },
-  won:        { card: "from-emerald-500/[0.07]", tile: "bg-emerald-500/12 text-emerald-600" },
-  lost:       { card: "from-[#E07B39]/[0.07]", tile: "bg-[#E07B39]/12 text-[#C25E22]" },
-  conversion: { card: "from-[#C8A97E]/[0.12]", tile: "bg-[#C8A97E]/20 text-[#9a7b4f]" },
-  revenue:    { card: "from-[#2E5B4F]/[0.07]", tile: "bg-[#2E5B4F]/10 text-[#2E5B4F]" },
-  visits:     { card: "from-sky-500/[0.07]", tile: "bg-sky-500/12 text-sky-600" },
-};
-
 // ─── Forecast table ──────────────────────────────────────────────────────────
 const FORECAST_ROWS = [
   { month: "Jun", leads: 42, forecast: 520, committed: 428, status: "on-track" },
@@ -83,8 +74,8 @@ const WON_LOST_DATA = [
   { month: "May", won: 8, lost: 4 },
 ];
 const WON_LOST_CONFIG = {
-  won:  { label: "Won",  colors: { light: ["#3E7A6B", "#1F3A34"], dark: ["#3E7A6B", "#1F3A34"] } },
-  lost: { label: "Lost", colors: { light: ["#E89A66", "#C25E22"], dark: ["#E89A66", "#C25E22"] } },
+  won:  { label: "Won",  colors: { light: ["#18181B", "#3f3f46"], dark: ["#18181B", "#3f3f46"] } },
+  lost: { label: "Lost", colors: { light: ["#C4845A", "#a66b45"], dark: ["#C4845A", "#a66b45"] } },
 };
 
 // ─── Project type distribution ────────────────────────────────────────────────
@@ -96,11 +87,11 @@ const PROJECT_TYPE_DATA = [
   { type: "construction",count: 12 },
 ];
 const PROJECT_TYPE_CONFIG = {
-  commercial:   { label: "Commercial",   colors: { light: ["#3E7A6B", "#1F3A34"], dark: ["#3E7A6B", "#1F3A34"] } },
-  interior:     { label: "Interior",     colors: { light: ["#D9BE97", "#B8965F"], dark: ["#D9BE97", "#B8965F"] } },
-  renovation:   { label: "Renovation",   colors: { light: ["#5E9B8C", "#3A6A5E"], dark: ["#5E9B8C", "#3A6A5E"] } },
-  residential:  { label: "Residential",  colors: { light: ["#E89A66", "#C25E22"], dark: ["#E89A66", "#C25E22"] } },
-  construction: { label: "Construction", colors: { light: ["#A8946E", "#6E5F42"], dark: ["#A8946E", "#6E5F42"] } },
+  commercial:   { label: "Commercial",   colors: { light: ["#18181B", "#3f3f46"], dark: ["#18181B", "#3f3f46"] } },
+  interior:     { label: "Interior",     colors: { light: ["#C4845A", "#a66b45"], dark: ["#C4845A", "#a66b45"] } },
+  renovation:   { label: "Renovation",   colors: { light: ["#0f766e", "#0d9488"], dark: ["#0f766e", "#0d9488"] } },
+  residential:  { label: "Residential",  colors: { light: ["#71717a", "#52525b"], dark: ["#71717a", "#52525b"] } },
+  construction: { label: "Construction", colors: { light: ["#a1a1aa", "#71717a"], dark: ["#a1a1aa", "#71717a"] } },
 };
 
 export default function AdminDashboard() {
@@ -110,7 +101,7 @@ export default function AdminDashboard() {
   const [dateTo, setDateTo] = useState("2026-05-22");
 
   return (
-    <div className="space-y-8">
+    <PageShell className="space-y-8">
       <DashboardHeader 
         title="Admin Dashboard"
         description="Monitor CRM analytics, lead pipeline, team performance, and system overview."
@@ -144,35 +135,18 @@ export default function AdminDashboard() {
         }
       />
 
-      {/* ── 6 KPI cards ───────────────────────────────────────────────────── */}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {EXTENDED_KPIS.map((kpi) => {
           const Icon = EXTENDED_ICONS[kpi.id];
-          const accent = KPI_ACCENTS[kpi.id] || KPI_ACCENTS.pipeline;
           const isPos = kpi.growth >= 0;
           return (
-            <Card
+            <StatTile
               key={kpi.id}
-              className={`border-border/60 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-md bg-gradient-to-br ${accent.card} to-card`}
-            >
-              <CardContent className="p-5">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-muted-foreground">{kpi.title}</p>
-                    <p className="text-2xl font-bold tracking-tight">{kpi.value}</p>
-                    <div className="flex items-center gap-1.5 text-xs">
-                      <span className={isPos ? "font-semibold text-emerald-600" : "font-semibold text-destructive"}>
-                        {isPos ? "+" : ""}{kpi.growth}%
-                      </span>
-                      <span className="text-muted-foreground">{kpi.growthLabel}</span>
-                    </div>
-                  </div>
-                  <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${accent.tile}`}>
-                    <Icon className="h-5 w-5" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+              label={kpi.title}
+              value={kpi.value}
+              icon={Icon}
+              hint={`${isPos ? "+" : ""}${kpi.growth}% ${kpi.growthLabel}`}
+            />
           );
         })}
       </div>
@@ -233,10 +207,8 @@ export default function AdminDashboard() {
         </AnalyticsChartCard>
       </DashboardSection>
 
-
-
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="border-border/60">
+        <Card>
           <CardHeader className="flex-row items-center justify-between">
             <CardTitle className="text-base">Revenue forecast ($k)</CardTitle>
             <Badge variant="outline" className="text-xs">Next 3 months</Badge>
@@ -269,7 +241,7 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="border-border/60">
+        <Card>
           <CardHeader>
             <CardTitle className="text-base">Rep leaderboard</CardTitle>
           </CardHeader>
@@ -282,10 +254,10 @@ export default function AdminDashboard() {
             ].map((rep, i) => {
               const initials = rep.name.split(" ").map((n) => n[0]).join("");
               return (
-                <div key={rep.name} className="flex items-center gap-3 rounded-lg border border-border/40 bg-muted/20 px-4 py-3">
+                <div key={rep.name} className="flex items-center gap-3 rounded-xl bg-secondary/50 px-4 py-3">
                   <span className="w-5 text-sm font-bold text-muted-foreground">#{i + 1}</span>
                   <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-primary/10 text-xs text-primary font-semibold">{initials}</AvatarFallback>
+                    <AvatarFallback className="bg-accent text-xs text-accent-foreground font-semibold">{initials}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
                     <p className="text-sm font-medium">{rep.name}</p>
@@ -298,6 +270,6 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </PageShell>
   );
 }

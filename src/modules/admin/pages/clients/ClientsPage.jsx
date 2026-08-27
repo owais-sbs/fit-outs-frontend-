@@ -4,6 +4,7 @@ import {
   MoreHorizontal, Plus, Search, Users,
 } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
+import { PageShell, StatTile } from "@/components/layout/PageShell";
 import { ROUTES } from "@/shared/constants/routes";
 import { fetchAllClients } from "../../api/clients.api";
 import { Button } from "@/components/ui/button";
@@ -75,7 +76,7 @@ export default function ClientsPage() {
   }, [clients, search, statusFilter]);
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <PageHeader
         title="Clients"
         description="Manage client accounts and communications."
@@ -87,30 +88,13 @@ export default function ClientsPage() {
         }
       />
 
-      {/* Stats */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card className="border-border/60 shadow-sm">
-          <CardContent className="p-4">
-            <p className="text-xs font-medium text-muted-foreground">Total Clients</p>
-            <p className="text-2xl font-bold">{stats.total}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-border/60 shadow-sm">
-          <CardContent className="p-4">
-            <p className="text-xs font-medium text-muted-foreground">Active</p>
-            <p className="text-2xl font-bold text-emerald-600">{stats.active}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-border/60 shadow-sm">
-          <CardContent className="p-4">
-            <p className="text-xs font-medium text-muted-foreground">Inactive</p>
-            <p className="text-2xl font-bold text-muted-foreground">{stats.inactive}</p>
-          </CardContent>
-        </Card>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <StatTile label="Total Clients" value={stats.total} icon={Users} />
+        <StatTile label="Active" value={stats.active} />
+        <StatTile label="Inactive" value={stats.inactive} />
       </div>
 
-      {/* Filters */}
-      <Card className="border-border/60 shadow-sm">
+      <Card>
         <CardContent className="p-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
             <div className="relative flex-1">
@@ -134,8 +118,7 @@ export default function ClientsPage() {
         </CardContent>
       </Card>
 
-      {/* Table */}
-      <Card className="overflow-hidden border-border/60 shadow-sm">
+      <Card className="overflow-hidden">
         <div className="overflow-auto">
           <Table>
             <TableHeader className="bg-muted/60">
@@ -225,6 +208,6 @@ export default function ClientsPage() {
           </p>
         </div>
       </Card>
-    </div>
+    </PageShell>
   );
 }

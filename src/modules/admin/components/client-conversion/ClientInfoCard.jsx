@@ -25,7 +25,7 @@ function formatCurrency(n) {
 export default function ClientInfoCard({ lead }) {
   if (!lead) {
     return (
-      <Card className="border-border/60 shadow-sm">
+      <Card className="">
         <CardHeader className="pb-3"><CardTitle className="text-base">Client Summary</CardTitle></CardHeader>
         <CardContent>
           <p className="text-xs text-muted-foreground">Select a lead to view client details.</p>
@@ -42,7 +42,7 @@ export default function ClientInfoCard({ lead }) {
     .slice(0, 2);
 
   return (
-    <Card className="border-border/60 shadow-sm">
+    <Card className="">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">

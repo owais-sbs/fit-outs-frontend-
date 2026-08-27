@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { PageShell, PageTitle } from "@/components/layout/PageShell";
 import { ROUTES } from "@/shared/constants/routes";
 import { fetchDrawingPreviewBlob, reconvertProjectDrawing } from "../../api/drawing.api";
 import {
@@ -201,18 +202,19 @@ export default function QtoWorkspacePage() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <PageShell className="max-w-7xl mx-auto">
       <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+        <div className="flex items-center gap-2 min-w-0">
+          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div>
-            <h1 className="text-xl font-bold">Quantity Take-Off</h1>
-            <p className="text-xs text-muted-foreground">Calibrate scale, measure on drawing, review quantities</p>
-          </div>
+          <PageTitle
+            title="Quantity Take-Off"
+            subtitle="Calibrate scale, measure on drawing, review quantities"
+            className="min-w-0"
+          />
         </div>
-        <div className="flex gap-2">
+        <div className="flex shrink-0 gap-2">
           <Button variant="outline" size="sm" onClick={saveLines} disabled={saving}>
             <Save className="w-4 h-4 mr-1" /> Save
           </Button>
@@ -357,6 +359,6 @@ export default function QtoWorkspacePage() {
           <CheckCircle className="w-4 h-4" /> QTO approved
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

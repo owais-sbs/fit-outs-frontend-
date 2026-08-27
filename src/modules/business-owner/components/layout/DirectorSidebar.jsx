@@ -185,8 +185,8 @@ export default function DirectorSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border p-4">
-        <div className="flex items-center gap-3 rounded-lg border border-border/50 bg-muted/30 p-2 group-data-[collapsible=icon]:hidden">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-background shadow-sm">
+        <div className="flex items-center gap-3 rounded-xl bg-secondary/70 p-2 ring-1 ring-border/50 group-data-[collapsible=icon]:hidden">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-background shadow-sm">
             <span className="text-xs font-semibold">
               {user?.name?.substring(0, 2).toUpperCase() || "DR"}
             </span>

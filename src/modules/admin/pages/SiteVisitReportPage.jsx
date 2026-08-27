@@ -20,11 +20,12 @@ import {
   Paperclip,
   Phone,
   User,
+  X,
 } from "lucide-react";
 import L from "leaflet";
 import { MapContainer, Marker, TileLayer } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import { ROUTES } from "@/shared/constants/routes";
+import { useSiteVisitPortalRoutes } from "@/shared/hooks/use-site-visit-portal-routes";
 import { REPORT_CHECKLIST } from "../data/site-visits";
 import {
   checklistItemsFromScopes,
@@ -34,20 +35,27 @@ import {
 } from "../data/renovationChecklist";
 import {
   fetchSiteVisitByUuid,
+  fetchSiteVisitReport,
   submitSiteVisitReport,
   updateSiteVisitChecklistScope,
+  uploadSiteVisitPhoto,
+  resolveSiteVisitFileUrl,
+  isVideoMediaUrl,
 } from "../api/site-visits.api";
 import {
   fetchSiteVisitEstimate,
   issueSiteVisitEstimate,
   saveSiteVisitEstimate,
+  sendSiteVisitEstimateEmail,
 } from "../api/site-visit-estimate.api";
 import RoomChecklistScopeBuilder from "../components/site-visits/RoomChecklistScopeBuilder";
 import VisitDraftBoqEditor from "../components/site-visits/VisitDraftBoqEditor";
 import CoverLetterStep from "../components/site-visits/CoverLetterStep";
-import { downloadCoverLetterPdf } from "../components/site-visits/coverLetterPdfExport";
+import SiteVisitAudioRecorder from "../components/site-visits/SiteVisitAudioRecorder";
+import { downloadCoverLetterPdf, exportCoverLetterPdfBlob } from "../components/site-visits/coverLetterPdfExport";
 import axiosInstance from "@/lib/axiosInstance";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -186,6 +194,7 @@ function statusLabel(status = "") {
 
 export default function SiteVisitReportPage() {
   const { visitId } = useParams();
+  const portal = useSiteVisitPortalRoutes();
   const [searchParams, setSearchParams] = useSearchParams();
   const stepFromUrl = searchParams.get("step");
   const [activeStep, setActiveStep] = useState(
@@ -206,6 +215,8 @@ export default function SiteVisitReportPage() {
     Object.fromEntries(fallbackChecklistItems().map((item) => [item.id, false]))
   );
   const [itemNotes, setItemNotes] = useState({});
+  const [itemPhotos, setItemPhotos] = useState({});
+  const [uploadingPhoto, setUploadingPhoto] = useState(null);
   const [editingScope, setEditingScope] = useState(false);
   const [draftPropertyType, setDraftPropertyType] = useState("RESIDENTIAL");
   const [draftPropertyTypeCustom, setDraftPropertyTypeCustom] = useState("");
@@ -214,6 +225,12 @@ export default function SiteVisitReportPage() {
   const [estimateLoading, setEstimateLoading] = useState(false);
   const [estimateSaving, setEstimateSaving] = useState(false);
   const [pdfExporting, setPdfExporting] = useState(false);
+  const [sendOpen, setSendOpen] = useState(false);
+  const [sendSuccess, setSendSuccess] = useState("");
+  const [sendEmail, setSendEmail] = useState("");
+  const [sendSubject, setSendSubject] = useState("");
+  const [sendBody, setSendBody] = useState("");
+  const [sending, setSending] = useState(false);
   const coverLetterRef = useRef(null);
 
   const goToStep = (step) => {
@@ -252,8 +269,9 @@ export default function SiteVisitReportPage() {
     setLoading(true);
     setError("");
 
-    fetchSiteVisitByUuid(visitId)
-      .then(async (visitData) => {
+    (async () => {
+      try {
+        const visitData = await fetchSiteVisitByUuid(visitId);
         if (cancelled) return;
         setVisit(visitData);
         const completed = String(visitData?.status || "").toUpperCase() === "COMPLETED";
@@ -263,30 +281,64 @@ export default function SiteVisitReportPage() {
         setDraftPropertyTypeCustom(visitData?.propertyTypeCustom || "");
         setDraftRoomScopes(visitData?.roomScopes || []);
         applyVisitChecklist(visitData, completed);
-        if (completed) {
-          fetchSiteVisitEstimate(visitId)
-            .then((est) => {
-              if (cancelled) return;
-              setEstimate(est);
-              if (stepFromUrl === "estimate" || stepFromUrl === "cover") {
-                setActiveStep(stepFromUrl);
-              } else if (est?.status === "ISSUED") {
-                setActiveStep("cover");
-              }
-            })
-            .catch(() => {});
-        }
 
+        const sideLoads = [];
         if (visitData?.leadId) {
-          try {
-            const { data } = await axiosInstance.get(`/leads/${visitData.leadId}`);
-            if (!cancelled) setLead(data?.data ?? data);
-          } catch {
-            if (!cancelled) setLead(null);
-          }
+          sideLoads.push(
+            axiosInstance
+              .get(`/leads/${visitData.leadId}`)
+              .then(({ data }) => {
+                if (!cancelled) setLead(data?.data ?? data);
+              })
+              .catch(() => {
+                if (!cancelled) setLead(null);
+              })
+          );
         }
-      })
-      .catch((err) => {
+        if (completed) {
+          sideLoads.push(
+            fetchSiteVisitReport(visitId)
+              .then((report) => {
+                if (cancelled || !report?.items) return;
+                const photos = {};
+                const loadedChecks = {};
+                const loadedNotes = {};
+                const scopeItems = checklistItemsFromScopes(visitData?.roomScopes || []);
+                report.items.forEach((item, idx) => {
+                  const id = scopeItems[idx]?.id || `report-${idx}`;
+                  const matchItem = scopeItems.find(
+                    (ci) => ci.question === item.question && ci.roomName === item.roomName
+                  );
+                  const key = matchItem?.id || id;
+                  loadedChecks[key] = String(item.response || "").toUpperCase() === "YES";
+                  loadedNotes[key] = item.remarks || "";
+                  if (item.photoUrls?.length) {
+                    photos[key] = item.photoUrls.map((url) => resolveSiteVisitFileUrl(url));
+                  }
+                });
+                setChecks((prev) => ({ ...prev, ...loadedChecks }));
+                setItemNotes((prev) => ({ ...prev, ...loadedNotes }));
+                setItemPhotos(photos);
+                if (report.notes) setNotes(report.notes);
+              })
+              .catch(() => {})
+          );
+          sideLoads.push(
+            fetchSiteVisitEstimate(visitId)
+              .then((est) => {
+                if (cancelled) return;
+                setEstimate(est);
+                if (stepFromUrl === "estimate" || stepFromUrl === "cover") {
+                  setActiveStep(stepFromUrl);
+                } else if (est?.status === "ISSUED") {
+                  setActiveStep("cover");
+                }
+              })
+              .catch(() => {})
+          );
+        }
+        if (sideLoads.length) await Promise.all(sideLoads);
+      } catch (err) {
         if (cancelled) return;
         const completedMockVisit = visitId === "v4" || visitId === "v5";
         const fallbackItems = fallbackChecklistItems();
@@ -296,10 +348,10 @@ export default function SiteVisitReportPage() {
         setSubmitted(completedMockVisit);
         setNotes(completedMockVisit ? INITIAL_NOTES : "");
         setError(err.response?.data?.error || err.response?.data?.message || "Unable to load site visit report details");
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setLoading(false);
-      });
+      }
+    })();
 
     return () => { cancelled = true; };
   }, [visitId, stepFromUrl]);
@@ -411,7 +463,7 @@ export default function SiteVisitReportPage() {
           roomName: item.roomName || "",
           sectionName: item.sectionName || "",
           question: item.question || item.label || "",
-          photoUrls: [],
+          photoUrls: itemPhotos[item.id] || [],
         })),
       });
 
@@ -443,6 +495,45 @@ export default function SiteVisitReportPage() {
     } finally {
       setEstimateSaving(false);
     }
+  };
+
+  const handlePhotoUpload = async (itemId, fileList) => {
+    const files = Array.from(fileList || []).filter(Boolean);
+    if (!files.length || readOnly) return;
+    setUploadingPhoto(itemId);
+    setError("");
+    try {
+      const uploaded = [];
+      for (const file of files) {
+        const result = await uploadSiteVisitPhoto(visitId, file);
+        if (result?.url) uploaded.push(result.url);
+      }
+      if (!uploaded.length) {
+        setError("Upload completed but no file URL was returned.");
+        return;
+      }
+      setItemPhotos((prev) => ({
+        ...prev,
+        [itemId]: [...(prev[itemId] || []), ...uploaded],
+      }));
+    } catch (err) {
+      setError(
+        err.response?.data?.error ||
+          err.response?.data?.message ||
+          "Unable to upload photo or video"
+      );
+    } finally {
+      setUploadingPhoto(null);
+    }
+  };
+
+  const handleRemovePhoto = (itemId, index) => {
+    if (readOnly) return;
+    setItemPhotos((prev) => {
+      const next = [...(prev[itemId] || [])];
+      next.splice(index, 1);
+      return { ...prev, [itemId]: next };
+    });
   };
 
   const handleIssueAndDownload = async () => {
@@ -485,6 +576,54 @@ export default function SiteVisitReportPage() {
     }
   };
 
+  const handleSendToClient = async () => {
+    if (!estimate || !sendEmail.trim()) return;
+    setSending(true);
+    setError("");
+    try {
+      let issued = estimate;
+      if (estimate.status !== "ISSUED") {
+        await saveSiteVisitEstimate(visitId, estimate);
+        issued = await issueSiteVisitEstimate(visitId);
+        setEstimate(issued);
+      }
+      setPdfExporting(true);
+      const pdfBlob = await exportCoverLetterPdfBlob("site-visit-cover-letter");
+      const pdfFile = new File(
+        [pdfBlob],
+        `${issued.quoteNo || "Cover-Letter"}.pdf`,
+        { type: "application/pdf" }
+      );
+      await sendSiteVisitEstimateEmail(visitId, {
+        recipientEmail: sendEmail.trim(),
+        subject: sendSubject || `Quotation ${issued.quoteNo || ""}`.trim(),
+        messageBody: sendBody || "Please find attached our quotation and appendix documents.",
+        attachments: [pdfFile],
+      });
+      setSendOpen(false);
+      setSendSuccess(`Estimate emailed to ${sendEmail.trim()}`);
+    } catch (err) {
+      setError(err.response?.data?.error || err.message || "Unable to send email");
+    } finally {
+      setSending(false);
+      setPdfExporting(false);
+    }
+  };
+
+  const openSendDialog = () => {
+    setSendSuccess("");
+    setSendEmail(lead?.email || "");
+    setSendSubject(
+      estimate?.quoteNo
+        ? `Quotation — ${estimate.quoteNo}`
+        : estimate?.subject
+          ? `Quotation — ${estimate.subject}`
+          : "Quotation"
+    );
+    setSendBody("Dear Client,\n\nPlease find attached our quotation document with cover letter, draft BoQ summary, and selected appendix pages.\n\nKind regards,\nOnePath Solutions");
+    setSendOpen(true);
+  };
+
   const estimateReadOnly = estimate?.status === "ISSUED";
   const canOpenEstimateSteps = submitted;
   const effectiveStep =
@@ -513,7 +652,7 @@ export default function SiteVisitReportPage() {
   return (
     <div className="space-y-6 pb-28">
       <Button variant="ghost" size="sm" asChild className="-ml-2">
-        <Link to={ROUTES.ADMIN.SITE_VISITS}>
+        <Link to={portal.list}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Site visits
         </Link>
@@ -593,7 +732,7 @@ export default function SiteVisitReportPage() {
       )}
 
       {!loading && effectiveStep === "estimate" && (
-        <Card className="border-border/60 shadow-sm">
+        <Card className="">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <ClipboardList className="h-4 w-4 text-primary" />
@@ -616,7 +755,7 @@ export default function SiteVisitReportPage() {
       )}
 
       {!loading && effectiveStep === "cover" && (
-        <Card className="border-border/60 shadow-sm">
+        <Card className="">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <FileText className="h-4 w-4 text-primary" />
@@ -641,7 +780,7 @@ export default function SiteVisitReportPage() {
       {!loading && effectiveStep === "checklist" && (
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(340px,0.9fr)]">
         <div className="space-y-6">
-          <Card className="border-border/60 shadow-sm">
+          <Card className="">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <User className="h-4 w-4 text-primary" />
@@ -710,7 +849,7 @@ export default function SiteVisitReportPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-border/60 shadow-sm">
+          <Card className="">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <CalendarClock className="h-4 w-4 text-primary" />
@@ -749,7 +888,7 @@ export default function SiteVisitReportPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-border/60 shadow-sm">
+          <Card className="">
             <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3 space-y-0">
               <CardTitle className="flex items-center gap-2 text-base">
                 <Check className="h-4 w-4 text-primary" />
@@ -826,7 +965,7 @@ export default function SiteVisitReportPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-border/60 shadow-sm">
+          <Card className="">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <MapPin className="h-4 w-4 text-primary" />
@@ -865,12 +1004,15 @@ export default function SiteVisitReportPage() {
                         <Navigation2 className="h-3 w-3" />
                         {latitude.toFixed(6)}, {longitude.toFixed(6)}
                         <a
-                          href={`https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=17/${latitude}/${longitude}`}
+                          href={
+                            visit?.locationDetails?.mapsShareUrl
+                            || `https://www.google.com/maps?q=${latitude},${longitude}`
+                          }
                           target="_blank"
                           rel="noreferrer"
                           className="ml-2 text-primary hover:underline"
                         >
-                          Open in map
+                          Open in Google Maps
                         </a>
                       </p>
                     )}
@@ -947,7 +1089,7 @@ export default function SiteVisitReportPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-border/60 shadow-sm">
+          <Card className="">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <ClipboardList className="h-4 w-4 text-primary" />
@@ -1071,7 +1213,7 @@ export default function SiteVisitReportPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-border/60 shadow-sm">
+          <Card className="">
             <CardHeader>
               <CardTitle className="text-base">Notes and observations</CardTitle>
             </CardHeader>
@@ -1087,45 +1229,92 @@ export default function SiteVisitReportPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-border/60 shadow-sm">
+          <SiteVisitAudioRecorder visitId={visitId} readOnly={readOnly} />
+
+          <Card className="">
             <CardHeader>
               <CardTitle className="text-base">Photos and attachments</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Add multiple photos or videos for each checklist item.
+              </p>
             </CardHeader>
             <CardContent>
-              {readOnly ? (
-                <div className="grid gap-3 sm:grid-cols-3">
-                  {MOCK_PHOTOS.map((label) => (
-                    <div
-                      key={label}
-                      className="flex h-28 items-center justify-center rounded-xl border border-border/60 bg-muted text-xs font-medium text-muted-foreground"
-                    >
-                      {label}
+              <div className="space-y-4">
+                {roomTabs.map(({ room, categories }) => (
+                  <div key={room}>
+                    <p className="text-sm font-medium mb-2">{room}</p>
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      {categories.flatMap((c) => c.items).map((item) => {
+                        const photos = itemPhotos[item.id] || [];
+                        const uploading = uploadingPhoto === item.id;
+                        return (
+                          <div key={item.id} className="space-y-2 rounded-lg border border-border/60 p-3">
+                            <p className="text-xs font-medium text-foreground truncate">{item.label || item.question}</p>
+                            <div className="flex flex-wrap gap-2">
+                              {photos.map((url, i) => (
+                                <div key={`${url}-${i}`} className="relative">
+                                  {isVideoMediaUrl(url) ? (
+                                    <video
+                                      src={url}
+                                      controls
+                                      className="h-20 w-20 rounded-lg object-cover border border-border/60 bg-black"
+                                    />
+                                  ) : (
+                                    <img
+                                      src={url}
+                                      alt=""
+                                      className="h-20 w-20 rounded-lg object-cover border border-border/60"
+                                    />
+                                  )}
+                                  {!readOnly && (
+                                    <button
+                                      type="button"
+                                      aria-label="Remove attachment"
+                                      onClick={() => handleRemovePhoto(item.id, i)}
+                                      className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow"
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </button>
+                                  )}
+                                </div>
+                              ))}
+                              {!readOnly && (
+                                <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-border/70 bg-muted/20 text-muted-foreground hover:bg-muted/40">
+                                  <ImagePlus className="h-5 w-5 mb-1" />
+                                  <span className="text-[10px] text-center px-1">
+                                    {uploading ? "Uploading…" : "Add files"}
+                                  </span>
+                                  <input
+                                    type="file"
+                                    accept="image/*,video/*"
+                                    multiple
+                                    className="hidden"
+                                    disabled={uploading}
+                                    onChange={(e) => {
+                                      const selected = e.target.files;
+                                      if (selected?.length) handlePhotoUpload(item.id, selected);
+                                      e.target.value = "";
+                                    }}
+                                  />
+                                </label>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="grid gap-3 sm:grid-cols-3">
-                  {["Upload image", "Upload image", "Upload image"].map((label, index) => (
-                    <div
-                      key={index}
-                      className="flex h-28 flex-col items-center justify-center rounded-xl border border-dashed border-border/70 bg-muted/20 text-muted-foreground"
-                    >
-                      <ImagePlus className="mb-2 h-7 w-7" />
-                      <p className="text-xs">{label}</p>
-                    </div>
-                  ))}
-                  <div className="flex h-28 flex-col items-center justify-center rounded-xl border border-dashed border-border/70 bg-muted/20 text-muted-foreground">
-                    <Paperclip className="mb-2 h-7 w-7" />
-                    <p className="text-xs">Attach notes or files</p>
                   </div>
-                </div>
-              )}
+                ))}
+                {roomTabs.length === 0 && (
+                  <p className="text-sm text-muted-foreground">Add checklist items to attach photos.</p>
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>
 
         <div className="space-y-6">
-          <Card className="sticky top-6 border-border/60 shadow-sm">
+          <Card className="sticky top-6  ">
             <CardHeader>
               <CardTitle className="text-base">Visit summary</CardTitle>
             </CardHeader>
@@ -1211,7 +1400,7 @@ export default function SiteVisitReportPage() {
         <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-border bg-background/95 p-4 backdrop-blur md:left-[var(--sidebar-width)]">
           <div className="mx-auto flex max-w-[1600px] flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
             <Button variant="outline" asChild>
-              <Link to={ROUTES.ADMIN.SITE_VISITS}>Cancel</Link>
+              <Link to={portal.list}>Cancel</Link>
             </Button>
             <Button disabled={!canSubmit} onClick={() => setSubmitOpen(true)} className="gap-2">
               <Check className="h-4 w-4" />
@@ -1269,6 +1458,18 @@ export default function SiteVisitReportPage() {
               </Button>
             )}
             <Button
+              variant="outline"
+              disabled={!estimate || estimateSaving || pdfExporting}
+              onClick={openSendDialog}
+              className="gap-2"
+            >
+              <Mail className="h-4 w-4" />
+              Email estimate to client
+            </Button>
+            {sendSuccess && (
+              <p className="text-xs text-emerald-700">{sendSuccess}</p>
+            )}
+            <Button
               disabled={!estimate || estimateSaving || pdfExporting}
               onClick={estimateReadOnly ? handleDownloadPdfOnly : handleIssueAndDownload}
               className="gap-2"
@@ -1283,6 +1484,37 @@ export default function SiteVisitReportPage() {
           </div>
         </div>
       )}
+
+      <Dialog open={sendOpen} onOpenChange={setSendOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Email estimate to client</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-2">
+              <Label>Recipient email</Label>
+              <Input value={sendEmail} onChange={(e) => setSendEmail(e.target.value)} type="email" />
+            </div>
+            <div className="space-y-2">
+              <Label>Subject</Label>
+              <Input value={sendSubject} onChange={(e) => setSendSubject(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Message</Label>
+              <Textarea value={sendBody} onChange={(e) => setSendBody(e.target.value)} rows={5} />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Attaches the cover letter PDF (including BoQ summary and selected appendix pages).
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSendOpen(false)}>Cancel</Button>
+            <Button disabled={sending || !sendEmail.trim()} onClick={handleSendToClient}>
+              {sending ? "Sending…" : "Send email"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={submitOpen} onOpenChange={setSubmitOpen}>
         <DialogContent>
@@ -1323,14 +1555,17 @@ export default function SiteVisitReportPage() {
                 <p className="font-medium">{conversion.clientEmail}</p>
               </div>
             )}
-            {conversion?.temporaryPassword && (
+            {conversion?.inviteEmailSent ? (
               <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
-                <p className="text-xs text-muted-foreground">Temporary password</p>
-                <p className="font-mono text-base font-semibold">{conversion.temporaryPassword}</p>
+                <p className="text-sm text-foreground">
+                  A portal invite was emailed to <strong>{conversion.clientEmail}</strong>.
+                  They can set their password from the link and sign in to the client portal.
+                </p>
               </div>
-            )}
-            {!conversion?.temporaryPassword && (
-              <p className="text-xs text-muted-foreground">An existing account was reused, so no new password was generated.</p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Client account is ready. Share portal access manually if the invite email could not be sent.
+              </p>
             )}
           </div>
           <DialogFooter>

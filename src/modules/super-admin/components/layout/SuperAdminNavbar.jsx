@@ -28,7 +28,7 @@ export default function SuperAdminNavbar() {
     .toUpperCase();
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/80 md:px-6">
+    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-border/40 bg-background/75 px-4 backdrop-blur-xl md:px-6">
       <SidebarTrigger className="-ml-1" />
       <Separator orientation="vertical" className="mr-1 hidden h-5 md:block" />
 
@@ -37,7 +37,7 @@ export default function SuperAdminNavbar() {
         <Input
           type="search"
           placeholder="Search tenants, users, plans..."
-          className="h-9 border-transparent bg-muted/40 pl-9 focus-visible:bg-background"
+          className="h-10 rounded-xl pl-9"
         />
       </div>
 

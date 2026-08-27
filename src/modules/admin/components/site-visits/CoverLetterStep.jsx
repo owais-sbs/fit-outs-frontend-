@@ -2,6 +2,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { buildDefaultSubject } from "../../data/jctCoverLetterCopy";
 import CoverLetterTemplate from "./CoverLetterTemplate";
+import AppendixPicker from "./AppendixPicker";
 
 export default function CoverLetterStep({
   estimate,
@@ -98,10 +99,26 @@ export default function CoverLetterStep({
             onChange={(e) => updateField("preparedBy", e.target.value)}
           />
         </div>
+        <AppendixPicker
+          selectedIds={estimate?.selectedAppendixIds || []}
+          disabled={disabled}
+          onChange={(ids, appendices) =>
+            onChange?.({
+              ...estimate,
+              selectedAppendixIds: ids,
+              selectedAppendices: appendices || [],
+            })
+          }
+        />
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-border/60 bg-muted/20 p-4">
-        <CoverLetterTemplate ref={previewRef} estimate={estimate} includeAppendix />
+        <CoverLetterTemplate
+          ref={previewRef}
+          estimate={estimate}
+          includeAppendix
+          selectedAppendices={estimate?.selectedAppendices || []}
+        />
       </div>
     </div>
   );

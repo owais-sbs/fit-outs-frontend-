@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, useLocation } from "react-router-dom";
 import {
   ArrowLeft, DollarSign, CalendarDays, Clock,
-  TrendingUp, Building2, Briefcase, Users, MapPin, FileImage, FileText,
+  TrendingUp, Building2, Briefcase, Users, MapPin, FileImage, FileText, GanttChart,
+  AlertTriangle, BarChart3, CreditCard, HardHat,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,13 +11,17 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { PageShell, PageTitle, StatTile } from "@/components/layout/PageShell";
 import { fetchProjectById, updateProject } from "../api/projects.api";
+import { fetchAllClients } from "../api/clients.api";
 import { fetchBoqsByProject } from "../api/boq.api";
 import { ROUTES } from "@/shared/constants/routes";
 import { BoqStatusBadge } from "./boq/BoqApprovalTimeline";
 import { formatCurrency } from "./boq/quantityCalcUtils";
 import { INITIAL_EMPLOYEES } from "@/modules/admin/data/employees";
 import ProjectRoomsSection from "./roomcollab/ProjectRoomsSection";
+import { fetchPlanningStatus } from "../api/planning.api";
 
 function InfoItem({ label, value, mono = false }) {
   return (
@@ -41,12 +46,24 @@ function StatusBadge({ status }) {
 export default function ProjectDetailPage() {
   const { projectId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isPm = location.pathname.startsWith("/project-manager");
+  const routes = isPm ? ROUTES.PROJECT_MANAGER : ROUTES.ADMIN;
+  const schedulePath = routes.PROJECT_SCHEDULE.replace(":projectId", projectId);
+  const snagsPath = routes.PROJECT_SNAGS.replace(":projectId", projectId);
+  const documentsPath = routes.PROJECT_DOCUMENTS.replace(":projectId", projectId);
+  const reportingPath = routes.PROJECT_REPORTING.replace(":projectId", projectId);
+  const billingPath = routes.PROJECT_BILLING.replace(":projectId", projectId);
+  const subcontractorsPath = routes.PROJECT_SUBCONTRACTORS.replace(":projectId", projectId);
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
   const [boqs, setBoqs] = useState([]);
   const [boqsLoading, setBoqsLoading] = useState(true);
+  const [planningReady, setPlanningReady] = useState(null);
+  const [clients, setClients] = useState([]);
+  const [clientSaving, setClientSaving] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -67,7 +84,13 @@ export default function ProjectDetailPage() {
   useEffect(() => {
     load();
     loadBoqs();
-  }, [load, loadBoqs]);
+    fetchAllClients()
+      .then((list) => setClients(Array.isArray(list) ? list : []))
+      .catch(() => setClients([]));
+    fetchPlanningStatus(projectId)
+      .then((p) => setPlanningReady(!!p?.planningReady || !!p?.ganttPublishAllowed))
+      .catch(() => setPlanningReady(null));
+  }, [load, loadBoqs, projectId]);
 
   const handleStatusChange = async (newStatus) => {
     setProject((p) => ({ ...p, status: newStatus }));
@@ -85,17 +108,32 @@ export default function ProjectDetailPage() {
     }
   };
 
+  const handleClientChange = async (clientId) => {
+    setClientSaving(true);
+    setSaveMessage("");
+    try {
+      const updated = await updateProject(projectId, { clientId: Number(clientId) });
+      setProject(updated);
+      setSaveMessage("Client assigned.");
+    } catch {
+      setSaveMessage("Failed to assign client.");
+      load();
+    } finally {
+      setClientSaving(false);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="space-y-6 max-w-6xl mx-auto">
-        <Card className="border-border/60 shadow-sm"><CardContent className="py-24"><Skeleton className="h-8 w-48 mx-auto" /></CardContent></Card>
-      </div>
+      <PageShell className="max-w-6xl mx-auto">
+        <Card><CardContent className="py-24"><Skeleton className="h-8 w-48 mx-auto" /></CardContent></Card>
+      </PageShell>
     );
   }
 
   if (!project) {
     return (
-      <div className="py-16 text-center text-muted-foreground">
+      <div className="page-enter py-16 text-center text-muted-foreground">
         <p className="font-semibold text-lg">Project not found</p>
         <Button onClick={() => navigate(-1)} className="mt-4" size="sm">Go Back</Button>
       </div>
@@ -103,8 +141,7 @@ export default function ProjectDetailPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
-      {/* Back */}
+    <PageShell className="max-w-6xl mx-auto">
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-4 w-4" />
@@ -112,57 +149,87 @@ export default function ProjectDetailPage() {
         <span className="text-sm text-muted-foreground font-medium">Back to projects</span>
       </div>
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-        <div>
-          <span className="font-mono text-xs font-semibold text-muted-foreground">{project.id}</span>
-          <h1 className="text-2xl font-bold tracking-tight">{project.projectName}</h1>
-          <p className="text-sm text-muted-foreground">{project.clientName} · {project.location}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <StatusBadge status={project.status} />
-          <Button asChild size="sm" variant="outline">
-            <Link to={ROUTES.ADMIN.PROJECT_DRAWINGS.replace(":projectId", projectId)}>
-              <FileImage className="w-4 h-4 mr-1" /> Drawings
-            </Link>
-          </Button>
-          <Select value={project.status} onValueChange={handleStatusChange} disabled={saving}>
-            <SelectTrigger className="w-[135px] h-8 text-xs"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {["Planning","In Progress","On Hold","Completed","Cancelled"].map((s) => (
-                <SelectItem key={s} value={s}>{s}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      <PageTitle
+        title={project.projectName}
+        subtitle={`${project.id} · ${project.clientName} · ${project.location}`}
+        actions={
+          <div className="flex items-center gap-2 flex-wrap">
+            <StatusBadge status={project.status} />
+            <Button asChild size="sm" variant="outline">
+              <Link to={ROUTES.ADMIN.PROJECT_DRAWINGS.replace(":projectId", projectId)}>
+                <FileImage className="w-4 h-4 mr-1" /> Drawings
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link to={schedulePath}>
+                <GanttChart className="w-4 h-4 mr-1" /> Schedule
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link to={snagsPath}>
+                <AlertTriangle className="w-4 h-4 mr-1" /> Snags
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link to={documentsPath}>
+                <FileText className="w-4 h-4 mr-1" /> Documents
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link to={reportingPath}>
+                <BarChart3 className="w-4 h-4 mr-1" /> Reporting
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link to={billingPath}>
+                <CreditCard className="w-4 h-4 mr-1" /> Billing
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link to={subcontractorsPath}>
+                <HardHat className="w-4 h-4 mr-1" /> Subcontractors
+              </Link>
+            </Button>
+            <Select value={project.status} onValueChange={handleStatusChange} disabled={saving}>
+              <SelectTrigger className="w-[135px] h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {["Planning","In Progress","On Hold","Completed","Cancelled"].map((s) => (
+                  <SelectItem key={s} value={s}>{s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        }
+      />
 
       {saveMessage && (
         <p className="text-sm text-muted-foreground">{saveMessage}</p>
       )}
 
-      {/* KPI row */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[
-          { label: "Contract Value",    value: `AED ${Number(project.budget || 0).toLocaleString()}`, icon: DollarSign,  bg: "bg-primary/10 text-primary" },
-          { label: "Overall Progress",  value: `${project.progress}%`,                 icon: TrendingUp,  bg: "bg-emerald-500/10 text-emerald-600" },
-          { label: "Start Date",        value: project.startDate ? new Date(project.startDate).toLocaleDateString() : "—", icon: CalendarDays, bg: "bg-blue-500/10 text-blue-600" },
-          { label: "Target Completion", value: project.expectedCompletionDate ? new Date(project.expectedCompletionDate).toLocaleDateString() : "—", icon: Clock,       bg: "bg-amber-500/10 text-amber-600" },
-        ].map(({ label, value, icon: Icon, bg }) => (
-          <Card key={label} className="border-border/60 shadow-sm">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className={`p-2 rounded-lg ${bg}`}><Icon className="h-5 w-5" /></div>
-              <div>
-                <p className="text-[10px] font-semibold uppercase text-muted-foreground">{label}</p>
-                <p className="text-base font-bold">{value}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <StatTile
+          label="Contract Value"
+          value={`AED ${Number(project.budget || 0).toLocaleString()}`}
+          icon={DollarSign}
+        />
+        <StatTile
+          label="Overall Progress"
+          value={`${project.progress}%`}
+          icon={TrendingUp}
+        />
+        <StatTile
+          label="Start Date"
+          value={project.startDate ? new Date(project.startDate).toLocaleDateString() : "—"}
+          icon={CalendarDays}
+        />
+        <StatTile
+          label="Target Completion"
+          value={project.expectedCompletionDate ? new Date(project.expectedCompletionDate).toLocaleDateString() : "—"}
+          icon={Clock}
+        />
       </div>
 
-      {/* Progress bar */}
-      <Card className="border-border/60 shadow-sm">
+      <Card>
         <CardContent className="p-5">
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm font-semibold">Execution Progress</p>
@@ -180,8 +247,24 @@ export default function ProjectDetailPage() {
         </CardContent>
       </Card>
 
+      <div className="flex flex-col gap-3 rounded-2xl bg-secondary/50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm font-semibold">Schedule workspace</p>
+          <p className="text-xs text-muted-foreground">
+            Planning readiness, Gantt, and progress live in one place.
+            {planningReady === true && " Planning is ready to publish."}
+            {planningReady === false && " Planning not marked ready yet."}
+          </p>
+        </div>
+        <Button asChild size="sm">
+          <Link to={schedulePath}>
+            <GanttChart className="h-4 w-4 mr-1" /> Open schedule
+          </Link>
+        </Button>
+      </div>
+
       {/* BOQ documents */}
-      <Card className="border-border/60 shadow-sm">
+      <Card>
         <CardHeader className="pb-2 flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-sm font-semibold">
             <FileText className="h-4 w-4 text-primary" />
@@ -233,7 +316,7 @@ export default function ProjectDetailPage() {
       {/* Main grid */}
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Project scope */}
-        <Card className="border-border/60 shadow-sm lg:col-span-2">
+        <Card className="lg:col-span-2">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-semibold">
               <Briefcase className="h-4 w-4 text-primary" />
@@ -264,14 +347,33 @@ export default function ProjectDetailPage() {
 
         {/* Client + Health */}
         <div className="space-y-4">
-          <Card className="border-border/60 shadow-sm">
+          <Card>
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-sm font-semibold">
                 <Building2 className="h-4 w-4 text-primary" />
                 Client Details
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-muted-foreground">Assign client account</Label>
+                <Select
+                  value={project.clientId ? String(project.clientId) : ""}
+                  onValueChange={handleClientChange}
+                  disabled={clientSaving}
+                >
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Select client for portal access" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clients.map((client) => (
+                      <SelectItem key={client.id} value={String(client.id)}>
+                        {client.fullName} ({client.email})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <InfoItem label="Client Name" value={project.clientName} />
               <InfoItem label="Client ID"   value={project.clientId || "—"} mono />
               <InfoItem label="Location"    value={project.location} />
@@ -288,7 +390,7 @@ export default function ProjectDetailPage() {
           </Card>
 
           {/* Payment summary */}
-          <Card className="border-border/60 shadow-sm">
+          <Card>
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-sm font-semibold">
                 <DollarSign className="h-4 w-4 text-primary" />
@@ -318,7 +420,7 @@ export default function ProjectDetailPage() {
       </div>
 
       {/* Team */}
-      <Card className="border-border/60 shadow-sm">
+      <Card>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-sm font-semibold">
             <Users className="h-4 w-4 text-primary" />
@@ -330,7 +432,7 @@ export default function ProjectDetailPage() {
             {INITIAL_EMPLOYEES.slice(0, 8).map((emp) => {
               const inits = (emp.employeeName || "").split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
               return (
-                <div key={emp.id} className="flex items-center gap-3 rounded-lg border border-border/50 bg-muted/20 p-3">
+                <div key={emp.id} className="flex items-center gap-3 rounded-xl bg-secondary/50 p-3">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
                     {inits}
                   </div>
@@ -346,7 +448,7 @@ export default function ProjectDetailPage() {
       </Card>
 
       {/* Site visits summary */}
-      <Card className="border-border/60 shadow-sm">
+      <Card>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-sm font-semibold">
             <MapPin className="h-4 w-4 text-primary" />
@@ -369,6 +471,6 @@ export default function ProjectDetailPage() {
           <p className="text-center text-sm text-muted-foreground py-4">No site visits scheduled yet.</p>
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }

@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { fetchEmployeeById } from "../../api/employees.api";
 import { ROUTES } from "@/shared/constants/routes";
+import { PageShell } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -46,58 +47,60 @@ export default function EmployeeDetailPage() {
 
   if (loading) {
     return (
-      <div className="space-y-4">
+      <PageShell>
         <Button variant="ghost" size="sm" onClick={() => navigate(ROUTES.ADMIN.EMPLOYEES)}>
           <ArrowLeft className="mr-2 h-4 w-4" />Back
         </Button>
         <Card><CardContent className="py-16"><Skeleton className="h-8 w-48 mx-auto" /></CardContent></Card>
-      </div>
+      </PageShell>
     );
   }
 
   if (!employee) {
     return (
-      <div className="space-y-4">
+      <PageShell>
         <Button variant="ghost" size="sm" onClick={() => navigate(ROUTES.ADMIN.EMPLOYEES)}>
           <ArrowLeft className="mr-2 h-4 w-4" />Back
         </Button>
         <Card><CardContent className="py-16 text-center text-muted-foreground">Employee not found.</CardContent></Card>
-      </div>
+      </PageShell>
     );
   }
 
   const color = avatarColor(employee.employeeName);
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <Button variant="ghost" size="sm" onClick={() => navigate(ROUTES.ADMIN.EMPLOYEES)} className="-ml-2">
         <ArrowLeft className="mr-2 h-4 w-4" />Employees
       </Button>
 
-      <div className="flex flex-wrap items-start justify-between gap-4 rounded-xl border border-border/60 bg-card p-5 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-4 rounded-2xl bg-card/90 p-5 shadow-[0_1px_0_oklch(var(--border)/0.7),0_16px_40px_-28px_oklch(0.2_0.02_285/0.2)]">
         <div className="flex items-start gap-4">
           <Avatar className="h-14 w-14 text-lg">
             <AvatarFallback className={`${color.bg} text-white font-bold`}>
               {initials(employee.employeeName)}
             </AvatarFallback>
           </Avatar>
-          <div className="space-y-1">
-            <h1 className="text-xl font-bold">{employee.employeeName}</h1>
-            <p className="text-sm text-muted-foreground">{employee.designation}</p>
-            <div className="flex items-center gap-1.5 pt-0.5">
-              {employee.roleLabel && employee.roleLabel !== "—" && (
-                <Badge variant="outline">{employee.roleLabel}</Badge>
-              )}
-              <Badge variant={employee.isActive ? "success" : "secondary"}>
-                {employee.isActive ? "Active" : "Inactive"}
-              </Badge>
+            <div className="space-y-1">
+              <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground md:text-[1.75rem]">
+                {employee.employeeName}
+              </h1>
+              <p className="text-sm text-muted-foreground">{employee.designation}</p>
+              <div className="flex items-center gap-1.5 pt-0.5">
+                {employee.roleLabel && employee.roleLabel !== "—" && (
+                  <Badge variant="outline">{employee.roleLabel}</Badge>
+                )}
+                <Badge variant={employee.isActive ? "success" : "secondary"}>
+                  {employee.isActive ? "Active" : "Inactive"}
+                </Badge>
+              </div>
             </div>
-          </div>
         </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <Card className="border-border/60 shadow-sm">
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
               <User className="h-4 w-4 text-primary" />
@@ -124,7 +127,7 @@ export default function EmployeeDetailPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-border/60 shadow-sm">
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
               <Shield className="h-4 w-4 text-primary" />
@@ -149,6 +152,6 @@ export default function EmployeeDetailPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </PageShell>
   );
 }

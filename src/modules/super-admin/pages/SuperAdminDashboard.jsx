@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { PageShell } from "@/components/layout/PageShell";
 import {
   Building2,
   CircleDollarSign,
@@ -98,10 +99,10 @@ export default function SuperAdminDashboard() {
   );
 
   return (
-    <div className="space-y-10">
+    <PageShell className="space-y-10">
       <DashboardHeader />
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {isLoading
           ? Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)
           : dashboardStats.map((stat) => (
@@ -139,6 +140,6 @@ export default function SuperAdminDashboard() {
           <TenantTable tenants={filteredTenants} />
         )}
       </section>
-    </div>
+    </PageShell>
   );
 }

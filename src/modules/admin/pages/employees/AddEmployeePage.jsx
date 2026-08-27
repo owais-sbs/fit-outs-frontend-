@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
+import { PageShell } from "@/components/layout/PageShell";
 import { FEATURE_OPTIONS } from "../../data/employees";
 import { createEmployee } from "../../api/employees.api";
 import { ROUTES } from "@/shared/constants/routes";
@@ -130,7 +131,7 @@ export default function AddEmployeePage() {
   };
 
   return (
-    <div className="space-y-6 pb-28">
+    <PageShell className="pb-28">
       <PageHeader
         title="Add Employee"
         description="Create staff with a portal role. Login account password defaults to 123456."
@@ -152,7 +153,7 @@ export default function AddEmployeePage() {
 
       <div className="grid gap-6 xl:grid-cols-[1fr_340px]">
         <div className="space-y-6">
-          <Card className="border-border/60 shadow-sm">
+          <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center gap-3">
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
@@ -221,7 +222,7 @@ export default function AddEmployeePage() {
         </div>
 
         <div className="space-y-6">
-          <Card className="border-border/60 shadow-sm">
+          <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center gap-3">
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
@@ -265,6 +266,6 @@ export default function AddEmployeePage() {
           </div>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

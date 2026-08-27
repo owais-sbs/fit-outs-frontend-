@@ -35,7 +35,7 @@ export default function ProjectFilterBar({
   };
 
   return (
-    <Card className="border-border/60 shadow-sm">
+    <Card className="">
       <CardContent className="p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           <div className="relative flex-1">

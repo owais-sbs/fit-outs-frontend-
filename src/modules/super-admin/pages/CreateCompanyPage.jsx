@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Building2, Check, Eye, EyeOff, Loader2 } from "lucide-react";
 import { ROUTES } from "@/shared/constants/routes";
 import PageHeader from "../components/shared/PageHeader";
+import { PageShell } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -153,7 +154,7 @@ export default function CreateCompanyPage() {
   const selectedPlan = plans.find((p) => p.uuid === form.subscriptionPlanUuid);
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <Button variant="ghost" size="sm" asChild className="-ml-2 w-fit">
         <a href={ROUTES.SUPER_ADMIN.TENANTS} onClick={(e) => { e.preventDefault(); navigate(ROUTES.SUPER_ADMIN.TENANTS); }}>
           <ArrowLeft className="mr-2 h-4 w-4" />
@@ -169,7 +170,7 @@ export default function CreateCompanyPage() {
       <form onSubmit={handleSubmit}>
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="space-y-6">
-            <Card className="border-border/60 shadow-sm">
+            <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base">Company details</CardTitle>
                 <CardDescription>Information about the company</CardDescription>
@@ -214,7 +215,7 @@ export default function CreateCompanyPage() {
               </CardContent>
             </Card>
 
-            <Card className="border-border/60 shadow-sm">
+            <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base">Subscription plan</CardTitle>
                 <CardDescription>Select the plan and initial status</CardDescription>
@@ -261,7 +262,7 @@ export default function CreateCompanyPage() {
                   </Select>
                 </div>
                 {selectedPlan && (
-                  <div className="sm:col-span-2 rounded-lg border border-border/60 bg-muted/20 p-3">
+                  <div className="sm:col-span-2 rounded-lg border bg-muted/20 p-3">
                     <p className="text-xs font-medium text-muted-foreground mb-2">Included modules</p>
                     <div className="flex flex-wrap gap-1.5">
                       {selectedPlan.modulesIncluded?.map((mod) => (
@@ -276,7 +277,7 @@ export default function CreateCompanyPage() {
               </CardContent>
             </Card>
 
-            <Card className="border-border/60 shadow-sm">
+            <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base">Admin user</CardTitle>
                 <CardDescription>
@@ -330,7 +331,7 @@ export default function CreateCompanyPage() {
                   </div>
                 </div>
                 <div className="sm:col-span-2">
-                  <div className="rounded-lg border border-border/60 bg-muted/20 p-3 text-sm">
+                  <div className="rounded-lg border bg-muted/20 p-3 text-sm">
                     <p className="text-xs text-muted-foreground">
                       The admin will be assigned the <Badge variant="outline" className="mx-1 text-xs">ADMIN</Badge> role
                       and linked to this company.
@@ -342,12 +343,12 @@ export default function CreateCompanyPage() {
           </div>
 
           <div className="space-y-4">
-            <Card className="border-border/60 shadow-sm sticky top-20">
+            <Card className="sticky top-20">
               <CardHeader>
                 <CardTitle className="text-base">Summary</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="rounded-lg border border-border/60 bg-muted/20 p-4 text-sm space-y-3">
+                <div className="rounded-lg border bg-muted/20 p-4 text-sm space-y-3">
                   <div>
                     <p className="text-xs text-muted-foreground">Company</p>
                     <p className="font-medium">{form.companyName || "—"}</p>
@@ -410,7 +411,7 @@ export default function CreateCompanyPage() {
           <DialogHeader>
             <DialogTitle>Company created successfully</DialogTitle>
             <DialogDescription className="space-y-3">
-              <div className="rounded-lg border border-border/60 bg-muted/20 p-4 text-sm space-y-2">
+              <div className="rounded-lg border bg-muted/20 p-4 text-sm space-y-2">
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-emerald-500" />
                   <span className="font-medium">{successResult?.companyName}</span>
@@ -431,6 +432,6 @@ export default function CreateCompanyPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   );
 }

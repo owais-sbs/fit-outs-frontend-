@@ -1,202 +1,164 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Briefcase, CalendarDays, CheckCircle2, Clock,
-  MapPin, ArrowRight,
+  MapPin, ArrowRight, Loader2,
 } from "lucide-react";
-import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageShell, PageTitle, StatTile, Surface } from "@/components/layout/PageShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/shared/constants/routes";
-
-// ── Mock data scoped to "James Wu" (emp-001) ─────────────────────────────────
-const MY_EMPLOYEE = {
-  name: "James Wu",
-  designation: "Sales Executive",
-  department: "Sales",
-  employeeId: "EMP-2024-001",
-};
-
-const MY_PROJECTS = [
-  {
-    id: "PRJ-201",
-    name: "Luxury Penthouse Fit-Out",
-    client: "Claire Moss",
-    location: "Surry Hills, NSW",
-    status: "In Progress",
-    progress: 65,
-    role: "Sales Lead",
-  },
-  {
-    id: "PRJ-203",
-    name: "Moss Interiors Showroom",
-    client: "Moss Interiors",
-    location: "Surry Hills, NSW",
-    status: "In Progress",
-    progress: 40,
-    role: "Coordinator",
-  },
-];
-
-const MY_VISITS = [
-  { id: "v1", project: "Luxury Penthouse Fit-Out", site: "Surry Hills, NSW",    date: "2026-06-18", time: "10:00 AM", status: "Scheduled" },
-  { id: "v2", project: "Moss Interiors Showroom",  site: "Surry Hills, NSW",    date: "2026-06-21", time: "02:00 PM", status: "Scheduled" },
-  { id: "v3", project: "Luxury Penthouse Fit-Out", site: "Sydney CBD, NSW",     date: "2026-06-04", time: "09:30 AM", status: "Completed" },
-];
+import { useAuth } from "@/shared/context/auth-context";
+import { fetchMySiteVisits } from "@/modules/admin/api/site-visits.api";
+import { fetchAllProjects } from "@/modules/admin/api/projects.api";
 
 const STATUS_BADGE = {
+  SCHEDULED: "bg-amber-500/15 text-amber-700 border-none",
+  IN_PROGRESS: "bg-blue-500/15 text-blue-700 border-none",
+  COMPLETED: "bg-emerald-500/15 text-emerald-700 border-none",
   "In Progress": "bg-blue-500/15 text-blue-700 border-none",
-  "Completed":   "bg-emerald-500/15 text-emerald-700 border-none",
-  "Planning":    "bg-amber-500/15 text-amber-700 border-none",
-  "Scheduled":   "bg-amber-500/15 text-amber-700 border-none",
+  Completed: "bg-emerald-500/15 text-emerald-700 border-none",
+  Planning: "bg-amber-500/15 text-amber-700 border-none",
+  Scheduled: "bg-amber-500/15 text-amber-700 border-none",
 };
 
 function fmtDate(d) {
   if (!d) return "—";
-  return new Date(d + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
+  return new Date(`${d}T00:00:00`).toLocaleDateString("en-AU", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 function todayStr() {
   const t = new Date();
-  return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2,"0")}-${String(t.getDate()).padStart(2,"0")}`;
+  return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
 }
 
 export default function EmployeeDashboard() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const today = todayStr();
+  const [visits, setVisits] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    Promise.all([
+      fetchMySiteVisits().catch(() => []),
+      fetchAllProjects().catch(() => []),
+    ]).then(([v, p]) => {
+      if (cancelled) return;
+      setVisits(Array.isArray(v) ? v : []);
+      setProjects(Array.isArray(p) ? p : []);
+    }).finally(() => {
+      if (!cancelled) setLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const stats = useMemo(() => ({
-    projects: MY_PROJECTS.length,
-    scheduled: MY_VISITS.filter((v) => v.status === "Scheduled").length,
-    completed: MY_VISITS.filter((v) => v.status === "Completed").length,
-    today: MY_VISITS.filter((v) => v.date === today).length,
-  }), [today]);
+    projects: projects.length,
+    scheduled: visits.filter((v) => v.status === "SCHEDULED" || v.status === "IN_PROGRESS").length,
+    completed: visits.filter((v) => v.status === "COMPLETED").length,
+    today: visits.filter((v) => v.scheduledDate === today).length,
+  }), [projects, visits, today]);
 
-  const upcomingVisits = MY_VISITS.filter((v) => v.status === "Scheduled").slice(0, 3);
+  const upcomingVisits = visits
+    .filter((v) => v.status === "SCHEDULED" || v.status === "IN_PROGRESS")
+    .slice(0, 3);
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title={`Welcome, ${MY_EMPLOYEE.name.split(" ")[0]}`}
-        description={`${MY_EMPLOYEE.designation} · ${MY_EMPLOYEE.department} · ${MY_EMPLOYEE.employeeId}`}
+    <PageShell>
+      <PageTitle
+        title={`Welcome${user?.name ? `, ${user.name.split(" ")[0]}` : ""}`}
+        subtitle="Your assigned site visits and projects"
       />
 
-      {/* KPI cards */}
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[
-          { label: "My Projects",       value: stats.projects,  icon: Briefcase,     bg: "bg-primary/10 text-primary" },
-          { label: "Upcoming Visits",   value: stats.scheduled, icon: CalendarDays,  bg: "bg-amber-500/10 text-amber-600" },
-          { label: "Completed Visits",  value: stats.completed, icon: CheckCircle2,  bg: "bg-emerald-500/10 text-emerald-600" },
-          { label: "Visits Today",      value: stats.today,     icon: Clock,         bg: "bg-blue-500/10 text-blue-600" },
-        ].map(({ label, value, icon: Icon, bg }) => (
-          <Card key={label} className="border-border/60 shadow-sm hover:border-primary/25 hover:shadow-md transition-all">
-            <CardContent className="p-5 flex items-center gap-4">
-              <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${bg}`}>
-                <Icon className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{value}</p>
-                <p className="text-xs text-muted-foreground">{label}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </section>
+      {loading && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+        </div>
+      )}
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* My Projects */}
-        <Card className="border-border/60 shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-3">
-            <CardTitle className="text-sm font-semibold">My Projects</CardTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-1 text-xs text-muted-foreground"
-              onClick={() => navigate(ROUTES.EMPLOYEE.PROJECTS)}
-            >
-              View all <ArrowRight className="h-3.5 w-3.5" />
-            </Button>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {MY_PROJECTS.map((p) => (
-              <div
-                key={p.id}
-                className="rounded-lg border border-border/50 bg-muted/20 p-3 space-y-2 cursor-pointer hover:border-primary/30 transition-colors"
-                onClick={() => navigate(ROUTES.EMPLOYEE.PROJECTS)}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="text-sm font-medium leading-tight">{p.name}</p>
-                    <p className="text-xs text-muted-foreground">{p.client}</p>
-                  </div>
-                  <Badge className={`${STATUS_BADGE[p.status]} shrink-0 text-[10px]`}>{p.status}</Badge>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <MapPin className="h-3 w-3 shrink-0" />
-                  <span>{p.location}</span>
-                </div>
-                <div className="space-y-1">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">Progress</span>
-                    <span className="font-semibold">{p.progress}%</span>
-                  </div>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                    <div className="h-full rounded-full bg-primary" style={{ width: `${p.progress}%` }} />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <StatTile label="Projects" value={stats.projects} icon={Briefcase} />
+        <StatTile label="Upcoming visits" value={stats.scheduled} icon={CalendarDays} />
+        <StatTile label="Completed visits" value={stats.completed} icon={CheckCircle2} />
+        <StatTile label="Today" value={stats.today} icon={Clock} />
+      </div>
 
-        {/* Upcoming site visits */}
-        <Card className="border-border/60 shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-3">
-            <CardTitle className="text-sm font-semibold">Upcoming Site Visits</CardTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-1 text-xs text-muted-foreground"
-              onClick={() => navigate(ROUTES.EMPLOYEE.CALENDAR)}
-            >
-              Calendar <ArrowRight className="h-3.5 w-3.5" />
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Surface className="p-5">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-base font-semibold tracking-tight">Upcoming site visits</h2>
+            <Button variant="ghost" size="sm" onClick={() => navigate(ROUTES.EMPLOYEE.SITE_VISITS)}>
+              View all <ArrowRight className="ml-1 h-3.5 w-3.5" />
             </Button>
-          </CardHeader>
-          <CardContent className="space-y-3">
+          </div>
+          <div className="space-y-2">
             {upcomingVisits.length === 0 ? (
-              <div className="py-10 text-center text-sm text-muted-foreground">
-                No upcoming site visits scheduled.
-              </div>
+              <p className="py-6 text-center text-sm text-muted-foreground">No upcoming visits assigned.</p>
             ) : (
               upcomingVisits.map((v) => (
-                <div
-                  key={v.id}
-                  className="flex items-start gap-3 rounded-lg border border-border/50 bg-muted/20 p-3"
+                <button
+                  key={v.uuid}
+                  type="button"
+                  className="flex w-full items-center justify-between rounded-xl bg-secondary/40 px-3 py-2.5 text-left transition-colors hover:bg-secondary/70"
+                  onClick={() =>
+                    navigate(ROUTES.EMPLOYEE.SITE_VISIT_REPORT.replace(":visitId", v.uuid))
+                  }
                 >
-                  <div className="flex h-9 w-9 shrink-0 flex-col items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <span className="text-[10px] font-semibold leading-tight">
-                      {new Date(v.date + "T00:00").toLocaleDateString("en-AU", { month: "short" }).toUpperCase()}
-                    </span>
-                    <span className="text-base font-bold leading-tight">
-                      {new Date(v.date + "T00:00").getDate()}
-                    </span>
+                  <div>
+                    <p className="flex items-center gap-1.5 text-sm font-medium">
+                      <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                      Visit {v.uuid?.slice(0, 8)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {fmtDate(v.scheduledDate)} · {v.scheduledTime || "—"}
+                    </p>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{v.project}</p>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-                      <MapPin className="h-3 w-3 shrink-0" />
-                      {v.site}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">{fmtDate(v.date)} · {v.time}</p>
+                  <Badge className={STATUS_BADGE[v.status] || ""}>{v.status}</Badge>
+                </button>
+              ))
+            )}
+          </div>
+        </Surface>
+
+        <Surface className="p-5">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-base font-semibold tracking-tight">Projects</h2>
+            <Button variant="ghost" size="sm" onClick={() => navigate(ROUTES.EMPLOYEE.PROJECTS)}>
+              View all <ArrowRight className="ml-1 h-3.5 w-3.5" />
+            </Button>
+          </div>
+          <div className="space-y-2">
+            {projects.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">No projects available.</p>
+            ) : (
+              projects.slice(0, 4).map((p) => (
+                <div
+                  key={p.id}
+                  className="flex items-center justify-between rounded-xl bg-secondary/40 px-3 py-2.5"
+                >
+                  <div>
+                    <p className="text-sm font-medium">{p.name || p.projectName}</p>
+                    <p className="text-xs text-muted-foreground">{p.clientName || p.location || "—"}</p>
                   </div>
-                  <Badge className={`${STATUS_BADGE[v.status]} shrink-0 text-[10px]`}>{v.status}</Badge>
+                  <Badge className={STATUS_BADGE[p.status] || "bg-muted text-muted-foreground border-none"}>
+                    {p.status || "Active"}
+                  </Badge>
                 </div>
               ))
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </Surface>
       </div>
-    </div>
+    </PageShell>
   );
 }

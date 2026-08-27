@@ -13,7 +13,7 @@ const ROWS = 5;
 
 export default function TenantTableSkeleton() {
   return (
-    <Card className="border-border/60 shadow-sm">
+    <Card className="">
       <CardHeader>
         <Skeleton className="h-5 w-32" />
       </CardHeader>

@@ -985,7 +985,7 @@ export default function Step03RoomCreation() {
           {phase === PHASE.CREATE && (
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_minmax(260px,320px)] gap-4 items-start">
             {/* Left — add new room form */}
-            <Card className="border-border/60 shadow-sm border-t-4 border-t-primary min-w-0">
+            <Card className="border-t-4 border-t-primary min-w-0">
               <CardHeader className="pb-3 border-b border-border/40">
                 <CardTitle className="text-base font-bold flex items-center gap-2">
                   <DoorOpen className="h-5 w-5 text-primary" />
@@ -1097,7 +1097,7 @@ export default function Step03RoomCreation() {
             </Card>
 
             {/* Right — rooms list for selected floor */}
-            <Card className="border-border/60 shadow-sm lg:sticky lg:top-4">
+            <Card className="lg:sticky lg:top-4">
               <CardHeader className="py-3.5 px-4 border-b border-border/40 bg-muted/10">
                 <div className="flex items-center justify-between gap-2">
                   <div className="min-w-0">
@@ -1180,7 +1180,7 @@ export default function Step03RoomCreation() {
           )}
 
           {phase === PHASE.OVERVIEW && (
-            <Card className="border-border/60 shadow-sm border-t-4 border-t-primary">
+            <Card className="border-t-4 border-t-primary">
               <CardHeader className="pb-3 border-b border-border/40">
                 <CardTitle className="text-base font-bold">Floor-wise Rooms</CardTitle>
                 <p className="text-xs text-muted-foreground mt-0.5">

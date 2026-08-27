@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, Pause, Play, RefreshCw } from "lucide-react";
 import { ROUTES } from "@/shared/constants/routes";
 import PageHeader from "../components/shared/PageHeader";
+import { PageShell, StatTile } from "@/components/layout/PageShell";
 import { MODULES, PLAN_MODULES, TENANT_DETAIL } from "../data/tenants";
 import { PLAN_TYPES } from "../data/plans";
 import { TenantQuickActions } from "../components/tenant-management";
@@ -81,7 +82,7 @@ export default function TenantDetailPage() {
   const modLabel = (id) => MODULES.find((m) => m.id === id)?.name || id;
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <Button variant="ghost" size="sm" asChild className="-ml-2 w-fit">
         <Link to={ROUTES.SUPER_ADMIN.TENANTS}>
           <ArrowLeft className="mr-2 h-4 w-4" />
@@ -99,33 +100,19 @@ export default function TenantDetailPage() {
             actions={<TenantQuickActions />}
           />
 
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Card className="border-border/60">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-muted-foreground">Status</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Badge variant={tenant.status === "active" ? "success" : "warning"}>
-                  {suspended ? "suspended" : tenant.status}
-                </Badge>
-              </CardContent>
-            </Card>
-            <Card className="border-border/60">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-muted-foreground">Renewal</CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm font-medium">
-                {new Date(tenant.renewalDate).toLocaleDateString("en-AU")}
-              </CardContent>
-            </Card>
-            <Card className="border-border/60">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-muted-foreground">Revenue</CardTitle>
-              </CardHeader>
-              <CardContent className="text-xl font-semibold">
-                ${tenant.revenue?.toLocaleString() || 0}
-              </CardContent>
-            </Card>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <StatTile
+              label="Status"
+              value={suspended ? "suspended" : tenant.status}
+            />
+            <StatTile
+              label="Renewal"
+              value={new Date(tenant.renewalDate).toLocaleDateString("en-AU")}
+            />
+            <StatTile
+              label="Revenue"
+              value={`$${tenant.revenue?.toLocaleString() || 0}`}
+            />
           </div>
 
           <Tabs defaultValue="subscription">
@@ -137,7 +124,7 @@ export default function TenantDetailPage() {
             </TabsList>
 
             <TabsContent value="subscription" className="space-y-4">
-              <Card className="border-border/60">
+              <Card>
                 <CardHeader>
                   <CardTitle className="text-base">Subscription information</CardTitle>
                   <CardDescription>Current plan and renewal settings</CardDescription>
@@ -164,7 +151,7 @@ export default function TenantDetailPage() {
             </TabsContent>
 
             <TabsContent value="modules">
-              <Card className="border-border/60">
+              <Card>
                 <CardHeader>
                   <CardTitle className="text-base">Enabled modules</CardTitle>
                 </CardHeader>
@@ -179,7 +166,7 @@ export default function TenantDetailPage() {
             </TabsContent>
 
             <TabsContent value="activity">
-              <Card className="border-border/60">
+              <Card>
                 <CardHeader>
                   <CardTitle className="text-base">Login activity</CardTitle>
                 </CardHeader>
@@ -201,7 +188,7 @@ export default function TenantDetailPage() {
             </TabsContent>
 
             <TabsContent value="billing">
-              <Card className="border-border/60">
+              <Card>
                 <CardHeader>
                   <CardTitle className="text-base">Billing summary</CardTitle>
                 </CardHeader>
@@ -229,7 +216,7 @@ export default function TenantDetailPage() {
         </div>
 
         <aside className="w-full shrink-0 lg:w-72">
-          <Card className="sticky top-20 border-border/60 shadow-sm">
+          <Card className="sticky top-20">
             <CardHeader>
               <CardTitle className="text-base">Admin actions</CardTitle>
             </CardHeader>
@@ -270,7 +257,7 @@ export default function TenantDetailPage() {
               ))}
             </SelectContent>
           </Select>
-          <Card className="border-border/60 bg-muted/30">
+          <Card className="bg-muted/30">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm">Module comparison</CardTitle>
             </CardHeader>
@@ -348,6 +335,6 @@ export default function TenantDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   );
 }

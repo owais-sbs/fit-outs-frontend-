@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PageShell, PageTitle } from "@/components/layout/PageShell";
 import {
   DRAWING_CATEGORIES,
   fetchProjectDrawings,
@@ -85,15 +86,16 @@ export default function ProjectDrawingsPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <PageShell className="max-w-6xl mx-auto">
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <div>
-          <h1 className="text-xl font-bold">Project Drawings</h1>
-          <p className="text-xs text-muted-foreground">Upload PDF or DWG drawings for quantity take-off</p>
-        </div>
+        <PageTitle
+          title="Project Drawings"
+          subtitle="Upload PDF or DWG drawings for quantity take-off"
+          className="flex-1"
+        />
       </div>
 
       <Card>
@@ -177,6 +179,6 @@ export default function ProjectDrawingsPage() {
           ))}
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

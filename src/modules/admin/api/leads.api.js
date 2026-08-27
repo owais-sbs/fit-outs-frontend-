@@ -45,9 +45,9 @@ function unwrapLeadPage(responseData) {
   return [];
 }
 
-export const fetchAllLeads = () =>
+export const fetchAllLeads = (page = 0, size = 200) =>
   axiosInstance
-    .post("/leads/filter?page=0&size=1000", {})
+    .post(`/leads/filter?page=${page}&size=${size}`, {})
     .then((r) => unwrapLeadPage(r.data).map(normalizeLead));
 
 export const createLead = (form) => {

@@ -1,4 +1,5 @@
 import axiosInstance from "@/lib/axiosInstance";
+import { multipartConfig } from "./site-visits.api";
 
 export function normalizeEstimateLine(line = {}) {
   const qty = Number(line.qty ?? 1);
@@ -44,6 +45,15 @@ export function normalizeEstimate(item = {}) {
     subtotal: Number.isFinite(subtotal) ? subtotal : 0,
     status: item.status || "DRAFT",
     lines,
+    selectedAppendixIds: Array.isArray(item.selectedAppendixIds) ? item.selectedAppendixIds : [],
+    selectedAppendices: Array.isArray(item.selectedAppendices)
+      ? item.selectedAppendices.map((a) => ({
+          uuid: a.uuid,
+          title: a.title || "",
+          imageUrl: a.imageUrl || "",
+          category: a.category || "",
+        }))
+      : [],
     createdAt: item.createdAt || null,
     updatedAt: item.updatedAt || null,
   };
@@ -84,6 +94,7 @@ export const saveSiteVisitEstimate = (visitUuid, form) => {
       currency: form.currency || "AED",
       notes: form.notes || null,
       lines,
+      selectedAppendixIds: Array.isArray(form.selectedAppendixIds) ? form.selectedAppendixIds : [],
     })
     .then((r) => normalizeEstimate(r.data?.data ?? r.data));
 };
@@ -92,6 +103,15 @@ export const issueSiteVisitEstimate = (visitUuid) =>
   axiosInstance
     .post(`/site-visits/${visitUuid}/estimate/issue`)
     .then((r) => normalizeEstimate(r.data?.data ?? r.data));
+
+export const sendSiteVisitEstimateEmail = (visitUuid, { recipientEmail, subject, messageBody, attachments = [] }) => {
+  const form = new FormData();
+  form.append("recipientEmail", recipientEmail);
+  if (subject) form.append("subject", subject);
+  if (messageBody) form.append("messageBody", messageBody);
+  attachments.forEach((file) => form.append("attachments", file));
+  return axiosInstance.post(`/site-visits/${visitUuid}/estimate/send`, form, multipartConfig({ timeout: 120000 }));
+};
 
 export function computeLineAmount(qty, rate) {
   const q = Number(qty);

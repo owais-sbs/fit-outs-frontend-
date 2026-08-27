@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { CheckCircle2, Eye, Inbox, XCircle } from "lucide-react";
+import { CheckCircle2, Eye, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { PageShell, PageTitle } from "@/components/layout/PageShell";
 import { useAuth } from "@/shared/context/auth-context";
 import { ROUTES } from "@/shared/constants/routes";
 import { ROLES } from "@/shared/constants/roles";
@@ -98,21 +99,17 @@ export default function BoqApprovalInboxPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-bold flex items-center gap-2">
-            <Inbox className="h-5 w-5" /> BOQ Approval Inbox
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Review and approve BOQs pending your sign-off ({role?.replace(/-/g, " ")})
-          </p>
-        </div>
-        <Button variant="outline" size="sm" onClick={loadInbox}>Refresh</Button>
-      </div>
+    <PageShell className="max-w-6xl mx-auto">
+      <PageTitle
+        title="BOQ Approval Inbox"
+        subtitle={`Review and approve BOQs pending your sign-off (${role?.replace(/-/g, " ")})`}
+        actions={
+          <Button variant="outline" size="sm" onClick={loadInbox}>Refresh</Button>
+        }
+      />
 
       {message && (
-        <p className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-3 py-2">
+        <p className="text-sm text-emerald-700 bg-emerald-50/80 rounded-xl px-3 py-2">
           {message}
         </p>
       )}
@@ -217,6 +214,6 @@ export default function BoqApprovalInboxPage() {
       <p className="text-xs text-muted-foreground">
         <Link to={boqWorkspaceUrl} className="underline">Open BOQ workspace</Link>
       </p>
-    </div>
+    </PageShell>
   );
 }

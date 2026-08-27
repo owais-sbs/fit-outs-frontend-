@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { CheckCircle2, DoorOpen, FileDown, Loader2, MessageSquare } from "lucide-react";
+import { Surface } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ROUTES } from "@/shared/constants/routes";
 import {
@@ -52,11 +52,11 @@ export default function ClientProjectRoomsSection({ projectId, projectName }) {
     ROUTES.CLIENT.PROJECT_ROOM_TASK.replace(":projectId", projectId).replace(":taskId", id);
 
   return (
-    <Card className="border-border/60 shadow-sm">
-      <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
-        <CardTitle className="flex items-center gap-2 text-sm">
+    <Surface className="p-5">
+      <div className="mb-4 flex flex-row items-center justify-between gap-2">
+        <h2 className="flex items-center gap-2 text-sm font-semibold">
           <DoorOpen className="h-4 w-4 text-primary" /> Room approvals &amp; chat
-        </CardTitle>
+        </h2>
         <Button
           size="sm"
           variant="outline"
@@ -73,11 +73,11 @@ export default function ClientProjectRoomsSection({ projectId, projectName }) {
             }
           }}
         >
-          {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <FileDown className="h-3.5 w-3.5 mr-1" />}
+          {exporting ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <FileDown className="mr-1 h-3.5 w-3.5" />}
           Final PDF
         </Button>
-      </CardHeader>
-      <CardContent className="space-y-4">
+      </div>
+      <div className="space-y-4">
         {error && <p className="text-sm text-destructive">{error}</p>}
         {loading ? (
           <Loader2 className="h-5 w-5 animate-spin" />
@@ -90,7 +90,7 @@ export default function ClientProjectRoomsSection({ projectId, projectName }) {
                   <Link
                     key={t.uuid}
                     to={taskPath(t.uuid)}
-                    className="flex items-center justify-between rounded-lg border border-amber-300/50 bg-amber-50/50 px-3 py-2 text-sm"
+                    className="flex items-center justify-between rounded-xl bg-amber-50/50 px-3 py-2 text-sm ring-1 ring-amber-300/40"
                   >
                     <span>
                       {t.floorLabel} · {t.roomName} — {t.title}
@@ -102,18 +102,18 @@ export default function ClientProjectRoomsSection({ projectId, projectName }) {
             )}
 
             <div className="grid gap-4 sm:grid-cols-[200px_1fr]">
-              <div className="space-y-1 max-h-64 overflow-y-auto">
+              <div className="max-h-64 space-y-1 overflow-y-auto">
                 {rooms.map((r) => (
                   <button
                     key={r.uuid}
                     type="button"
                     onClick={() => setSelectedRoomId(r.uuid)}
                     className={[
-                      "w-full text-left rounded-md border px-2.5 py-2 text-sm",
-                      selectedRoomId === r.uuid ? "border-primary/40 bg-primary/5" : "border-border/60",
+                      "w-full rounded-xl px-2.5 py-2 text-left text-sm transition-colors",
+                      selectedRoomId === r.uuid ? "bg-primary/5 ring-1 ring-primary/25" : "bg-secondary/50 hover:bg-secondary",
                     ].join(" ")}
                   >
-                    <p className="font-medium truncate">{r.name}</p>
+                    <p className="truncate font-medium">{r.name}</p>
                     <p className="text-[10px] text-muted-foreground">{r.floorLabel}</p>
                   </button>
                 ))}
@@ -131,7 +131,7 @@ export default function ClientProjectRoomsSection({ projectId, projectName }) {
                         selectedRoomId
                       )}
                     >
-                      <MessageSquare className="h-3.5 w-3.5 mr-1" /> Room chat
+                      <MessageSquare className="mr-1 h-3.5 w-3.5" /> Room chat
                     </Link>
                   </Button>
                 )}
@@ -139,7 +139,7 @@ export default function ClientProjectRoomsSection({ projectId, projectName }) {
                   <Link
                     key={t.uuid}
                     to={taskPath(t.uuid)}
-                    className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm hover:bg-muted/20"
+                    className="flex items-center justify-between rounded-xl bg-secondary/40 px-3 py-2 text-sm transition-colors hover:bg-secondary/70"
                   >
                     <span className="truncate">{t.title}</span>
                     <span className="flex items-center gap-1.5">
@@ -156,7 +156,7 @@ export default function ClientProjectRoomsSection({ projectId, projectName }) {
             </div>
           </>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </Surface>
   );
 }

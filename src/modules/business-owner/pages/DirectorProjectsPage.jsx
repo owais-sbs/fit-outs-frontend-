@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { PageShell } from "@/components/layout/PageShell";
 import DashboardHeader from "@/modules/super-admin/components/DashboardHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -64,7 +65,7 @@ export default function DirectorProjectsPage() {
     : projects.filter((p) => p.status === statusFilter);
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <DashboardHeader
         title="Project Portfolio"
         description="Execution progress, budgets, and BOQ variance across all projects."
@@ -82,7 +83,7 @@ export default function DirectorProjectsPage() {
         </div>
       </DashboardHeader>
 
-      <Card className="border-border/60 shadow-sm">
+      <Card>
         <CardContent className="p-0 overflow-x-auto">
           {loading ? (
             <div className="p-6 space-y-2">{[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
@@ -146,6 +147,6 @@ export default function DirectorProjectsPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }

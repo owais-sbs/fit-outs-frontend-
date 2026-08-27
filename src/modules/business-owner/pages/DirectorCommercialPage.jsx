@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import DashboardHeader from "@/modules/super-admin/components/DashboardHeader";
+import { PageShell, StatTile } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -56,7 +57,7 @@ export default function DirectorCommercialPage() {
     .reduce((s, r) => s + Number(r.grandTotal || 0), 0);
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <DashboardHeader
         title="Commercial / BOQ Pipeline"
         description="All BOQ versions, approval status, and director sign-off queue."
@@ -71,19 +72,10 @@ export default function DirectorCommercialPage() {
         </div>
       </DashboardHeader>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Total BOQs</CardTitle></CardHeader>
-          <CardContent><p className="text-2xl font-bold">{loading ? "—" : rows.length}</p></CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Pending your approval</CardTitle></CardHeader>
-          <CardContent><p className="text-2xl font-bold text-amber-600">{loading ? "—" : inbox.length}</p></CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Approved value (sum)</CardTitle></CardHeader>
-          <CardContent><p className="text-2xl font-bold">{loading ? "—" : formatAed(approvedTotal)}</p></CardContent>
-        </Card>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <StatTile label="Total BOQs" value={loading ? "—" : rows.length} />
+        <StatTile label="Pending your approval" value={loading ? "—" : inbox.length} />
+        <StatTile label="Approved value (sum)" value={loading ? "—" : formatAed(approvedTotal)} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -99,7 +91,7 @@ export default function DirectorCommercialPage() {
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-2 border-border/60 shadow-sm">
+        <Card className="lg:col-span-2">
           <CardHeader className="pb-2"><CardTitle className="text-base">All BOQ documents</CardTitle></CardHeader>
           <CardContent className="p-0 overflow-x-auto">
             {loading ? (
@@ -141,6 +133,6 @@ export default function DirectorCommercialPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </PageShell>
   );
 }

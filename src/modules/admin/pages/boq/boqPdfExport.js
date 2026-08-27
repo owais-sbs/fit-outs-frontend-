@@ -480,6 +480,59 @@ export async function downloadBoqPdf(elementId, filename = "BOQ-Invoice.pdf") {
   }
 }
 
+export async function exportBoqPdfBlob(elementId) {
+  const element = document.getElementById(elementId);
+  if (!element) {
+    throw new Error("Export element not found");
+  }
+
+  let iframeMount = null;
+
+  try {
+    document.body.classList.add("boq-export-active");
+
+    const fullHeight = measureElementHeight(element);
+    if (fullHeight < 50) {
+      throw new Error("Could not measure document height");
+    }
+
+    iframeMount = mountInExportIframe(element, fullHeight);
+    const { imported, win } = iframeMount;
+
+    if (win.document.fonts?.ready) {
+      await win.document.fonts.ready;
+    }
+    await waitFrames(4);
+    await new Promise((r) => setTimeout(r, 250));
+
+    const remeasured = Math.max(fullHeight, measureElementHeight(imported));
+    const scale = remeasured > 12000 ? 1.1 : remeasured > 7000 ? 1.25 : 1.5;
+
+    const canvas = await captureFullHeight(imported, remeasured, scale, win);
+
+    if (!canvas || canvas.height < 20) {
+      throw new Error("PDF capture produced empty canvas");
+    }
+
+    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const pageCount = addCanvasToPdf(pdf, canvas);
+
+    if (pageCount < 1) {
+      throw new Error("No PDF pages generated");
+    }
+
+    return pdf.output("blob");
+  } catch (err) {
+    console.error("BOQ PDF export failed:", err);
+    throw err;
+  } finally {
+    document.body.classList.remove("boq-export-active");
+    if (iframeMount?.iframe?.parentNode) {
+      iframeMount.iframe.parentNode.removeChild(iframeMount.iframe);
+    }
+  }
+}
+
 export function printBoqDocument(elementId) {
   document.body.classList.add("boq-print-active");
   const prevTitle = document.title;

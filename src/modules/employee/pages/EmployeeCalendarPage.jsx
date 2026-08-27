@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, MapPin, Clock } from "lucide-react";
-import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
-import { Card, CardContent } from "@/components/ui/card";
+import { PageShell, PageTitle, Surface } from "@/components/layout/PageShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -144,22 +143,20 @@ export default function EmployeeCalendarPage() {
   }, [visits, year, month]);
 
   return (
-    <div className="space-y-6">
-      <PageHeader
+    <PageShell>
+      <PageTitle
         title="My Calendar"
-        description="Your site visit schedule. Click any event to view details."
+        subtitle="Your site visit schedule. Click any event to view details."
       />
 
       <div className="grid gap-6 xl:grid-cols-[1fr_300px]">
-        {/* ── Calendar ────────────────────────────────────────────── */}
-        <Card className="border-border/60 shadow-sm">
-          {/* Nav */}
-          <div className="flex items-center justify-between border-b border-border/50 px-5 py-4">
+        <Surface className="overflow-hidden">
+          <div className="flex items-center justify-between border-b border-border/30 px-5 py-4">
             <div className="flex items-center gap-3">
               <Button variant="outline" size="icon" className="h-8 w-8" onClick={prevMonth}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <h2 className="text-base font-semibold w-44 text-center">{MONTHS[month - 1]} {year}</h2>
+              <h2 className="w-44 text-center font-display text-base font-semibold">{MONTHS[month - 1]} {year}</h2>
               <Button variant="outline" size="icon" className="h-8 w-8" onClick={nextMonth}>
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -174,9 +171,8 @@ export default function EmployeeCalendarPage() {
             </Button>
           </div>
 
-          <CardContent className="p-0">
-            {/* Day labels */}
-            <div className="grid grid-cols-7 border-b border-border/50">
+          <div>
+            <div className="grid grid-cols-7 border-b border-border/30">
               {DAYS.map((d) => (
                 <div key={d} className="py-2 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   {d}
@@ -184,7 +180,6 @@ export default function EmployeeCalendarPage() {
               ))}
             </div>
 
-            {/* Cells */}
             <div className="grid grid-cols-7">
               {grid.map((cell, idx) => {
                 const cellVisits = cell.date ? (visitsByDate[cell.date] || []) : [];
@@ -194,30 +189,28 @@ export default function EmployeeCalendarPage() {
                 return (
                   <div
                     key={idx}
-                    className={`min-h-[100px] border-b border-r border-border/40 p-1.5
-                      ${cell.current ? "bg-background" : "bg-muted/10"}
+                    className={`min-h-[100px] border-b border-r border-border/25 p-1.5
+                      ${cell.current ? "bg-transparent" : "bg-muted/10"}
                       ${(idx + 1) % 7 === 0 ? "border-r-0" : ""}
                     `}
                   >
-                    {/* Day number */}
                     <div className="mb-1">
                       <span
                         className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium
-                          ${isToday ? "bg-primary text-primary-foreground font-bold" : cell.current ? "text-foreground" : "text-muted-foreground/40"}
+                          ${isToday ? "bg-primary font-bold text-primary-foreground" : cell.current ? "text-foreground" : "text-muted-foreground/40"}
                         `}
                       >
                         {cell.day}
                       </span>
                     </div>
 
-                    {/* Events */}
                     <div className="space-y-0.5">
                       {cellVisits.slice(0, MAX).map((v, i) => (
                         <button
                           key={v.id}
                           type="button"
                           onClick={() => setDetail(v)}
-                          className={`w-full rounded border px-1.5 py-0.5 text-left hover:opacity-75 transition-opacity ${PILL_COLOR[i % PILL_COLOR.length]}`}
+                          className={`w-full rounded-md border px-1.5 py-0.5 text-left transition-opacity hover:opacity-75 ${PILL_COLOR[i % PILL_COLOR.length]}`}
                         >
                           <p className="truncate text-[10px] font-semibold leading-tight">
                             {(v.project || "Unnamed").split(" ").slice(0, 2).join(" ")}
@@ -234,8 +227,7 @@ export default function EmployeeCalendarPage() {
               })}
             </div>
 
-            {/* Legend */}
-            <div className="flex items-center gap-4 border-t border-border/40 px-5 py-3">
+            <div className="flex items-center gap-4 border-t border-border/30 px-5 py-3">
               {Object.entries(STATUS_DOT).map(([label, dot]) => (
                 <span key={label} className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <span className={`h-2 w-2 rounded-full ${dot}`} />
@@ -243,81 +235,74 @@ export default function EmployeeCalendarPage() {
                 </span>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </Surface>
 
-        {/* ── Upcoming panel ───────────────────────────────────────── */}
         <div className="space-y-4">
-          <Card className="border-border/60 shadow-sm">
-            <CardContent className="p-4">
-              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
-                Upcoming Visits
-              </p>
-              {upcoming.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-6">No upcoming visits.</p>
-              ) : (
-                <div className="space-y-3">
-                  {upcoming.map((v) => (
-                    <button
-                      key={v.id}
-                      type="button"
-                      onClick={() => setDetail(v)}
-                      className="w-full text-left rounded-lg border border-border/50 bg-muted/20 p-3 space-y-1.5 hover:border-primary/30 transition-colors"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="text-xs font-semibold leading-tight">{v.project}</p>
-                        <Badge className={`${STATUS_PILL[v.status]} text-[9px] shrink-0 border-none`}>
-                          {v.status}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                        <Clock className="h-3 w-3 shrink-0" />
-                        {fmtDate(v.date)} · {v.time}
-                      </div>
-                      <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                        <MapPin className="h-3 w-3 shrink-0" />
-                        {v.site}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* All visits this month */}
-          <Card className="border-border/60 shadow-sm">
-            <CardContent className="p-4">
-              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
-                This Month ({MONTHS[month - 1]})
-              </p>
-              {thisMonthVisits.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">No visits this month.</p>
-              ) : (
-                <div className="space-y-2">
-                  {thisMonthVisits.map((v) => (
-                    <div
-                      key={v.id}
-                      className="flex items-center justify-between gap-2 rounded-lg bg-muted/30 px-3 py-2 cursor-pointer hover:bg-muted/50 transition-colors"
-                      onClick={() => setDetail(v)}
-                    >
-                      <div>
-                        <p className="text-xs font-medium">
-                          {v.date ? new Date(v.date + "T00:00").getDate() : "—"} — {(v.project || "Unnamed").split(" ").slice(0,3).join(" ")}
-                        </p>
-                        <p className="text-[11px] text-muted-foreground">{v.time}</p>
-                      </div>
-                      <span className={`h-2 w-2 rounded-full shrink-0 ${STATUS_DOT[v.status]}`} />
+          <Surface className="p-4">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              Upcoming Visits
+            </p>
+            {upcoming.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">No upcoming visits.</p>
+            ) : (
+              <div className="space-y-3">
+                {upcoming.map((v) => (
+                  <button
+                    key={v.id}
+                    type="button"
+                    onClick={() => setDetail(v)}
+                    className="w-full space-y-1.5 rounded-xl bg-secondary/50 p-3 text-left transition-colors hover:bg-secondary"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-xs font-semibold leading-tight">{v.project}</p>
+                      <Badge className={`${STATUS_PILL[v.status]} shrink-0 border-none text-[9px]`}>
+                        {v.status}
+                      </Badge>
                     </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                      <Clock className="h-3 w-3 shrink-0" />
+                      {fmtDate(v.date)} · {v.time}
+                    </div>
+                    <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                      <MapPin className="h-3 w-3 shrink-0" />
+                      {v.site}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </Surface>
+
+          <Surface className="p-4">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              This Month ({MONTHS[month - 1]})
+            </p>
+            {thisMonthVisits.length === 0 ? (
+              <p className="py-4 text-center text-sm text-muted-foreground">No visits this month.</p>
+            ) : (
+              <div className="space-y-2">
+                {thisMonthVisits.map((v) => (
+                  <div
+                    key={v.id}
+                    className="flex cursor-pointer items-center justify-between gap-2 rounded-xl bg-secondary/40 px-3 py-2 transition-colors hover:bg-secondary/70"
+                    onClick={() => setDetail(v)}
+                  >
+                    <div>
+                      <p className="text-xs font-medium">
+                        {v.date ? new Date(v.date + "T00:00").getDate() : "—"} — {(v.project || "Unnamed").split(" ").slice(0,3).join(" ")}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">{v.time}</p>
+                    </div>
+                    <span className={`h-2 w-2 shrink-0 rounded-full ${STATUS_DOT[v.status]}`} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </Surface>
         </div>
       </div>
 
-      {/* Detail modal */}
       {detail && (
         <Dialog open onOpenChange={() => setDetail(null)}>
           <DialogContent className="sm:max-w-sm">
@@ -326,7 +311,7 @@ export default function EmployeeCalendarPage() {
                 Site Visit Details
               </DialogTitle>
             </DialogHeader>
-            <div className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-2.5">
+            <div className="space-y-2.5 rounded-xl bg-secondary/40 p-4">
               {[
                 ["Project",  detail.project],
                 ["Site",     detail.site],
@@ -339,7 +324,7 @@ export default function EmployeeCalendarPage() {
                   <span className="text-sm font-medium">{value}</span>
                 </div>
               ))}
-              <Separator />
+              <Separator className="opacity-40" />
               <div className="flex items-start gap-3">
                 <span className="w-20 shrink-0 text-xs text-muted-foreground">Status</span>
                 <Badge className={`${STATUS_PILL[detail.status]} border-none`}>{detail.status}</Badge>
@@ -351,6 +336,6 @@ export default function EmployeeCalendarPage() {
           </DialogContent>
         </Dialog>
       )}
-    </div>
+    </PageShell>
   );
 }

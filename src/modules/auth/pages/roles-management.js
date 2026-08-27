@@ -58,7 +58,7 @@ const PORTAL_CONFIG = {
     label: "Project Manager",
     icon: Briefcase,
     description: "Project oversight and BOQ approval workflow.",
-    route: ROUTES.PROJECT_MANAGER.BOQ_INBOX,
+    route: ROUTES.PROJECT_MANAGER.DASHBOARD,
   },
   [ROLES.BUSINESS_OWNER]: {
     id: "business-owner",

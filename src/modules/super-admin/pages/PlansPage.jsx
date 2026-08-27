@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Check, Loader2, Plus, Sparkles, ShieldCheck, Upload, Users2, Database, X } from "lucide-react";
 import PageHeader from "../components/shared/PageHeader";
+import { PageShell } from "@/components/layout/PageShell";
 import { PLAN_TYPES, ALL_MODULES } from "../data/plans";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -163,7 +164,7 @@ export default function PlansPage() {
   };
 
   return (
-    <div className="space-y-6 pb-24">
+    <PageShell className="pb-24">
       <PageHeader
         title="Subscription plans"
         description="Configure pricing, modules, and renewal settings for fit-out tenant tiers."
@@ -183,7 +184,7 @@ export default function PlansPage() {
       <div className="grid gap-4 md:grid-cols-3">
         {loading
           ? Array.from({ length: 3 }).map((_, i) => (
-              <Card key={i} className="border-border/60 shadow-sm">
+              <Card key={i} className="">
                 <CardHeader className="space-y-4 pb-4">
                   <Skeleton className="h-11 w-11 rounded-2xl" />
                   <Skeleton className="h-5 w-32" />
@@ -204,7 +205,7 @@ export default function PlansPage() {
                 <Card
                   key={plan.id}
                   className={cn(
-                    "group relative overflow-hidden border border-border/60 bg-card/80 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg",
+                    "group relative overflow-hidden bg-card/90 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg",
                     accent.ring
                   )}
                 >
@@ -214,12 +215,12 @@ export default function PlansPage() {
                   <CardHeader className="relative space-y-4 pb-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-border/60 bg-muted/60 text-foreground shadow-sm transition-colors group-hover:bg-background">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-muted/60 text-foreground transition-colors group-hover:bg-background">
                           <AccentIcon className="h-5 w-5" />
                         </div>
                         <div className="space-y-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <CardTitle className="text-base tracking-tight">{plan.displayName}</CardTitle>
+                            <CardTitle className="text-base tracking-tight font-display">{plan.displayName}</CardTitle>
                             <Badge
                               variant={plan.published ? "success" : "secondary"}
                               className="h-5 px-2 text-[10px] uppercase tracking-wide"
@@ -234,7 +235,7 @@ export default function PlansPage() {
                       </div>
                     </div>
 
-                    <div className="grid gap-3 rounded-2xl border border-border/60 bg-muted/20 p-4">
+                    <div className="grid gap-3 rounded-2xl bg-muted/30 p-4">
                       <div className="flex items-end justify-between gap-3">
                         <div>
                           <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Monthly</p>
@@ -288,7 +289,7 @@ export default function PlansPage() {
                       </div>
                     </div>
 
-                    <div className="rounded-2xl border border-border/60 bg-background/60 p-4">
+                    <div className="rounded-2xl bg-muted/20 p-4">
                       <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
                         Included limits
                       </p>
@@ -314,7 +315,7 @@ export default function PlansPage() {
       </div>
 
       {/* ── Module toggles ── */}
-      <Card className="border-border/60">
+      <Card>
         <CardHeader>
           <CardTitle className="text-base">Module toggles</CardTitle>
           <CardDescription>Enable features per plan tier</CardDescription>
@@ -322,7 +323,7 @@ export default function PlansPage() {
         <CardContent>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {ALL_MODULES.map((mod) => (
-              <div key={mod.id} className="rounded-lg border border-border/60 p-4">
+              <div key={mod.id} className="rounded-lg bg-muted/20 p-4">
                 <p className="font-medium">{mod.label}</p>
                 <p className="mb-3 text-xs text-muted-foreground">{mod.features.join(" · ")}</p>
                 {["basic", "professional", "enterprise"].map((pid) => (
@@ -341,7 +342,7 @@ export default function PlansPage() {
       </Card>
 
       {/* ── Feature comparison matrix ── */}
-      <Accordion type="single" collapsible className="rounded-lg border border-border/60 px-4">
+      <Accordion type="single" collapsible className="rounded-lg bg-muted/20 px-4">
         <AccordionItem value="matrix">
           <AccordionTrigger>Feature comparison matrix</AccordionTrigger>
           <AccordionContent>
@@ -485,6 +486,6 @@ export default function PlansPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   );
 }

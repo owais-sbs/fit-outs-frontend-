@@ -32,6 +32,8 @@ export function useRoleRedirect() {
       [ROLES.PROJECT_MANAGER]: "/project-manager",
       [ROLES.DESIGNER]: "/designer",
       [ROLES.QAS]: "/qas",
+      [ROLES.QS]: "/admin/qas",
+      [ROLES.SENIOR_QS]: "/admin/boq/inbox",
       [ROLES.FINANCE]: "/finance",
       [ROLES.SUBCONTRACTOR]: "/subcontractor",
       [ROLES.CLIENT]: "/client",

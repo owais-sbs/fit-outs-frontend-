@@ -130,7 +130,7 @@ export default function ClientConversionPage() {
       </div>
 
       {/* Recent Conversions Table */}
-      <Card className="overflow-hidden border-border/60 shadow-sm">
+      <Card className="overflow-hidden">
         <CardHeader className="border-b border-border/60 pb-3">
           <CardTitle className="text-base">Recent Conversions</CardTitle>
         </CardHeader>

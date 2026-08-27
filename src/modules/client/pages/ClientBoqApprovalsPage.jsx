@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { CheckCircle2, FileText, XCircle } from "lucide-react";
+import { CheckCircle2, XCircle } from "lucide-react";
+import { PageShell, PageTitle, Surface } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -88,70 +88,64 @@ export default function ClientBoqApprovalsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <FileText className="h-6 w-6" /> BOQ Approvals
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Review quotation BOQs submitted for your final sign-off.
-        </p>
-      </div>
+    <PageShell>
+      <PageTitle
+        title="BOQ Approvals"
+        subtitle="Review quotation BOQs submitted for your final sign-off."
+      />
 
       {message && (
-        <p className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-3 py-2">
+        <p className="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-700 ring-1 ring-emerald-200">
           {message}
         </p>
       )}
 
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Awaiting your approval</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          {loading ? (
-            <p className="p-6 text-sm text-muted-foreground">Loading…</p>
-          ) : items.length === 0 ? (
-            <p className="p-6 text-sm text-muted-foreground">No BOQs pending your approval.</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Project</TableHead>
-                  <TableHead>Version</TableHead>
-                  <TableHead className="text-right">Total (AED)</TableHead>
-                  <TableHead>Submitted</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+      <Surface className="overflow-hidden">
+        <div className="border-b border-border/30 px-5 py-4">
+          <h2 className="text-base font-semibold tracking-tight">Awaiting your approval</h2>
+        </div>
+        {loading ? (
+          <p className="p-6 text-sm text-muted-foreground">Loading…</p>
+        ) : items.length === 0 ? (
+          <p className="p-6 text-sm text-muted-foreground">No BOQs pending your approval.</p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Project</TableHead>
+                <TableHead>Version</TableHead>
+                <TableHead className="text-right">Total (AED)</TableHead>
+                <TableHead>Submitted</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {items.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell className="font-medium">{item.projectName}</TableCell>
+                  <TableCell className="font-mono text-xs">v{item.version}</TableCell>
+                  <TableCell className="text-right font-mono tabular-nums">
+                    {formatCurrency(item.grandTotal)}
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {formatDate(item.submittedAt)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-1">
+                      <Button size="sm" variant="outline" onClick={() => openAction(item, "approve")}>
+                        <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Approve
+                      </Button>
+                      <Button size="sm" variant="outline" className="text-destructive" onClick={() => openAction(item, "reject")}>
+                        <XCircle className="mr-1 h-3.5 w-3.5" /> Reject
+                      </Button>
+                    </div>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {items.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-medium">{item.projectName}</TableCell>
-                    <TableCell className="font-mono text-xs">v{item.version}</TableCell>
-                    <TableCell className="text-right font-mono tabular-nums">
-                      {formatCurrency(item.grandTotal)}
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {formatDate(item.submittedAt)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button size="sm" variant="outline" onClick={() => openAction(item, "approve")}>
-                          <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Approve
-                        </Button>
-                        <Button size="sm" variant="outline" className="text-destructive" onClick={() => openAction(item, "reject")}>
-                          <XCircle className="h-3.5 w-3.5 mr-1" /> Reject
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </Surface>
 
       <Dialog open={!!actionItem} onOpenChange={(open) => !open && closeAction()}>
         <DialogContent>
@@ -161,7 +155,7 @@ export default function ClientBoqApprovalsPage() {
             </DialogTitle>
           </DialogHeader>
           {detailBoq && (
-            <div className="rounded-md border p-3 text-sm space-y-2 max-h-48 overflow-y-auto">
+            <div className="max-h-48 space-y-2 overflow-y-auto rounded-xl bg-secondary/40 p-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Project</span>
                 <span className="font-medium">{detailBoq.projectName}</span>
@@ -171,7 +165,7 @@ export default function ClientBoqApprovalsPage() {
                 <span className="font-bold">{formatCurrency(detailBoq.grandTotal)}</span>
               </div>
               <BoqStatusBadge status={detailBoq.status} />
-              <ul className="text-xs text-muted-foreground space-y-1 pt-2 border-t">
+              <ul className="space-y-1 border-t border-border/30 pt-2 text-xs text-muted-foreground">
                 {(detailBoq.lines || []).slice(0, 8).map((line) => (
                   <li key={line.id}>{line.description} — {line.quantity} {line.unit}</li>
                 ))}
@@ -203,6 +197,6 @@ export default function ClientBoqApprovalsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   );
 }

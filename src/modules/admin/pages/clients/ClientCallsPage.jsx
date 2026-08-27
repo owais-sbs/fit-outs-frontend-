@@ -169,7 +169,7 @@ export default function ClientCallsPage() {
       </section>
 
       {/* Filters */}
-      <Card className="border-border/60 shadow-sm">
+      <Card className="">
         <CardContent className="p-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
             <div className="relative flex-1">
@@ -194,7 +194,7 @@ export default function ClientCallsPage() {
       </Card>
 
       {/* Table */}
-      <Card className="overflow-hidden border-border/60 shadow-sm">
+      <Card className="overflow-hidden">
         <Table>
           <TableHeader className="bg-muted/60">
             <TableRow className="hover:bg-transparent">

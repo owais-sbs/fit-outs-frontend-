@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, Save, Briefcase, MapPin, Calendar, DollarSign } from "lucide-react";
+import { ArrowLeft, Save, Briefcase, MapPin, Calendar, DollarSign, Loader2 } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,16 +11,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { projectStore } from "@/shared/store/projectStore";
 import { ROUTES } from "@/shared/constants/routes";
 import { INITIAL_EMPLOYEES } from "@/modules/admin/data/employees";
+import { fetchAllClients } from "@/modules/admin/api/clients.api";
+import { createProject } from "@/modules/admin/api/projects.api";
+import { useAuth } from "@/shared/context/auth-context";
 
 export default function CreateProjectPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
   const state = useMemo(() => location.state || {}, [location.state]);
 
+  const [clients, setClients] = useState([]);
+  const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     projectName: "",
     clientName: "",
-    clientId: "client-001",
+    clientId: "",
     projectType: "Commercial",
     location: "",
     assignedManager: "",
@@ -33,28 +39,31 @@ export default function CreateProjectPage() {
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
-    // Populate form if converting from a client project request
+    fetchAllClients()
+      .then((list) => setClients(Array.isArray(list) ? list : []))
+      .catch(() => setClients([]));
+  }, []);
+
+  useEffect(() => {
     if (state.requestData) {
       const req = state.requestData;
-      // Extract numeric budget if possible, e.g. "$150,000 - $200,000" -> 150000
       let numericBudget = "";
       if (req.budgetRange) {
         const matches = req.budgetRange.replace(/,/g, "").match(/\d+/);
         if (matches) numericBudget = matches[0];
       }
 
-      setForm({
+      setForm((prev) => ({
+        ...prev,
         projectName: req.projectName || "",
         clientName: req.clientName || "",
-        clientId: req.clientId || "client-001",
+        clientId: req.clientId ? String(req.clientId) : prev.clientId,
         projectType: req.projectType || "Commercial",
         location: req.location || "",
-        assignedManager: "",
         startDate: req.expectedStartDate || "",
-        expectedCompletionDate: "",
         budget: numericBudget,
         description: req.description || "",
-      });
+      }));
     }
   }, [state]);
 
@@ -63,10 +72,16 @@ export default function CreateProjectPage() {
     setErrors((prev) => ({ ...prev, [field]: undefined }));
   };
 
+  const handleClientChange = (clientId) => {
+    const client = clients.find((c) => String(c.id) === String(clientId));
+    handleChange("clientId", clientId);
+    handleChange("clientName", client?.fullName || "");
+  };
+
   const validateForm = () => {
     const errs = {};
     if (!form.projectName.trim()) errs.projectName = "Project name is required";
-    if (!form.clientName.trim()) errs.clientName = "Client name is required";
+    if (!form.clientId) errs.clientId = "Client account is required";
     if (!form.location.trim()) errs.location = "Location is required";
     if (!form.assignedManager) errs.assignedManager = "Assigned manager is required";
     if (!form.startDate) errs.startDate = "Start date is required";
@@ -77,7 +92,7 @@ export default function CreateProjectPage() {
     return errs;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const validationErrors = validateForm();
     if (Object.keys(validationErrors).length > 0) {
@@ -85,20 +100,34 @@ export default function CreateProjectPage() {
       return;
     }
 
-    // Add to projectStore
-    projectStore.addProject({
-      ...form,
-      budget: parseFloat(form.budget),
-      progress: 0,
-      status: "Planning",
-    });
+    setSubmitting(true);
+    try {
+      await createProject({
+        name: form.projectName.trim(),
+        projectName: form.projectName.trim(),
+        clientId: form.clientId,
+        companyId: user?.companyId || user?.companyUuid || null,
+        projectType: form.projectType,
+        location: form.location.trim(),
+        assignedManager: form.assignedManager,
+        startDate: form.startDate,
+        expectedCompletionDate: form.expectedCompletionDate,
+        budget: parseFloat(form.budget),
+        description: form.description.trim(),
+        status: "Planning",
+        progress: 0,
+      });
 
-    // Mark request as Approved if converting
-    if (state.fromRequestId) {
-      projectStore.updateRequestStatus(state.fromRequestId, "Approved");
+      if (state.fromRequestId) {
+        projectStore.updateRequestStatus(state.fromRequestId, "Approved");
+      }
+
+      navigate(ROUTES.ADMIN.PROJECTS);
+    } catch (err) {
+      setErrors({ submit: err.response?.data?.message || "Failed to create project" });
+    } finally {
+      setSubmitting(false);
     }
-
-    navigate(ROUTES.ADMIN.PROJECTS);
   };
 
   return (
@@ -117,11 +146,17 @@ export default function CreateProjectPage() {
 
       <PageHeader
         title="Create New Project"
-        description="Establish a new project contract, assign a manager and allocate budget details."
+        description="Establish a new project contract, assign a client account and manager, and allocate budget details."
       />
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <Card className="border-border/60 shadow-sm bg-card/65 backdrop-blur-sm">
+        {errors.submit && (
+          <p className="rounded-xl bg-destructive/10 px-3 py-2 text-sm text-destructive ring-1 ring-destructive/20">
+            {errors.submit}
+          </p>
+        )}
+
+        <Card className="bg-card/65 backdrop-blur-sm">
           <CardContent className="p-6 space-y-6">
             <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground/85 border-b pb-2">
               General Project Information
@@ -159,19 +194,24 @@ export default function CreateProjectPage() {
                 </Select>
               </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="clientName" className="text-xs font-semibold">Client Name *</Label>
-                <Input
-                  id="clientName"
-                  placeholder="e.g. Claire Moss"
-                  className="h-9"
-                  value={form.clientName}
-                  onChange={(e) => handleChange("clientName", e.target.value)}
-                />
-                {errors.clientName && <p className="text-[11px] text-destructive">{errors.clientName}</p>}
+              <div className="space-y-1.5 md:col-span-2">
+                <Label htmlFor="clientId" className="text-xs font-semibold">Client Account *</Label>
+                <Select value={form.clientId} onValueChange={handleClientChange}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Select client portal account" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clients.map((client) => (
+                      <SelectItem key={client.id} value={String(client.id)}>
+                        {client.fullName} ({client.email})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.clientId && <p className="text-[11px] text-destructive">{errors.clientId}</p>}
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 md:col-span-2">
                 <Label htmlFor="location" className="text-xs font-semibold">Location / Address *</Label>
                 <div className="relative">
                   <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground/75" />
@@ -200,7 +240,7 @@ export default function CreateProjectPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-border/60 shadow-sm bg-card/65 backdrop-blur-sm">
+        <Card className="bg-card/65 backdrop-blur-sm">
           <CardContent className="p-6 space-y-6">
             <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground/85 border-b pb-2">
               Assignment & Budgeting
@@ -274,12 +314,12 @@ export default function CreateProjectPage() {
         </Card>
 
         <div className="flex justify-end gap-3">
-          <Button type="button" variant="outline" onClick={() => navigate(-1)}>
+          <Button type="button" variant="outline" onClick={() => navigate(-1)} disabled={submitting}>
             Cancel
           </Button>
-          <Button type="submit" className="gap-2">
-            <Save className="h-4 w-4" />
-            Save Project
+          <Button type="submit" className="gap-2" disabled={submitting}>
+            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            {submitting ? "Saving…" : "Save Project"}
           </Button>
         </div>
       </form>

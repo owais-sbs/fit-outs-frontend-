@@ -4,7 +4,7 @@ import {
   MapPin, MoreHorizontal, Plus, Search, X,
 } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
-import StatCard from "@/modules/super-admin/components/StatCard";
+import { PageShell, StatTile } from "@/components/layout/PageShell";
 import {
   CALENDAR_EMPLOYEES, CALENDAR_PROJECTS, CALENDAR_SITES,
   VISIT_STATUSES,
@@ -125,7 +125,7 @@ function EventModal({ visit, onClose, onEdit }) {
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
-          <div className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-2.5">
+          <div className="rounded-xl bg-muted/30 p-4 space-y-2.5">
             <Row label="Employee"    value={visit.employee} />
             <Row label="Project"     value={visit.project} />
             <Row label="Site"        value={visit.site} />
@@ -382,7 +382,7 @@ export default function CalendarPage() {
   const handleEdit   = (visit) => { setDetailVisit(null); setScheduleForm(visit); setShowForm(true); };
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <PageHeader
         title="Calendar"
         description="Manage employee site visit schedules."
@@ -394,16 +394,16 @@ export default function CalendarPage() {
         }
       />
 
-      {/* ── Stat cards ────────────────────────────────────────────────────── */}
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Today's Site Visits"    value={stats.todayCount}    icon={CalendarDays} growth={0} growthLabel="today" />
-        <StatCard title="Upcoming Visits"         value={stats.upcomingCount} icon={ChevronRight}  growth={5} growthLabel="vs last month" />
-        <StatCard title="Total Scheduled"         value={stats.scheduledCount}icon={Check}         growth={8} growthLabel="vs last month" />
-        <StatCard title="Employees Assigned Today"value={stats.empToday}      icon={MapPin}        growth={0} growthLabel="today" />
+      {/* ── Stat tiles ────────────────────────────────────────────────────── */}
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <StatTile label="Today's Site Visits" value={stats.todayCount} icon={CalendarDays} hint="today" />
+        <StatTile label="Upcoming Visits" value={stats.upcomingCount} icon={ChevronRight} />
+        <StatTile label="Total Scheduled" value={stats.scheduledCount} icon={Check} />
+        <StatTile label="Employees Assigned Today" value={stats.empToday} icon={MapPin} hint="today" />
       </section>
 
       {/* ── Filters ───────────────────────────────────────────────────────── */}
-      <Card className="border-border/60 shadow-sm">
+      <Card>
         <CardContent className="p-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
             <div className="relative flex-1">
@@ -453,7 +453,7 @@ export default function CalendarPage() {
       </Card>
 
       {/* ── Schedule table ────────────────────────────────────────────────── */}
-      <Card className="overflow-hidden border-border/60 shadow-sm">
+      <Card className="overflow-hidden">
         <CardHeader className="px-5 py-4">
           <CardTitle className="text-sm font-semibold">
             Site Visit Schedule
@@ -542,7 +542,7 @@ export default function CalendarPage() {
       </Card>
 
       {/* ── Monthly Calendar ──────────────────────────────────────────────── */}
-      <Card className="border-border/60 shadow-sm">
+      <Card className="overflow-hidden">
         {/* Calendar header */}
         <div className="flex items-center justify-between border-b border-border/50 px-5 py-4">
           <div className="flex items-center gap-3">
@@ -672,6 +672,6 @@ export default function CalendarPage() {
           onSave={handleSave}
         />
       )}
-    </div>
+    </PageShell>
   );
 }

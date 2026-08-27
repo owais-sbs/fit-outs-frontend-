@@ -120,7 +120,7 @@ export default function FollowUpsPage() {
         <StatCard title="Upcoming" value={upcomingCount} icon={CheckCircle} valueColor="text-orange-500" />
       </section>
 
-      <Card className="border-border/60 shadow-sm">
+      <Card className="">
         <CardContent className="p-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
             <div className="relative flex-1 max-w-sm">
@@ -163,7 +163,7 @@ export default function FollowUpsPage() {
         </CardContent>
       </Card>
 
-      <Card className="overflow-hidden border-border/60 shadow-sm">
+      <Card className="overflow-hidden">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader className="bg-muted/30">

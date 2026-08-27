@@ -1,73 +1,54 @@
-import { useState, useMemo } from "react";
-import { Search } from "lucide-react";
-import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
-import { Input } from "@/components/ui/input";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
-import { SEED_CLIENT_DESIGNS } from "@/shared/store/designWorkflowStore";
+import { useNavigate } from "react-router-dom";
+import { Loader2, Palette } from "lucide-react";
+import { PageShell, PageTitle, Surface } from "@/components/layout/PageShell";
+import { Button } from "@/components/ui/button";
+import { ROUTES } from "@/shared/constants/routes";
 import DesignCard from "@/modules/client/components/design/DesignCard";
-
-const STATUS_OPTIONS = ["All", "Pending Approval", "Approved", "Revision Requested"];
+import { useClientDesignTasks } from "@/modules/client/hooks/useClientDesignTasks";
 
 export default function MyDesignsPage() {
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
-
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return SEED_CLIENT_DESIGNS.filter((d) => {
-      const matchQ = !q || d.projectName.toLowerCase().includes(q) || d.clientName.toLowerCase().includes(q);
-      const matchS = statusFilter === "All" || d.status === statusFilter;
-      return matchQ && matchS;
-    });
-  }, [search, statusFilter]);
+  const navigate = useNavigate();
+  const { designs, loading, error } = useClientDesignTasks();
 
   return (
-    <div className="space-y-6">
-      <PageHeader
+    <PageShell>
+      <PageTitle
         title="My Designs"
-        description="All interior design concepts and fit-out proposals submitted by your design team."
+        subtitle="All design options shared with you for review and approval."
       />
 
-      {/* Filters */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search by project or client..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {STATUS_OPTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <p className="text-sm text-muted-foreground shrink-0">{filtered.length} design{filtered.length !== 1 ? "s" : ""}</p>
-      </div>
+      {error && (
+        <p className="mb-4 text-sm text-destructive border border-destructive/30 bg-destructive/10 rounded-md px-3 py-2">
+          {error}
+        </p>
+      )}
 
-      {/* Grid */}
-      {filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/20 py-24">
-          <p className="font-medium text-muted-foreground">No designs found</p>
+      {loading ? (
+        <div className="flex justify-center py-16">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
+      ) : designs.length === 0 ? (
+        <Surface className="flex flex-col items-center gap-3 py-16 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+            <Palette className="h-6 w-6 text-muted-foreground" />
+          </div>
+          <div>
+            <p className="font-medium">No designs yet</p>
+            <p className="mt-1 max-w-md text-sm text-muted-foreground">
+              Your design team will share options here when they submit them for your review.
+            </p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => navigate(ROUTES.CLIENT.PROJECTS_MY)}>
+            View my projects
+          </Button>
+        </Surface>
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((design) => (
-            <DesignCard
-              key={design.id}
-              design={design}
-              detailRoute={`/client/designs/${design.id}`}
-            />
+          {designs.map((design) => (
+            <DesignCard key={design.id} design={design} detailRoute={design.detailRoute} />
           ))}
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

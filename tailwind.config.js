@@ -8,6 +8,13 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        copper: {
+          DEFAULT: "var(--color-accent-copper)",
+          foreground: "#3D2418",
+        },
+        ink: {
+          DEFAULT: "var(--color-ink)",
+        },
         border: "oklch(var(--border))",
         input: "oklch(var(--input))",
         ring: "oklch(var(--ring))",
@@ -61,13 +68,15 @@ module.exports = {
       },
       borderRadius: {
         lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        md: "calc(var(--radius) - 4px)",
+        sm: "calc(var(--radius) - 8px)",
+        "2xl": "calc(var(--radius) + 0.25rem)",
       },
       fontFamily: {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
         serif: ["var(--font-serif)", "Georgia", "serif"],
         mono: ["var(--font-mono)", "monospace"],
+        display: ["var(--font-serif)", "Georgia", "serif"],
       },
       keyframes: {
         "accordion-down": {
@@ -78,10 +87,20 @@ module.exports = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        "page-enter": {
+          from: { opacity: "0", transform: "translateY(6px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        "nav-glow": {
+          from: { opacity: "0.6" },
+          to: { opacity: "1" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "page-enter": "page-enter 0.35s ease-out both",
+        "nav-glow": "nav-glow 0.25s ease-out",
       },
     },
   },

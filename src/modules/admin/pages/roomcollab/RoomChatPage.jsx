@@ -3,18 +3,19 @@ import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { ROUTES } from "@/shared/constants/routes";
 import { fetchRoomMessages, fetchRoomTasks, postRoomMessage } from "../../api/room-collab.api";
+import { useCollabChatSocket } from "@/shared/hooks/useCollabChatSocket";
+import CollabChatPanel from "./CollabChatPanel";
 
 export default function RoomChatPage({ clientMode = false }) {
   const { projectId, roomId } = useParams();
   const [messages, setMessages] = useState([]);
   const [tasks, setTasks] = useState([]);
-  const [body, setBody] = useState("");
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+
+  useCollabChatSocket({ projectRoomId: roomId, setMessages });
 
   const taskRoute = (taskId) =>
     (clientMode ? ROUTES.CLIENT.PROJECT_ROOM_TASK : ROUTES.ADMIN.PROJECT_ROOM_TASK)
@@ -46,18 +47,9 @@ export default function RoomChatPage({ clientMode = false }) {
     load();
   }, [load]);
 
-  const send = async () => {
-    if (!body.trim()) return;
-    setBusy(true);
-    try {
-      await postRoomMessage(projectId, roomId, body);
-      setBody("");
-      await load();
-    } catch (err) {
-      setError(err.response?.data?.error || "Send failed");
-    } finally {
-      setBusy(false);
-    }
+  const sendMessage = async (body, file) => {
+    await postRoomMessage(projectId, roomId, body, file);
+    await load();
   };
 
   return (
@@ -72,34 +64,20 @@ export default function RoomChatPage({ clientMode = false }) {
       {error && <p className="text-sm text-destructive">{error}</p>}
 
       <div className="grid gap-4 lg:grid-cols-[1fr_260px]">
-        <Card className="border-border/60">
-          <CardHeader className="pb-2"><CardTitle className="text-sm">Messages</CardTitle></CardHeader>
-          <CardContent className="space-y-3">
-            {loading ? (
+        {loading ? (
+          <Card className="border-border/60">
+            <CardContent className="flex items-center justify-center py-20">
               <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <div className="max-h-[480px] overflow-y-auto space-y-2">
-                {messages.map((m) => (
-                  <div key={m.uuid} className="rounded-lg border px-3 py-2 text-sm">
-                    <p className="text-[10px] text-muted-foreground">
-                      #{m.senderAccountId} · {m.createdAt ? new Date(m.createdAt).toLocaleString() : ""}
-                    </p>
-                    <p className="mt-0.5 whitespace-pre-wrap">{m.body}</p>
-                    {m.linkedTaskId && (
-                      <Link className="text-xs text-primary underline mt-1 inline-block" to={taskRoute(m.linkedTaskId)}>
-                        Open linked task
-                      </Link>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-            <div className="flex gap-2 pt-2">
-              <Input value={body} onChange={(e) => setBody(e.target.value)} placeholder="Message this room…" />
-              <Button onClick={send} disabled={busy || !body.trim()}>Send</Button>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        ) : (
+          <CollabChatPanel
+            title="Messages"
+            messages={messages}
+            onSend={sendMessage}
+            linkedTaskRoute={taskRoute}
+          />
+        )}
 
         <Card className="border-border/60 h-fit">
           <CardHeader className="pb-2"><CardTitle className="text-sm">Task threads</CardTitle></CardHeader>

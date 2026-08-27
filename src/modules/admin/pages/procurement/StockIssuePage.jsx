@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { AlertCircle } from "lucide-react";
 import ConfigurationLayout from "../../components/shared/configuration/ConfigurationLayout";
-import PageHeader from "../../components/shared/configuration/PageHeader";
-import { Card, CardContent } from "@/components/ui/card";
+import { PageShell, PageTitle, Surface } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -64,65 +63,66 @@ export default function StockIssuePage() {
   return (
     <ConfigurationLayout>
       {toast && (
-        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg border text-sm ${
-          toast.type === "success" ? "bg-emerald-50 border-emerald-200 text-emerald-800" : "bg-red-50 border-red-200 text-red-800"
+        <div className={`fixed top-4 right-4 z-50 rounded-xl px-4 py-3 text-sm ${
+          toast.type === "success" ? "bg-emerald-50/90 text-emerald-800" : "bg-red-50/90 text-red-800"
         }`}>
           {toast.message}
         </div>
       )}
-      <div className="space-y-6 max-w-2xl">
-        <PageHeader title="Stock Issue" description="Issue materials from warehouse to a project or site." />
-        <Card>
-          <CardContent className="pt-6">
-            <form onSubmit={handleSubmit} className="space-y-4">
+      <PageShell className="max-w-2xl">
+        <PageTitle
+          title="Stock Issue"
+          subtitle="Issue materials from warehouse to a project or site."
+        />
+        <Surface className="p-5 md:p-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Material *</Label>
+              <Select value={form.materialId} onValueChange={(v) => setForm((p) => ({ ...p, materialId: v }))}>
+                <SelectTrigger><SelectValue placeholder="Select material" /></SelectTrigger>
+                <SelectContent>
+                  {materials.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.materialName} — Stock: {m.quantityOnHand ?? 0}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Material *</Label>
-                <Select value={form.materialId} onValueChange={(v) => setForm((p) => ({ ...p, materialId: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Select material" /></SelectTrigger>
+                <Label>Quantity * {selectedMaterial ? `(${selectedMaterial.unitType})` : ""}</Label>
+                <Input type="number" step="0.001" min="0" value={form.quantity} onChange={(e) => setForm((p) => ({ ...p, quantity: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label>Project (optional)</Label>
+                <Select value={form.projectId || "none"} onValueChange={(v) => setForm((p) => ({ ...p, projectId: v === "none" ? "" : v }))}>
+                  <SelectTrigger><SelectValue placeholder="Select project" /></SelectTrigger>
                   <SelectContent>
-                    {materials.map((m) => (
-                      <SelectItem key={m.id} value={m.id}>
-                        {m.materialName} — Stock: {m.quantityOnHand ?? 0}
-                      </SelectItem>
+                    <SelectItem value="none">None</SelectItem>
+                    {projects.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>{p.projectName || p.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Quantity * {selectedMaterial ? `(${selectedMaterial.unitType})` : ""}</Label>
-                  <Input type="number" step="0.001" min="0" value={form.quantity} onChange={(e) => setForm((p) => ({ ...p, quantity: e.target.value }))} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Project (optional)</Label>
-                  <Select value={form.projectId || "none"} onValueChange={(v) => setForm((p) => ({ ...p, projectId: v === "none" ? "" : v }))}>
-                    <SelectTrigger><SelectValue placeholder="Select project" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">None</SelectItem>
-                      {projects.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>{p.projectName || p.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Reference</Label>
-                <Input value={form.referenceNo} onChange={(e) => setForm((p) => ({ ...p, referenceNo: e.target.value }))} />
-              </div>
-              <div className="space-y-2">
-                <Label>Notes</Label>
-                <Textarea value={form.notes} onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))} rows={3} />
-              </div>
-              <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/40 text-xs text-muted-foreground">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                Issue validates sufficient stock before decreasing quantity on hand.
-              </div>
-              <Button type="submit" disabled={isSaving}>{isSaving ? "Saving..." : "Record Issue"}</Button>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Reference</Label>
+              <Input value={form.referenceNo} onChange={(e) => setForm((p) => ({ ...p, referenceNo: e.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label>Notes</Label>
+              <Textarea value={form.notes} onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))} rows={3} />
+            </div>
+            <div className="flex items-start gap-2 rounded-xl bg-secondary/50 p-3 text-xs text-muted-foreground">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              Issue validates sufficient stock before decreasing quantity on hand.
+            </div>
+            <Button type="submit" disabled={isSaving}>{isSaving ? "Saving..." : "Record Issue"}</Button>
+          </form>
+        </Surface>
+      </PageShell>
     </ConfigurationLayout>
   );
 }

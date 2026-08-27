@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { MoreHorizontal, Plus, Search, Users } from "lucide-react";
 import { ROUTES } from "@/shared/constants/routes";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
+import { PageShell } from "@/components/layout/PageShell";
 import { LEAD_SOURCES } from "../data/leads";
 import { fetchAllLeads } from "../api/leads.api";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,29 @@ import {
 
 const PAGE_SIZE = 10;
 
+const VIEW_FILTERS = [
+  { id: "all", label: "All" },
+  { id: "new", label: "New" },
+  { id: "qualified", label: "Qualified" },
+  { id: "follow-ups", label: "Follow-ups" },
+  { id: "lost", label: "Lost" },
+];
+
+function matchesView(lead, view) {
+  if (view === "all") return true;
+  if (view === "new") return lead.status === "NEW" || lead.statusLabel === "New";
+  if (view === "qualified") {
+    return (
+      lead.status === "QUALIFIED" ||
+      lead.statusLabel === "Qualified" ||
+      lead.status === "SITE_VISIT_SCHEDULED"
+    );
+  }
+  if (view === "follow-ups") return lead.status !== "LOST" && lead.status !== "CLIENT";
+  if (view === "lost") return lead.status === "LOST";
+  return true;
+}
+
 const STATUS_VARIANTS = {
   NEW: "default",
   CONTACTED: "outline",
@@ -45,6 +69,8 @@ const STATUS_LABELS = {
 
 export default function LeadsListPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const view = searchParams.get("view") || "all";
   const [allLeads, setAllLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -75,29 +101,53 @@ export default function LeadsListPage() {
         !q ||
         l.clientName?.toLowerCase().includes(q) ||
         (l.email && l.email.toLowerCase().includes(q));
-      const matchStatus = statusFilter === "all" || l.status === statusFilter;
+      const matchView = matchesView(l, view);
+      const matchStatus = view !== "all" || statusFilter === "all" || l.status === statusFilter;
       const matchSource = sourceFilter === "all" || l.source === sourceFilter;
-      return matchQ && matchStatus && matchSource;
+      return matchQ && matchView && matchStatus && matchSource;
     });
-  }, [search, statusFilter, sourceFilter, allLeads]);
+  }, [search, statusFilter, sourceFilter, allLeads, view]);
+
+  const setView = (next) => {
+    setPage(1);
+    if (next === "all") {
+      searchParams.delete("view");
+      setSearchParams(searchParams, { replace: true });
+    } else {
+      setSearchParams({ view: next }, { replace: true });
+    }
+  };
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <PageHeader
-        title="All Leads"
-        description="View and manage all leads."
+        title="Leads"
+        description="View and manage your sales pipeline."
         actions={
           <Button size="sm" className="gap-2" onClick={() => navigate(ROUTES.ADMIN.LEADS_NEW)}>
             <Plus className="h-4 w-4" />
-            Add New Lead
+            New Lead
           </Button>
         }
       />
 
-      <Card className="border-border/60 shadow-sm">
+      <div className="flex flex-wrap gap-2">
+        {VIEW_FILTERS.map((f) => (
+          <Button
+            key={f.id}
+            size="sm"
+            variant={view === f.id ? "default" : "outline"}
+            onClick={() => setView(f.id)}
+          >
+            {f.label}
+          </Button>
+        ))}
+      </div>
+
+      <Card>
         <CardContent className="p-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
             <div className="relative flex-1">
@@ -110,15 +160,17 @@ export default function LeadsListPage() {
               />
             </div>
             <div className="flex flex-wrap gap-2">
-              <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
-                <SelectTrigger className="w-[160px]"><SelectValue placeholder="Status" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All statuses</SelectItem>
-                  {Object.entries(STATUS_LABELS).map(([key, label]) => (
-                    <SelectItem key={key} value={key}>{label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {view === "all" && (
+                <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
+                  <SelectTrigger className="w-[160px]"><SelectValue placeholder="Status" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All statuses</SelectItem>
+                    {Object.entries(STATUS_LABELS).map(([key, label]) => (
+                      <SelectItem key={key} value={key}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
               <Select value={sourceFilter} onValueChange={(v) => { setSourceFilter(v); setPage(1); }}>
                 <SelectTrigger className="w-[130px]"><SelectValue placeholder="Source" /></SelectTrigger>
                 <SelectContent>
@@ -131,10 +183,10 @@ export default function LeadsListPage() {
         </CardContent>
       </Card>
 
-      <Card className="overflow-hidden border-border/60 shadow-sm">
+      <Card className="overflow-hidden">
         <div className="max-h-[calc(100vh-26rem)] overflow-auto">
           <Table>
-            <TableHeader className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm">
+            <TableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur-sm">
               <TableRow className="hover:bg-transparent">
                 <TableHead className="pl-6">Ref No.</TableHead>
                 <TableHead>Client</TableHead>
@@ -232,6 +284,6 @@ export default function LeadsListPage() {
           </div>
         )}
       </Card>
-    </div>
+    </PageShell>
   );
 }

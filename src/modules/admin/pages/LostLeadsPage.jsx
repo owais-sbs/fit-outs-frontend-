@@ -82,7 +82,7 @@ export default function LostLeadsPage() {
         <StatCard title="Won vs Lost" value={`${stats.wonCount}W / ${stats.total}L`} icon={RotateCcw} growth={stats.wonCount > stats.total ? 10 : -10} growthLabel="win rate trend" />
       </section>
 
-      <Card className="border-border/60 shadow-sm">
+      <Card className="">
         <CardContent className="p-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
             <div className="relative flex-1">
@@ -107,7 +107,7 @@ export default function LostLeadsPage() {
         </CardContent>
       </Card>
 
-      <Card className="overflow-hidden border-border/60 shadow-sm">
+      <Card className="overflow-hidden">
         <div className="max-h-[calc(100vh-26rem)] overflow-auto">
           <Table>
             <TableHeader className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm">

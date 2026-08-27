@@ -1,20 +1,19 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/shared/context/auth-context";
 import { ROUTES } from "@/shared/constants/routes";
 import { ROLES } from "@/shared/constants/roles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Lock, Mail, ArrowRight, AlertCircle, Loader2 } from "lucide-react";
-import { JctLogoTile } from "@/components/brand/BrandMark";
+import { BRAND_NAME, JctLogoTile } from "@/components/brand/BrandMark";
 
 const ROLE_ROUTES = {
   [ROLES.SUPER_ADMIN]: ROUTES.SUPER_ADMIN.DASHBOARD,
   [ROLES.ADMIN]: ROUTES.ADMIN.DASHBOARD,
   [ROLES.BUSINESS_OWNER]: ROUTES.BUSINESS_OWNER.DASHBOARD,
-  [ROLES.PROJECT_MANAGER]: ROUTES.PROJECT_MANAGER.BOQ_INBOX,
+  [ROLES.PROJECT_MANAGER]: ROUTES.PROJECT_MANAGER.DASHBOARD,
   [ROLES.DESIGNER]: ROUTES.DESIGNER.DASHBOARD,
   [ROLES.QAS]: ROUTES.QAS.DASHBOARD,
   [ROLES.QS]: ROUTES.ADMIN.QAS,
@@ -51,9 +50,11 @@ export default function Login() {
 
   if (authLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-background">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <span className="mt-4 text-sm text-muted-foreground animate-pulse font-medium">Checking session...</span>
+      <div className="flex min-h-screen flex-col items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-[var(--color-accent-copper)]" />
+        <span className="mt-4 animate-pulse text-sm font-medium text-muted-foreground">
+          Checking session...
+        </span>
       </div>
     );
   }
@@ -98,88 +99,116 @@ export default function Login() {
   };
 
   return (
-    <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-background px-4">
-      <div className="absolute -top-[40%] -left-[20%] w-[80%] h-[80%] rounded-full bg-primary/10 blur-[120px] pointer-events-none" />
-      <div className="absolute -bottom-[40%] -right-[20%] w-[80%] h-[80%] rounded-full bg-primary/10 blur-[120px] pointer-events-none" />
-      <div className="absolute top-[30%] right-[10%] w-[40%] h-[40%] rounded-full bg-secondary/15 blur-[100px] pointer-events-none" />
+    <div className="relative flex min-h-screen w-full items-center justify-center overflow-hidden px-4 py-10">
+      {/* Soft spatial atmosphere — ink + copper, no purple */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(900px 520px at 12% -10%, color-mix(in oklab, var(--color-accent-copper) 18%, transparent), transparent 55%), radial-gradient(700px 480px at 92% 108%, oklch(0.92 0.01 260 / 0.7), transparent 50%), radial-gradient(600px 400px at 70% 20%, oklch(0.97 0.008 90 / 0.9), transparent 45%)",
+        }}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-[0.35]"
+        style={{
+          backgroundImage:
+            "linear-gradient(to right, oklch(0.2 0.01 285 / 0.04) 1px, transparent 1px), linear-gradient(to bottom, oklch(0.2 0.01 285 / 0.04) 1px, transparent 1px)",
+          backgroundSize: "48px 48px",
+          maskImage: "radial-gradient(ellipse at center, black 20%, transparent 75%)",
+        }}
+      />
 
-      <div className="relative z-10 w-full max-w-md transition-all duration-300 hover:scale-[1.01]">
-        <Card className="border border-border bg-card/60 backdrop-blur-xl shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-secondary to-primary/80" />
+      <div className="relative z-10 w-full max-w-[420px] page-enter">
+        <div className="mb-8 text-center">
+          <div className="mb-5 flex justify-center">
+            <JctLogoTile className="h-14 w-14 rounded-2xl" imgClassName="h-8 w-8" />
+          </div>
+          <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground md:text-[2rem]">
+            {BRAND_NAME}
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Sign in to manage commercial fit-out projects
+          </p>
+        </div>
 
-          <CardHeader className="space-y-1 text-center pt-8">
-            <div className="flex justify-center mb-3">
-              <JctLogoTile className="w-12 h-12 rounded-2xl" imgClassName="h-7 w-7" />
+        <div className="surface-panel relative overflow-hidden px-6 py-7 sm:px-8">
+          <div
+            aria-hidden
+            className="absolute inset-x-0 top-0 h-0.5"
+            style={{
+              background:
+                "linear-gradient(90deg, transparent, var(--color-accent-copper), var(--color-accent-gold), transparent)",
+            }}
+          />
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <div className="flex items-center gap-2 rounded-xl border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive animate-in fade-in slide-in-from-top-1 duration-200">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <p>{error}</p>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Email Address
+              </Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="name@onepath.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="h-11 rounded-xl pl-10"
+                  required
+                />
+              </div>
             </div>
-            <CardTitle className="text-2xl font-bold tracking-tight">JCT Contracting</CardTitle>
-            <CardDescription className="text-muted-foreground">
-              Sign in to manage commercial fit-out projects
-            </CardDescription>
-          </CardHeader>
 
-          <CardContent className="space-y-4">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
-                <div className="flex items-center gap-2 p-3 rounded-lg border border-destructive/20 bg-destructive/10 text-destructive text-sm animate-in fade-in slide-in-from-top-1 duration-200">
-                  <AlertCircle className="h-4 w-4 shrink-0" />
-                  <p>{error}</p>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-muted-foreground font-semibold">Email Address</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="name@onepath.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10 bg-background/50 border-border focus-visible:ring-primary"
-                    required
-                  />
-                </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password" className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Password
+                </Label>
+                <Link
+                  to={ROUTES.AUTH.FORGOT_PASSWORD}
+                  className="text-xs text-[var(--color-accent-copper)] hover:underline"
+                >
+                  Forgot password?
+                </Link>
               </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="text-muted-foreground font-semibold">Password</Label>
-                  <span className="text-xs text-primary hover:underline cursor-pointer">
-                    Forgot password?
-                  </span>
-                </div>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 bg-background/50 border-border focus-visible:ring-primary"
-                    required
-                  />
-                </div>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="h-11 rounded-xl pl-10"
+                  required
+                />
               </div>
+            </div>
 
-              <Button
-                type="submit"
-                className="w-full bg-primary text-primary-foreground hover:bg-primary/95 transition-all duration-200 flex items-center justify-center gap-2 font-medium"
-                disabled={isLoading}
-              >
-                {isLoading ? "Signing in..." : "Sign In"}
-                {!isLoading && <ArrowRight className="h-4 w-4" />}
-              </Button>
-            </form>
-          </CardContent>
+            <Button
+              type="submit"
+              className="mt-2 h-11 w-full gap-2 rounded-xl bg-primary text-primary-foreground hover:bg-primary/95"
+              disabled={isLoading}
+            >
+              {isLoading ? "Signing in..." : "Sign In"}
+              {!isLoading && <ArrowRight className="h-4 w-4" />}
+            </Button>
+          </form>
 
-          <CardFooter className="pb-8 justify-center">
-            <p className="text-xs text-muted-foreground">
-              Authorized personnel only.  JCT Contracting © 2026.
-            </p>
-          </CardFooter>
-        </Card>
+          <p className="mt-6 text-center text-xs text-muted-foreground">
+            Authorized personnel only. {BRAND_NAME} © 2026.
+          </p>
+        </div>
       </div>
     </div>
   );

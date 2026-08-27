@@ -6,6 +6,7 @@ export { default as PendingApprovalPage }  from "./pages/PendingApprovalPage";
 export { default as RevisionHistoryPage }  from "./pages/RevisionHistoryPage";
 export { default as ApprovedDesignsPage }  from "./pages/ApprovedDesignsPage";
 export { default as ClientDocumentsPage }  from "./pages/ClientDocumentsPage";
+export { default as ClientSnagsPage }      from "./pages/ClientSnagsPage";
 export { default as ClientInvoicesPage }   from "./pages/ClientInvoicesPage";
 export { default as ClientCommsPage }      from "./pages/ClientCommsPage";
 export { default as ClientSettingsPage }   from "./pages/ClientSettingsPage";

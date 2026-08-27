@@ -17,7 +17,7 @@ function formatCurrency(n) {
 
 export default function ProjectCard({ project, onView, onEdit, onMarkCompleted }) {
   return (
-    <Card className="border-border/60 shadow-sm">
+    <Card className="">
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">

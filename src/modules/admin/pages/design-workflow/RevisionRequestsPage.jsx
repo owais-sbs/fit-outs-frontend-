@@ -18,7 +18,7 @@ function formatDate(d) {
 
 function RevisionCard({ item, onMoveToProgress, onMarkFixed }) {
   return (
-    <Card className="border-border/60 shadow-sm hover:border-primary/30 hover:shadow-md transition-all">
+    <Card className="hover:border-primary/30 hover:shadow-md transition-all">
       <CardContent className="p-5 space-y-4">
         {/* Header */}
         <div className="flex items-start justify-between gap-3">
@@ -132,7 +132,7 @@ export default function RevisionRequestsPage() {
           { label: "In Progress", count: counts["In Progress"], color: "text-primary" },
           { label: "Fixed", count: counts.Fixed, color: "text-emerald-600" },
         ].map((s) => (
-          <Card key={s.label} className="border-border/60 shadow-sm">
+          <Card key={s.label} className="">
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground">{s.label}</p>
               <p className={`mt-1 text-2xl font-bold ${s.color}`}>{s.count}</p>

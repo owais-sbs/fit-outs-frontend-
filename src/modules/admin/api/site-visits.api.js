@@ -5,6 +5,44 @@ import {
   normalizeRoomScopes,
 } from "../data/renovationChecklist";
 
+/** Let the browser set multipart boundary (axios default JSON Content-Type breaks uploads). */
+export function multipartConfig(extra = {}) {
+  return {
+    ...extra,
+    transformRequest: [
+      (data, headers) => {
+        if (data instanceof FormData) {
+          delete headers["Content-Type"];
+        }
+        return data;
+      },
+      ...(Array.isArray(extra.transformRequest)
+        ? extra.transformRequest
+        : extra.transformRequest
+          ? [extra.transformRequest]
+          : []),
+    ],
+  };
+}
+
+export function resolveSiteVisitFileUrl(raw) {
+  if (!raw) return "";
+  if (/^https?:\/\//i.test(raw) || raw.startsWith("/api/files/")) return raw;
+  return `/api/files/${String(raw).replace(/^\/+/, "")}`;
+}
+
+export function isVideoMediaUrl(url) {
+  return /\.(mp4|webm|mov|m4v|avi|mkv)(\?|$)/i.test(url || "");
+}
+
+function normalizeUploadedAttachment(item = {}) {
+  const url = resolveSiteVisitFileUrl(item.url || item.audioUrl || "");
+  return {
+    url,
+    contentType: item.contentType || "",
+  };
+}
+
 const STATUS_TO_STAGE = {
   SCHEDULED: "SCHEDULED",
   IN_PROGRESS: "IN_PROGRESS",
@@ -52,6 +90,7 @@ export function normalizeSiteVisit(item = {}) {
       unitNumber: loc.unitNumber || "",
       landmark: loc.landmark || "",
       accessNotes: loc.accessNotes || "",
+      mapsShareUrl: loc.mapsShareUrl || "",
     },
   };
 }
@@ -71,6 +110,7 @@ export function normalizeLocationDetails(item = {}) {
     unitNumber: item.unitNumber || "",
     landmark: item.landmark || "",
     accessNotes: item.accessNotes || "",
+    mapsShareUrl: item.mapsShareUrl || "",
   };
 }
 
@@ -81,6 +121,19 @@ export const fetchAllSiteVisits = () =>
       const data = r.data?.data ?? r.data;
       return Array.isArray(data) ? data.map(normalizeSiteVisit) : [];
     });
+
+export const fetchMySiteVisits = () =>
+  axiosInstance
+    .get("/site-visits/mine")
+    .then((r) => {
+      const data = r.data?.data ?? r.data;
+      return Array.isArray(data) ? data.map(normalizeSiteVisit) : [];
+    });
+
+export const fetchIssuedEstimatesForClient = () =>
+  axiosInstance
+    .get("/site-visits/estimates/issued")
+    .then((r) => r.data?.data ?? r.data ?? []);
 
 export const fetchEmployeeSiteVisits = (employeeId) =>
   axiosInstance
@@ -138,6 +191,49 @@ export const submitSiteVisitReport = (uuid, payload) =>
     .post(`/site-visits/EmployeeSiteVisitByUuid/${uuid}/report`, payload)
     .then((r) => r.data?.data ?? r.data);
 
+export const fetchSiteVisitReport = (uuid) =>
+  axiosInstance
+    .get(`/site-visits/${uuid}/report`)
+    .then((r) => r.data?.data ?? r.data);
+
+export function normalizeRecording(item = {}) {
+  return {
+    uuid: item.uuid || null,
+    siteVisitUuid: item.siteVisitUuid || null,
+    audioUrl: item.audioUrl || "",
+    durationSeconds: item.durationSeconds ?? null,
+    transcript: item.transcript || "",
+    aiSummary: item.aiSummary || "",
+    processingStatus: item.processingStatus || "PENDING",
+    createdAt: item.createdAt || null,
+  };
+}
+
+export const fetchSiteVisitRecordings = (uuid) =>
+  axiosInstance
+    .get(`/site-visits/${uuid}/recordings`)
+    .then((r) => {
+      const data = r.data?.data ?? r.data;
+      return Array.isArray(data) ? data.map(normalizeRecording) : [];
+    });
+
+export const uploadSiteVisitRecording = (uuid, blob, durationSeconds) => {
+  const form = new FormData();
+  form.append("file", blob, `recording-${Date.now()}.webm`);
+  if (durationSeconds != null) form.append("durationSeconds", String(durationSeconds));
+  return axiosInstance
+    .post(`/site-visits/${uuid}/recordings`, form, multipartConfig({ timeout: 120000 }))
+    .then((r) => normalizeRecording(r.data?.data ?? r.data));
+};
+
+export const uploadSiteVisitPhoto = (uuid, file) => {
+  const form = new FormData();
+  form.append("file", file);
+  return axiosInstance
+    .post(`/site-visits/${uuid}/photos`, form, multipartConfig({ timeout: 120000 }))
+    .then((r) => normalizeUploadedAttachment(r.data?.data ?? r.data));
+};
+
 export const addLocationDetails = (siteVisitUuid, details) =>
   axiosInstance
     .post(`/site-visits/Site/${siteVisitUuid}/location-details`, {
@@ -153,5 +249,6 @@ export const addLocationDetails = (siteVisitUuid, details) =>
       unitNumber: details.unitNumber || "",
       landmark: details.landmark || "",
       accessNotes: details.accessNotes || "",
+      mapsShareUrl: details.mapsShareUrl || "",
     })
     .then((r) => normalizeSiteVisit(r.data?.data ?? r.data));

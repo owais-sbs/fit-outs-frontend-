@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Building2, MoreHorizontal, Search } from "lucide-react";
 import { ROUTES } from "@/shared/constants/routes";
 import PageHeader from "../components/shared/PageHeader";
+import { PageShell, StatTile } from "@/components/layout/PageShell";
 import { TenantQuickActions } from "../components/tenant-management";
 import { useTenantManagement } from "../context/tenant-management-context";
 import { Button } from "@/components/ui/button";
@@ -88,14 +89,23 @@ export default function TenantsPage() {
     navigate(ROUTES.SUPER_ADMIN.TENANT_DETAIL.replace(":tenantId", id));
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <PageHeader
         title="Companies"
         description="Manage fit-out companies, subscriptions, and renewal status across the platform."
         actions={<TenantQuickActions />}
       />
 
-      <Card className="border-border/60 shadow-sm">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <StatTile label="Total" value={tenants.length} icon={Building2} />
+        <StatTile
+          label="Active"
+          value={tenants.filter((t) => t.status === "active").length}
+        />
+        <StatTile label="Showing" value={filtered.length} hint="After filters" />
+      </div>
+
+      <Card>
         <CardContent className="p-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
             <div className="relative flex-1">
@@ -133,7 +143,7 @@ export default function TenantsPage() {
         </CardContent>
       </Card>
 
-      <Card className="overflow-hidden border-border/60 shadow-sm">
+      <Card className="overflow-hidden">
         <div className="max-h-[calc(100vh-22rem)] overflow-auto">
           <Table>
             <TableHeader className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm">
@@ -258,6 +268,6 @@ export default function TenantsPage() {
           </div>
         )}
       </Card>
-    </div>
+    </PageShell>
   );
 }

@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import ConfigurationLayout from "../../components/shared/configuration/ConfigurationLayout";
-import PageHeader from "../../components/shared/configuration/PageHeader";
-import { Card, CardContent } from "@/components/ui/card";
+import { PageShell, PageTitle, Surface } from "@/components/layout/PageShell";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -47,10 +46,13 @@ export default function MovementHistoryPage() {
 
   return (
     <ConfigurationLayout>
-      <div className="space-y-6">
-        <PageHeader title="Movement History" description="Filterable ledger of all stock receipts, issues, and adjustments." />
+      <PageShell>
+        <PageTitle
+          title="Movement History"
+          subtitle="Filterable ledger of all stock receipts, issues, and adjustments."
+        />
 
-        <div className="flex flex-col md:flex-row gap-4">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center">
           <Input placeholder="Search material, project, reference..." value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-md" />
           <Select value={typeFilter} onValueChange={setTypeFilter}>
             <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
@@ -60,10 +62,10 @@ export default function MovementHistoryPage() {
           </Select>
         </div>
 
-        <Card>
-          <CardContent className="p-0 overflow-x-auto">
+        <Surface>
+          <div className="overflow-x-auto p-0">
             {isLoading ? (
-              <div className="p-6 space-y-3">{[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
+              <div className="space-y-3 p-6">{[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
             ) : (
               <Table className="min-w-[900px]">
                 <TableHeader>
@@ -81,10 +83,10 @@ export default function MovementHistoryPage() {
                 </TableHeader>
                 <TableBody>
                   {filtered.length === 0 ? (
-                    <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">No movements found.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={9} className="py-8 text-center text-muted-foreground">No movements found.</TableCell></TableRow>
                   ) : filtered.map((m) => (
                     <TableRow key={m.id}>
-                      <TableCell className="text-xs whitespace-nowrap">{m.movementDate ? new Date(m.movementDate).toLocaleString() : "—"}</TableCell>
+                      <TableCell className="whitespace-nowrap text-xs">{m.movementDate ? new Date(m.movementDate).toLocaleString() : "—"}</TableCell>
                       <TableCell><Badge variant="outline" className="text-[10px]">{m.movementType}</Badge></TableCell>
                       <TableCell>
                         <div className="text-xs font-medium">{m.materialName}</div>
@@ -95,15 +97,15 @@ export default function MovementHistoryPage() {
                       <TableCell className="text-xs">{formatCurrency(m.totalCost)}</TableCell>
                       <TableCell className="text-xs">{m.projectName || "—"}</TableCell>
                       <TableCell className="text-xs">{m.referenceNo || "—"}</TableCell>
-                      <TableCell className="text-xs max-w-[150px] truncate">{m.notes || "—"}</TableCell>
+                      <TableCell className="max-w-[150px] truncate text-xs">{m.notes || "—"}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             )}
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </Surface>
+      </PageShell>
     </ConfigurationLayout>
   );
 }

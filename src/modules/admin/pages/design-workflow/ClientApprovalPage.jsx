@@ -57,7 +57,7 @@ function ApprovalCard({ item }) {
   const StatusIcon = STATUS_ICONS[item.approvalStatus];
 
   return (
-    <Card className="border-border/60 shadow-sm hover:border-primary/30 hover:shadow-md transition-all">
+    <Card className="hover:border-primary/30 hover:shadow-md transition-all">
       <CardContent className="p-5 space-y-4">
         {/* Header */}
         <div className="flex items-start justify-between gap-3">

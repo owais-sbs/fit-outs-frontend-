@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Save, User, Bell, Lock } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
+import { PageShell } from "@/components/layout/PageShell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -28,7 +29,7 @@ export default function ClientSettingsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <PageHeader
         title="Settings"
         description="Manage your profile, notification preferences, and account security."
@@ -36,7 +37,7 @@ export default function ClientSettingsPage() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Profile */}
-        <Card className="border-border/60 shadow-sm">
+        <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
               <User className="h-4 w-4 text-muted-foreground" />
@@ -64,7 +65,7 @@ export default function ClientSettingsPage() {
 
         {/* Notifications */}
         <div className="space-y-4">
-          <Card className="border-border/60 shadow-sm">
+          <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <Bell className="h-4 w-4 text-muted-foreground" />
@@ -95,7 +96,7 @@ export default function ClientSettingsPage() {
           </Card>
 
           {/* Security */}
-          <Card className="border-border/60 shadow-sm">
+          <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <Lock className="h-4 w-4 text-muted-foreground" />
@@ -117,6 +118,6 @@ export default function ClientSettingsPage() {
         </Button>
         {saved && <p className="text-sm text-emerald-600 font-medium">Changes saved successfully.</p>}
       </div>
-    </div>
+    </PageShell>
   );
 }

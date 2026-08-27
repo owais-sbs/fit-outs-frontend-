@@ -1,9 +1,7 @@
 import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import {
-  LayoutDashboard, ChevronRight,
-  Palette, Inbox, RotateCcw, Award,
-  FileText, CreditCard, MessageSquare, Settings,
+import { LayoutDashboard, ChevronRight, Palette, Inbox, RotateCcw, Award,
+  FileText, CreditCard, MessageSquare, Settings, AlertTriangle,
   Briefcase, ClipboardList,
 } from "lucide-react";
 import { SidebarBrand } from "@/components/brand/BrandMark";
@@ -26,12 +24,6 @@ const DESIGN_SUB_ITEMS = [
   { label: "Approved Designs",  href: ROUTES.CLIENT.DESIGNS_APPROVED, icon: Award },
 ];
 
-// ─── Projects sub-items ───────────────────────────────────────────────────────
-const PROJECT_SUB_ITEMS = [
-  { label: "My Projects",          href: ROUTES.CLIENT.PROJECTS_MY,      icon: Briefcase },
-  { label: "New Project Request",  href: ROUTES.CLIENT.PROJECTS_REQUEST, icon: ClipboardList },
-];
-
 // ─── Top-level nav ────────────────────────────────────────────────────────────
 const NAV_GROUPS = [
   {
@@ -49,13 +41,15 @@ const NAV_GROUPS = [
   {
     label: "Projects",
     items: [
-      { label: "PROJECTS_PLACEHOLDER" },
+      { label: "My Projects", href: ROUTES.CLIENT.PROJECTS_MY, icon: Briefcase },
+      { label: "New Project Request", href: ROUTES.CLIENT.PROJECTS_REQUEST, icon: ClipboardList },
     ],
   },
   {
     label: "Project Details",
     items: [
       { label: "Documents",     href: ROUTES.CLIENT.DOCUMENTS,      icon: FileText },
+      { label: "Snags",         href: ROUTES.CLIENT.SNAGS,          icon: AlertTriangle },
       { label: "Invoices",      href: ROUTES.CLIENT.INVOICES,        icon: CreditCard },
       { label: "Communications",href: ROUTES.CLIENT.COMMUNICATIONS,  icon: MessageSquare },
       { label: "Settings",      href: ROUTES.CLIENT.SETTINGS,        icon: Settings },
@@ -121,45 +115,6 @@ function DesignCenterSubmenu() {
   );
 }
 
-function ProjectsSubmenu() {
-  const location = useLocation();
-  const isAnyActive = PROJECT_SUB_ITEMS.some((i) =>
-    location.pathname === i.href || location.pathname.startsWith(`${i.href}/`)
-  );
-  const [open, setOpen] = useState(isAnyActive);
-
-  return (
-    <SidebarMenuItem>
-      <SidebarMenuButton onClick={() => setOpen((o) => !o)} isActive={isAnyActive} tooltip="Projects">
-        <Briefcase className="h-4 w-4" />
-        <span>Projects</span>
-        <ChevronRight
-          className={`ml-auto h-3 w-3 transition-transform duration-200 ${open ? "rotate-90" : ""}`}
-        />
-      </SidebarMenuButton>
-      {open && (
-        <SidebarMenuSub>
-          {PROJECT_SUB_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const isSubActive =
-              location.pathname === item.href || location.pathname.startsWith(`${item.href}/`);
-            return (
-              <SidebarMenuSubItem key={item.href}>
-                <SidebarMenuSubButton asChild isActive={isSubActive}>
-                  <NavLink to={item.href}>
-                    <Icon className="h-4 w-4" />
-                    <span>{item.label}</span>
-                  </NavLink>
-                </SidebarMenuSubButton>
-              </SidebarMenuSubItem>
-            );
-          })}
-        </SidebarMenuSub>
-      )}
-    </SidebarMenuItem>
-  );
-}
-
 export default function ClientSidebar() {
   const { user } = useAuth();
   return (
@@ -186,9 +141,6 @@ export default function ClientSidebar() {
                   if (item.label === "DESIGN_CENTER_PLACEHOLDER") {
                     return <DesignCenterSubmenu key="design-center" />;
                   }
-                  if (item.label === "PROJECTS_PLACEHOLDER") {
-                    return <ProjectsSubmenu key="projects-submenu" />;
-                  }
                   return <ClientNavItem key={item.href} item={item} />;
                 })}
               </SidebarMenu>
@@ -198,8 +150,8 @@ export default function ClientSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border p-4">
-        <div className="flex items-center gap-3 rounded-lg border border-border/50 bg-muted/30 p-2 group-data-[collapsible=icon]:hidden">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-background shadow-sm">
+        <div className="flex items-center gap-3 rounded-xl bg-secondary/70 p-2 ring-1 ring-border/50 group-data-[collapsible=icon]:hidden">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-background shadow-sm">
             <span className="text-xs font-semibold">
               {user?.name?.substring(0, 2).toUpperCase() || "CL"}
             </span>

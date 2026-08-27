@@ -43,7 +43,7 @@ export default function SuperAdminTopNav() {
   };
 
   return (
-    <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-4 border-b border-border bg-card/80 px-4 backdrop-blur-md md:px-6">
+    <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-4 border-b border-border/40 bg-background/75 px-4 backdrop-blur-xl md:px-6">
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetTrigger asChild>
           <Button
@@ -66,12 +66,12 @@ export default function SuperAdminTopNav() {
         </SheetContent>
       </Sheet>
 
-      <div className="relative hidden flex-1 max-w-md sm:block">
+      <div className="relative hidden max-w-md flex-1 sm:block">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           type="search"
           placeholder="Search tenants, users, plans..."
-          className="pl-9 bg-muted/40 border-transparent focus-visible:bg-background"
+          className="h-10 rounded-xl pl-9"
         />
       </div>
 

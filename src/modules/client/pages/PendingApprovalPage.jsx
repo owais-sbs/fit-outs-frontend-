@@ -1,44 +1,68 @@
 import { useState } from "react";
-import { Clock } from "lucide-react";
-import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
-import { SEED_CLIENT_DESIGNS } from "@/shared/store/designWorkflowStore";
+import { Clock, Loader2 } from "lucide-react";
+import { PageShell, PageTitle } from "@/components/layout/PageShell";
 import DesignCard from "@/modules/client/components/design/DesignCard";
 import ApprovalModal from "@/modules/client/components/design/ApprovalModal";
 import RevisionModal from "@/modules/client/components/design/RevisionModal";
+import { useClientDesignTasks } from "@/modules/client/hooks/useClientDesignTasks";
+import { approveRoomTask, requestTaskChanges } from "@/modules/admin/api/room-collab.api";
 
 export default function PendingApprovalPage() {
-  const [designs, setDesigns] = useState(
-    SEED_CLIENT_DESIGNS.filter((d) => d.status === "Pending Approval")
-  );
+  const { designs, loading, error, reload } = useClientDesignTasks("pending");
   const [approvalTarget, setApprovalTarget] = useState(null);
   const [revisionTarget, setRevisionTarget] = useState(null);
+  const [busy, setBusy] = useState(false);
 
-  const handleApprove = () => {
-    setDesigns((prev) => prev.filter((d) => d.id !== approvalTarget.id));
-    setApprovalTarget(null);
+  const handleApprove = async () => {
+    if (!approvalTarget) return;
+    setBusy(true);
+    try {
+      await approveRoomTask(approvalTarget.projectId, approvalTarget.taskId);
+      setApprovalTarget(null);
+      await reload();
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const handleRevision = () => {
-    setDesigns((prev) => prev.filter((d) => d.id !== revisionTarget.id));
-    setRevisionTarget(null);
+  const handleRevision = async ({ feedback }) => {
+    if (!revisionTarget || !feedback?.trim()) return;
+    setBusy(true);
+    try {
+      await requestTaskChanges(revisionTarget.projectId, revisionTarget.taskId, feedback.trim());
+      setRevisionTarget(null);
+      await reload();
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
-    <div className="space-y-6">
-      <PageHeader
+    <PageShell>
+      <PageTitle
         title="Pending Approval"
-        description="Designs awaiting your review and approval before the team proceeds to construction."
+        subtitle="Designs awaiting your review and approval before the team proceeds to construction."
       />
 
-      {designs.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/20 py-24 text-center">
-          <Clock className="h-12 w-12 text-muted-foreground/30 mb-3" />
+      {error && (
+        <p className="mb-4 text-sm text-destructive border border-destructive/30 bg-destructive/10 rounded-md px-3 py-2">
+          {error}
+        </p>
+      )}
+
+      {loading ? (
+        <div className="flex justify-center py-16">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : designs.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-2xl bg-secondary/40 py-24 text-center">
+          <Clock className="mb-3 h-12 w-12 text-muted-foreground/30" />
           <p className="font-medium">No designs pending approval</p>
-          <p className="text-sm text-muted-foreground mt-1">You're all caught up!</p>
+          <p className="mt-1 text-sm text-muted-foreground">You're all caught up!</p>
         </div>
       ) : (
         <>
-          <div className="rounded-lg border border-amber-400/30 bg-amber-500/5 px-4 py-3">
+          <div className="rounded-2xl bg-amber-500/5 px-4 py-3 ring-1 ring-amber-400/20">
             <p className="text-sm text-amber-700 dark:text-amber-400">
               <strong>{designs.length} design{designs.length > 1 ? "s" : ""}</strong> require your approval to move forward.
             </p>
@@ -48,7 +72,7 @@ export default function PendingApprovalPage() {
               <DesignCard
                 key={design.id}
                 design={design}
-                detailRoute={`/client/designs/${design.id}`}
+                detailRoute={design.detailRoute}
                 onAction={() => setApprovalTarget(design)}
                 actionLabel="Approve"
               />
@@ -59,16 +83,16 @@ export default function PendingApprovalPage() {
 
       <ApprovalModal
         open={!!approvalTarget}
-        onClose={() => setApprovalTarget(null)}
+        onClose={() => !busy && setApprovalTarget(null)}
         onConfirm={handleApprove}
         design={approvalTarget}
       />
       <RevisionModal
         open={!!revisionTarget}
-        onClose={() => setRevisionTarget(null)}
+        onClose={() => !busy && setRevisionTarget(null)}
         onSubmit={handleRevision}
         design={revisionTarget}
       />
-    </div>
+    </PageShell>
   );
 }

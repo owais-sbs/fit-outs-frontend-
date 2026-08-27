@@ -147,7 +147,7 @@ export default function LeadSourcesPage() {
             ))}
           </div>
 
-          <Card className="border-border/60 shadow-sm">
+          <Card className="">
             <CardContent className="p-6">
               <h3 className="font-semibold text-base mb-6">Lead Volume by Source</h3>
               

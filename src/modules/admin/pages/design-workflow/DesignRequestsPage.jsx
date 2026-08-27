@@ -120,7 +120,7 @@ export default function DesignRequestsPage() {
           { label: "Assigned", value: DESIGN_REQUESTS.filter(r => r.status === "Assigned").length, color: "text-primary" },
           { label: "In Progress", value: DESIGN_REQUESTS.filter(r => r.status === "Started").length, color: "text-emerald-600" },
         ].map((s) => (
-          <Card key={s.label} className="border-border/60 shadow-sm">
+          <Card key={s.label} className="">
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground">{s.label}</p>
               <p className={`mt-1 text-2xl font-bold ${s.color}`}>{s.value}</p>
@@ -130,7 +130,7 @@ export default function DesignRequestsPage() {
       </div>
 
       {/* Filters */}
-      <Card className="border-border/60 shadow-sm">
+      <Card className="">
         <CardContent className="p-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
             <div className="relative flex-1">
@@ -175,7 +175,7 @@ export default function DesignRequestsPage() {
       </Card>
 
       {/* Table */}
-      <Card className="overflow-hidden border-border/60 shadow-sm">
+      <Card className="overflow-hidden">
         <div className="overflow-auto">
           <Table>
             <TableHeader className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm">

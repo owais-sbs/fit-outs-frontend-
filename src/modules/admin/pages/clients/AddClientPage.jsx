@@ -38,7 +38,7 @@ function Row({ children }) {
 
 function Section({ title, desc, children }) {
   return (
-    <Card className="border-border/60 shadow-sm">
+    <Card className="">
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-semibold">{title}</CardTitle>
         {desc && <CardDescription className="text-xs">{desc}</CardDescription>}
@@ -336,7 +336,7 @@ export default function AddClientPage() {
             </div>
           </Section>
 
-          <Card className="border-border/60 shadow-sm">
+          <Card className="">
             <CardHeader className="pb-2"><CardTitle className="text-sm font-semibold">Notes</CardTitle></CardHeader>
             <CardContent>
               <Textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Internal notes about this client..." rows={4} />

@@ -5,6 +5,7 @@ import {
   MoreHorizontal, Phone, PhoneIncoming, PhoneOutgoing,
 } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
+import { PageShell } from "@/components/layout/PageShell";
 import { fetchClientById } from "../../api/clients.api";
 import { createProject, fetchAllProjects } from "../../api/projects.api";
 import { CLIENT_STATUSES, INITIAL_CALLS, INITIAL_EMAIL_THREADS } from "../../data/clients";
@@ -41,7 +42,7 @@ function initials(name = "") {
 
 function InfoRow({ label, value }) {
   return (
-    <div className="flex items-center justify-between gap-4 py-2.5 border-b border-border/40 last:border-0">
+    <div className="flex items-center justify-between gap-4 py-2.5 border-b border-border/30 last:border-0">
       <span className="text-sm text-muted-foreground shrink-0">{label}</span>
       <span className="text-sm font-medium text-right">{value || "—"}</span>
     </div>
@@ -103,7 +104,7 @@ export default function ClientDetailPage() {
 
   if (loading) {
     return (
-      <div className="space-y-6">
+      <PageShell>
         <PageHeader
           title="Loading..."
           actions={
@@ -112,24 +113,24 @@ export default function ClientDetailPage() {
             </Button>
           }
         />
-        <Card className="border-border/60 shadow-sm"><CardContent className="py-16"><Skeleton className="h-8 w-48 mx-auto" /></CardContent></Card>
-      </div>
+        <Card><CardContent className="py-16"><Skeleton className="h-8 w-48 mx-auto" /></CardContent></Card>
+      </PageShell>
     );
   }
 
   if (!client) {
     return (
-      <div className="space-y-4">
+      <PageShell>
         <Button variant="ghost" size="sm" className="gap-2" onClick={() => navigate(ROUTES.ADMIN.CLIENTS)}>
           <ArrowLeft className="h-4 w-4" /> Back
         </Button>
-        <Card className="border-border/60">
+        <Card>
           <CardContent className="py-24 text-center">
             <Building2 className="mx-auto mb-3 h-12 w-12 text-muted-foreground/30" />
             <p className="font-medium">Client not found</p>
           </CardContent>
         </Card>
-      </div>
+      </PageShell>
     );
   }
 
@@ -138,7 +139,7 @@ export default function ClientDetailPage() {
   const displayStatus = client.active ? "Active" : "Inactive";
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <PageHeader
         title={displayName}
         description={displayCompany}
@@ -150,7 +151,7 @@ export default function ClientDetailPage() {
       />
 
       <div className="grid gap-6 xl:grid-cols-[260px_1fr]">
-        <Card className="border-border/60 shadow-sm self-start">
+        <Card className="self-start">
           <CardContent className="p-6 text-center space-y-4">
             <Avatar className="mx-auto h-20 w-20 ring-4 ring-border/40 ring-offset-2 ring-offset-background">
               <img src={avatarUrl(displayName)} alt={displayName} className="h-full w-full rounded-full object-cover" />
@@ -242,7 +243,7 @@ export default function ClientDetailPage() {
         </Card>
 
         <div className="space-y-5">
-          <Card className="border-border/60 shadow-sm">
+          <Card>
             <CardHeader className="pb-2 pt-5 px-5">
               <CardTitle className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 Client Details
@@ -257,7 +258,7 @@ export default function ClientDetailPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-border/60 shadow-sm">
+          <Card>
             <CardHeader className="pb-2 pt-5 px-5 flex flex-row items-center justify-between">
               <CardTitle className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 Recent Emails
@@ -283,7 +284,7 @@ export default function ClientDetailPage() {
                     <div
                       key={t.id}
                       onClick={() => navigate(ROUTES.ADMIN.CLIENT_EMAIL)}
-                      className="flex items-start gap-3 rounded-lg border border-border/50 px-3 py-2.5 cursor-pointer hover:bg-muted/20 transition-colors"
+                      className="flex items-start gap-3 rounded-lg bg-muted/20 px-3 py-2.5 cursor-pointer hover:bg-muted/35 transition-colors"
                     >
                       <Mail className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                       <div className="flex-1 min-w-0">
@@ -300,7 +301,7 @@ export default function ClientDetailPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-border/60 shadow-sm">
+          <Card>
             <CardHeader className="pb-2 pt-5 px-5 flex flex-row items-center justify-between">
               <CardTitle className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 Projects ({projects.length})
@@ -324,7 +325,7 @@ export default function ClientDetailPage() {
                     <div
                       key={p.id}
                       onClick={() => navigate(ROUTES.ADMIN.PROJECT_DETAIL.replace(":projectId", p.id))}
-                      className="flex items-center justify-between gap-3 rounded-lg border border-border/50 px-3 py-2.5 cursor-pointer hover:bg-muted/20 transition-colors"
+                      className="flex items-center justify-between gap-3 rounded-lg bg-muted/20 px-3 py-2.5 cursor-pointer hover:bg-muted/35 transition-colors"
                     >
                       <div className="flex items-center gap-3 min-w-0">
                         <Briefcase className="h-4 w-4 text-primary shrink-0" />
@@ -341,7 +342,7 @@ export default function ClientDetailPage() {
           </Card>
 
           {calls.length > 0 && (
-            <Card className="border-border/60 shadow-sm">
+            <Card>
               <CardHeader className="pb-2 pt-5 px-5">
                 <CardTitle className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                   Call History
@@ -351,7 +352,7 @@ export default function ClientDetailPage() {
                 {calls.map((call) => (
                   <div
                     key={call.id}
-                    className="flex items-center justify-between gap-3 rounded-lg border border-border/50 px-3 py-2.5"
+                    className="flex items-center justify-between gap-3 rounded-lg bg-muted/20 px-3 py-2.5"
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       {call.direction === "inbound" ? (
@@ -416,6 +417,6 @@ export default function ClientDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   );
 }

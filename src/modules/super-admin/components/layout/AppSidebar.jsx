@@ -65,10 +65,12 @@ export default function AppSidebar() {
         ))}
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border">
-        <p className="px-2 py-2 text-[10px] text-sidebar-foreground/50 group-data-[collapsible=icon]:hidden">
-          Platform v2.4 · Enterprise
-        </p>
+      <SidebarFooter className="border-t border-sidebar-border p-3">
+        <div className="rounded-xl bg-secondary/70 px-2 py-2 ring-1 ring-border/50 group-data-[collapsible=icon]:hidden">
+          <p className="text-[10px] text-muted-foreground">
+            Platform v2.4 · Enterprise
+          </p>
+        </div>
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

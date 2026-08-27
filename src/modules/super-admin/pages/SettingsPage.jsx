@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Save } from "lucide-react";
 import PageHeader from "../components/shared/PageHeader";
+import { PageShell } from "@/components/layout/PageShell";
 import { AUDIT_LOGS } from "../data/settings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,7 +31,7 @@ const STATUS_VARIANT = { success: "success", warning: "warning", destructive: "d
 
 function SettingsGroup({ title, description, children }) {
   return (
-    <Card className="border-border/60 shadow-sm">
+    <Card>
       <CardHeader>
         <CardTitle className="text-base">{title}</CardTitle>
         {description && <CardDescription>{description}</CardDescription>}
@@ -42,7 +43,7 @@ function SettingsGroup({ title, description, children }) {
 
 function ToggleRow({ label, description, checked, onCheckedChange }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-lg border border-border/60 p-4">
+    <div className="flex items-center justify-between gap-4 rounded-lg bg-muted/30 p-4">
       <div>
         <p className="text-sm font-medium">{label}</p>
         {description && <p className="text-xs text-muted-foreground">{description}</p>}
@@ -73,7 +74,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="space-y-6 pb-24">
+    <PageShell className="pb-24">
       <PageHeader
         title="Settings"
         description="Platform configuration, security, branding, and audit history."
@@ -192,7 +193,7 @@ export default function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="audit">
-          <Card className="overflow-hidden border-border/60">
+          <Card className="overflow-hidden">
             <CardHeader>
               <CardTitle className="text-base">Audit logs</CardTitle>
               <CardDescription>Recent administrative actions</CardDescription>
@@ -257,6 +258,6 @@ export default function SettingsPage() {
           </Button>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

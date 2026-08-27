@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Package, AlertTriangle, TrendingUp, History } from "lucide-react";
 import ConfigurationLayout from "../../components/shared/configuration/ConfigurationLayout";
-import PageHeader from "../../components/shared/configuration/PageHeader";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageShell, PageTitle, StatTile, Surface } from "@/components/layout/PageShell";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -44,58 +43,45 @@ export default function StockDashboardPage() {
 
   return (
     <ConfigurationLayout>
-      <div className="space-y-6">
-        <PageHeader
+      <PageShell>
+        <PageTitle
           title="Stock Dashboard"
-          description="Company-wide warehouse balances, stock value, and recent activity."
+          subtitle="Company-wide warehouse balances, stock value, and recent activity."
+          actions={
+            <div className="flex flex-wrap gap-2">
+              <Button asChild size="sm"><Link to={ROUTES.ADMIN.PROCUREMENT_RECEIPT}>Goods Receipt</Link></Button>
+              <Button asChild size="sm" variant="outline"><Link to={ROUTES.ADMIN.PROCUREMENT_ISSUE}>Stock Issue</Link></Button>
+              <Button asChild size="sm" variant="outline"><Link to={ROUTES.ADMIN.PROCUREMENT_MOVEMENTS}>Movement History</Link></Button>
+            </div>
+          }
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <TrendingUp className="w-4 h-4" /> Total Stock Value
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">{isLoading ? "—" : formatCurrency(totalValue)}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <Package className="w-4 h-4" /> Materials Tracked
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">{isLoading ? "—" : balances.length}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-amber-500" /> Below Min Stock
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold text-amber-600">{isLoading ? "—" : lowStockItems.length}</p>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          <StatTile
+            label="Total Stock Value"
+            value={isLoading ? "—" : formatCurrency(totalValue)}
+            icon={TrendingUp}
+          />
+          <StatTile
+            label="Materials Tracked"
+            value={isLoading ? "—" : balances.length}
+            icon={Package}
+          />
+          <StatTile
+            label="Below Min Stock"
+            value={isLoading ? "—" : lowStockItems.length}
+            icon={AlertTriangle}
+            hint={lowStockItems.length ? "Needs replenishment" : "All within range"}
+          />
         </div>
 
-        <div className="flex gap-3">
-          <Button asChild size="sm"><Link to={ROUTES.ADMIN.PROCUREMENT_RECEIPT}>Goods Receipt</Link></Button>
-          <Button asChild size="sm" variant="outline"><Link to={ROUTES.ADMIN.PROCUREMENT_ISSUE}>Stock Issue</Link></Button>
-          <Button asChild size="sm" variant="outline"><Link to={ROUTES.ADMIN.PROCUREMENT_MOVEMENTS}>Movement History</Link></Button>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Stock Balances</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0 overflow-x-auto">
+        <Surface>
+          <div className="px-5 pt-5 md:px-6 md:pt-6">
+            <h2 className="text-base font-semibold tracking-tight">Stock Balances</h2>
+          </div>
+          <div className="overflow-x-auto p-0 pt-3">
             {isLoading ? (
-              <div className="p-6 space-y-3">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
+              <div className="space-y-3 p-6">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
             ) : (
               <Table>
                 <TableHeader>
@@ -110,11 +96,11 @@ export default function StockDashboardPage() {
                 </TableHeader>
                 <TableBody>
                   {balances.length === 0 ? (
-                    <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No stock records yet.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={6} className="py-8 text-center text-muted-foreground">No stock records yet.</TableCell></TableRow>
                   ) : balances.map((b) => (
                     <TableRow key={b.materialId}>
                       <TableCell>
-                        <div className="font-medium text-sm">{b.materialName}</div>
+                        <div className="text-sm font-medium">{b.materialName}</div>
                         <div className="text-[10px] text-muted-foreground">{b.materialCode}</div>
                       </TableCell>
                       <TableCell className="text-xs">{b.materialCategoryName || "—"}</TableCell>
@@ -129,15 +115,17 @@ export default function StockDashboardPage() {
                 </TableBody>
               </Table>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </Surface>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base flex items-center gap-2"><History className="w-4 h-4" /> Recent Movements</CardTitle>
+        <Surface>
+          <div className="flex items-center justify-between px-5 pt-5 md:px-6 md:pt-6">
+            <h2 className="flex items-center gap-2 text-base font-semibold tracking-tight">
+              <History className="h-4 w-4" /> Recent Movements
+            </h2>
             <Button asChild variant="link" size="sm"><Link to={ROUTES.ADMIN.PROCUREMENT_MOVEMENTS}>View all</Link></Button>
-          </CardHeader>
-          <CardContent className="p-0 overflow-x-auto">
+          </div>
+          <div className="overflow-x-auto p-0 pt-3">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -150,7 +138,7 @@ export default function StockDashboardPage() {
               </TableHeader>
               <TableBody>
                 {recentMovements.length === 0 ? (
-                  <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">No movements recorded.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={5} className="py-6 text-center text-muted-foreground">No movements recorded.</TableCell></TableRow>
                 ) : recentMovements.map((m) => (
                   <TableRow key={m.id}>
                     <TableCell className="text-xs">{m.movementDate ? new Date(m.movementDate).toLocaleString() : "—"}</TableCell>
@@ -162,9 +150,9 @@ export default function StockDashboardPage() {
                 ))}
               </TableBody>
             </Table>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </Surface>
+      </PageShell>
     </ConfigurationLayout>
   );
 }

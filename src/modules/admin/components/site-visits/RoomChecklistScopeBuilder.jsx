@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ChevronDown, ChevronRight, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, Search, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -60,6 +60,7 @@ export default function RoomChecklistScopeBuilder({
   const [customFloor, setCustomFloor] = useState("");
   const [customRoom, setCustomRoom] = useState("");
   const [expandedFloors, setExpandedFloors] = useState({});
+  const [itemSearch, setItemSearch] = useState("");
 
   const itemCount = countScopedItems(floors);
   const roomCount = countScopedRooms(floors);
@@ -118,6 +119,7 @@ export default function RoomChecklistScopeBuilder({
   const selectCategory = (category) => {
     if (!category || !activeFloor || !activeRoom) return;
     setActiveCategory(category);
+    setItemSearch("");
     const { next, floorIndex, roomIndex } = ensureFloorRoom(activeFloor, activeRoom);
     if (floorIndex < 0 || roomIndex < 0) return;
     const room = next[floorIndex].rooms[roomIndex];
@@ -273,6 +275,14 @@ export default function RoomChecklistScopeBuilder({
   }, [roomPresets, floors, activeFloor]);
 
   const catalogItems = activeCategory ? itemsForCategory(activeCategory) : [];
+  const filteredCatalogItems = useMemo(() => {
+    const q = itemSearch.trim().toLowerCase();
+    if (!q) return catalogItems;
+    return catalogItems.filter((item) => {
+      if (activeSelectionItems.includes(item)) return true;
+      return item.toLowerCase().includes(q);
+    });
+  }, [catalogItems, itemSearch, activeSelectionItems]);
   const canPickItems = Boolean(activeFloor && activeRoom && activeCategory);
 
   return (
@@ -486,8 +496,34 @@ export default function RoomChecklistScopeBuilder({
               </p>
               <Badge variant="outline">{activeSelectionItems.length} selected</Badge>
             </div>
+            <div className="relative max-w-xl">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={itemSearch}
+                disabled={disabled}
+                placeholder="Search items in this category…"
+                className="h-9 pl-9 pr-9"
+                onChange={(e) => setItemSearch(e.target.value)}
+              />
+              {itemSearch && (
+                <button
+                  type="button"
+                  aria-label="Clear search"
+                  disabled={disabled}
+                  onClick={() => setItemSearch("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            {itemSearch.trim() && (
+              <p className="text-[11px] text-muted-foreground">
+                Showing {filteredCatalogItems.length} of {catalogItems.length} items
+              </p>
+            )}
             <div className="flex flex-wrap gap-2">
-              {catalogItems.map((item) => {
+              {filteredCatalogItems.map((item) => {
                 const active = activeSelectionItems.includes(item);
                 return (
                   <button
@@ -506,6 +542,11 @@ export default function RoomChecklistScopeBuilder({
                 );
               })}
             </div>
+            {itemSearch.trim() && filteredCatalogItems.length === 0 && (
+              <p className="text-xs text-muted-foreground">
+                No items match &ldquo;{itemSearch.trim()}&rdquo;
+              </p>
+            )}
           </div>
         ) : null}
       </div>

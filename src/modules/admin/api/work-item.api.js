@@ -1,9 +1,14 @@
 import axiosInstance from "@/lib/axiosInstance";
 
 export const fetchWorkItems = (filter = {}, page = 0, size = 10) => {
-  // Convert pagination to 0-indexed for Spring Boot
   return axiosInstance
     .post(`/work-items/filter?page=${page}&size=${size}`, filter)
+    .then((r) => r.data?.data ?? r.data);
+};
+
+export const fetchWorkItemById = (id) => {
+  return axiosInstance
+    .get(`/work-items/${id}`)
     .then((r) => r.data?.data ?? r.data);
 };
 

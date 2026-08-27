@@ -170,7 +170,7 @@ export default function UploadDesignPage() {
       <form onSubmit={handleSubmit} className="grid gap-6 lg:grid-cols-3">
         {/* Left — form */}
         <div className="lg:col-span-2 space-y-4">
-          <Card className="border-border/60 shadow-sm">
+          <Card className="">
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Project & Stage Details</CardTitle>
             </CardHeader>
@@ -235,7 +235,7 @@ export default function UploadDesignPage() {
           </Card>
 
           {/* File Upload Zones */}
-          <Card className="border-border/60 shadow-sm">
+          <Card className="">
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Upload Design Files</CardTitle>
             </CardHeader>
@@ -293,7 +293,7 @@ export default function UploadDesignPage() {
 
         {/* Right — summary */}
         <div>
-          <Card className="border-border/60 shadow-sm sticky top-4">
+          <Card className="sticky top-4">
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Upload Summary</CardTitle>
             </CardHeader>

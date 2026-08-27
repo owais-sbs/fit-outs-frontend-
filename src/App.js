@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { lazy, Suspense } from "react";
 import { AuthProvider } from "./shared/context/auth-context";
 import { ROLES } from "./shared/constants/roles";
 import { ROUTES } from "./shared/constants/routes";
@@ -7,6 +8,8 @@ import ProtectedRoute from "./app/routes/protected-route";
 import RoleRoute from "./app/routes/role-route";
 
 import Login from "./modules/auth/pages/login";
+import ForgotPasswordPage from "./modules/auth/pages/forgot-password";
+import SetPasswordPage from "./modules/auth/pages/set-password";
 import RolesManagement from "./modules/auth/pages/roles-management";
 
 import SuperAdminLayout from "./modules/super-admin/layouts/SuperAdminLayout";
@@ -26,17 +29,9 @@ import {
   SiteVisitsPage,
   SiteVisitSchedulePage,
   SiteVisitReportPage,
-  UpcomingVisitsPage,
-  CompletedVisitsPage,
-  VisitReportsPage,
-  ChecklistsPage,
   LeadsListPage,
-  NewLeadsPage,
-  FollowUpsPage,
   FollowUpDetailPage,
   LeadSourcesPage,
-  LostLeadsPage,
-  QualifiedLeadsPage,
   EmployeesPage,
   AddEmployeePage,
   EmployeeDetailPage,
@@ -49,17 +44,16 @@ import {
   RoomChatPage,
   ClientsPage,
   AddClientPage,
-  ClientEmailPage,
   ClientDetailPage,
+  CommunicationsPage,
   RoomConfigurationPage,
   WorkItemConfigurationPage,
   MaterialConfigurationPage,
+  AppendixMastersPage,
   StockDashboardPage,
   GoodsReceiptPage,
   StockIssuePage,
   MovementHistoryPage,
-  ProjectDrawingsPage,
-  QtoWorkspacePage,
 } from "./modules/admin/pages";
 
 import {
@@ -79,10 +73,14 @@ import DirectorProjectsPage from "./modules/business-owner/pages/DirectorProject
 import DirectorCommercialPage from "./modules/business-owner/pages/DirectorCommercialPage";
 import DirectorCrmPage from "./modules/business-owner/pages/DirectorCrmPage";
 import ProjectManagerDashboard from "./modules/project-manager/pages/dashboard";
+import PmLayout from "./modules/project-manager/layouts/PmLayout";
 import DesignerDashboard from "./modules/designer/pages/dashboard";
 import QASDashboard from "./modules/qas/pages/dashboard";
 import FinanceDashboard from "./modules/finance/pages/dashboard";
 import SubcontractorDashboard from "./modules/subcontractor/pages/dashboard";
+import SubcontractorLayout from "./modules/subcontractor/layouts/SubcontractorLayout";
+import SubcontractorPackagesPage from "./modules/subcontractor/pages/SubcontractorPackagesPage";
+import SubcontractorClaimsPage from "./modules/subcontractor/pages/SubcontractorClaimsPage";
 import {
   ClientLayout,
   ClientDashboard,
@@ -93,7 +91,6 @@ import {
   ApprovedDesignsPage,
   ClientDocumentsPage,
   ClientInvoicesPage,
-  ClientCommsPage,
   ClientSettingsPage,
   MyProjectsPage,
   NewProjectRequestPage,
@@ -106,6 +103,31 @@ import EmployeeLayout from "./modules/employee/layouts/EmployeeLayout";
 import EmployeeDashboard from "./modules/employee/pages/EmployeeDashboard";
 import EmployeeProjectsPage from "./modules/employee/pages/EmployeeProjectsPage";
 import EmployeeCalendarPage from "./modules/employee/pages/EmployeeCalendarPage";
+import EmployeeSiteVisitsPage from "./modules/employee/pages/EmployeeSiteVisitsPage";
+import EmployeeMyActivitiesPage from "./modules/employee/pages/EmployeeMyActivitiesPage";
+import ProjectSchedulePage from "./modules/admin/pages/schedule/ProjectSchedulePage";
+import ScheduleHubPage from "./modules/admin/pages/schedule/ScheduleHubPage";
+import MaterialPlanPage from "./modules/admin/pages/planning/MaterialPlanPage";
+import ResourcePlanPage from "./modules/admin/pages/planning/ResourcePlanPage";
+import ValidationInboxPage from "./modules/admin/pages/validation/ValidationInboxPage";
+import ProjectSnagsPage from "./modules/admin/pages/snags/ProjectSnagsPage";
+import ProjectDocumentsPage from "./modules/admin/pages/documents/ProjectDocumentsPage";
+import ProjectReportingPage from "./modules/admin/pages/reporting/ProjectReportingPage";
+import ProjectBillingPage from "./modules/admin/pages/billing/ProjectBillingPage";
+import ProjectSubcontractorPage from "./modules/admin/pages/subcontractor/ProjectSubcontractorPage";
+import AdminSettingsPage from "./modules/admin/pages/SettingsPage";
+import ClientSnagsPage from "./modules/client/pages/ClientSnagsPage";
+
+const ProjectDrawingsPage = lazy(() => import("./modules/admin/pages/drawings/ProjectDrawingsPage"));
+const QtoWorkspacePage = lazy(() => import("./modules/admin/pages/drawings/QtoWorkspacePage"));
+
+function LazyDrawingPage({ children }) {
+  return (
+    <Suspense fallback={<div className="flex min-h-[40vh] items-center justify-center text-sm text-muted-foreground">Loading…</div>}>
+      {children}
+    </Suspense>
+  );
+}
 
 function App() {
   return (
@@ -115,6 +137,8 @@ function App() {
           <Routes>
             {/* Public routes */}
             <Route path={ROUTES.AUTH.LOGIN} element={<Login />} />
+            <Route path={ROUTES.AUTH.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
+            <Route path={ROUTES.AUTH.SET_PASSWORD} element={<SetPasswordPage />} />
             <Route path="/roles" element={<RolesManagement />} />
 
             {/* Super Admin — nested layout + pages */}
@@ -153,20 +177,20 @@ function App() {
               }>
               <Route index element={<AdminDashboard />} />
               <Route path="leads" element={<LeadsListPage />} />
-              <Route path="leads/recent" element={<NewLeadsPage />} />
+              <Route path="leads/recent" element={<Navigate to="/admin/leads?view=new" replace />} />
               <Route path="leads/new" element={<LeadIntakePage />} />
-              <Route path="leads/qualified" element={<QualifiedLeadsPage />} />
+              <Route path="leads/qualified" element={<Navigate to="/admin/leads?view=qualified" replace />} />
               <Route path="leads/:leadId" element={<LeadDetailPage />} />
-              <Route path="follow-ups" element={<FollowUpsPage />} />
+              <Route path="follow-ups" element={<Navigate to="/admin/leads?view=follow-ups" replace />} />
               <Route path="follow-ups/:followUpId" element={<FollowUpDetailPage />} />
               <Route path="lead-sources" element={<LeadSourcesPage />} />
-              <Route path="lost-leads" element={<LostLeadsPage />} />
+              <Route path="lost-leads" element={<Navigate to="/admin/leads?view=lost" replace />} />
               <Route path="site-visits" element={<SiteVisitsPage />} />
               <Route path="site-visits/schedule" element={<SiteVisitSchedulePage />} />
-              <Route path="site-visits/upcoming" element={<UpcomingVisitsPage />} />
-              <Route path="site-visits/completed" element={<CompletedVisitsPage />} />
-              <Route path="site-visits/reports" element={<VisitReportsPage />} />
-              <Route path="site-visits/checklists" element={<ChecklistsPage />} />
+              <Route path="site-visits/upcoming" element={<Navigate to="/admin/site-visits?tab=upcoming" replace />} />
+              <Route path="site-visits/completed" element={<Navigate to="/admin/site-visits?tab=completed" replace />} />
+              <Route path="site-visits/reports" element={<Navigate to="/admin/site-visits?tab=reports" replace />} />
+              <Route path="site-visits/checklists" element={<Navigate to="/admin/site-visits?tab=checklists" replace />} />
               <Route path="site-visits/:visitId/report" element={<SiteVisitReportPage />} />
               <Route path="design-qas/requests" element={<DesignRequestsPage />} />
               <Route path="design-qas/options" element={<DesignOptionsPage />} />
@@ -178,18 +202,31 @@ function App() {
               <Route path="projects" element={<ProjectsPage />} />
               <Route path="projects/new" element={<CreateProjectPage />} />
               <Route path="projects/:projectId" element={<ProjectDetailPage />} />
-              <Route path="projects/:projectId/drawings" element={<ProjectDrawingsPage />} />
-              <Route path="projects/:projectId/drawings/:drawingId/qto" element={<QtoWorkspacePage />} />
+              <Route path="projects/:projectId/schedule" element={<ProjectSchedulePage />} />
+              <Route path="projects/:projectId/material-plan" element={<MaterialPlanPage />} />
+              <Route path="projects/:projectId/resource-plan" element={<ResourcePlanPage />} />
+              <Route path="projects/:projectId/validation" element={<ValidationInboxPage />} />
+              <Route path="projects/:projectId/snags" element={<ProjectSnagsPage />} />
+              <Route path="projects/:projectId/documents" element={<ProjectDocumentsPage />} />
+              <Route path="projects/:projectId/reporting" element={<ProjectReportingPage />} />
+              <Route path="projects/:projectId/billing" element={<ProjectBillingPage />} />
+              <Route path="projects/:projectId/subcontractors" element={<ProjectSubcontractorPage />} />
+              <Route path="validation/inbox" element={<ValidationInboxPage />} />
+              <Route path="schedule" element={<ScheduleHubPage />} />
+              <Route path="projects/:projectId/drawings" element={<LazyDrawingPage><ProjectDrawingsPage /></LazyDrawingPage>} />
+              <Route path="projects/:projectId/drawings/:drawingId/qto" element={<LazyDrawingPage><QtoWorkspacePage /></LazyDrawingPage>} />
               <Route path="projects/:projectId/room-tasks/:taskId" element={<RoomTaskDetailPage />} />
               <Route path="projects/:projectId/rooms/:roomId/chat" element={<RoomChatPage />} />
               <Route path="leads/project-requests" element={<ProjectRequestsPage />} />
               <Route path="clients" element={<ClientsPage />} />
               <Route path="clients/new" element={<AddClientPage />} />
-              <Route path="clients/email" element={<ClientEmailPage />} />
+              <Route path="clients/email" element={<Navigate to={ROUTES.ADMIN.COMMUNICATIONS} replace />} />
+              <Route path="communications" element={<CommunicationsPage />} />
               <Route path="clients/:clientId" element={<ClientDetailPage />} />
               <Route path="project-configuration/room" element={<RoomConfigurationPage />} />
               <Route path="project-configuration/work-item" element={<WorkItemConfigurationPage />} />
               <Route path="project-configuration/materials" element={<MaterialConfigurationPage />} />
+              <Route path="project-configuration/appendices" element={<AppendixMastersPage />} />
               <Route path="procurement/stock" element={<StockDashboardPage />} />
               <Route path="procurement/receipt" element={<GoodsReceiptPage />} />
               <Route path="procurement/issue" element={<StockIssuePage />} />
@@ -197,6 +234,7 @@ function App() {
               <Route path="qas" element={<BoqFlowPage />} />
               <Route path="boq" element={<BoqFlowPage />} />
               <Route path="boq/inbox" element={<BoqApprovalInboxPage />} />
+              <Route path="settings" element={<AdminSettingsPage />} />
 
             </Route>
 
@@ -219,25 +257,34 @@ function App() {
             </Route>
 
             <Route
-              path={ROUTES.PROJECT_MANAGER.DASHBOARD}
+              path="/project-manager"
               element={
                 <ProtectedRoute>
                   <RoleRoute allowedRoles={[ROLES.PROJECT_MANAGER]}>
-                    <ProjectManagerDashboard />
+                    <PmLayout />
                   </RoleRoute>
                 </ProtectedRoute>
               }
-            />
-            <Route
-              path={ROUTES.PROJECT_MANAGER.BOQ_INBOX}
-              element={
-                <ProtectedRoute>
-                  <RoleRoute allowedRoles={[ROLES.PROJECT_MANAGER]}>
-                    <div className="p-6"><BoqApprovalInboxPage /></div>
-                  </RoleRoute>
-                </ProtectedRoute>
-              }
-            />
+            >
+              <Route index element={<ProjectManagerDashboard />} />
+              <Route path="boq/inbox" element={<BoqApprovalInboxPage />} />
+              <Route path="projects" element={<ProjectsPage />} />
+              <Route path="projects/:projectId" element={<ProjectDetailPage />} />
+              <Route path="projects/:projectId/schedule" element={<ProjectSchedulePage />} />
+              <Route path="projects/:projectId/material-plan" element={<MaterialPlanPage />} />
+              <Route path="projects/:projectId/resource-plan" element={<ResourcePlanPage />} />
+              <Route path="projects/:projectId/validation" element={<ValidationInboxPage />} />
+              <Route path="projects/:projectId/snags" element={<ProjectSnagsPage />} />
+              <Route path="projects/:projectId/documents" element={<ProjectDocumentsPage />} />
+              <Route path="projects/:projectId/reporting" element={<ProjectReportingPage />} />
+              <Route path="projects/:projectId/billing" element={<ProjectBillingPage />} />
+              <Route path="projects/:projectId/subcontractors" element={<ProjectSubcontractorPage />} />
+              <Route path="validation/inbox" element={<ValidationInboxPage />} />
+              <Route path="schedule" element={<ScheduleHubPage />} />
+              <Route path="site-visits" element={<SiteVisitsPage />} />
+              <Route path="site-visits/:visitId/report" element={<SiteVisitReportPage />} />
+              <Route path="communications" element={<CommunicationsPage />} />
+            </Route>
             <Route
               path={ROUTES.DESIGNER.DASHBOARD}
               element={
@@ -269,15 +316,19 @@ function App() {
               }
             />
             <Route
-              path={ROUTES.SUBCONTRACTOR.DASHBOARD}
+              path="/subcontractor"
               element={
                 <ProtectedRoute>
                   <RoleRoute allowedRoles={[ROLES.SUBCONTRACTOR]}>
-                    <SubcontractorDashboard />
+                    <SubcontractorLayout />
                   </RoleRoute>
                 </ProtectedRoute>
               }
-            />
+            >
+              <Route index element={<SubcontractorDashboard />} />
+              <Route path="packages" element={<SubcontractorPackagesPage />} />
+              <Route path="claims" element={<SubcontractorClaimsPage />} />
+            </Route>
             <Route
               path={ROUTES.CLIENT.DASHBOARD}
               element={
@@ -296,8 +347,9 @@ function App() {
               <Route path="boq-approvals" element={<ClientBoqApprovalsPage />} />
               <Route path="designs/:id" element={<DesignDetailPage />} />
               <Route path="documents" element={<ClientDocumentsPage />} />
+              <Route path="snags" element={<ClientSnagsPage />} />
               <Route path="invoices" element={<ClientInvoicesPage />} />
-              <Route path="communications" element={<ClientCommsPage />} />
+              <Route path="communications" element={<CommunicationsPage clientMode />} />
               <Route path="settings" element={<ClientSettingsPage />} />
               <Route path="projects/my" element={<MyProjectsPage />} />
               <Route path="projects/request" element={<NewProjectRequestPage />} />
@@ -316,11 +368,7 @@ function App() {
               }
             />
 
-            {/* Fallback routes */}
-            <Route path="/" element={<Navigate to={ROUTES.AUTH.LOGIN} replace />} />
-            <Route path="*" element={<Navigate to={ROUTES.AUTH.LOGIN} replace />} />
-
-            {/* Employee Portal */}
+            {/* Employee / Site Engineer Portal */}
             <Route
               path="/employee"
               element={
@@ -333,8 +381,16 @@ function App() {
             >
               <Route index element={<EmployeeDashboard />} />
               <Route path="projects" element={<EmployeeProjectsPage />} />
+              <Route path="activities" element={<EmployeeMyActivitiesPage />} />
               <Route path="calendar" element={<EmployeeCalendarPage />} />
+              <Route path="site-visits" element={<EmployeeSiteVisitsPage />} />
+              <Route path="site-visits/:visitId/report" element={<SiteVisitReportPage />} />
+              <Route path="communications" element={<CommunicationsPage />} />
             </Route>
+
+            {/* Fallback routes */}
+            <Route path="/" element={<Navigate to={ROUTES.AUTH.LOGIN} replace />} />
+            <Route path="*" element={<Navigate to={ROUTES.AUTH.LOGIN} replace />} />
           </Routes>
         </div>
       </BrowserRouter>

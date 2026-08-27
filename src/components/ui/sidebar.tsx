@@ -243,7 +243,7 @@ function Sidebar({
         <div
           data-sidebar="sidebar"
         data-slot="sidebar-inner"
-          className="flex h-full w-full flex-col bg-sidebar group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow-sm"
+          className="flex h-full w-full flex-col bg-sidebar group-data-[variant=floating]:rounded-2xl group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow-sm border-r border-sidebar-border"
         >
           {children}
         </div>
@@ -473,7 +473,7 @@ function SidebarMenuItem({ className, ...props }: React.ComponentProps<"li">) {
 }
 
 const sidebarMenuButtonVariants = cva(
-  "peer/menu-button relative flex w-full items-center gap-2 overflow-hidden rounded-lg p-2 text-left text-sm text-sidebar-foreground/80 ring-sidebar-ring outline-none transition-all duration-200 group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:!h-8 group-data-[collapsible=icon]:!p-2 before:absolute before:left-1 before:top-1/2 before:h-0 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-[#C8A97E] before:transition-all before:duration-200 group-data-[collapsible=icon]:before:hidden hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-primary/25 data-[active=true]:font-medium data-[active=true]:text-white data-[active=true]:before:h-5 data-[state=open]:hover:bg-sidebar-accent/70 data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:h-4 [&>svg]:w-4 [&>svg]:shrink-0",
+  "peer/menu-button relative flex w-full items-center gap-2 overflow-hidden rounded-xl p-2 text-left text-sm text-sidebar-foreground/75 ring-sidebar-ring outline-none transition-all duration-200 group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:!h-8 group-data-[collapsible=icon]:!p-2 before:absolute before:left-1 before:top-1/2 before:h-0 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-[var(--color-accent-copper)] before:transition-all before:duration-200 group-data-[collapsible=icon]:before:hidden hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-semibold data-[active=true]:text-sidebar-accent-foreground data-[active=true]:before:h-5 data-[active=true]:animate-nav-glow data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:h-4 [&>svg]:w-4 [&>svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -686,7 +686,7 @@ function SidebarMenuSubButton({
       data-active={isActive}
       className={cn(
         "flex h-7 min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-md px-2 text-sidebar-foreground/70 ring-sidebar-ring outline-none transition-all duration-200 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground hover:translate-x-0.5 focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span:last-child]:truncate [&>svg]:h-4 [&>svg]:w-4 [&>svg]:shrink-0",
-        "data-[active=true]:bg-sidebar-primary/20 data-[active=true]:font-medium data-[active=true]:text-white data-[active=true]:[&>svg]:text-[#C8A97E]",
+        "data-[active=true]:bg-sidebar-accent data-[active=true]:font-semibold data-[active=true]:text-sidebar-accent-foreground data-[active=true]:[&>svg]:text-[var(--color-accent-copper)]",
         size === "sm" && "text-xs",
         size === "md" && "text-sm",
         "group-data-[collapsible=icon]:hidden",

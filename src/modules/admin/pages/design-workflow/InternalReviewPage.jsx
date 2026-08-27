@@ -91,7 +91,7 @@ export default function InternalReviewPage() {
           { label: "Approved", count: items.filter(i => i.status === "Approved").length, color: "text-emerald-600" },
           { label: "Sent Back", count: items.filter(i => i.status === "Sent Back").length, color: "text-destructive" },
         ].map((s) => (
-          <Card key={s.label} className="border-border/60 shadow-sm">
+          <Card key={s.label} className="">
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground">{s.label}</p>
               <p className={`mt-1 text-2xl font-bold ${s.color}`}>{s.count}</p>
@@ -106,7 +106,7 @@ export default function InternalReviewPage() {
           const passed = passedCount(item.checklist);
           const total = totalCount(item.checklist);
           return (
-            <Card key={item.id} className="overflow-hidden border-border/60 shadow-sm hover:border-primary/30 hover:shadow-md transition-all">
+            <Card key={item.id} className="overflow-hidden hover:border-primary/30 hover:shadow-md transition-all">
               {/* Interior design preview */}
               <div className="relative h-48 bg-muted overflow-hidden">
                 <img

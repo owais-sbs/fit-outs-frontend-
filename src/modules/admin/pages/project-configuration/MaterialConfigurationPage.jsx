@@ -305,7 +305,7 @@ export default function MaterialConfigurationPage() {
           onAction={handleOpenAdd}
         />
 
-        <div className="flex flex-col md:flex-row gap-4 justify-between items-stretch md:items-center bg-card p-4 border rounded-lg shadow-sm">
+        <div className="flex flex-col md:flex-row gap-4 justify-between items-stretch md:items-center rounded-2xl bg-secondary/50 p-4">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -337,7 +337,7 @@ export default function MaterialConfigurationPage() {
           </div>
         </div>
 
-        <Card className="shadow-sm border">
+        <Card>
           <CardContent className="p-0 overflow-x-auto">
             {isLoading ? (
               <div className="p-6 space-y-4">

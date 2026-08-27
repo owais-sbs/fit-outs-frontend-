@@ -232,7 +232,7 @@ const styles = {
 };
 
 const CoverLetterTemplate = forwardRef(function CoverLetterTemplate(
-  { estimate, includeAppendix = true },
+  { estimate, includeAppendix = true, selectedAppendices = [] },
   ref
 ) {
   const lines = useMemo(
@@ -396,6 +396,31 @@ const CoverLetterTemplate = forwardRef(function CoverLetterTemplate(
           </div>
         </div>
       ) : null}
+
+      {(selectedAppendices || []).map((appendix) => (
+        <div
+          key={appendix.uuid}
+          style={{
+            pageBreakBefore: "always",
+            padding: 24,
+            boxSizing: "border-box",
+            border: "1px solid #E5E1DA",
+            marginTop: 16,
+          }}
+        >
+          <h2 style={{ margin: "0 0 8px", fontSize: 18, color: "#1F3A34" }}>{appendix.title}</h2>
+          {appendix.category ? (
+            <p style={{ margin: "0 0 16px", fontSize: 12, color: "#6B6B6B" }}>{appendix.category}</p>
+          ) : null}
+          {appendix.imageUrl ? (
+            <img
+              src={appendix.imageUrl}
+              alt={appendix.title || "Appendix"}
+              style={{ width: "100%", height: "auto", display: "block" }}
+            />
+          ) : null}
+        </div>
+      ))}
     </div>
   );
 });

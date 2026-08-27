@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,85 +6,87 @@
 
 @layer base {
   :root {
-    /* JCT theme — warm, premium, earthy forest-green palette */
-    --background: 0.9709 0.0045 78.2981;      /* #F7F5F2 warm beige page */
-    --foreground: 0.2178 0 89.8756;           /* #1A1A1A dark text */
-    --card: 1.0000 0 0;                        /* #FFFFFF white cards */
-    --card-foreground: 0.2178 0 89.8756;      /* #1A1A1A */
-    --popover: 1.0000 0 0;                     /* #FFFFFF */
-    --popover-foreground: 0.2178 0 89.8756;   /* #1A1A1A */
-    --primary: 0.3247 0.0350 178.1364;        /* #1F3A34 deep forest green */
-    --primary-foreground: 1.0000 0 0;         /* #FFFFFF */
-    --secondary: 0.9470 0.0074 80.7208;       /* #F0EDE8 light warm surface */
-    --secondary-foreground: 0.3247 0.0350 178.1364; /* #1F3A34 */
-    --muted: 0.9470 0.0074 80.7208;           /* #F0EDE8 */
-    --muted-foreground: 0.5278 0 89.8756;     /* #6B6B6B muted text */
-    --accent: 0.9109 0.0104 81.7945;          /* #E5E1DA warm accent surface */
-    --accent-foreground: 0.3247 0.0350 178.1364; /* #1F3A34 */
-    --destructive: 0.5771 0.2152 27.3250;
-    --destructive-foreground: 1.0000 0 0;
-    --border: 0.9109 0.0104 81.7945;          /* #E5E1DA warm border */
-    --input: 0.9109 0.0104 81.7945;           /* #E5E1DA */
-    --ring: 0.3247 0.0350 178.1364;           /* #1F3A34 focus ring */
-    --chart-1: 0.3247 0.0350 178.1364;        /* forest green */
-    --chart-2: 0.7518 0.0682 75.4899;         /* #C8A97E gold */
-    --chart-3: 0.6845 0.1478 50.7768;         /* #E07B39 orange accent */
-    --chart-4: 0.4350 0.0541 174.3167;        /* #2E5B4F green hover */
-    --chart-5: 0.5278 0 89.8756;              /* #6B6B6B muted */
-    --radius: 0.375rem;
-    --sidebar: 0.2321 0.0264 226.4149;        /* #0F2027 dark sidebar */
-    --sidebar-foreground: 0.9842 0.0034 247.8575;
-    --sidebar-primary: 0.4350 0.0541 174.3167; /* #2E5B4F green active */
-    --sidebar-primary-foreground: 1.0000 0 0;
-    --sidebar-accent: 0.2068 0.0247 224.4533; /* #0a1a20 sidebar submenu */
-    --sidebar-accent-foreground: 1.0000 0 0;
-    --sidebar-border: 0.2068 0.0247 224.4533; /* #0a1a20 */
-    --sidebar-ring: 0.4350 0.0541 174.3167;   /* #2E5B4F */
+    /* Light spatial SaaS — ink + copper (Linear/Attio-inspired) */
+    --background: 0.968 0.004 260;            /* #F5F6F8 cool canvas */
+    --foreground: 0.205 0.005 285;            /* #18181B ink */
+    --card: 0.995 0.001 90;                   /* near-white surface */
+    --card-foreground: 0.205 0.005 285;
+    --popover: 0.995 0.001 90;
+    --popover-foreground: 0.205 0.005 285;
+    --primary: 0.205 0.005 285;               /* ink charcoal actions */
+    --primary-foreground: 0.99 0 0;
+    --secondary: 0.955 0.004 90;              /* soft tonal fill */
+    --secondary-foreground: 0.28 0.01 285;
+    --muted: 0.95 0.005 260;
+    --muted-foreground: 0.52 0.01 260;        /* secondary text */
+    --accent: 0.94 0.012 55;                  /* warm copper wash */
+    --accent-foreground: 0.32 0.05 45;
+    --destructive: 0.55 0.2 25;
+    --destructive-foreground: 0.99 0 0;
+    --border: 0.86 0.008 260;                 /* visible field/card border */
+    --input: 0.98 0.002 90;
+    --ring: 0.68 0.09 50;                     /* copper focus */
+    --chart-1: 0.205 0.005 285;               /* ink */
+    --chart-2: 0.68 0.09 50;                  /* copper */
+    --chart-3: 0.55 0.08 160;                 /* muted teal (logo echo) */
+    --chart-4: 0.75 0.06 75;                  /* soft gold */
+    --chart-5: 0.62 0.02 260;
+    --radius: 1rem;
+    /* Light elevated sidebar rail */
+    --sidebar: 0.995 0.001 90;
+    --sidebar-foreground: 0.32 0.01 285;
+    --sidebar-primary: 0.205 0.005 285;
+    --sidebar-primary-foreground: 0.99 0 0;
+    --sidebar-accent: 0.955 0.008 55;
+    --sidebar-accent-foreground: 0.205 0.005 285;
+    --sidebar-border: 0.92 0.006 260;
+    --sidebar-ring: 0.68 0.09 50;
     --sidebar-width: 16rem;
     --sidebar-width-icon: 3rem;
-    --font-sans: Poppins, Inter, system-ui, sans-serif;
-    --font-mono: JetBrains Mono, monospace;
-    --font-serif: Georgia, serif;
-    --tracking-normal: -0.02em;
+    --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, monospace;
+    --font-serif: "Source Serif 4", Georgia, serif;
+    --tracking-normal: -0.015em;
 
-    /* JCT brand tokens (for direct use where needed) */
+    --color-accent-copper: #C4845A;
     --color-accent-gold: #C8A97E;
-    --color-accent-orange: #E07B39;
+    --color-accent-orange: #C4845A;
+    --color-ink: #18181B;
   }
 
   .dark {
-    --background: 0.2068 0.0247 224.4533;     /* #0a1a20 deep teal-black */
-    --foreground: 0.9842 0.0034 247.8575;
-    --card: 0.2321 0.0264 226.4149;           /* #0F2027 */
-    --card-foreground: 0.9842 0.0034 247.8575;
-    --popover: 0.2321 0.0264 226.4149;
-    --popover-foreground: 0.9842 0.0034 247.8575;
-    --primary: 0.4350 0.0541 174.3167;        /* #2E5B4F green */
-    --primary-foreground: 1.0000 0 0;
-    --secondary: 0.2321 0.0264 226.4149;
-    --secondary-foreground: 0.9842 0.0034 247.8575;
-    --muted: 0.2321 0.0264 226.4149;
-    --muted-foreground: 0.7107 0.0351 256.7878;
-    --accent: 0.2321 0.0264 226.4149;
-    --accent-foreground: 0.9842 0.0034 247.8575;
-    --destructive: 0.6368 0.2078 25.3313;
-    --destructive-foreground: 1.0000 0 0;
-    --border: 0.2321 0.0264 226.4149;
-    --input: 0.2321 0.0264 226.4149;
-    --ring: 0.4350 0.0541 174.3167;           /* #2E5B4F */
-    --chart-1: 0.4350 0.0541 174.3167;        /* green */
-    --chart-2: 0.7518 0.0682 75.4899;         /* gold */
-    --chart-3: 0.6845 0.1478 50.7768;         /* orange accent */
-    --chart-4: 0.3247 0.0350 178.1364;        /* forest green */
-    --chart-5: 0.7107 0.0351 256.7878;
-    --sidebar: 0.2068 0.0247 224.4533;        /* #0a1a20 */
-    --sidebar-foreground: 0.9842 0.0034 247.8575;
-    --sidebar-primary: 0.4350 0.0541 174.3167; /* #2E5B4F */
-    --sidebar-primary-foreground: 1.0000 0 0;
-    --sidebar-accent: 0.2321 0.0264 226.4149;
-    --sidebar-accent-foreground: 1.0000 0 0;
-    --sidebar-border: 0.2321 0.0264 226.4149;
-    --sidebar-ring: 0.4350 0.0541 174.3167;   /* #2E5B4F */
+    --background: 0.16 0.01 285;
+    --foreground: 0.97 0.005 260;
+    --card: 0.2 0.012 285;
+    --card-foreground: 0.97 0.005 260;
+    --popover: 0.2 0.012 285;
+    --popover-foreground: 0.97 0.005 260;
+    --primary: 0.92 0.01 90;
+    --primary-foreground: 0.18 0.01 285;
+    --secondary: 0.24 0.012 285;
+    --secondary-foreground: 0.95 0.005 260;
+    --muted: 0.24 0.012 285;
+    --muted-foreground: 0.68 0.02 260;
+    --accent: 0.28 0.04 50;
+    --accent-foreground: 0.95 0.02 55;
+    --destructive: 0.6 0.2 25;
+    --destructive-foreground: 0.99 0 0;
+    --border: 0.28 0.015 285;
+    --input: 0.26 0.012 285;
+    --ring: 0.72 0.09 50;
+    --chart-1: 0.9 0.01 90;
+    --chart-2: 0.72 0.09 50;
+    --chart-3: 0.6 0.08 160;
+    --chart-4: 0.75 0.06 75;
+    --chart-5: 0.65 0.02 260;
+    --sidebar: 0.18 0.012 285;
+    --sidebar-foreground: 0.92 0.01 90;
+    --sidebar-primary: 0.72 0.09 50;
+    --sidebar-primary-foreground: 0.15 0.01 285;
+    --sidebar-accent: 0.24 0.02 50;
+    --sidebar-accent-foreground: 0.95 0.02 55;
+    --sidebar-border: 0.26 0.015 285;
+    --sidebar-ring: 0.72 0.09 50;
   }
 }
 
@@ -96,7 +98,7 @@
   html {
     scrollbar-gutter: stable;
     scrollbar-width: thin;
-    scrollbar-color: hsl(var(--muted-foreground) / 0.35) transparent;
+    scrollbar-color: oklch(var(--muted-foreground) / 0.35) transparent;
   }
 
   *::-webkit-scrollbar {
@@ -111,32 +113,65 @@
   *::-webkit-scrollbar-thumb {
     background: linear-gradient(
       180deg,
-      hsl(var(--muted-foreground) / 0.42),
-      hsl(var(--muted-foreground) / 0.24)
+      oklch(var(--muted-foreground) / 0.4),
+      oklch(var(--muted-foreground) / 0.22)
     );
     border: 3px solid transparent;
     background-clip: content-box;
     border-radius: 9999px;
   }
 
-  *::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(
-      180deg,
-      hsl(var(--muted-foreground) / 0.56),
-      hsl(var(--muted-foreground) / 0.36)
-    );
-    border: 3px solid transparent;
-    background-clip: content-box;
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-sans);
+    letter-spacing: var(--tracking-normal);
+    background-image:
+      radial-gradient(1200px 600px at 10% -10%, oklch(0.94 0.02 55 / 0.45), transparent 55%),
+      radial-gradient(900px 500px at 100% 0%, oklch(0.96 0.01 260 / 0.8), transparent 50%);
+    background-attachment: fixed;
   }
 
-  body {
-    @apply bg-background text-foreground;
-    letter-spacing: var(--tracking-normal);
+  h1, .font-display {
+    font-family: var(--font-serif);
+    letter-spacing: -0.02em;
   }
 }
 
-/* Hide the sidebar scrollbar visually while keeping scroll functional.
-   Applies to every portal sidebar (admin, client, employee, super-admin). */
+@layer utilities {
+  .page-enter {
+    animation: page-enter 0.35s ease-out both;
+  }
+  .surface-panel {
+    border-radius: 1.25rem;
+    background-color: oklch(var(--card) / 0.92);
+    color: oklch(var(--card-foreground));
+    box-shadow: 0 1px 0 oklch(var(--border) / 0.8), 0 12px 40px -24px oklch(0.2 0.02 285 / 0.18);
+  }
+  .stat-tile {
+    border-radius: 1rem;
+    background-color: oklch(var(--secondary) / 0.65);
+    padding: 0.75rem 1rem;
+    transition: background-color 0.2s ease;
+  }
+  .stat-tile:hover {
+    background-color: oklch(var(--secondary));
+  }
+  .field-control {
+    @apply rounded-xl border border-border bg-background px-3 py-2 text-sm shadow-sm transition-colors hover:border-muted-foreground/40 focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 [data-sidebar="content"],
 [data-sidebar="sidebar"],
 .sidebar-no-scrollbar {
@@ -172,7 +207,6 @@
     print-color-adjust: exact !important;
   }
 
-  /* Hide entire app shell — only show BOQ document */
   body.boq-print-active header,
   body.boq-print-active aside,
   body.boq-print-active nav,

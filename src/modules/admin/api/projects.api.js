@@ -6,6 +6,7 @@ export function normalizeProject(item = {}) {
     id: String(item.id),
     projectName: item.name || item.projectName || "",
     clientName: item.clientName || "—",
+    clientId: item.clientId != null ? String(item.clientId) : null,
     projectType: item.projectType || "—",
     location: item.location || "—",
     description: item.description || "",
@@ -30,9 +31,18 @@ export const fetchProjectById = (id) =>
 export const createProject = (form) =>
   axiosInstance
     .post("/projects", {
-      name: form.name.trim(),
+      name: (form.name || form.projectName || "").trim(),
       clientId: form.clientId ? Number(form.clientId) : null,
       companyId: form.companyId || null,
+      status: form.status || "Planning",
+      progress: form.progress != null ? Number(form.progress) : 0,
+      budget: form.budget != null ? Number(form.budget) : undefined,
+      location: form.location,
+      description: form.description,
+      projectType: form.projectType,
+      assignedManager: form.assignedManager,
+      startDate: form.startDate || null,
+      expectedCompletionDate: form.expectedCompletionDate || null,
     })
     .then((r) => normalizeProject(r.data?.data ?? r.data));
 

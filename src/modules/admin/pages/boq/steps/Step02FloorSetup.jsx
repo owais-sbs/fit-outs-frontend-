@@ -59,7 +59,7 @@ export default function Step02FloorSetup() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* ── Add floor ── */}
-        <Card className="border-border/60 shadow-sm">
+        <Card className="">
           <CardHeader className="border-b border-border/60 bg-muted/20 py-3 px-6">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Plus className="h-4 w-4" /> Add Floor
@@ -114,7 +114,7 @@ export default function Step02FloorSetup() {
         </Card>
 
         {/* ── Floor list ── */}
-        <Card className="border-border/60 shadow-sm">
+        <Card className="">
           <CardHeader className="border-b border-border/60 bg-muted/20 py-3 px-5">
             <CardTitle className="text-sm font-semibold">
               {floors.length} Floor{floors.length !== 1 ? "s" : ""} added

@@ -1,8 +1,17 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { Clock, FileText, MapPin, Search } from "lucide-react";
-import { ROUTES } from "@/shared/constants/routes";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import {
+  Calendar,
+  CalendarClock,
+  ChevronRight,
+  Clock,
+  FileText,
+  MapPin,
+  Search,
+  UserRound,
+} from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
+import { PageShell } from "@/components/layout/PageShell";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,51 +21,116 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchAllSiteVisits } from "../api/site-visits.api";
 import { fetchAllLeads } from "../api/leads.api";
-import { enrichSiteVisits, isAbortError } from "../utils/siteVisitListUtils";
+import {
+  enrichSiteVisits,
+  formatCountdownLabel,
+  formatVisitSchedule,
+  isAbortError,
+  sortVisitsLatestFirst,
+} from "../utils/siteVisitListUtils";
+import { useSiteVisitPortalRoutes } from "@/shared/hooks/use-site-visit-portal-routes";
+import VisitReportsPage from "./VisitReportsPage";
+import ChecklistsPage from "./ChecklistsPage";
+import { cn } from "@/lib/utils";
 
-function VisitCard({ visit, upcoming }) {
+function visitStatusVariant(status = "") {
+  const s = String(status).toUpperCase();
+  if (s === "COMPLETED") return "success";
+  if (s === "IN_PROGRESS") return "default";
+  if (s === "CANCELLED" || s === "CANCELED") return "destructive";
+  return "warning";
+}
+
+function visitStatusLabel(status = "") {
+  const s = String(status || "SCHEDULED").toUpperCase();
+  return s
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function VisitCard({ visit, upcoming, reportHref }) {
   const initials = visit.assignee
-    ? visit.assignee.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
-    : "??";
+    ? visit.assignee
+        .split(",")[0]
+        .trim()
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase()
+    : "—";
 
-  const hours = visit.countdownHours ?? 0;
-  const label = hours < 24 ? `${hours}h` : `${Math.floor(hours / 24)}d`;
+  const { dateLabel, timeLabel } = formatVisitSchedule(visit.date);
+  const countdown = formatCountdownLabel(visit.countdownHours, upcoming);
+  const unassigned = visit.assignee === "Unassigned";
 
   return (
-    <Card className="border-border/60 transition-all hover:border-primary/25 hover:shadow-md">
-      <CardContent className="p-4">
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          <div>
-            <p className="font-semibold">{visit.client}</p>
-            <p className="text-sm text-muted-foreground">{visit.company}</p>
+    <Card className="group overflow-hidden border border-border bg-card shadow-sm transition-all hover:border-primary/35 hover:shadow-md">
+      <CardContent className="p-0">
+        <div className="flex items-start justify-between gap-3 border-b border-border/60 bg-muted/15 px-4 py-3.5">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-base font-semibold text-foreground">{visit.client}</p>
+            <p className="truncate text-sm text-muted-foreground">{visit.company}</p>
           </div>
-          {upcoming ? (
-            <Badge variant="warning" className="gap-1">
-              <Clock className="h-3 w-3" />
-              {label}
-            </Badge>
-          ) : (
-            <Badge variant="success">Completed</Badge>
-          )}
+          <Badge variant={upcoming ? visitStatusVariant(visit.status) : "success"} className="shrink-0 gap-1">
+            {upcoming ? <Clock className="h-3 w-3" /> : null}
+            {upcoming ? countdown : "Completed"}
+          </Badge>
         </div>
-        <p className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
-          <MapPin className="h-3 w-3" />
-          {visit.location}
-        </p>
-        <p className="mt-1 text-xs text-muted-foreground">
-          {new Date(visit.date).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" })}
-        </p>
-        <div className="mt-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Avatar className="h-6 w-6">
-              <AvatarFallback className="bg-primary/10 text-[10px] text-primary">{initials}</AvatarFallback>
-            </Avatar>
-            <span className="text-xs">{visit.assignee}</span>
+
+        <div className="space-y-3 px-4 py-3.5">
+          <div className="flex items-start gap-2.5">
+            <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Calendar className="h-4 w-4" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-foreground">{dateLabel}</p>
+              {timeLabel ? <p className="text-xs text-muted-foreground">{timeLabel}</p> : null}
+            </div>
           </div>
-          <Button variant="outline" size="sm" className="gap-1" asChild>
-            <Link to={ROUTES.ADMIN.SITE_VISIT_REPORT.replace(":visitId", visit.uuid)}>
-              <FileText className="h-3 w-3" />
+
+          <div className="flex items-start gap-2.5">
+            <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+              <MapPin className="h-4 w-4" />
+            </div>
+            <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">{visit.location}</p>
+          </div>
+
+          {visit.status && upcoming ? (
+            <Badge variant="outline" className="text-[10px] font-medium uppercase tracking-wide">
+              {visitStatusLabel(visit.status)}
+            </Badge>
+          ) : null}
+        </div>
+
+        <div className="flex items-center justify-between gap-3 border-t border-border/60 bg-muted/10 px-4 py-3">
+          <div className="flex min-w-0 items-center gap-2">
+            <Avatar className={cn("h-7 w-7 border border-border/60", unassigned && "opacity-70")}>
+              <AvatarFallback
+                className={cn(
+                  "text-[10px] font-semibold",
+                  unassigned ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary"
+                )}
+              >
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0">
+              <p className="truncate text-xs font-medium text-foreground">
+                {unassigned ? "Unassigned" : visit.assignee.split(",")[0].trim()}
+              </p>
+              {!unassigned && visit.assignee.includes(",") ? (
+                <p className="truncate text-[10px] text-muted-foreground">+ more assigned</p>
+              ) : null}
+            </div>
+          </div>
+          <Button variant="outline" size="sm" className="shrink-0 gap-1.5 group-hover:border-primary/40" asChild>
+            <Link to={reportHref}>
+              <FileText className="h-3.5 w-3.5" />
               Report
+              <ChevronRight className="h-3.5 w-3.5 opacity-60" />
             </Link>
           </Button>
         </div>
@@ -65,7 +139,73 @@ function VisitCard({ visit, upcoming }) {
   );
 }
 
+function VisitCardSkeleton() {
+  return (
+    <Card className="overflow-hidden border border-border">
+      <CardContent className="p-0 space-y-0">
+        <div className="border-b border-border/60 px-4 py-3.5 space-y-2">
+          <Skeleton className="h-5 w-36" />
+          <Skeleton className="h-4 w-24" />
+        </div>
+        <div className="space-y-3 px-4 py-3.5">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+        <div className="border-t border-border/60 px-4 py-3">
+          <Skeleton className="h-8 w-full" />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SummaryTile({ label, value, icon: Icon }) {
+  return (
+    <div className="rounded-xl border border-border bg-card px-4 py-3 shadow-sm">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+        <Icon className="h-4 w-4 text-muted-foreground" />
+      </div>
+      <p className="mt-1 text-2xl font-semibold tabular-nums text-foreground">{value}</p>
+    </div>
+  );
+}
+
+function VisitGrid({ loading, visits, upcoming, reportHrefBuilder, emptyMessage }) {
+  if (loading) {
+    return (
+      <>
+        {Array.from({ length: 6 }).map((_, i) => (
+          <VisitCardSkeleton key={i} />
+        ))}
+      </>
+    );
+  }
+
+  if (visits.length === 0) {
+    return (
+      <div className="col-span-full rounded-xl border border-dashed border-border bg-muted/10 px-6 py-14 text-center">
+        <CalendarClock className="mx-auto h-10 w-10 text-muted-foreground/50" />
+        <p className="mt-3 text-sm font-medium text-foreground">{emptyMessage}</p>
+        <p className="mt-1 text-xs text-muted-foreground">Try adjusting your search or schedule a new visit.</p>
+      </div>
+    );
+  }
+
+  return visits.map((v) => (
+    <VisitCard
+      key={v.uuid}
+      visit={v}
+      upcoming={upcoming}
+      reportHref={reportHrefBuilder(v.uuid)}
+    />
+  ));
+}
+
 export default function SiteVisitsPage() {
+  const portal = useSiteVisitPortalRoutes();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = searchParams.get("tab") || "upcoming";
   const [upcoming, setUpcoming] = useState([]);
   const [completed, setCompleted] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -84,7 +224,7 @@ export default function SiteVisitsPage() {
           fetchAllLeads().catch(() => []),
         ]);
         if (ignore) return;
-        const enriched = enrichSiteVisits(visits, leads);
+        const enriched = sortVisitsLatestFirst(enrichSiteVisits(visits, leads));
         setUpcoming(enriched.filter((v) => !v.isCompleted && !v.isCancelled));
         setCompleted(enriched.filter((v) => v.isCompleted));
       } catch (err) {
@@ -103,31 +243,69 @@ export default function SiteVisitsPage() {
     };
   }, []);
 
-  const filter = (list) =>
-    list.filter(
+  const filterAndSort = (list) => {
+    const q = search.trim().toLowerCase();
+    const filtered = list.filter(
       (v) =>
-        !search.trim() ||
-        v.client.toLowerCase().includes(search.toLowerCase()) ||
-        v.company.toLowerCase().includes(search.toLowerCase()) ||
-        v.location.toLowerCase().includes(search.toLowerCase())
+        !q ||
+        v.client.toLowerCase().includes(q) ||
+        v.company.toLowerCase().includes(q) ||
+        v.location.toLowerCase().includes(q) ||
+        v.assignee.toLowerCase().includes(q)
     );
+    return sortVisitsLatestFirst(filtered);
+  };
+
+  const filteredUpcoming = useMemo(() => filterAndSort(upcoming), [upcoming, search]);
+  const filteredCompleted = useMemo(() => filterAndSort(completed), [completed, search]);
+
+  const stats = useMemo(() => {
+    const now = Date.now();
+    const weekMs = 7 * 24 * 60 * 60 * 1000;
+    const thisWeek = upcoming.filter((v) => {
+      const ms = new Date(v.date).getTime();
+      return Number.isFinite(ms) && ms >= now && ms <= now + weekMs;
+    }).length;
+    const unassigned = upcoming.filter((v) => v.assignee === "Unassigned").length;
+    return {
+      upcoming: upcoming.length,
+      thisWeek,
+      unassigned,
+    };
+  }, [upcoming]);
+
+  const setTab = (value) => {
+    if (value === "upcoming") {
+      searchParams.delete("tab");
+      setSearchParams(searchParams, { replace: true });
+    } else {
+      setSearchParams({ tab: value }, { replace: true });
+    }
+  };
+
+  const reportHref = (uuid) => portal.report.replace(":visitId", uuid);
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <PageHeader
         title="Site visits"
-        description="Upcoming inspections and completed reports."
+        description="Schedule inspections, track visits, and access reports."
         actions={
-          <Button asChild size="sm">
-            <Link to={ROUTES.ADMIN.SITE_VISIT_SCHEDULE}>Schedule visit</Link>
-          </Button>
+          portal.canSchedule && portal.schedule ? (
+            <Button asChild size="sm">
+              <Link to={portal.schedule}>Schedule visit</Link>
+            </Button>
+          ) : null
         }
       />
 
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input placeholder="Search visits..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
-      </div>
+      {(tab === "upcoming" || tab === "completed") && !loading ? (
+        <div className="grid gap-3 sm:grid-cols-3">
+          <SummaryTile label="Upcoming" value={stats.upcoming} icon={CalendarClock} />
+          <SummaryTile label="This week" value={stats.thisWeek} icon={Calendar} />
+          <SummaryTile label="Unassigned" value={stats.unassigned} icon={UserRound} />
+        </div>
+      ) : null}
 
       {error ? (
         <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
@@ -135,44 +313,64 @@ export default function SiteVisitsPage() {
         </div>
       ) : null}
 
-      <Tabs defaultValue="upcoming">
-        <TabsList>
-          <TabsTrigger value="upcoming">Upcoming ({filter(upcoming).length})</TabsTrigger>
-          <TabsTrigger value="completed">Completed ({filter(completed).length})</TabsTrigger>
-        </TabsList>
-        <TabsContent value="upcoming" className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {loading
-            ? Array.from({ length: 3 }).map((_, i) => (
-                <Card key={i} className="border-border/60">
-                  <CardContent className="p-4 space-y-3">
-                    <Skeleton className="h-4 w-32" />
-                    <Skeleton className="h-3 w-24" />
-                    <Skeleton className="h-3 w-full" />
-                    <Skeleton className="h-3 w-20" />
-                  </CardContent>
-                </Card>
-              ))
-            : filter(upcoming).length === 0
-              ? <p className="col-span-3 py-12 text-center text-sm text-muted-foreground">No upcoming site visits.</p>
-              : filter(upcoming).map((v) => <VisitCard key={v.uuid} visit={v} upcoming />)}
+      <Tabs value={tab} onValueChange={setTab}>
+        <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <TabsList className="h-auto w-full flex-wrap justify-start gap-1 bg-muted/40 p-1 sm:w-auto">
+            <TabsTrigger value="upcoming" className="rounded-lg">
+              Upcoming ({filteredUpcoming.length})
+            </TabsTrigger>
+            <TabsTrigger value="completed" className="rounded-lg">
+              Completed ({filteredCompleted.length})
+            </TabsTrigger>
+            <TabsTrigger value="reports" className="rounded-lg">
+              Reports
+            </TabsTrigger>
+            <TabsTrigger value="checklists" className="rounded-lg">
+              Checklists
+            </TabsTrigger>
+          </TabsList>
+
+          {(tab === "upcoming" || tab === "completed") && (
+            <div className="relative w-full sm:max-w-xs">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search client, location, assignee…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-9 pl-9"
+              />
+            </div>
+          )}
+        </div>
+
+        <TabsContent value="upcoming" className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <VisitGrid
+            loading={loading}
+            visits={filteredUpcoming}
+            upcoming
+            reportHrefBuilder={reportHref}
+            emptyMessage="No upcoming site visits"
+          />
         </TabsContent>
-        <TabsContent value="completed" className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {loading
-            ? Array.from({ length: 2 }).map((_, i) => (
-                <Card key={i} className="border-border/60">
-                  <CardContent className="p-4 space-y-3">
-                    <Skeleton className="h-4 w-32" />
-                    <Skeleton className="h-3 w-24" />
-                    <Skeleton className="h-3 w-full" />
-                    <Skeleton className="h-3 w-20" />
-                  </CardContent>
-                </Card>
-              ))
-            : filter(completed).length === 0
-              ? <p className="col-span-3 py-12 text-center text-sm text-muted-foreground">No completed site visits.</p>
-              : filter(completed).map((v) => <VisitCard key={v.uuid} visit={v} upcoming={false} />)}
+
+        <TabsContent value="completed" className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <VisitGrid
+            loading={loading}
+            visits={filteredCompleted}
+            upcoming={false}
+            reportHrefBuilder={reportHref}
+            emptyMessage="No completed site visits"
+          />
+        </TabsContent>
+
+        <TabsContent value="reports" className="mt-4">
+          <VisitReportsPage embedded />
+        </TabsContent>
+
+        <TabsContent value="checklists" className="mt-4">
+          <ChecklistsPage embedded />
         </TabsContent>
       </Tabs>
-    </div>
+    </PageShell>
   );
 }

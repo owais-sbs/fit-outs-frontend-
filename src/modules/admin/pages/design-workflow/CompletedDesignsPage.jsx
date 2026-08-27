@@ -16,7 +16,7 @@ function formatDate(d) {
 
 function DesignCard({ design, onView }) {
   return (
-    <Card className="group overflow-hidden border-border/60 shadow-sm hover:border-primary/30 hover:shadow-xl transition-all duration-300">
+    <Card className="group overflow-hidden hover:border-primary/30 hover:shadow-xl transition-all duration-300">
       {/* Interior design thumbnail */}
       <div className="relative h-56 overflow-hidden bg-muted">
         <img
@@ -141,7 +141,7 @@ export default function CompletedDesignsPage() {
           { label: "Designers", value: [...new Set(COMPLETED_DESIGNS.map(d => d.designer))].length },
           { label: "Design Types", value: [...new Set(COMPLETED_DESIGNS.map(d => d.designType))].length },
         ].map((s) => (
-          <Card key={s.label} className="border-border/60 shadow-sm">
+          <Card key={s.label} className="">
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground">{s.label}</p>
               <p className="mt-1 text-2xl font-bold">{s.value}</p>

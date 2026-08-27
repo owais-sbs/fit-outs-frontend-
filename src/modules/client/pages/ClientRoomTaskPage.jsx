@@ -21,6 +21,7 @@ import {
   requestTaskChanges,
 } from "@/modules/admin/api/room-collab.api";
 import TaskChatPanel from "@/modules/admin/pages/roomcollab/TaskChatPanel";
+import { useCollabChatSocket } from "@/shared/hooks/useCollabChatSocket";
 
 function StatusStrip({ task, timeline, historyOpen, setHistoryOpen }) {
   const events = (timeline || []).filter((ev) => ev.eventType !== "MESSAGE");
@@ -72,6 +73,8 @@ export default function ClientRoomTaskPage() {
   const [notes, setNotes] = useState("");
   const [historyOpen, setHistoryOpen] = useState(false);
   const [showChanges, setShowChanges] = useState(false);
+
+  useCollabChatSocket({ roomTaskId: taskId, setMessages });
 
   const load = useCallback(async () => {
     setLoading(true);

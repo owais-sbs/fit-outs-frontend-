@@ -1,21 +1,15 @@
-import { Card, CardContent, CardHeader, CardTitle } from "../../../shared/components/ui/card";
+import { PageShell, PageTitle, Surface } from "@/components/layout/PageShell";
 
 export default function salesDashboard() {
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Sales Dashboard</h1>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Overview</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Welcome to the Sales dashboard
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+    <PageShell>
+      <PageTitle
+        title="Sales Dashboard"
+        subtitle="Pipeline and commercial activity at a glance."
+      />
+      <Surface className="p-5 md:p-6">
+        <p className="text-sm text-muted-foreground">Welcome to the Sales dashboard</p>
+      </Surface>
+    </PageShell>
   );
 }

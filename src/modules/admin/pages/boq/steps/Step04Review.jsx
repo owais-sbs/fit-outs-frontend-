@@ -151,7 +151,7 @@ export default function Step04Review() {
           if (floorRooms.length === 0) return null;
 
           return (
-            <Card key={floor.id} className="border-border/60 shadow-sm overflow-hidden">
+            <Card key={floor.id} className="overflow-hidden">
               <CardHeader className="py-3 px-5 border-b border-border/40 bg-muted/10">
                 <div className="flex items-center gap-2">
                   <Building2 className="h-4 w-4 text-primary" />

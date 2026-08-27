@@ -161,7 +161,7 @@ export default function CrmReportsPage() {
           const Icon = EXTENDED_ICONS[kpi.id];
           const isPos = kpi.growth >= 0;
           return (
-            <Card key={kpi.id} className="border-border/60 shadow-sm transition-all hover:border-primary/25 hover:shadow-md">
+            <Card key={kpi.id} className="transition-all hover:border-primary/25 hover:shadow-md">
               <CardContent className="p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-2">

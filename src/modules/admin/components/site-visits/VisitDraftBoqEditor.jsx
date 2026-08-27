@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Search, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,9 +14,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { fetchRoomTypes, fetchRoomTypeById } from "../../api/room-type.api";
 import { computeSubtotal, flattenSurveyToEstimateLines, surveyShellFromEstimateLines } from "../../api/site-visit-estimate.api";
 import { formatEstimateAmount } from "../../data/jctCoverLetterCopy";
+import AppendixPicker from "./AppendixPicker";
 import { countScopedItems, normalizeRoomScopes } from "../../data/renovationChecklist";
 import {
   buildSelectionsFromWorkItems,
@@ -63,8 +65,96 @@ function applySavedLinesToSelections(selections, savedLines = []) {
   });
 }
 
+function matchesWorkItemSearch(sel, query) {
+  const haystack = [
+    sel.workItemName,
+    sel.workItemMasterName,
+    unitLabel(sel.unitType),
+    formatCurrency(sel.defaultRate),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return haystack.includes(query);
+}
+
+function WorkItemRow({ sel, disabled, onUpdateSelection }) {
+  return (
+    <div className="rounded-md border border-border/70 bg-background px-3 py-2 hover:bg-muted/30">
+      <div className="flex items-start gap-3">
+        <Checkbox
+          checked={!!sel.selected}
+          disabled={disabled}
+          className="mt-1"
+          onCheckedChange={(checked) =>
+            onUpdateSelection(sel.workItemId, (s) => ({
+              ...s,
+              selected: !!checked,
+            }))
+          }
+        />
+        <div className="min-w-0 flex-1 space-y-2">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-sm font-medium leading-snug">{sel.workItemName}</p>
+              <p className="text-[11px] text-muted-foreground">
+                {unitLabel(sel.unitType)} · list rate {formatCurrency(sel.defaultRate)}
+              </p>
+            </div>
+            <span className="shrink-0 text-sm font-semibold tabular-nums">
+              {sel.selected ? formatCurrency(sel.amount) : "—"}
+            </span>
+          </div>
+          {sel.selected && (
+            <div className="grid max-w-sm grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-[10px] text-muted-foreground">Qty</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  className="h-8 text-xs"
+                  disabled={disabled}
+                  value={sel.quantity}
+                  onChange={(e) =>
+                    onUpdateSelection(sel.workItemId, (s) => ({
+                      ...s,
+                      quantity: e.target.value,
+                      qtyLocked: true,
+                    }))
+                  }
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[10px] text-muted-foreground">Rate</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  className="h-8 text-xs"
+                  disabled={disabled}
+                  value={sel.defaultRate}
+                  onChange={(e) =>
+                    onUpdateSelection(sel.workItemId, (s) => ({
+                      ...s,
+                      defaultRate: e.target.value,
+                      qtyLocked: true,
+                    }))
+                  }
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function RoomBoqCard({ room, floorName, roomTypes, disabled, onUpdate, onRemove }) {
   const [loadingItems, setLoadingItems] = useState(false);
+  const [itemSearch, setItemSearch] = useState("");
+  const [activeCategory, setActiveCategory] = useState("");
   const roomDimensions = useMemo(
     () => ({ length: room.length, width: room.width, height: room.height }),
     [room.length, room.width, room.height]
@@ -122,6 +212,8 @@ function RoomBoqCard({ room, floorName, roomTypes, disabled, onUpdate, onRemove 
 
   const handleTypeChange = (roomTypeId) => {
     if (disabled) return;
+    setItemSearch("");
+    setActiveCategory("");
     const rt = roomTypes.find((r) => r.id === roomTypeId);
     loadWorkItemsForType(roomTypeId, {
       ...room,
@@ -169,7 +261,45 @@ function RoomBoqCard({ room, floorName, roomTypes, disabled, onUpdate, onRemove 
     onUpdate({ ...room, selections });
   };
 
-  const grouped = groupSelectionsByMaster(room.selections);
+  const allSelections = room.selections || [];
+  const totalSelectable = allSelections.length;
+
+  const masterCategories = useMemo(() => {
+    const counts = new Map();
+    allSelections.forEach((sel) => {
+      const name = sel.workItemMasterName || "Other";
+      counts.set(name, (counts.get(name) || 0) + 1);
+    });
+    return [...counts.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([name, count]) => ({ name, count }));
+  }, [allSelections]);
+
+  const selectedItems = useMemo(
+    () => allSelections.filter((sel) => sel.selected),
+    [allSelections]
+  );
+
+  const browseActive = Boolean(itemSearch.trim() || activeCategory);
+  const searchQuery = itemSearch.trim().toLowerCase();
+
+  const browseItems = useMemo(() => {
+    if (!browseActive) return [];
+    return allSelections.filter((sel) => {
+      if (sel.selected) return false;
+      const category = sel.workItemMasterName || "Other";
+      if (activeCategory && category !== activeCategory) return false;
+      if (searchQuery && !matchesWorkItemSearch(sel, searchQuery)) return false;
+      return true;
+    });
+  }, [allSelections, browseActive, activeCategory, searchQuery]);
+
+  const groupedBrowse = groupSelectionsByMaster(browseItems);
+
+  const clearBrowse = () => {
+    setItemSearch("");
+    setActiveCategory("");
+  };
 
   return (
     <Card className="border-border/70">
@@ -259,85 +389,125 @@ function RoomBoqCard({ room, floorName, roomTypes, disabled, onUpdate, onRemove 
           </p>
         )}
 
-        {Object.entries(grouped).map(([masterName, items]) => (
-          <div key={masterName} className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              {masterName}
-            </p>
-            <div className="space-y-1.5">
-              {items.map((sel) => (
-                <div key={sel.workItemId} className="rounded-md border px-3 py-2 hover:bg-muted/40">
-                  <div className="flex items-start gap-3">
-                    <Checkbox
-                      checked={!!sel.selected}
-                      disabled={disabled}
-                      className="mt-1"
-                      onCheckedChange={(checked) =>
-                        updateSelection(sel.workItemId, (s) => ({
-                          ...s,
-                          selected: !!checked,
-                        }))
-                      }
-                    />
-                    <div className="min-w-0 flex-1 space-y-2">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium">{sel.workItemName}</p>
-                          <p className="text-[11px] text-muted-foreground">
-                            {unitLabel(sel.unitType)} · list rate {formatCurrency(sel.defaultRate)}
-                          </p>
-                        </div>
-                        <span className="shrink-0 text-sm font-semibold tabular-nums">
-                          {sel.selected ? formatCurrency(sel.amount) : "—"}
-                        </span>
-                      </div>
-                      {sel.selected && (
-                        <div className="grid max-w-sm grid-cols-2 gap-2">
-                          <div className="space-y-1">
-                            <Label className="text-[10px] text-muted-foreground">Qty</Label>
-                            <Input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              className="h-8 text-xs"
-                              disabled={disabled}
-                              value={sel.quantity}
-                              onChange={(e) =>
-                                updateSelection(sel.workItemId, (s) => ({
-                                  ...s,
-                                  quantity: e.target.value,
-                                  qtyLocked: true,
-                                }))
-                              }
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <Label className="text-[10px] text-muted-foreground">Rate</Label>
-                            <Input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              className="h-8 text-xs"
-                              disabled={disabled}
-                              value={sel.defaultRate}
-                              onChange={(e) =>
-                                updateSelection(sel.workItemId, (s) => ({
-                                  ...s,
-                                  defaultRate: e.target.value,
-                                  qtyLocked: true,
-                                }))
-                              }
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
+        {!loadingItems && totalSelectable > 0 && (
+          <div className="space-y-3 rounded-lg border border-border/70 bg-muted/10 p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="text-sm font-medium">Work items</p>
+                <p className="text-[11px] text-muted-foreground">
+                  {totalSelectable} items · pick a category or search to browse
+                </p>
+              </div>
+              {selectedItems.length > 0 ? (
+                <Badge variant="secondary">{selectedItems.length} selected</Badge>
+              ) : null}
             </div>
+
+            {selectedItems.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Selected for this room
+                </p>
+                <div className="max-h-64 space-y-1.5 overflow-y-auto pr-1">
+                  {selectedItems.map((sel) => (
+                    <WorkItemRow
+                      key={sel.workItemId}
+                      sel={sel}
+                      disabled={disabled}
+                      onUpdateSelection={updateSelection}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-2 border-t border-border/50 pt-3">
+              <Label className="text-xs text-muted-foreground">Browse by category</Label>
+              <div className="flex flex-wrap gap-1.5">
+                {masterCategories.map(({ name, count }) => (
+                  <button
+                    key={name}
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => setActiveCategory((current) => (current === name ? "" : name))}
+                    className={cn(
+                      "rounded-full border px-2.5 py-1 text-left text-[11px] font-medium transition-colors",
+                      activeCategory === name
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                    )}
+                  >
+                    {name}
+                    <span className="ml-1 opacity-70">({count})</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={itemSearch}
+                disabled={disabled}
+                placeholder="Or search by name, unit, rate…"
+                className="h-9 pl-9 pr-9"
+                onChange={(e) => setItemSearch(e.target.value)}
+              />
+              {browseActive && (
+                <button
+                  type="button"
+                  aria-label="Clear browse filters"
+                  disabled={disabled}
+                  onClick={clearBrowse}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+
+            {!browseActive && (
+              <p className="rounded-md border border-dashed border-border/60 bg-background px-3 py-4 text-center text-xs text-muted-foreground">
+                Select a category above or type in the search box to show work items.
+              </p>
+            )}
+
+            {browseActive && browseItems.length === 0 && (
+              <p className="rounded-md border border-dashed border-border/60 py-4 text-center text-xs text-muted-foreground">
+                No items match your filters.
+              </p>
+            )}
+
+            {browseActive && browseItems.length > 0 && (
+              <div className="space-y-3">
+                <p className="text-[11px] text-muted-foreground">
+                  Showing {browseItems.length} item{browseItems.length === 1 ? "" : "s"}
+                  {activeCategory ? ` in ${activeCategory}` : ""}
+                  {searchQuery ? ` matching “${itemSearch.trim()}”` : ""}
+                </p>
+                <div className="max-h-80 space-y-3 overflow-y-auto pr-1">
+                  {Object.entries(groupedBrowse).map(([masterName, items]) => (
+                    <div key={masterName} className="space-y-1.5">
+                      {!activeCategory && (
+                        <p className="sticky top-0 z-10 bg-muted/10 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground backdrop-blur-sm">
+                          {masterName}
+                        </p>
+                      )}
+                      {items.map((sel) => (
+                        <WorkItemRow
+                          key={sel.workItemId}
+                          sel={sel}
+                          disabled={disabled}
+                          onUpdateSelection={updateSelection}
+                        />
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-        ))}
+        )}
       </CardContent>
     </Card>
   );
@@ -640,6 +810,25 @@ export default function VisitDraftBoqEditor({
           )}
         </div>
       </div>
+
+      <Card className="border-border/60">
+        <CardHeader>
+          <CardTitle className="text-base">Appendix selection</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <AppendixPicker
+            selectedIds={estimate?.selectedAppendixIds || []}
+            disabled={disabled}
+            onChange={(ids, appendices) =>
+              onChange?.({
+                ...estimate,
+                selectedAppendixIds: ids,
+                selectedAppendices: appendices || [],
+              })
+            }
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 }

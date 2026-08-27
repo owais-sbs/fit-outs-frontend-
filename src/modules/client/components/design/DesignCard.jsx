@@ -1,4 +1,4 @@
-import { Calendar, Eye } from "lucide-react";
+import { Calendar, Eye, FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,15 +19,21 @@ export default function DesignCard({ design, detailRoute, onAction, actionLabel 
   const navigate = useNavigate();
 
   return (
-    <Card className="group overflow-hidden border-border/60 shadow-sm hover:border-primary/30 hover:shadow-lg transition-all duration-300">
+    <Card className="group overflow-hidden transition-all duration-300 hover:shadow-lg">
       {/* Thumbnail */}
       <div className="relative h-48 overflow-hidden bg-muted">
-        <img
-          src={design.thumbnail}
-          alt={design.projectName}
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-          onError={(e) => { e.target.style.display = "none"; }}
-        />
+        {design.thumbnail ? (
+          <img
+            src={design.thumbnail}
+            alt={design.projectName}
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            onError={(e) => { e.target.style.display = "none"; }}
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-muted to-muted/60">
+            <FileText className="h-12 w-12 text-muted-foreground/40" />
+          </div>
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
 
         {/* Status badge */}

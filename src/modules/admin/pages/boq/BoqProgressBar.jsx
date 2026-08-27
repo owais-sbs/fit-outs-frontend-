@@ -7,7 +7,7 @@ export default function BoqProgressBar() {
   const { currentStep, goToStep, session } = useBoq();
 
   return (
-    <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border/60 shadow-sm">
+    <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b  ">
       <div className="px-6 py-3">
         <div className="flex items-center gap-0 overflow-x-auto scrollbar-none">
           {QAS_STEPS.map((step, idx) => {

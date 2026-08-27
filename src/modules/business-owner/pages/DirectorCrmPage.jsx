@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import DashboardHeader from "@/modules/super-admin/components/DashboardHeader";
+import { PageShell, StatTile } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -50,7 +51,7 @@ export default function DirectorCrmPage() {
   const openLeads = leads.filter((l) => !["LOST", "Lost"].includes(l.status));
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <DashboardHeader
         title="CRM & Pipeline"
         description="Lead pipeline snapshot and site visit activity."
@@ -60,23 +61,11 @@ export default function DirectorCrmPage() {
         </Button>
       </DashboardHeader>
 
-      <div className="grid gap-4 sm:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Total leads</CardTitle></CardHeader>
-          <CardContent><p className="text-2xl font-bold">{loading ? "—" : leads.length}</p></CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Open leads</CardTitle></CardHeader>
-          <CardContent><p className="text-2xl font-bold">{loading ? "—" : openLeads.length}</p></CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Site visits (month)</CardTitle></CardHeader>
-          <CardContent><p className="text-2xl font-bold">{loading ? "—" : visitsThisMonth.length}</p></CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Total visits</CardTitle></CardHeader>
-          <CardContent><p className="text-2xl font-bold">{loading ? "—" : visits.length}</p></CardContent>
-        </Card>
+      <div className="grid gap-3 sm:grid-cols-4">
+        <StatTile label="Total leads" value={loading ? "—" : leads.length} />
+        <StatTile label="Open leads" value={loading ? "—" : openLeads.length} />
+        <StatTile label="Site visits (month)" value={loading ? "—" : visitsThisMonth.length} />
+        <StatTile label="Total visits" value={loading ? "—" : visits.length} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -95,7 +84,7 @@ export default function DirectorCrmPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-border/60 shadow-sm">
+        <Card>
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-base">Recent leads</CardTitle>
             <Button asChild size="sm" variant="ghost">
@@ -133,7 +122,7 @@ export default function DirectorCrmPage() {
         </Card>
       </div>
 
-      <Card className="border-border/60 shadow-sm">
+      <Card>
         <CardHeader className="pb-2 flex flex-row items-center justify-between">
           <CardTitle className="text-base">Site visits</CardTitle>
           <Button asChild size="sm" variant="ghost">
@@ -172,6 +161,6 @@ export default function DirectorCrmPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </PageShell>
   );
 }

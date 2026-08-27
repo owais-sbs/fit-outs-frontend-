@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { ClipboardList, Plus, MapPin, Calendar, Clock, CheckCircle2 } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
+import { PageShell } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -102,7 +103,7 @@ export default function NewProjectRequestPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <PageShell className="max-w-6xl mx-auto">
       <PageHeader
         title="Submit Project Request"
         description="Fill out the specifications below to request a new construction or fit-out project. Our team will review the request."
@@ -111,7 +112,7 @@ export default function NewProjectRequestPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column: Form */}
         <div className="lg:col-span-2 space-y-4">
-          <Card className="border-border/60 shadow-sm bg-card/65 backdrop-blur-sm">
+          <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Request Specifications</CardTitle>
             </CardHeader>
@@ -227,7 +228,7 @@ export default function NewProjectRequestPage() {
 
         {/* Right Column: Submission History */}
         <div className="space-y-4">
-          <Card className="border-border/60 shadow-sm sticky top-6">
+          <Card className="sticky top-6">
             <CardHeader className="pb-3 border-b">
               <CardTitle className="text-base">My Request History</CardTitle>
             </CardHeader>
@@ -257,6 +258,6 @@ export default function NewProjectRequestPage() {
           </Card>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

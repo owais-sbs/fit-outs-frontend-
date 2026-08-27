@@ -19,7 +19,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 
 import { 
-  fetchWorkItems, 
+  fetchWorkItems,
+  fetchWorkItemById,
   createWorkItem, 
   updateWorkItem, 
   deleteWorkItem, 
@@ -266,40 +267,46 @@ export default function WorkItemConfigurationPage() {
     setIsFormModalOpen(true);
   };
 
-  const handleOpenEditModal = (item) => {
+  const handleOpenEditModal = async (item) => {
     setFormErrors({});
     setFormStep(1);
     setParentMode("existing");
+    let detail = item;
+    try {
+      detail = await fetchWorkItemById(item.id);
+    } catch {
+      detail = item;
+    }
     const surfaces = [];
-    if (item.ceilingApplicable) surfaces.push("Ceiling");
-    if (item.wallApplicable) surfaces.push("Wall");
-    if (item.floorApplicable) surfaces.push("Floor");
+    if (detail.ceilingApplicable) surfaces.push("Ceiling");
+    if (detail.wallApplicable) surfaces.push("Wall");
+    if (detail.floorApplicable) surfaces.push("Floor");
 
     setFormData({
-      workItemMasterId: item.workItemMasterId || "",
+      workItemMasterId: detail.workItemMasterId || "",
       newMasterName: "",
       newMasterCode: "",
-      name: item.workItemName,
-      code: item.workItemCode,
-      description: item.description || "",
+      name: detail.workItemName,
+      code: detail.workItemCode,
+      description: detail.description || "",
       surface: surfaces,
-      unit: item.unitType || "SQFT",
-      defaultRate: item.defaultRate?.toString() || "",
-      subcontractorRate: item.subcontractorRate?.toString() || "",
-      markupPercentage: item.markupPercentage?.toString() || "0",
-      costPrice: item.costPrice?.toString() || "",
-      costPriceOverride: item.costPriceOverride ?? false,
-      sellingPriceOverride: item.sellingPriceOverride ?? false,
-      materialLines: (item.materialLines || []).map((line) => ({
+      unit: detail.unitType || "SQFT",
+      defaultRate: detail.defaultRate?.toString() || "",
+      subcontractorRate: detail.subcontractorRate?.toString() || "",
+      markupPercentage: detail.markupPercentage?.toString() || "0",
+      costPrice: detail.costPrice?.toString() || "",
+      costPriceOverride: detail.costPriceOverride ?? false,
+      sellingPriceOverride: detail.sellingPriceOverride ?? false,
+      materialLines: (detail.materialLines || []).map((line) => ({
         materialId: line.materialId,
         quantityPerUnit: line.quantityPerUnit?.toString() || "1",
         wastagePercent: line.wastagePercent?.toString() || "0",
       })),
-      formula: item.quantityFormulaType || "MANUAL",
-      active: item.active ?? true
+      formula: detail.quantityFormulaType || "MANUAL",
+      active: detail.active ?? true
     });
     setMaterialSearch("");
-    setSelectedItem(item);
+    setSelectedItem(detail);
     setIsFormModalOpen(true);
   };
 
@@ -673,7 +680,7 @@ export default function WorkItemConfigurationPage() {
         />
 
         {/* Filters and Search Toolbar */}
-        <div className="flex flex-col md:flex-row gap-4 justify-between items-stretch md:items-center bg-card p-4 border rounded-lg shadow-sm">
+        <div className="flex flex-col md:flex-row gap-4 justify-between items-stretch md:items-center rounded-2xl bg-secondary/50 p-4">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -702,7 +709,7 @@ export default function WorkItemConfigurationPage() {
         </div>
 
         {/* Grouped Master Table */}
-        <Card className="shadow-sm border">
+        <Card>
           <CardContent className="p-0 overflow-x-auto">
             {isLoading ? (
               <div className="p-6 space-y-4">

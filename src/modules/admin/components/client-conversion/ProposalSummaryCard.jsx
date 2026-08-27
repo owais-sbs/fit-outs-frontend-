@@ -24,7 +24,7 @@ function formatDate(d) {
 export default function ProposalSummaryCard({ lead }) {
   if (!lead) {
     return (
-      <Card className="border-border/60 shadow-sm">
+      <Card className="">
         <CardHeader className="pb-3"><CardTitle className="text-base">Proposal Summary</CardTitle></CardHeader>
         <CardContent>
           <p className="text-xs text-muted-foreground">Select a lead to view proposal details.</p>
@@ -34,7 +34,7 @@ export default function ProposalSummaryCard({ lead }) {
   }
 
   return (
-    <Card className="border-border/60 shadow-sm">
+    <Card className="">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">

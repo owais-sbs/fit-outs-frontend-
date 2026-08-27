@@ -88,7 +88,7 @@ export default function RoughEstimateEditor({
 
         <div className="overflow-x-auto rounded-lg border border-border/60">
           <table className="w-full min-w-[720px] text-sm">
-            <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+            <thead className=" text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
                 <th className="px-3 py-2 font-medium">Floor / Room</th>
                 <th className="px-3 py-2 font-medium">Category</th>

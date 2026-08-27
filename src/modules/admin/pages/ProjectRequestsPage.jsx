@@ -88,7 +88,7 @@ export default function ProjectRequestsPage() {
       />
 
       {/* Filters */}
-      <Card className="border-border/60 shadow-sm bg-card/65 backdrop-blur-sm">
+      <Card className="bg-card/65 backdrop-blur-sm">
         <CardContent className="p-4 flex flex-col md:flex-row gap-3 items-center justify-between">
           <div className="relative w-full md:w-80">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -115,7 +115,7 @@ export default function ProjectRequestsPage() {
       </Card>
 
       {/* Table */}
-      <Card className="overflow-hidden border-border/60 shadow-sm bg-card/50 backdrop-blur-sm">
+      <Card className="overflow-hidden bg-card/50 backdrop-blur-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>

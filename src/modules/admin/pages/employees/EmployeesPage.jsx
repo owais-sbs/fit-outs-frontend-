@@ -4,6 +4,7 @@ import {
   MoreHorizontal, Plus, Search, Users,
 } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
+import { PageShell, StatTile } from "@/components/layout/PageShell";
 import { fetchAllEmployees } from "../../api/employees.api";
 import { ROUTES } from "@/shared/constants/routes";
 import { Button } from "@/components/ui/button";
@@ -87,7 +88,7 @@ export default function EmployeesPage() {
   const goToDetail = (id) => navigate(ROUTES.ADMIN.EMPLOYEE_DETAIL.replace(":employeeId", id));
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <PageHeader
         title="Employees"
         description="Manage employee information and feature access."
@@ -99,43 +100,13 @@ export default function EmployeesPage() {
         }
       />
 
-      <section className="grid gap-4 sm:grid-cols-3">
-        <Card className="border-border/60 shadow-sm">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-              <Users className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{stats.total}</p>
-              <p className="text-xs text-muted-foreground">Total Employees</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border/60 shadow-sm">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10">
-              <Users className="h-5 w-5 text-emerald-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{stats.active}</p>
-              <p className="text-xs text-muted-foreground">Active</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border/60 shadow-sm">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-              <Users className="h-5 w-5 text-muted-foreground" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{stats.inactive}</p>
-              <p className="text-xs text-muted-foreground">Inactive</p>
-            </div>
-          </CardContent>
-        </Card>
+      <section className="grid gap-3 sm:grid-cols-3">
+        <StatTile label="Total Employees" value={stats.total} icon={Users} />
+        <StatTile label="Active" value={stats.active} />
+        <StatTile label="Inactive" value={stats.inactive} />
       </section>
 
-      <Card className="border-border/60 shadow-sm">
+      <Card>
         <CardContent className="p-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
             <div className="relative flex-1">
@@ -162,7 +133,7 @@ export default function EmployeesPage() {
         </CardContent>
       </Card>
 
-      <Card className="overflow-hidden border-border/60 shadow-sm">
+      <Card className="overflow-hidden">
         <div className="overflow-auto">
           <Table>
             <TableHeader className="bg-muted/60">
@@ -309,6 +280,6 @@ export default function EmployeesPage() {
           </div>
         )}
       </Card>
-    </div>
+    </PageShell>
   );
 }

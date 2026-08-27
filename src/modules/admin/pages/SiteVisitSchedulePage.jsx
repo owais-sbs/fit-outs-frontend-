@@ -7,9 +7,11 @@ import "leaflet/dist/leaflet.css";
 import { ROUTES } from "@/shared/constants/routes";
 import { ROLE_LABELS, SITE_VISIT_ASSIGNABLE_ROLES } from "@/shared/constants/roles";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
+import { PageShell } from "@/components/layout/PageShell";
 import { fetchAllLeads } from "../api/leads.api";
 import { fetchAllEmployees } from "../api/employees.api";
 import { createSiteVisit, addLocationDetails } from "../api/site-visits.api";
+import { googleMapsShareUrl, isMapsShareUrl, resolveLocationQuery } from "../api/geocode.api";
 import { fetchAllClients } from "../api/clients.api";
 import {
   countScopedItems,
@@ -66,6 +68,47 @@ const QUICK_DATES = [
 const QUICK_TIMES = ["08:30", "10:00", "13:30", "15:00"];
 const NOMINATIM_SEARCH_URL = "https://nominatim.openstreetmap.org/search";
 const NOMINATIM_REVERSE_URL = "https://nominatim.openstreetmap.org/reverse";
+
+const EMPTY_ADDRESS = {
+  addressLine1: "",
+  addressLine2: "",
+  buildingName: "",
+  unitNumber: "",
+  floor: "",
+  landmark: "",
+  area: "",
+  city: "",
+  state: "",
+  country: "",
+  pincode: "",
+  mapsShareUrl: "",
+};
+
+function pickAddressField(address, ...keys) {
+  if (!address) return "";
+  for (const key of keys) {
+    const value = address[key];
+    if (value) return value;
+  }
+  return "";
+}
+
+function addressFromNominatimResult(result) {
+  const address = result?.address || {};
+  const road = pickAddressField(address, "road", "pedestrian", "footway", "residential");
+  const house = address.house_number || "";
+  const suburb = pickAddressField(address, "suburb", "neighbourhood", "quarter", "hamlet");
+  const line1 = house && road ? `${house} ${road}` : road || result?.display_name || "";
+  return {
+    addressLine1: line1,
+    addressLine2: suburb,
+    area: suburb,
+    city: pickAddressField(address, "city", "town", "village", "municipality", "county") || "",
+    state: pickAddressField(address, "state", "region") || "",
+    country: address.country || "",
+    pincode: address.postcode || "",
+  };
+}
 
 function parseCoordinate(value, fallback) {
   const number = Number(value);
@@ -168,6 +211,7 @@ export default function SiteVisitSchedulePage() {
     propertyType: "RESIDENTIAL",
     propertyTypeCustom: "",
     roomScopes: [],
+    address: { ...EMPTY_ADDRESS },
   });
 
   const [staffSearchQuery, setStaffSearchQuery] = useState("");
@@ -282,6 +326,60 @@ export default function SiteVisitSchedulePage() {
     [form.date, form.time, form.propertyType, form.propertyTypeCustom, form.roomScopes, selectedEntity, selectedEmployees, targetType]
   );
 
+  const updateAddress = (field, value) => {
+    setForm((f) => ({
+      ...f,
+      address: { ...f.address, [field]: value },
+    }));
+    setError("");
+  };
+
+  const applyGeocodeResult = (result, mapsUrlOverride) => {
+    const lat = Number(result.latitude);
+    const lng = Number(result.longitude);
+    setForm((f) => ({
+      ...f,
+      location: result.displayName || f.location,
+      latitude: Number.isFinite(lat) ? lat.toFixed(8) : f.latitude,
+      longitude: Number.isFinite(lng) ? lng.toFixed(8) : f.longitude,
+      address: {
+        ...f.address,
+        addressLine1: result.addressLine1 || f.address.addressLine1,
+        addressLine2: result.addressLine2 || f.address.addressLine2,
+        area: result.area || f.address.area,
+        city: result.city || f.address.city,
+        state: result.state || f.address.state,
+        country: result.country || f.address.country,
+        pincode: result.pincode || f.address.pincode,
+        mapsShareUrl:
+          mapsUrlOverride ||
+          result.mapsShareUrl ||
+          (Number.isFinite(lat) && Number.isFinite(lng)
+            ? googleMapsShareUrl(lat, lng, result.displayName)
+            : f.address.mapsShareUrl),
+      },
+    }));
+    setLocationQuery(result.displayName || "");
+    setLocationResults([]);
+    setLocationSearchOpen(false);
+    setError("");
+  };
+
+  const resolveLocationFromQuery = async (query) => {
+    const trimmed = query.trim();
+    if (!trimmed) return;
+    setLocationSearchLoading(true);
+    setError("");
+    try {
+      const result = await resolveLocationQuery(trimmed);
+      applyGeocodeResult(result, isMapsShareUrl(trimmed) ? trimmed : undefined);
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || "Unable to resolve that location.");
+    } finally {
+      setLocationSearchLoading(false);
+    }
+  };
+
   const update = (field, value) => {
     setForm((f) => ({ ...f, [field]: value }));
     setError("");
@@ -304,11 +402,20 @@ export default function SiteVisitSchedulePage() {
   const applyLocationSelection = (result) => {
     const latitude = Number(result.lat);
     const longitude = Number(result.lon);
+    const parsed = addressFromNominatimResult(result);
     setForm((f) => ({
       ...f,
       location: result.display_name || f.location,
       latitude: Number.isFinite(latitude) ? latitude.toFixed(8) : f.latitude,
       longitude: Number.isFinite(longitude) ? longitude.toFixed(8) : f.longitude,
+      address: {
+        ...f.address,
+        ...parsed,
+        mapsShareUrl:
+          Number.isFinite(latitude) && Number.isFinite(longitude)
+            ? googleMapsShareUrl(latitude, longitude, result.display_name)
+            : f.address.mapsShareUrl,
+      },
     }));
     setLocationQuery(result.display_name || "");
     setLocationResults([]);
@@ -325,7 +432,16 @@ export default function SiteVisitSchedulePage() {
       const result = await reverseGeocode(latitude, longitude, controller.signal);
       const nextLocation = result?.display_name;
       if (nextLocation) {
-        setForm((f) => ({ ...f, location: nextLocation }));
+        const parsed = addressFromNominatimResult(result);
+        setForm((f) => ({
+          ...f,
+          location: nextLocation,
+          address: {
+            ...f.address,
+            ...parsed,
+            mapsShareUrl: googleMapsShareUrl(latitude, longitude, nextLocation),
+          },
+        }));
         setLocationQuery(nextLocation);
       }
     } catch (err) {
@@ -337,6 +453,11 @@ export default function SiteVisitSchedulePage() {
 
   useEffect(() => {
     const query = locationQuery.trim();
+    if (isMapsShareUrl(query)) {
+      setLocationResults([]);
+      setLocationSearchLoading(false);
+      return undefined;
+    }
     if (query.length < 3 || query === form.location.trim()) {
       setLocationResults([]);
       setLocationSearchLoading(false);
@@ -441,19 +562,23 @@ export default function SiteVisitSchedulePage() {
 
       if (visit.uuid) {
         setCreatedVisitUuid(visit.uuid);
-        const [addressLine1, ...rest] = form.location.split(",").map((part) => part.trim()).filter(Boolean);
+        const addr = form.address;
         await addLocationDetails(visit.uuid, {
-          addressLine1: addressLine1 || form.location,
-          addressLine2: rest.join(", "),
-          city: "Sydney",
-          state: "NSW",
-          country: "Australia",
-          pincode: "2000",
-          area: targetType === "lead" ? (selectedEntity?.location || "") : "",
-          buildingName: targetType === "lead"
+          addressLine1: addr.addressLine1 || form.location,
+          addressLine2: addr.addressLine2 || "",
+          city: addr.city || "—",
+          state: addr.state || "—",
+          country: addr.country || "—",
+          pincode: addr.pincode || "—",
+          area: addr.area || (targetType === "lead" ? (selectedEntity?.location || "") : ""),
+          buildingName: addr.buildingName || (targetType === "lead"
             ? (selectedEntity?.company || selectedEntity?.clientName || "")
-            : (selectedEntity?.companyName || selectedEntity?.fullName || ""),
+            : (selectedEntity?.companyName || selectedEntity?.fullName || "")),
+          floor: addr.floor || "",
+          unitNumber: addr.unitNumber || "",
+          landmark: addr.landmark || "",
           accessNotes: form.notes || "",
+          mapsShareUrl: addr.mapsShareUrl || googleMapsShareUrl(latitude, longitude, form.location),
         });
       }
 
@@ -466,14 +591,14 @@ export default function SiteVisitSchedulePage() {
   };
 
   return (
-    <div className="space-y-6 pb-28">
+    <PageShell className="pb-28">
       <PageHeader
         title="Schedule site visit"
         description="Book an on-site inspection with a clear lead, staff assignment, location pin, and checklist workflow."
       />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,0.9fr)]">
-        <Card className="border-border/60 shadow-sm">
+        <Card>
           <CardHeader>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
@@ -540,7 +665,7 @@ export default function SiteVisitSchedulePage() {
 
               <div className="space-y-2">
                 <Label>Date *</Label>
-                <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
+                <div className="rounded-lg bg-muted/30 p-3">
                   <div className="mb-3 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     <Calendar className="h-3.5 w-3.5" />
                     Quick pick
@@ -568,7 +693,7 @@ export default function SiteVisitSchedulePage() {
 
               <div className="space-y-2">
                 <Label>Time *</Label>
-                <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
+                <div className="rounded-lg bg-muted/30 p-3">
                   <div className="mb-3 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     <Clock3 className="h-3.5 w-3.5" />
                     Suggested slots
@@ -599,7 +724,7 @@ export default function SiteVisitSchedulePage() {
                 <div className="relative">
                   {/* Selected staff chips */}
                   {form.employeeIds.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mb-2 p-2 rounded-lg border border-border/60 bg-muted/20">
+                    <div className="flex flex-wrap gap-1.5 mb-2 p-2 rounded-lg bg-muted/30">
                       {selectedEmployees.map((emp) => (
                         <Badge
                           key={emp.id}
@@ -711,37 +836,62 @@ export default function SiteVisitSchedulePage() {
                 onRoomScopesChange={(roomScopes) => update("roomScopes", roomScopes)}
               />
 
-              <div className="space-y-2 md:col-span-2">
-                <Label>Location *</Label>
-                <div className="relative">
-                  <div className="relative">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      value={locationQuery}
-                      onChange={(e) => {
-                        setLocationQuery(e.target.value);
-                        setError("");
-                        setLocationSearchOpen(true);
-                      }}
-                      onFocus={() => {
-                        if (locationResults.length) setLocationSearchOpen(true);
-                      }}
-                      onBlur={() => {
-                        window.setTimeout(() => {
-                          update("location", locationQuery.trim());
-                          setLocationSearchOpen(false);
-                        }, 150);
-                      }}
-                      placeholder="Search street address, building, or area"
-                      className="pl-9 pr-9"
-                    />
-                    {locationSearchLoading ? (
-                      <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
-                    ) : null}
+              <div className="space-y-4 md:col-span-2 relative">
+                <div className="space-y-2">
+                  <Label>Location *</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Paste a Google Maps link, search an address, or click the map to pin the site.
+                  </p>
+                  <div className="relative flex gap-2">
+                    <div className="relative flex-1">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        value={locationQuery}
+                        onChange={(e) => {
+                          setLocationQuery(e.target.value);
+                          setError("");
+                          if (!isMapsShareUrl(e.target.value)) {
+                            setLocationSearchOpen(true);
+                          }
+                        }}
+                        onFocus={() => {
+                          if (locationResults.length) setLocationSearchOpen(true);
+                        }}
+                        onBlur={() => {
+                          window.setTimeout(() => {
+                            const trimmed = locationQuery.trim();
+                            update("location", trimmed);
+                            setLocationSearchOpen(false);
+                            if (isMapsShareUrl(trimmed)) {
+                              void resolveLocationFromQuery(trimmed);
+                            }
+                          }, 150);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            void resolveLocationFromQuery(locationQuery);
+                          }
+                        }}
+                        placeholder="Google Maps link, street address, or area"
+                        className="pl-9 pr-9"
+                      />
+                      {locationSearchLoading ? (
+                        <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+                      ) : null}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => void resolveLocationFromQuery(locationQuery)}
+                      disabled={locationSearchLoading || !locationQuery.trim()}
+                    >
+                      Look up
+                    </Button>
                   </div>
 
-                  {locationSearchOpen && (locationResults.length > 0 || locationQuery.trim().length >= 3) ? (
-                    <div className="absolute z-30 mt-2 max-h-72 w-full overflow-y-auto rounded-md border border-border bg-popover p-1 shadow-md">
+                  {locationSearchOpen && !isMapsShareUrl(locationQuery) && (locationResults.length > 0 || locationQuery.trim().length >= 3) ? (
+                    <div className="absolute z-30 mt-2 max-h-72 w-full max-w-xl overflow-y-auto rounded-md border border-border bg-popover p-1 shadow-md">
                       {locationResults.length ? (
                         locationResults.map((result) => (
                           <button
@@ -759,16 +909,102 @@ export default function SiteVisitSchedulePage() {
                         ))
                       ) : (
                         <div className="px-3 py-2 text-sm text-muted-foreground">
-                          No matching locations found.
+                          No matching locations found. Try Look up for Google Maps links.
                         </div>
                       )}
                     </div>
                   ) : null}
                 </div>
+
+                <div className="grid gap-3 rounded-xl border border-border/70 bg-muted/20 p-4 sm:grid-cols-2">
+                  <p className="sm:col-span-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Address details
+                  </p>
+                  <div className="space-y-2">
+                    <Label>Street / building</Label>
+                    <Input
+                      value={form.address.addressLine1}
+                      onChange={(e) => updateAddress("addressLine1", e.target.value)}
+                      placeholder="Street name or building"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Villa / unit no.</Label>
+                    <Input
+                      value={form.address.unitNumber}
+                      onChange={(e) => updateAddress("unitNumber", e.target.value)}
+                      placeholder="e.g. Villa 12, Unit 4B"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Building / community</Label>
+                    <Input
+                      value={form.address.buildingName}
+                      onChange={(e) => updateAddress("buildingName", e.target.value)}
+                      placeholder="Tower, compound, or project name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Floor</Label>
+                    <Input
+                      value={form.address.floor}
+                      onChange={(e) => updateAddress("floor", e.target.value)}
+                      placeholder="e.g. Ground, 3, Penthouse"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Area / suburb</Label>
+                    <Input
+                      value={form.address.area}
+                      onChange={(e) => updateAddress("area", e.target.value)}
+                      placeholder="Suburb or district"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Landmark</Label>
+                    <Input
+                      value={form.address.landmark}
+                      onChange={(e) => updateAddress("landmark", e.target.value)}
+                      placeholder="Near mall, mosque, park..."
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>City</Label>
+                    <Input
+                      value={form.address.city}
+                      onChange={(e) => updateAddress("city", e.target.value)}
+                      placeholder="City"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>State</Label>
+                    <Input
+                      value={form.address.state}
+                      onChange={(e) => updateAddress("state", e.target.value)}
+                      placeholder="State / emirate"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Postcode</Label>
+                    <Input
+                      value={form.address.pincode}
+                      onChange={(e) => updateAddress("pincode", e.target.value)}
+                      placeholder="Postcode"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Country</Label>
+                    <Input
+                      value={form.address.country}
+                      onChange={(e) => updateAddress("country", e.target.value)}
+                      placeholder="Country"
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="space-y-2">
-                <Label>Latitude *</Label>
+                <Label>Latitude</Label>
                 <Input
                   type="number"
                   step="0.00000001"
@@ -801,7 +1037,7 @@ export default function SiteVisitSchedulePage() {
         </Card>
 
         <div className="space-y-6">
-          <Card className="sticky top-6 border-border/60 shadow-sm">
+          <Card className="sticky top-6  ">
             <CardHeader>
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -825,7 +1061,7 @@ export default function SiteVisitSchedulePage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="overflow-hidden rounded-lg border border-border/60">
+              <div className="overflow-hidden rounded-lg bg-muted/20">
                 <MapContainer
                   center={mapPosition}
                   zoom={13}
@@ -845,7 +1081,7 @@ export default function SiteVisitSchedulePage() {
                   />
                 </MapContainer>
               </div>
-              <div className="mt-3 rounded-lg border border-border/60 bg-muted/20 p-3 text-xs text-muted-foreground">
+              <div className="mt-3 rounded-lg bg-muted/30 p-3 text-xs text-muted-foreground">
                 <div className="flex items-start gap-2">
                   <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
                   <div>
@@ -853,13 +1089,26 @@ export default function SiteVisitSchedulePage() {
                     <p className="mt-1 font-mono">
                       {form.latitude}, {form.longitude}
                     </p>
+                    {(form.address.mapsShareUrl || form.location) && (
+                      <a
+                        href={
+                          form.address.mapsShareUrl
+                          || googleMapsShareUrl(form.latitude, form.longitude, form.location)
+                        }
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-2 inline-flex text-xs font-medium text-primary hover:underline"
+                      >
+                        Open in Google Maps
+                      </a>
+                    )}
                   </div>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-border/60 shadow-sm">
+          <Card>
             <CardHeader>
               <CardTitle className="text-base">Schedule summary</CardTitle>
               <CardDescription>Live preview of the field visit setup.</CardDescription>
@@ -916,7 +1165,7 @@ export default function SiteVisitSchedulePage() {
             </div>
 
             {form.roomScopes.length > 0 && (
-              <div className="rounded-xl border border-border/60 bg-muted/20 p-3 space-y-3">
+              <div className="rounded-xl bg-muted/30 p-3 space-y-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Renovation checklist scope
                 </p>
@@ -969,6 +1218,6 @@ export default function SiteVisitSchedulePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   );
 }

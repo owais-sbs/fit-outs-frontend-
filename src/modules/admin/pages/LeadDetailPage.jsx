@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { PageShell, Surface } from "@/components/layout/PageShell";
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -151,23 +152,23 @@ export default function LeadDetailPage() {
 
   if (loading) {
     return (
-      <div className="space-y-4">
+      <PageShell>
         <Button variant="ghost" size="sm" asChild>
           <Link to={ROUTES.ADMIN.LEADS_LIST}><ArrowLeft className="mr-2 h-4 w-4" />Leads</Link>
         </Button>
         <Card><CardContent className="py-16 text-center text-muted-foreground">Loading lead...</CardContent></Card>
-      </div>
+      </PageShell>
     );
   }
 
   if (!lead) {
     return (
-      <div className="space-y-4">
+      <PageShell>
         <Button variant="ghost" size="sm" asChild>
           <Link to={ROUTES.ADMIN.LEADS_LIST}><ArrowLeft className="mr-2 h-4 w-4" />Leads</Link>
         </Button>
         <Card><CardContent className="py-16 text-center text-muted-foreground">Lead not found.</CardContent></Card>
-      </div>
+      </PageShell>
     );
   }
 
@@ -176,18 +177,18 @@ export default function LeadDetailPage() {
   const emailHref = lead.email ? `https://mail.google.com/mail/?to=${encodeURIComponent(lead.email)}` : null;
 
   return (
-    <div className="space-y-5">
+    <PageShell className="space-y-5">
       <Button variant="ghost" size="sm" asChild className="-ml-2">
         <Link to={ROUTES.ADMIN.LEADS_LIST}><ArrowLeft className="mr-2 h-4 w-4" />Leads</Link>
       </Button>
 
-      <div className="flex flex-wrap items-start justify-between gap-4 rounded-xl border border-border/60 bg-card p-5 shadow-sm">
+      <Surface className="flex flex-wrap items-start justify-between gap-4 p-5">
         <div className="flex items-start gap-4">
           <Avatar className="h-12 w-12 text-lg">
-            <AvatarFallback className="bg-primary/10 text-primary font-bold">{initials}</AvatarFallback>
+            <AvatarFallback className="bg-accent text-accent-foreground font-bold">{initials}</AvatarFallback>
           </Avatar>
           <div className="space-y-1">
-            <h1 className="text-xl font-bold">{lead.clientName}</h1>
+            <h1 className="font-display text-2xl font-semibold tracking-tight md:text-[1.75rem]">{lead.clientName}</h1>
             <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
               <Badge variant={STATUS_VARIANT[status] || "secondary"} className="capitalize">
                 {STATUS_LABELS[status] || status}
@@ -233,7 +234,7 @@ export default function LeadDetailPage() {
 
 
         </div>
-      </div>
+      </Surface>
 
       <div className="flex flex-col gap-5 lg:flex-row">
         <div className="min-w-0 flex-1">
@@ -244,7 +245,7 @@ export default function LeadDetailPage() {
             </TabsList>
 
             <TabsContent value="overview" className="mt-4 space-y-4">
-              <Card className="border-border/60">
+              <Card>
                 <CardHeader className="pb-2"><CardTitle className="text-sm">Project details</CardTitle></CardHeader>
                 <CardContent className="grid gap-4 sm:grid-cols-2 text-sm">
                   <div>
@@ -270,7 +271,7 @@ export default function LeadDetailPage() {
                 </CardContent>
               </Card>
 
-              <Card className="border-border/60">
+              <Card>
                 <CardHeader className="pb-2"><CardTitle className="text-sm">Contact</CardTitle></CardHeader>
                 <CardContent className="grid gap-3 sm:grid-cols-2 text-sm">
                   <a href={phoneHref} className="flex items-center gap-2 hover:text-primary transition-colors">
@@ -285,7 +286,7 @@ export default function LeadDetailPage() {
               </Card>
 
               {lead.notes && (
-                <Card className="border-border/60">
+                <Card>
                   <CardHeader className="pb-2"><CardTitle className="text-sm">Notes</CardTitle></CardHeader>
                   <CardContent className="text-sm text-muted-foreground whitespace-pre-wrap">{lead.notes}</CardContent>
                 </Card>
@@ -293,7 +294,7 @@ export default function LeadDetailPage() {
             </TabsContent>
 
             <TabsContent value="notes" className="mt-4 space-y-3">
-              <Card className="border-border/60">
+              <Card>
                 {lead.notes ? (
                   <CardContent className="pt-4 text-sm">
                     <p className="whitespace-pre-wrap">{lead.notes}</p>
@@ -310,7 +311,7 @@ export default function LeadDetailPage() {
 
         <aside className="w-full lg:w-60 xl:w-64">
           <div className="space-y-4 lg:sticky lg:top-4">
-            <Card className="border-border/60">
+            <Card>
               <CardHeader className="pb-2"><CardTitle className="text-sm">Move status</CardTitle></CardHeader>
               <CardContent className="space-y-2">
                 <Select value={status} onValueChange={handleStatusChange} disabled={statusSaving}>
@@ -327,7 +328,7 @@ export default function LeadDetailPage() {
               </CardContent>
             </Card>
 
-            <Card className="border-border/60">
+            <Card>
               <CardHeader className="pb-2"><CardTitle className="text-sm">Lead info</CardTitle></CardHeader>
               <CardContent className="space-y-3">
                 <SidebarRow label="Source" value={lead.source} icon={Building2} />
@@ -380,7 +381,9 @@ export default function LeadDetailPage() {
             <DialogTitle>Convert to Client</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            This will create a client account for <span className="font-medium text-foreground">{lead.email}</span> with password <span className="font-mono font-medium text-foreground">123456</span> and move this lead to Client status.
+            This will create a client portal account for{" "}
+            <span className="font-medium text-foreground">{lead.email}</span>, email them a link to set their password,
+            and move this lead to Client status.
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConvertOpen(false)} disabled={converting}>Cancel</Button>
@@ -394,6 +397,6 @@ export default function LeadDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   );
 }

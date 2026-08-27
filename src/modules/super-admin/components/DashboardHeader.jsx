@@ -18,13 +18,13 @@ export default function DashboardHeader({
   const currentDate = formatCurrentDate();
 
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-      <div className="space-y-1">
-        <p className="text-sm font-medium text-muted-foreground">{currentDate}</p>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{currentDate}</p>
+        <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground md:text-[2rem]">
           {title}
         </h1>
-        <p className="max-w-xl text-sm text-muted-foreground">
+        <p className="mt-1 max-w-xl text-sm text-muted-foreground">
           {description}
         </p>
       </div>

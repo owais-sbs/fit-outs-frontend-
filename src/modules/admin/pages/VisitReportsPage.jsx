@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { FileText, Search, Download, Eye } from "lucide-react";
 import { ROUTES } from "@/shared/constants/routes";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
+import { PageShell } from "@/components/layout/PageShell";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,7 @@ import {
 import { fetchAllSiteVisits } from "../api/site-visits.api";
 import { fetchAllLeads } from "../api/leads.api";
 
-export default function VisitReportsPage() {
+export default function VisitReportsPage({ embedded = false }) {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -65,14 +66,16 @@ export default function VisitReportsPage() {
       r.company.toLowerCase().includes(search.toLowerCase())
   );
 
-  return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Visit Reports"
-        description="Access and download generated site inspection reports."
-      />
+  const body = (
+    <>
+      {!embedded && (
+        <PageHeader
+          title="Visit Reports"
+          description="Access and download generated site inspection reports."
+        />
+      )}
 
-      <Card className="border-border/60 shadow-sm">
+      <Card>
         <CardContent className="p-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
             <div className="relative flex-1 max-w-sm">
@@ -88,7 +91,7 @@ export default function VisitReportsPage() {
         </CardContent>
       </Card>
 
-      <Card className="overflow-hidden border-border/60 shadow-sm">
+      <Card className="overflow-hidden">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader className="bg-muted/30">
@@ -155,6 +158,9 @@ export default function VisitReportsPage() {
           </Table>
         </div>
       </Card>
-    </div>
+    </>
   );
+
+  if (embedded) return body;
+  return <PageShell>{body}</PageShell>;
 }

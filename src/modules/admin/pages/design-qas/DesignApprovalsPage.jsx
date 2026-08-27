@@ -1,111 +1,136 @@
-import { useState } from "react";
-import { Search, CheckCircle, Clock, XCircle, FileSignature } from "lucide-react";
-import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
-import { Card, CardContent } from "@/components/ui/card";
+import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { CheckCircle, Clock, XCircle, FileSignature, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
+import { useAdminDesignApprovals } from "@/modules/admin/hooks/useAdminDesignTasks";
+import { DesignQasPageShell, DesignQasStat } from "./DesignQasShell";
 
-const MOCK_APPROVALS = [
-  { id: "APP-001", option: "OPT-001", project: "Sunset Boulevard Villa", client: "Omar Farooq", date: "16 Jun 2026", status: "Approved" },
-  { id: "APP-002", option: "OPT-003", project: "Downtown Office Fit-out", client: "Tech Corp", date: "18 Jun 2026", status: "Pending" },
-  { id: "APP-003", option: "OPT-002", project: "Sunset Boulevard Villa", client: "Omar Farooq", date: "16 Jun 2026", status: "Rejected" },
-];
+const STATUS_CLASS = {
+  Approved: "text-emerald-700 bg-emerald-50 border-emerald-200",
+  Rejected: "text-red-700 bg-red-50 border-red-200",
+  Pending: "text-amber-700 bg-amber-50 border-amber-200",
+};
 
 export default function DesignApprovalsPage() {
   const [search, setSearch] = useState("");
+  const { items, loading, error } = useAdminDesignApprovals();
 
-  const filtered = MOCK_APPROVALS.filter(a => 
-    a.project.toLowerCase().includes(search.toLowerCase()) || 
-    a.client.toLowerCase().includes(search.toLowerCase()) ||
-    a.id.toLowerCase().includes(search.toLowerCase())
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter(
+      (a) =>
+        a.project.toLowerCase().includes(q) ||
+        a.client.toLowerCase().includes(q) ||
+        a.id.toLowerCase().includes(q) ||
+        a.title.toLowerCase().includes(q)
+    );
+  }, [items, search]);
+
+  const stats = useMemo(
+    () => ({
+      total: items.length,
+      pending: items.filter((a) => a.status === "Pending").length,
+      approved: items.filter((a) => a.status === "Approved").length,
+      rejected: items.filter((a) => a.status === "Rejected").length,
+    }),
+    [items]
   );
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Design Approvals"
-        description="Track client feedback and final sign-offs on submitted design options."
-      />
-
-      <Card className="border-border/60 shadow-sm">
-        <CardContent className="p-4">
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search by ID, project or client..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 bg-muted/30"
-            />
-          </div>
-        </CardContent>
-      </Card>
+    <DesignQasPageShell
+      title="Design Approvals"
+      description="Client review status for design tasks submitted from project rooms."
+      search={search}
+      onSearchChange={setSearch}
+      searchPlaceholder="Search by ID, project or client…"
+      resultCount={loading ? undefined : filtered.length}
+      stats={
+        <>
+          <DesignQasStat label="Sent to client" value={loading ? "—" : stats.total} />
+          <DesignQasStat label="Pending" value={loading ? "—" : stats.pending} tone="amber" />
+          <DesignQasStat label="Approved" value={loading ? "—" : stats.approved} tone="emerald" />
+          <DesignQasStat label="Changes requested" value={loading ? "—" : stats.rejected} tone="default" />
+        </>
+      }
+    >
+      {error && (
+        <p className="text-sm text-destructive border border-destructive/30 bg-destructive/10 rounded-lg px-3 py-2">
+          {error}
+        </p>
+      )}
 
       <Card className="overflow-hidden border-border/60 shadow-sm">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader className="bg-muted/30">
-              <TableRow>
-                <TableHead className="text-xs font-semibold uppercase">Approval ID</TableHead>
-                <TableHead className="text-xs font-semibold uppercase">Design Option</TableHead>
-                <TableHead className="text-xs font-semibold uppercase">Project & Client</TableHead>
-                <TableHead className="text-xs font-semibold uppercase">Date Sent</TableHead>
-                <TableHead className="text-xs font-semibold uppercase">Status</TableHead>
-                <TableHead className="text-xs font-semibold uppercase text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                    No approvals found matching your search.
-                  </TableCell>
+        {loading ? (
+          <div className="flex justify-center py-20">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/40 hover:bg-muted/40">
+                  <TableHead className="text-xs font-semibold uppercase">Task ID</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase">Design task</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase">Project & client</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase">Sent to client</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase">Status</TableHead>
+                  <TableHead className="text-right text-xs font-semibold uppercase">Actions</TableHead>
                 </TableRow>
-              ) : filtered.map((app) => (
-                <TableRow key={app.id} className="hover:bg-muted/20">
-                  <TableCell className="font-medium text-blue-600">{app.id}</TableCell>
-                  <TableCell className="font-medium">{app.option}</TableCell>
-                  <TableCell>
-                    <div className="font-semibold text-slate-900">{app.project}</div>
-                    <div className="text-xs text-muted-foreground">{app.client}</div>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-sm">
-                    <div className="flex items-center">
-                      <Clock className="w-3.5 h-3.5 mr-1.5 text-slate-400" />
-                      {app.date}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge 
-                      variant="outline" 
-                      className={
-                        app.status === "Approved" ? "text-emerald-600 bg-emerald-50 border-emerald-200" : 
-                        app.status === "Rejected" ? "text-red-600 bg-red-50 border-red-200" :
-                        "text-amber-600 bg-amber-50 border-amber-200"
-                      }
-                    >
-                      {app.status === "Approved" && <CheckCircle className="w-3 h-3 mr-1" />}
-                      {app.status === "Rejected" && <XCircle className="w-3 h-3 mr-1" />}
-                      {app.status === "Pending" && <Clock className="w-3 h-3 mr-1" />}
-                      {app.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" className="h-8">
-                      <FileSignature className="w-4 h-4 mr-2 text-muted-foreground" />
-                      View Details
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+              </TableHeader>
+              <TableBody>
+                {filtered.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="h-28 text-center text-muted-foreground">
+                      {items.length === 0
+                        ? "No items sent to clients yet. Submit a room task to track approvals here."
+                        : "No approvals found matching your search."}
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filtered.map((app) => (
+                    <TableRow key={app.taskId} className="hover:bg-muted/20">
+                      <TableCell className="font-mono text-xs text-primary">{app.id}</TableCell>
+                      <TableCell className="font-medium">{app.title}</TableCell>
+                      <TableCell>
+                        <div className="font-medium">{app.project}</div>
+                        <div className="text-xs text-muted-foreground">{app.client}</div>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        <span className="inline-flex items-center gap-1.5">
+                          <Clock className="h-3.5 w-3.5" />
+                          {app.date}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={STATUS_CLASS[app.status] || STATUS_CLASS.Pending}>
+                          {app.status === "Approved" && <CheckCircle className="mr-1 h-3 w-3" />}
+                          {app.status === "Rejected" && <XCircle className="mr-1 h-3 w-3" />}
+                          {app.status === "Pending" && <Clock className="mr-1 h-3 w-3" />}
+                          {app.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="sm" className="h-8" asChild>
+                          <Link to={app.detailRoute}>
+                            <FileSignature className="mr-2 h-4 w-4 text-muted-foreground" />
+                            View
+                          </Link>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </Card>
-    </div>
+    </DesignQasPageShell>
   );
 }

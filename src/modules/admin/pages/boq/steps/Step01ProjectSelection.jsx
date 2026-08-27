@@ -15,83 +15,6 @@ import { fetchAllProjects } from "@/modules/admin/api/projects.api";
 import { fetchAllClients } from "@/modules/admin/api/clients.api";
 import { ROUTES } from "@/shared/constants/routes";
 
-// ─── Static fallback projects (shown when API returns nothing) ────────────────
-const MOCK_PROJECTS = [
-  {
-    id: "PRJ-001",
-    projectName: "Sunset Boulevard Villa",
-    name: "Sunset Boulevard Villa",
-    clientId: "c1",
-    location: "Dubai Marina, UAE",
-    projectType: "Residential",
-    status: "Active",
-    isActive: true,
-    createdAt: "2026-01-15T08:00:00Z",
-    floors: 3,
-    area: "450 m²",
-  },
-  {
-    id: "PRJ-002",
-    projectName: "Downtown Office Fit-out",
-    name: "Downtown Office Fit-out",
-    clientId: "c2",
-    location: "Business Bay, Dubai",
-    projectType: "Commercial",
-    status: "Active",
-    isActive: true,
-    createdAt: "2026-02-20T08:00:00Z",
-    floors: 1,
-    area: "800 m²",
-  },
-  {
-    id: "PRJ-003",
-    projectName: "Palm Jumeirah Residence",
-    name: "Palm Jumeirah Residence",
-    clientId: "c3",
-    location: "Palm Jumeirah, Dubai",
-    projectType: "Residential",
-    status: "Active",
-    isActive: true,
-    createdAt: "2026-03-05T08:00:00Z",
-    floors: 4,
-    area: "620 m²",
-  },
-  {
-    id: "PRJ-004",
-    projectName: "Al Quoz Warehouse Renovation",
-    name: "Al Quoz Warehouse Renovation",
-    clientId: "c4",
-    location: "Al Quoz, Dubai",
-    projectType: "Renovation",
-    status: "Planning",
-    isActive: false,
-    createdAt: "2026-04-10T08:00:00Z",
-    floors: 1,
-    area: "1200 m²",
-  },
-  {
-    id: "PRJ-005",
-    projectName: "JBR Retail Fit-out",
-    name: "JBR Retail Fit-out",
-    clientId: "c5",
-    location: "Jumeirah Beach Residence",
-    projectType: "Interior",
-    status: "Active",
-    isActive: true,
-    createdAt: "2026-05-01T08:00:00Z",
-    floors: 2,
-    area: "350 m²",
-  },
-];
-
-const MOCK_CLIENT_MAP = new Map([
-  ["c1", { fullName: "Omar Farooq" }],
-  ["c2", { fullName: "Tech Corp LLC" }],
-  ["c3", { fullName: "Sarah Al-Khalid" }],
-  ["c4", { fullName: "Gulf Logistics" }],
-  ["c5", { fullName: "Retail Masters" }],
-]);
-
 const PROJECT_TYPES = ["All Types", "Commercial", "Residential", "Interior", "Renovation", "Construction"];
 
 // ─── Project Summary Drawer ───────────────────────────────────────────────────
@@ -211,6 +134,7 @@ export default function Step01ProjectSelection() {
   const [projects, setProjects]   = useState([]);
   const [clientMap, setClientMap] = useState(new Map());
   const [loading, setLoading]     = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [search, setSearch]       = useState("");
   const [filterType, setType]     = useState("All Types");
   const [selected, setSelected]   = useState(null);
@@ -228,23 +152,19 @@ export default function Step01ProjectSelection() {
 
   const loadData = useCallback(() => {
     setLoading(true);
+    setLoadError("");
     Promise.all([
       fetchAllProjects(),
       fetchAllClients().catch(() => []),
     ])
       .then(([projs, clients]) => {
-        // If API returns nothing, use mock data so user can always proceed
-        if (projs.length === 0) {
-          setProjects(MOCK_PROJECTS);
-          setClientMap(MOCK_CLIENT_MAP);
-        } else {
-          setProjects(projs);
-          setClientMap(new Map(clients.map((c) => [String(c.id), c])));
-        }
+        setProjects(Array.isArray(projs) ? projs : []);
+        setClientMap(new Map((clients || []).map((c) => [String(c.id), c])));
       })
-      .catch(() => {
-        setProjects(MOCK_PROJECTS);
-        setClientMap(MOCK_CLIENT_MAP);
+      .catch((e) => {
+        setProjects([]);
+        setClientMap(new Map());
+        setLoadError(e?.response?.data?.message || e.message || "Failed to load projects");
       })
       .finally(() => setLoading(false));
   }, []);
@@ -369,7 +289,7 @@ export default function Step01ProjectSelection() {
       )}
 
       {/* ── Filter bar ── */}
-      <Card className="border-border/60 shadow-sm">
+      <Card className="">
         <CardContent className="p-4">
           <div className="flex flex-wrap gap-3 items-center">
             <div className="relative flex-1 min-w-[200px] max-w-sm">
@@ -402,7 +322,7 @@ export default function Step01ProjectSelection() {
       </Card>
 
       {/* ── Projects table ── */}
-      <Card className="overflow-hidden border-border/60 shadow-sm">
+      <Card className="overflow-hidden">
         <CardHeader className="border-b border-border/60 bg-muted/20 py-3 px-6 flex-row items-center justify-between">
           <CardTitle className="text-sm font-semibold">
             {filtered.length} Project{filtered.length !== 1 ? "s" : ""}
@@ -530,10 +450,13 @@ export default function Step01ProjectSelection() {
           <p className="text-xs text-muted-foreground">
             {filtered.length} of {projects.length} projects
           </p>
-          {projects === MOCK_PROJECTS && (
-            <p className="text-xs text-amber-600 font-medium">
-             
-            </p>
+          {loadError && (
+            <p className="text-xs text-destructive font-medium">{loadError}</p>
+          )}
+          {!loading && !loadError && projects.length === 0 && (
+            <Button asChild size="sm" variant="outline">
+              <Link to={ROUTES.ADMIN.PROJECTS}>Create a project</Link>
+            </Button>
           )}
         </div>
       </Card>

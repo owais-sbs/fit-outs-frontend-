@@ -45,7 +45,7 @@ export default function TenantTable({ tenants }) {
 
   if (tenants.length === 0) {
     return (
-      <Card className="border-border/60 shadow-sm">
+      <Card>
         <CardContent className="flex flex-col items-center justify-center py-16 text-center">
           <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-muted">
             <Building2 className="h-7 w-7 text-muted-foreground" />
@@ -60,7 +60,7 @@ export default function TenantTable({ tenants }) {
   }
 
   return (
-    <Card className="border-border/60 shadow-sm">
+    <Card>
       <CardHeader className="pb-0">
         <CardTitle className="text-base font-semibold">
           {tenants.length} tenant{tenants.length !== 1 ? "s" : ""}

@@ -21,9 +21,9 @@ function NavItem({ item, collapsed }) {
       end={item.end}
       className={({ isActive }) =>
         cn(
-          "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+          "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
           isActive
-            ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
+            ? "bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-[var(--color-accent-copper)]/25"
             : "text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
         )
       }>
@@ -85,7 +85,7 @@ export default function SuperAdminSidebar({ collapsed, onToggle }) {
             size={collapsed ? "icon" : "default"}
             onClick={onToggle}
             className={cn(
-              "w-full text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
+              "w-full rounded-xl bg-secondary/70 text-sidebar-foreground/80 ring-1 ring-border/50 hover:bg-secondary hover:text-sidebar-accent-foreground",
               !collapsed && "justify-start gap-2"
             )}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
@@ -117,9 +117,9 @@ export function SuperAdminMobileNav({ onNavigate }) {
             onClick={onNavigate}
             className={({ isActive }) =>
               cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
                 isActive
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-[var(--color-accent-copper)]/25"
                   : "text-sidebar-foreground/80 hover:bg-sidebar-accent/60"
               )
             }>

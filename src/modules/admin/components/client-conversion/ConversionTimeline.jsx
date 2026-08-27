@@ -29,7 +29,7 @@ function formatDate(d) {
 export default function ConversionTimeline({ lead }) {
   if (!lead) {
     return (
-      <Card className="border-border/60 shadow-sm">
+      <Card className="">
         <CardHeader className="pb-3"><CardTitle className="text-base">Timeline Activity</CardTitle></CardHeader>
         <CardContent>
           <p className="text-xs text-muted-foreground">Select a lead to view activity timeline.</p>
@@ -39,7 +39,7 @@ export default function ConversionTimeline({ lead }) {
   }
 
   return (
-    <Card className="border-border/60 shadow-sm">
+    <Card className="">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
           <CalendarDays className="h-4 w-4 text-muted-foreground" />
