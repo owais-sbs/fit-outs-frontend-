@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   BarChart3, DollarSign, Target, Trophy,
-  TrendingUp, MapPin, Download,
+  TrendingUp, MapPin, Download, RefreshCw, Loader2,
 } from "lucide-react";
 import DashboardHeader from "../../super-admin/components/DashboardHeader";
 import AnalyticsToolbar from "@/modules/shared/components/AnalyticsToolbar";
@@ -11,8 +11,8 @@ import { PageShell, StatTile } from "@/components/layout/PageShell";
 import {
   EvilLineChart, Line, XAxis, Legend, Tooltip,
 } from "@/components/evilcharts/charts/line-chart";
-import { 
-  EvilPieChart, Pie, Legend as PieLegend, Tooltip as PieTooltip 
+import {
+  EvilPieChart, Pie, Legend as PieLegend, Tooltip as PieTooltip,
 } from "@/components/evilcharts/charts/pie-chart";
 import {
   EvilBarChart, Bar, Grid, XAxis as BarXAxis, Legend as BarLegend, Tooltip as BarTooltip,
@@ -27,249 +27,386 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-
-import {
-  PIPELINE_PERF_DATA, PIPELINE_PERF_CONFIG,
-  LEAD_SOURCE_DATA, LEAD_SOURCE_CONFIG,
-} from "../data/crm-reports";
-
-// ─── Extended KPIs (6 cards) ──────────────────────────────────────────────────
-const EXTENDED_KPIS = [
-  { id: "pipeline",   title: "Pipeline value",    value: "$2.4M",  growth: 11.2, growthLabel: "open deals" },
-  { id: "won",        title: "Won this month",    value: "$428k",  growth: 18.4, growthLabel: "vs last month" },
-  { id: "lost",       title: "Lost this month",   value: "$95k",   growth: -4.2, growthLabel: "vs last month" },
-  { id: "conversion", title: "Win rate",          value: "24%",    growth: 2.1,  growthLabel: "qualified → won" },
-  { id: "revenue",    title: "Monthly revenue",   value: "$142k",  growth: 9.8,  growthLabel: "vs target" },
-  { id: "visits",     title: "Site visits",       value: "12",     growth: 20.0, growthLabel: "this month" },
-];
+import { fetchAllLeads } from "../api/leads.api";
+import { fetchAllProjects } from "../api/projects.api";
+import { fetchAllSiteVisits } from "../api/site-visits.api";
+import { fetchAllEmployees } from "../api/employees.api";
+import { buildAdminDashboardAnalytics } from "../utils/buildAdminDashboardAnalytics";
 
 const EXTENDED_ICONS = {
-  pipeline:   BarChart3,
-  won:        Trophy,
-  lost:       Target,
+  pipeline: BarChart3,
+  won: Trophy,
+  lost: Target,
   conversion: TrendingUp,
-  revenue:    DollarSign,
-  visits:     MapPin,
+  revenue: DollarSign,
+  visits: MapPin,
 };
-
-// ─── Forecast table ──────────────────────────────────────────────────────────
-const FORECAST_ROWS = [
-  { month: "Jun", leads: 42, forecast: 520, committed: 428, status: "on-track" },
-  { month: "Jul", leads: 38, forecast: 580, committed: 0,   status: "at-risk" },
-  { month: "Aug", leads: 35, forecast: 610, committed: 0,   status: "pending" },
-];
 
 const STATUS_VARIANT = {
   "on-track": "success",
-  "at-risk":  "warning",
-  "pending":  "secondary",
+  "at-risk": "warning",
+  pending: "secondary",
 };
 
-// ─── Won vs Lost data ─────────────────────────────────────────────────────────
-const WON_LOST_DATA = [
-  { month: "Jan", won: 3, lost: 2 },
-  { month: "Feb", won: 4, lost: 1 },
-  { month: "Mar", won: 5, lost: 3 },
-  { month: "Apr", won: 6, lost: 2 },
-  { month: "May", won: 8, lost: 4 },
-];
-const WON_LOST_CONFIG = {
-  won:  { label: "Won",  colors: { light: ["#18181B", "#3f3f46"], dark: ["#18181B", "#3f3f46"] } },
-  lost: { label: "Lost", colors: { light: ["#C4845A", "#a66b45"], dark: ["#C4845A", "#a66b45"] } },
-};
+function defaultDateRange(period = "30d") {
+  const to = new Date();
+  const from = new Date();
+  if (period === "7d") from.setDate(from.getDate() - 6);
+  else if (period === "90d") from.setDate(from.getDate() - 89);
+  else if (period === "12m") from.setMonth(from.getMonth() - 11);
+  else if (period === "ytd") from.setMonth(0, 1);
+  else from.setDate(from.getDate() - 29);
+  const fmt = (d) => d.toISOString().slice(0, 10);
+  return { from: fmt(from), to: fmt(to) };
+}
 
-// ─── Project type distribution ────────────────────────────────────────────────
-const PROJECT_TYPE_DATA = [
-  { type: "commercial",  count: 38 },
-  { type: "interior",    count: 28 },
-  { type: "renovation",  count: 20 },
-  { type: "residential", count: 16 },
-  { type: "construction",count: 12 },
-];
-const PROJECT_TYPE_CONFIG = {
-  commercial:   { label: "Commercial",   colors: { light: ["#18181B", "#3f3f46"], dark: ["#18181B", "#3f3f46"] } },
-  interior:     { label: "Interior",     colors: { light: ["#C4845A", "#a66b45"], dark: ["#C4845A", "#a66b45"] } },
-  renovation:   { label: "Renovation",   colors: { light: ["#0f766e", "#0d9488"], dark: ["#0f766e", "#0d9488"] } },
-  residential:  { label: "Residential",  colors: { light: ["#71717a", "#52525b"], dark: ["#71717a", "#52525b"] } },
-  construction: { label: "Construction", colors: { light: ["#a1a1aa", "#71717a"], dark: ["#a1a1aa", "#71717a"] } },
-};
+function exportCsv(analytics) {
+  const rows = [
+    ["Metric", "Value", "Change"],
+    ...analytics.kpis.map((k) => [k.title, k.value, `${k.growth}% ${k.growthLabel}`]),
+    [],
+    ["Month", "Leads created"],
+    ...analytics.pipelinePerfData.map((r) => [r.month, r.value]),
+    [],
+    ["Source", "Count"],
+    ...analytics.leadSourceData.map((r) => [r.source, r.count]),
+    [],
+    ["Month", "Won", "Lost"],
+    ...analytics.wonLostData.map((r) => [r.month, r.won, r.lost]),
+  ];
+  const csv = rows.map((r) => r.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `admin-dashboard-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 export default function AdminDashboard() {
+  const initial = defaultDateRange("30d");
   const [period, setPeriod] = useState("30d");
   const [assignee, setAssignee] = useState("all");
-  const [dateFrom, setDateFrom] = useState("2026-01-01");
-  const [dateTo, setDateTo] = useState("2026-05-22");
+  const [dateFrom, setDateFrom] = useState(initial.from);
+  const [dateTo, setDateTo] = useState(initial.to);
+
+  const [leads, setLeads] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [siteVisits, setSiteVisits] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [refreshedAt, setRefreshedAt] = useState(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const [leadData, projectData, visitData, employeeData] = await Promise.all([
+        fetchAllLeads(0, 500),
+        fetchAllProjects(),
+        fetchAllSiteVisits(),
+        fetchAllEmployees().catch(() => []),
+      ]);
+      setLeads(leadData || []);
+      setProjects(projectData || []);
+      setSiteVisits(visitData || []);
+      setEmployees(employeeData || []);
+      setRefreshedAt(new Date());
+    } catch (err) {
+      console.error(err);
+      setError(err?.response?.data?.message || err?.message || "Failed to load dashboard data");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const handlePeriodChange = (next) => {
+    setPeriod(next);
+    const range = defaultDateRange(next);
+    setDateFrom(range.from);
+    setDateTo(range.to);
+  };
+
+  const analytics = useMemo(
+    () =>
+      buildAdminDashboardAnalytics({
+        leads,
+        projects,
+        siteVisits,
+        period,
+        dateFrom,
+        dateTo,
+        assigneeId: assignee,
+      }),
+    [leads, projects, siteVisits, period, dateFrom, dateTo, assignee]
+  );
+
+  const emptyCharts =
+    !loading &&
+    !error &&
+    analytics.meta.leadCount === 0 &&
+    projects.length === 0 &&
+    siteVisits.length === 0;
 
   return (
     <PageShell className="space-y-8">
-      <DashboardHeader 
+      <DashboardHeader
         title="Admin Dashboard"
-        description="Monitor CRM analytics, lead pipeline, team performance, and system overview."
+        description="Live CRM analytics from leads, projects, and site visits."
       >
-        <Button variant="outline" size="sm" className="gap-2">
-          <Download className="h-4 w-4" />
-          Export Report
-        </Button>
+        <div className="flex items-center gap-2">
+          {refreshedAt && (
+            <span className="hidden text-xs text-muted-foreground sm:inline">
+              Updated {refreshedAt.toLocaleTimeString()}
+            </span>
+          )}
+          <Button variant="outline" size="sm" className="gap-2" onClick={load} disabled={loading}>
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            Refresh
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => exportCsv(analytics)}
+            disabled={loading || emptyCharts}
+          >
+            <Download className="h-4 w-4" />
+            Export Report
+          </Button>
+        </div>
       </DashboardHeader>
 
       <AnalyticsToolbar
         period={period}
-        onPeriodChange={setPeriod}
+        onPeriodChange={handlePeriodChange}
         dateFrom={dateFrom}
         dateTo={dateTo}
         onDateFromChange={setDateFrom}
         onDateToChange={setDateTo}
-        onExport={() => {}}
+        onExport={() => exportCsv(analytics)}
         filterSlot={
           <Select value={assignee} onValueChange={setAssignee}>
-            <SelectTrigger className="w-[160px]">
+            <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Assignee" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All reps</SelectItem>
-              <SelectItem value="james">James Wu</SelectItem>
-              <SelectItem value="emma">Emma Walsh</SelectItem>
-              <SelectItem value="tom">Tom Bradley</SelectItem>
+              {employees.map((emp) => (
+                <SelectItem key={emp.id} value={String(emp.id)}>
+                  {emp.employeeName || emp.fullName || emp.email}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         }
       />
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {EXTENDED_KPIS.map((kpi) => {
-          const Icon = EXTENDED_ICONS[kpi.id];
-          const isPos = kpi.growth >= 0;
-          return (
-            <StatTile
-              key={kpi.id}
-              label={kpi.title}
-              value={kpi.value}
-              icon={Icon}
-              hint={`${isPos ? "+" : ""}${kpi.growth}% ${kpi.growthLabel}`}
-            />
-          );
-        })}
-      </div>
+      {error && (
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          {error}
+        </div>
+      )}
 
-      <DashboardSection gridClassName="lg:grid-cols-2">
-        <AnalyticsChartCard
-          title="Pipeline performance"
-          description="Open pipeline value ($k) over time"
-          contentClassName="h-[280px] p-0"
-        >
-          <EvilLineChart data={PIPELINE_PERF_DATA} config={PIPELINE_PERF_CONFIG} className="h-full w-full p-4" xDataKey="month">
-            <XAxis dataKey="month" />
-            <Legend isClickable />
-            <Tooltip />
-            <Line dataKey="value" strokeVariant="solid" isClickable />
-          </EvilLineChart>
-        </AnalyticsChartCard>
+      {loading && (
+        <div className="flex items-center justify-center gap-2 rounded-xl border border-border/60 bg-card/60 py-16 text-sm text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin" />
+          Loading live dashboard…
+        </div>
+      )}
 
-        <AnalyticsChartCard
-          title="Lead source breakdown"
-          description="Leads by acquisition channel"
-          contentClassName="h-[280px] p-0"
-        >
-          <EvilPieChart className="h-full w-full p-4" data={LEAD_SOURCE_DATA} dataKey="count" nameKey="source" config={LEAD_SOURCE_CONFIG}>
-            <PieLegend isClickable />
-            <PieTooltip />
-            <Pie isClickable />
-          </EvilPieChart>
-        </AnalyticsChartCard>
-      </DashboardSection>
+      {!loading && emptyCharts && (
+        <div className="rounded-xl border border-border/60 bg-card/60 px-4 py-12 text-center text-sm text-muted-foreground">
+          No leads, projects, or site visits found for this company yet.
+        </div>
+      )}
 
-      <DashboardSection gridClassName="lg:grid-cols-2">
-        <AnalyticsChartCard
-          title="Won vs Lost"
-          description="Monthly comparison"
-          contentClassName="h-[280px] p-0"
-        >
-          <EvilBarChart data={WON_LOST_DATA} config={WON_LOST_CONFIG} className="h-full w-full p-4" xDataKey="month">
-            <Grid />
-            <BarXAxis dataKey="month" />
-            <BarLegend isClickable />
-            <BarTooltip />
-            <Bar dataKey="won" isClickable />
-            <Bar dataKey="lost" isClickable />
-          </EvilBarChart>
-        </AnalyticsChartCard>
-
-        <AnalyticsChartCard
-          title="Project type distribution"
-          description="Leads by project category"
-          contentClassName="h-[280px] p-0"
-        >
-          <EvilPieChart className="h-full w-full p-4" data={PROJECT_TYPE_DATA} dataKey="count" nameKey="type" config={PROJECT_TYPE_CONFIG}>
-            <PieLegend isClickable />
-            <PieTooltip />
-            <Pie isClickable />
-          </EvilPieChart>
-        </AnalyticsChartCard>
-      </DashboardSection>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader className="flex-row items-center justify-between">
-            <CardTitle className="text-base">Revenue forecast ($k)</CardTitle>
-            <Badge variant="outline" className="text-xs">Next 3 months</Badge>
-          </CardHeader>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="pl-6">Month</TableHead>
-                  <TableHead>Forecast</TableHead>
-                  <TableHead>Committed</TableHead>
-                  <TableHead className="pr-6">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {FORECAST_ROWS.map((r) => (
-                  <TableRow key={r.month}>
-                    <TableCell className="pl-6 font-semibold">{r.month}</TableCell>
-                    <TableCell className="font-medium">${r.forecast}k</TableCell>
-                    <TableCell>{r.committed ? `$${r.committed}k` : "—"}</TableCell>
-                    <TableCell className="pr-6">
-                      <Badge variant={STATUS_VARIANT[r.status] || "secondary"} className="capitalize text-[10px]">
-                        {r.status.replace("-", " ")}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Rep leaderboard</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {[
-              { name: "Tom Bradley",  deals: 7, revenue: 510, rate: "82%" },
-              { name: "James Wu",     deals: 8, revenue: 420, rate: "76%" },
-              { name: "Emma Walsh",   deals: 6, revenue: 380, rate: "71%" },
-              { name: "Lisa Park",    deals: 4, revenue: 290, rate: "60%" },
-            ].map((rep, i) => {
-              const initials = rep.name.split(" ").map((n) => n[0]).join("");
+      {!loading && !emptyCharts && (
+        <>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {analytics.kpis.map((kpi) => {
+              const Icon = EXTENDED_ICONS[kpi.id];
+              const isPos = kpi.growth >= 0;
               return (
-                <div key={rep.name} className="flex items-center gap-3 rounded-xl bg-secondary/50 px-4 py-3">
-                  <span className="w-5 text-sm font-bold text-muted-foreground">#{i + 1}</span>
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-accent text-xs text-accent-foreground font-semibold">{initials}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{rep.name}</p>
-                    <p className="text-xs text-muted-foreground">{rep.deals} deals · ${rep.revenue}k</p>
-                  </div>
-                  <Badge variant="outline" className="text-xs">{rep.rate} win</Badge>
-                </div>
+                <StatTile
+                  key={kpi.id}
+                  label={kpi.title}
+                  value={kpi.value}
+                  icon={Icon}
+                  hint={`${isPos ? "+" : ""}${kpi.growth}% ${kpi.growthLabel}`}
+                />
               );
             })}
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+
+          <DashboardSection gridClassName="lg:grid-cols-2">
+            <AnalyticsChartCard
+              title="Leads created"
+              description="New leads by month (live)"
+              contentClassName="h-[280px] p-0"
+            >
+              <EvilLineChart
+                data={analytics.pipelinePerfData}
+                config={analytics.pipelinePerfConfig}
+                className="h-full w-full p-4"
+                xDataKey="month"
+              >
+                <XAxis dataKey="month" />
+                <Legend isClickable />
+                <Tooltip />
+                <Line dataKey="value" strokeVariant="solid" isClickable />
+              </EvilLineChart>
+            </AnalyticsChartCard>
+
+            <AnalyticsChartCard
+              title="Lead source breakdown"
+              description="Leads by acquisition channel (live)"
+              contentClassName="h-[280px] p-0"
+            >
+              {analytics.leadSourceData.length === 0 ? (
+                <div className="flex h-full items-center justify-center text-sm text-muted-foreground">No source data</div>
+              ) : (
+                <EvilPieChart
+                  className="h-full w-full p-4"
+                  data={analytics.leadSourceData}
+                  dataKey="count"
+                  nameKey="source"
+                  config={analytics.leadSourceConfig}
+                >
+                  <PieLegend isClickable />
+                  <PieTooltip />
+                  <Pie isClickable />
+                </EvilPieChart>
+              )}
+            </AnalyticsChartCard>
+          </DashboardSection>
+
+          <DashboardSection gridClassName="lg:grid-cols-2">
+            <AnalyticsChartCard
+              title="Won vs Lost"
+              description="Monthly conversion outcomes (live)"
+              contentClassName="h-[280px] p-0"
+            >
+              <EvilBarChart
+                data={analytics.wonLostData}
+                config={analytics.wonLostConfig}
+                className="h-full w-full p-4"
+                xDataKey="month"
+              >
+                <Grid />
+                <BarXAxis dataKey="month" />
+                <BarLegend isClickable />
+                <BarTooltip />
+                <Bar dataKey="won" isClickable />
+                <Bar dataKey="lost" isClickable />
+              </EvilBarChart>
+            </AnalyticsChartCard>
+
+            <AnalyticsChartCard
+              title="Project type distribution"
+              description="Leads by project category (live)"
+              contentClassName="h-[280px] p-0"
+            >
+              {analytics.projectTypeData.length === 0 ? (
+                <div className="flex h-full items-center justify-center text-sm text-muted-foreground">No type data</div>
+              ) : (
+                <EvilPieChart
+                  className="h-full w-full p-4"
+                  data={analytics.projectTypeData}
+                  dataKey="count"
+                  nameKey="type"
+                  config={analytics.projectTypeConfig}
+                >
+                  <PieLegend isClickable />
+                  <PieTooltip />
+                  <Pie isClickable />
+                </EvilPieChart>
+              )}
+            </AnalyticsChartCard>
+          </DashboardSection>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card>
+              <CardHeader className="flex-row items-center justify-between">
+                <CardTitle className="text-base">Conversion forecast</CardTitle>
+                <Badge variant="outline" className="text-xs">Next 3 months</Badge>
+              </CardHeader>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="pl-6">Month</TableHead>
+                      <TableHead>Expected wins</TableHead>
+                      <TableHead>Committed</TableHead>
+                      <TableHead className="pr-6">Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {analytics.forecastRows.map((r) => (
+                      <TableRow key={r.month}>
+                        <TableCell className="pl-6 font-semibold">{r.month}</TableCell>
+                        <TableCell className="font-medium">{r.forecast}</TableCell>
+                        <TableCell>{r.committed ? r.committed : "—"}</TableCell>
+                        <TableCell className="pr-6">
+                          <Badge variant={STATUS_VARIANT[r.status] || "secondary"} className="capitalize text-[10px]">
+                            {r.status.replace("-", " ")}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                <p className="px-6 py-3 text-xs text-muted-foreground">
+                  Forecast from recent lead intake × current win rate. Not a revenue projection (leads have no deal value).
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Rep leaderboard</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {analytics.leaderboard.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No assigned reps with leads yet.</p>
+                ) : (
+                  analytics.leaderboard.map((rep, i) => {
+                    const initials = rep.name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")
+                      .slice(0, 2)
+                      .toUpperCase();
+                    return (
+                      <div key={`${rep.name}-${i}`} className="flex items-center gap-3 rounded-xl bg-secondary/50 px-4 py-3">
+                        <span className="w-5 text-sm font-bold text-muted-foreground">#{i + 1}</span>
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback className="bg-accent text-xs font-semibold text-accent-foreground">
+                            {initials || "?"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">{rep.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {rep.deals} won · {rep.open} open
+                          </p>
+                        </div>
+                        <Badge variant="outline" className="text-xs">{rep.rate} win</Badge>
+                      </div>
+                    );
+                  })
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </>
+      )}
     </PageShell>
   );
 }
