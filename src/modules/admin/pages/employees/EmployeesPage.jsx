@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import { PageShell, StatTile } from "@/components/layout/PageShell";
-import { fetchAllEmployees } from "../../api/employees.api";
+import { fetchAllEmployees, resendEmployeeInvite } from "../../api/employees.api";
 import { ROUTES } from "@/shared/constants/routes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,6 +51,8 @@ export default function EmployeesPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [page, setPage] = useState(1);
+  const [toast, setToast] = useState(null);
+  const [resendingId, setResendingId] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -87,8 +89,48 @@ export default function EmployeesPage() {
 
   const goToDetail = (id) => navigate(ROUTES.ADMIN.EMPLOYEE_DETAIL.replace(":employeeId", id));
 
+  const showToast = (type, title, message) => {
+    setToast({ type, title, message });
+    setTimeout(() => setToast(null), 4000);
+  };
+
+  const handleResendInvite = async (emp) => {
+    if (!emp?.id || resendingId) return;
+    setResendingId(emp.id);
+    try {
+      const result = await resendEmployeeInvite(emp.id);
+      const sent = result?.data?.inviteEmailSent ?? result?.inviteEmailSent;
+      if (sent === false) {
+        showToast("error", "Invite not sent", "Could not send the invite email. Try again later.");
+      } else {
+        showToast("success", "Invite sent", `A password setup link was emailed to ${emp.email}.`);
+      }
+    } catch (err) {
+      showToast(
+        "error",
+        "Invite not sent",
+        err.response?.data?.message || err.message || "Unable to resend invite."
+      );
+    } finally {
+      setResendingId(null);
+    }
+  };
+
   return (
     <PageShell>
+      {toast && (
+        <div
+          className={`fixed right-6 top-6 z-50 max-w-sm rounded-lg border px-4 py-3 shadow-lg ${
+            toast.type === "success"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+              : "border-red-200 bg-red-50 text-red-800"
+          }`}
+        >
+          <h4 className="text-xs font-bold">{toast.title}</h4>
+          <p className="text-[11px] opacity-90">{toast.message}</p>
+        </div>
+      )}
+
       <PageHeader
         title="Employees"
         description="Manage employee information and feature access."
@@ -231,6 +273,12 @@ export default function EmployeesPage() {
                           <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
                             <DropdownMenuItem onClick={() => goToDetail(emp.id)}>
                               View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              disabled={resendingId === emp.id}
+                              onClick={() => handleResendInvite(emp)}
+                            >
+                              {resendingId === emp.id ? "Sending invite…" : "Resend invite"}
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem className="text-destructive focus:text-destructive">

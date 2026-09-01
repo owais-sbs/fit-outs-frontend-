@@ -83,7 +83,7 @@ export default function SetPasswordPage() {
           <JctLogoTile className="h-14 w-14" />
           <div>
             <p className="text-sm font-medium text-muted-foreground">{BRAND_NAME}</p>
-            <h1 className="text-2xl font-semibold tracking-tight">Client portal access</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Portal access</h1>
           </div>
         </div>
 
@@ -99,7 +99,7 @@ export default function SetPasswordPage() {
               <div>
                 <h2 className="text-lg font-semibold">Password set</h2>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  You can now sign in to the client portal with your email and password.
+                  You can now sign in with your email and password.
                 </p>
               </div>
               <Button className="w-full" onClick={() => navigate(ROUTES.AUTH.LOGIN)}>
