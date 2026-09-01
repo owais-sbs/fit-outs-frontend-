@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   ArrowLeft, Save, Briefcase, MapPin, Calendar, DollarSign, Loader2, UserPlus,
@@ -13,14 +13,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { projectStore } from "@/shared/store/projectStore";
 import { ROUTES } from "@/shared/constants/routes";
 import { fetchAllClients, createClient } from "@/modules/admin/api/clients.api";
+import { fetchAllEmployees } from "@/modules/admin/api/employees.api";
 import { createProject } from "@/modules/admin/api/projects.api";
 import { useAuth } from "@/shared/context/auth-context";
+import { ROLES } from "@/shared/constants/roles";
 
 const CLIENT_MODE = {
   NONE: "none",
   EXISTING: "existing",
   NEW: "new",
 };
+
+const PM_ASSIGNABLE_ROLES = [ROLES.PROJECT_MANAGER, ROLES.BUSINESS_OWNER, ROLES.ADMIN];
 
 function generateTempPassword() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789@#$%";
@@ -40,6 +44,8 @@ export default function CreateProjectPage() {
   const state = useMemo(() => location.state || {}, [location.state]);
 
   const [clients, setClients] = useState([]);
+  const [projectManagers, setProjectManagers] = useState([]);
+  const [loadingManagers, setLoadingManagers] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [clientMode, setClientMode] = useState(CLIENT_MODE.NONE);
   const [form, setForm] = useState({
@@ -60,11 +66,26 @@ export default function CreateProjectPage() {
 
   const [errors, setErrors] = useState({});
 
+  const loadProjectManagers = useCallback(() => {
+    setLoadingManagers(true);
+    return fetchAllEmployees()
+      .then((list) => {
+        const active = (Array.isArray(list) ? list : []).filter((e) => e.isActive !== false);
+        const managers = active.filter(
+          (e) => !e.role || PM_ASSIGNABLE_ROLES.includes(e.role)
+        );
+        setProjectManagers(managers.length > 0 ? managers : active);
+      })
+      .catch(() => setProjectManagers([]))
+      .finally(() => setLoadingManagers(false));
+  }, []);
+
   useEffect(() => {
     fetchAllClients()
       .then((list) => setClients(Array.isArray(list) ? list : []))
       .catch(() => setClients([]));
-  }, []);
+    loadProjectManagers();
+  }, [loadProjectManagers]);
 
   useEffect(() => {
     if (state.requestData) {
@@ -122,7 +143,7 @@ export default function CreateProjectPage() {
     const errs = {};
     if (!form.projectName.trim()) errs.projectName = "Project name is required";
     if (!form.location.trim()) errs.location = "Location is required";
-    if (!form.assignedManager.trim()) errs.assignedManager = "Assigned manager is required";
+    if (!form.assignedManager) errs.assignedManager = "Assigned manager is required";
     if (!form.startDate) errs.startDate = "Start date is required";
     if (!form.expectedCompletionDate) errs.expectedCompletionDate = "Expected completion date is required";
     if (!form.budget || isNaN(form.budget) || parseFloat(form.budget) <= 0) {
@@ -175,7 +196,7 @@ export default function CreateProjectPage() {
         companyId: user?.companyId || user?.companyUuid || null,
         projectType: form.projectType,
         location: form.location.trim(),
-        assignedManager: form.assignedManager.trim(),
+        assignedManager: form.assignedManager,
         startDate: form.startDate,
         expectedCompletionDate: form.expectedCompletionDate,
         budget: parseFloat(form.budget),
@@ -401,13 +422,32 @@ export default function CreateProjectPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="assignedManager" className="text-xs font-semibold">Assigned Project Manager *</Label>
-                <Input
-                  id="assignedManager"
-                  placeholder="e.g. Jane Smith"
-                  className="h-9"
+                <Select
                   value={form.assignedManager}
-                  onChange={(e) => handleChange("assignedManager", e.target.value)}
-                />
+                  onValueChange={(val) => handleChange("assignedManager", val)}
+                  disabled={loadingManagers}
+                >
+                  <SelectTrigger id="assignedManager" className="h-9">
+                    <SelectValue placeholder={loadingManagers ? "Loading managers..." : "Select project manager"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {projectManagers.length === 0 ? (
+                      <SelectItem value="__none" disabled>
+                        {loadingManagers ? "Loading..." : "No project managers found"}
+                      </SelectItem>
+                    ) : (
+                      projectManagers.map((manager) => {
+                        const name = manager.employeeName || manager.fullName;
+                        const subtitle = manager.roleLabel || manager.designation || manager.email;
+                        return (
+                          <SelectItem key={manager.id} value={name}>
+                            {name}{subtitle ? ` (${subtitle})` : ""}
+                          </SelectItem>
+                        );
+                      })
+                    )}
+                  </SelectContent>
+                </Select>
                 {errors.assignedManager && <p className="text-[11px] text-destructive">{errors.assignedManager}</p>}
               </div>
 

@@ -54,6 +54,12 @@ export const rejectScClaim = (projectId, uuid, reason) =>
 export const fetchMyScPackages = () =>
   axiosInstance.get(`/subcontractor/my-packages`).then(unwrap);
 
+export const fetchMyScProjects = () =>
+  axiosInstance.get(`/subcontractor/my-projects`).then(unwrap);
+
+export const fetchMyScProject = (projectId) =>
+  axiosInstance.get(`/subcontractor/projects/${projectId}`).then(unwrap);
+
 export const fetchPackageClaims = (packageUuid) =>
   axiosInstance.get(`/subcontractor/packages/${packageUuid}/claims`).then(unwrap);
 

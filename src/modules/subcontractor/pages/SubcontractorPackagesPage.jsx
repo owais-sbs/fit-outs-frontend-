@@ -1,16 +1,24 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Loader2, Package } from "lucide-react";
+import { Loader2, MapPin, Package, Search } from "lucide-react";
 import { PageShell, PageTitle, Surface } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { fetchMyScPackages } from "@/modules/admin/api/subcontractor.api";
 import { ROUTES } from "@/shared/constants/routes";
+import { SC_STATUS_BADGE, formatScStatus, groupPackagesByProject } from "../utils/subcontractor.utils";
 
 export default function SubcontractorPackagesPage() {
   const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
+  const [search, setSearch] = useState("");
+  const [projectFilter, setProjectFilter] = useState("all");
 
   const load = useCallback(() => {
     setLoading(true);
@@ -27,9 +35,24 @@ export default function SubcontractorPackagesPage() {
     load();
   }, [load]);
 
+  const projects = useMemo(() => groupPackagesByProject(packages), [packages]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return packages.filter((p) => {
+      const matchProject = projectFilter === "all" || String(p.projectId) === projectFilter;
+      const matchQ = !q ||
+        p.name?.toLowerCase().includes(q) ||
+        p.projectName?.toLowerCase().includes(q) ||
+        p.boqSectionCode?.toLowerCase().includes(q) ||
+        p.projectLocation?.toLowerCase().includes(q);
+      return matchProject && matchQ;
+    });
+  }, [packages, search, projectFilter]);
+
   if (loading) {
     return (
-      <PageShell className="mx-auto max-w-4xl">
+      <PageShell>
         <div className="flex justify-center py-24 text-muted-foreground">
           <Loader2 className="h-6 w-6 animate-spin" />
         </div>
@@ -38,42 +61,93 @@ export default function SubcontractorPackagesPage() {
   }
 
   return (
-    <PageShell className="mx-auto max-w-4xl">
+    <PageShell>
       <PageTitle
         title="My Packages"
-        subtitle="Assigned subcontractor work packages"
+        subtitle="BOQ work packages appointed to your account"
         actions={
-          <Button asChild size="sm" variant="outline">
-            <Link to={ROUTES.SUBCONTRACTOR.CLAIMS}>Claims</Link>
+          <Button asChild size="sm">
+            <Link to={ROUTES.SUBCONTRACTOR.CLAIMS}>Submit claim</Link>
           </Button>
         }
       />
 
-      {message && <p className="text-sm text-muted-foreground">{message}</p>}
+      {message && (
+        <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+          {message}
+        </p>
+      )}
 
-      <Surface className="p-5">
-        <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold">
-          <Package className="h-4 w-4" /> Packages ({packages.length})
-        </h2>
-        {packages.length === 0 ? (
-          <p className="py-10 text-center text-sm text-muted-foreground">No packages assigned</p>
-        ) : (
-          <div className="divide-y divide-border/30">
-            {packages.map((p) => (
-              <div key={p.uuid} className="flex items-center justify-between gap-3 py-3">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">{p.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Project #{p.projectId}
-                    {p.boqSectionCode ? ` · ${p.boqSectionCode}` : ""}
-                  </p>
-                </div>
-                <Badge variant="secondary">{p.status || "OPEN"}</Badge>
-              </div>
-            ))}
+      <Card>
+        <CardContent className="flex flex-col gap-3 p-4 lg:flex-row lg:items-center">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search package, project, or section..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+            />
           </div>
-        )}
-      </Surface>
+          <Select value={projectFilter} onValueChange={setProjectFilter}>
+            <SelectTrigger className="w-full lg:w-[220px]">
+              <SelectValue placeholder="All projects" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All projects</SelectItem>
+              {projects.map((p) => (
+                <SelectItem key={p.projectId} value={String(p.projectId)}>
+                  {p.projectName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </CardContent>
+      </Card>
+
+      {filtered.length === 0 ? (
+        <Surface className="px-4 py-16 text-center">
+          <Package className="mx-auto mb-3 h-10 w-10 text-muted-foreground/30" />
+          <p className="text-sm text-muted-foreground">No packages found</p>
+        </Surface>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {filtered.map((pkg) => (
+            <Surface key={pkg.uuid} className="flex flex-col p-5">
+              <div className="mb-3 flex items-start justify-between gap-2">
+                <p className="text-sm font-semibold leading-tight">{pkg.name}</p>
+                <Badge className={`${SC_STATUS_BADGE[pkg.status] || "bg-muted border-none"} shrink-0 text-[10px]`}>
+                  {formatScStatus(pkg.status)}
+                </Badge>
+              </div>
+              <p className="mb-1 text-xs font-medium text-foreground/80">
+                {pkg.projectName || `Project #${pkg.projectId}`}
+              </p>
+              <p className="mb-4 flex items-center gap-1 text-xs text-muted-foreground">
+                <MapPin className="h-3 w-3 shrink-0" />
+                {pkg.projectLocation || "Location not set"}
+              </p>
+              {pkg.boqSectionCode && (
+                <p className="mb-3 text-xs text-muted-foreground">Section: {pkg.boqSectionCode}</p>
+              )}
+              <div className="mt-auto grid grid-cols-3 gap-2 text-center text-[11px]">
+                <div className="rounded-lg bg-secondary/60 px-2 py-1.5">
+                  <p className="text-muted-foreground">Planned</p>
+                  <p className="font-semibold tabular-nums">{pkg.boqPlannedQty ?? 0}</p>
+                </div>
+                <div className="rounded-lg bg-secondary/60 px-2 py-1.5">
+                  <p className="text-muted-foreground">Approved</p>
+                  <p className="font-semibold tabular-nums">{pkg.approvedClaimedQty ?? 0}</p>
+                </div>
+                <div className="rounded-lg bg-secondary/60 px-2 py-1.5">
+                  <p className="text-muted-foreground">Left</p>
+                  <p className="font-semibold tabular-nums">{pkg.remainingQty ?? 0}</p>
+                </div>
+              </div>
+            </Surface>
+          ))}
+        </div>
+      )}
     </PageShell>
   );
 }

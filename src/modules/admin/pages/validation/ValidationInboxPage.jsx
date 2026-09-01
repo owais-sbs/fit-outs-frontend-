@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { ArrowLeft, Check, Loader2, Plus, X, ShieldAlert, Trash2 } from "lucide-react";
+import { ArrowLeft, Check, ClipboardCheck, HardHat, Loader2, Plus, X, ShieldAlert, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageShell, PageTitle } from "@/components/layout/PageShell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,12 +12,16 @@ import {
   fetchProjectValidations,
   approveValidation,
   rejectValidation,
+  approveScClaim,
+  rejectScClaim,
   fetchHoldPoints,
   createHoldPoint,
   clearHoldPoint,
   fetchQualityTemplate,
 } from "../../api/validation.api";
 import { ROUTES } from "@/shared/constants/routes";
+
+const TAB = { PROGRESS: "progress", CLAIMS: "claims" };
 
 function parseChecklist(raw) {
   if (Array.isArray(raw)) return raw.map(String).filter(Boolean);
@@ -32,6 +36,15 @@ function parseChecklist(raw) {
   return [];
 }
 
+function formatDate(value) {
+  if (!value) return null;
+  try {
+    return new Date(value).toLocaleString();
+  } catch {
+    return null;
+  }
+}
+
 export default function ValidationInboxPage() {
   const { projectId } = useParams();
   const location = useLocation();
@@ -41,7 +54,13 @@ export default function ValidationInboxPage() {
     ? routes.PROJECT_DETAIL.replace(":projectId", projectId)
     : routes.DASHBOARD;
 
-  const [items, setItems] = useState([]);
+  const [inbox, setInbox] = useState({
+    progressItems: [],
+    claimItems: [],
+    pendingProgressCount: 0,
+    pendingClaimCount: 0,
+  });
+  const [activeTab, setActiveTab] = useState(TAB.PROGRESS);
   const [holdPoints, setHoldPoints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -61,9 +80,9 @@ export default function ValidationInboxPage() {
     const holdReq = projectId
       ? fetchHoldPoints(projectId).catch(() => [])
       : Promise.resolve([]);
-    Promise.all([req.catch(() => []), holdReq])
-      .then(([list, holds]) => {
-        setItems(Array.isArray(list) ? list : []);
+    Promise.all([req.catch(() => ({ progressItems: [], claimItems: [] })), holdReq])
+      .then(([data, holds]) => {
+        setInbox(data);
         setHoldPoints(Array.isArray(holds) ? holds : []);
       })
       .finally(() => setLoading(false));
@@ -130,7 +149,9 @@ export default function ValidationInboxPage() {
     }
   };
 
-  const pending = items.filter((i) => !i.status || i.status === "PENDING");
+  const progressItems = inbox.progressItems || [];
+  const claimItems = inbox.claimItems || [];
+  const totalPending = (inbox.pendingProgressCount || 0) + (inbox.pendingClaimCount || 0);
 
   if (loading) {
     return (
@@ -148,83 +169,204 @@ export default function ValidationInboxPage() {
         </Button>
         <PageTitle
           title={projectId ? "Project Validations" : "Validation Inbox"}
-          subtitle={projectId ? `Project #${projectId}` : "Pending progress & quality approvals"}
+          subtitle={
+            projectId
+              ? `Project #${projectId} · ${totalPending} pending`
+              : `${totalPending} pending approvals across progress and subcontractor claims`
+          }
         />
       </div>
 
       {message && <p className="text-sm text-muted-foreground">{message}</p>}
 
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-semibold">
-            Pending ({pending.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {items.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-10 text-center">No validations</p>
-          ) : (
-            <div className="divide-y divide-border/40">
-              {items.map((item) => (
-                <div key={item.uuid} className="flex flex-col sm:flex-row sm:items-center gap-3 py-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Badge className="border-none bg-amber-500/15 text-amber-700">
-                        {item.status || "PENDING"}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground font-mono">
-                        {String(item.uuid).slice(0, 8)}…
-                      </span>
+      <div className="flex flex-wrap gap-2">
+        <Button
+          type="button"
+          size="sm"
+          variant={activeTab === TAB.PROGRESS ? "default" : "outline"}
+          onClick={() => setActiveTab(TAB.PROGRESS)}
+        >
+          <ClipboardCheck className="h-4 w-4 mr-1" />
+          Progress ({inbox.pendingProgressCount || 0})
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant={activeTab === TAB.CLAIMS ? "default" : "outline"}
+          onClick={() => setActiveTab(TAB.CLAIMS)}
+        >
+          <HardHat className="h-4 w-4 mr-1" />
+          Subcontractor claims ({inbox.pendingClaimCount || 0})
+        </Button>
+      </div>
+
+      {activeTab === TAB.PROGRESS && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold">
+              Schedule progress ({progressItems.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {progressItems.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-10 text-center">No pending progress validations</p>
+            ) : (
+              <div className="divide-y divide-border/40">
+                {progressItems.map((item) => (
+                  <div key={item.uuid} className="flex flex-col sm:flex-row sm:items-start gap-3 py-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge className="border-none bg-amber-500/15 text-amber-700">
+                          {item.status || "PENDING"}
+                        </Badge>
+                        <span className="text-sm font-medium">
+                          {item.activityName || "Schedule activity"}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {item.projectName ? item.projectName : `Project #${item.projectId}`}
+                        {item.percentComplete != null ? ` · ${item.percentComplete}% complete` : ""}
+                        {item.reportedByName ? ` · ${item.reportedByName}` : ""}
+                        {formatDate(item.reportedAt) ? ` · ${formatDate(item.reportedAt)}` : ""}
+                      </p>
+                      {item.progressNotes && (
+                        <p className="text-xs text-muted-foreground mt-1">{item.progressNotes}</p>
+                      )}
+                      {item.reason && (
+                        <p className="text-xs text-destructive mt-1">Reason: {item.reason}</p>
+                      )}
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Activity {String(item.activityUuid || "").slice(0, 8)}… · Progress{" "}
-                      {String(item.progressUpdateUuid || "").slice(0, 8)}…
-                      {item.projectId ? ` · Project #${item.projectId}` : ""}
-                    </p>
-                    {item.reason && (
-                      <p className="text-xs text-destructive mt-1">Reason: {item.reason}</p>
+                    {(item.status === "PENDING" || !item.status) && (
+                      <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+                        <Input
+                          className="h-8 w-full sm:w-40 text-xs"
+                          placeholder="Reject reason"
+                          value={rejectReasons[`p-${item.uuid}`] || ""}
+                          onChange={(e) =>
+                            setRejectReasons((m) => ({ ...m, [`p-${item.uuid}`]: e.target.value }))
+                          }
+                        />
+                        <div className="flex gap-1">
+                          <Button
+                            size="sm"
+                            disabled={busy}
+                            onClick={() => run(() => approveValidation(item.uuid), "Progress approved — schedule updated")}
+                          >
+                            <Check className="h-4 w-4 mr-1" /> Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={busy}
+                            onClick={() =>
+                              run(
+                                () => rejectValidation(item.uuid, rejectReasons[`p-${item.uuid}`]),
+                                "Progress rejected"
+                              )
+                            }
+                          >
+                            <X className="h-4 w-4 mr-1" /> Reject
+                          </Button>
+                        </div>
+                      </div>
                     )}
                   </div>
-                  {(item.status === "PENDING" || !item.status) && (
-                    <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-                      <Input
-                        className="h-8 w-full sm:w-40 text-xs"
-                        placeholder="Reject reason"
-                        value={rejectReasons[item.uuid] || ""}
-                        onChange={(e) =>
-                          setRejectReasons((m) => ({ ...m, [item.uuid]: e.target.value }))
-                        }
-                      />
-                      <div className="flex gap-1">
-                        <Button
-                          size="sm"
-                          disabled={busy}
-                          onClick={() => run(() => approveValidation(item.uuid), "Approved")}
-                        >
-                          <Check className="h-4 w-4 mr-1" /> Approve
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={busy}
-                          onClick={() =>
-                            run(
-                              () => rejectValidation(item.uuid, rejectReasons[item.uuid]),
-                              "Rejected"
-                            )
-                          }
-                        >
-                          <X className="h-4 w-4 mr-1" /> Reject
-                        </Button>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === TAB.CLAIMS && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold">
+              Subcontractor claims ({claimItems.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {claimItems.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-10 text-center">No pending subcontractor claims</p>
+            ) : (
+              <div className="divide-y divide-border/40">
+                {claimItems.map((item) => (
+                  <div key={item.uuid} className="flex flex-col sm:flex-row sm:items-start gap-3 py-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge className="border-none bg-amber-500/15 text-amber-700">
+                          {item.status || "SUBMITTED"}
+                        </Badge>
+                        <span className="text-sm font-medium">
+                          {item.packageName || "Work package"}
+                        </span>
                       </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {item.projectName ? item.projectName : `Project #${item.projectId}`}
+                        {item.subcontractorName ? ` · ${item.subcontractorName}` : ""}
+                        {item.submittedByName ? ` · ${item.submittedByName}` : ""}
+                        {formatDate(item.submittedAt) ? ` · ${formatDate(item.submittedAt)}` : ""}
+                      </p>
+                      <div className="mt-2 grid grid-cols-2 gap-2 max-w-xs">
+                        <div className="rounded-lg bg-secondary/60 px-3 py-2">
+                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Planned</p>
+                          <p className="text-sm font-semibold tabular-nums">{Number(item.plannedQty ?? 0)}</p>
+                        </div>
+                        <div className="rounded-lg bg-secondary/60 px-3 py-2">
+                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Claimed</p>
+                          <p className="text-sm font-semibold tabular-nums">{Number(item.claimedQty ?? 0)}</p>
+                        </div>
+                      </div>
+                      {item.notes && (
+                        <p className="text-xs text-muted-foreground mt-1">{item.notes}</p>
+                      )}
                     </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                    {(item.status === "SUBMITTED" || item.status === "PENDING") && (
+                      <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+                        <Input
+                          className="h-8 w-full sm:w-40 text-xs"
+                          placeholder="Reject reason"
+                          value={rejectReasons[`c-${item.uuid}`] || ""}
+                          onChange={(e) =>
+                            setRejectReasons((m) => ({ ...m, [`c-${item.uuid}`]: e.target.value }))
+                          }
+                        />
+                        <div className="flex gap-1">
+                          <Button
+                            size="sm"
+                            disabled={busy}
+                            onClick={() =>
+                              run(
+                                () => approveScClaim(item.projectId, item.uuid),
+                                "Claim approved"
+                              )
+                            }
+                          >
+                            <Check className="h-4 w-4 mr-1" /> Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={busy}
+                            onClick={() =>
+                              run(
+                                () => rejectScClaim(item.projectId, item.uuid, rejectReasons[`c-${item.uuid}`]),
+                                "Claim rejected"
+                              )
+                            }
+                          >
+                            <X className="h-4 w-4 mr-1" /> Reject
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {projectId && (
         <Card>

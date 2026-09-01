@@ -47,7 +47,7 @@ export default function EmployeeMyActivitiesPage() {
         notes: form.notes || null,
         labourHours: form.labourHours !== "" ? Number(form.labourHours) : null,
       });
-      setMessage("Progress posted.");
+      setMessage("Submitted for PM validation — awaiting approval.");
       load();
     } catch (e) {
       setMessage(e?.response?.data?.error || e?.response?.data?.message || "Failed to post progress");
@@ -90,7 +90,7 @@ export default function EmployeeMyActivitiesPage() {
             >
               <div className="flex items-center justify-between gap-2">
                 <p className="text-sm font-medium">{a.name}</p>
-                <Badge className="border-none bg-primary/10 text-primary">{a.percentComplete}%</Badge>
+                <Badge className="border-none bg-primary/10 text-primary">{a.percentComplete}% approved</Badge>
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
                 {a.startDate} → {a.endDate} · Project #{a.projectId}
@@ -119,7 +119,10 @@ export default function EmployeeMyActivitiesPage() {
               <Textarea rows={3} value={form.notes}
                 onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} />
             </div>
-            <Button size="sm" disabled={busy} onClick={submit}>Submit update</Button>
+            <Button size="sm" disabled={busy} onClick={submit}>Submit for validation</Button>
+            <p className="text-[11px] text-muted-foreground">
+              Your update applies to the schedule after PM approval.
+            </p>
             {message && <p className="text-sm text-muted-foreground">{message}</p>}
           </div>
         </Surface>

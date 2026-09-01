@@ -81,6 +81,9 @@ import SubcontractorDashboard from "./modules/subcontractor/pages/dashboard";
 import SubcontractorLayout from "./modules/subcontractor/layouts/SubcontractorLayout";
 import SubcontractorPackagesPage from "./modules/subcontractor/pages/SubcontractorPackagesPage";
 import SubcontractorClaimsPage from "./modules/subcontractor/pages/SubcontractorClaimsPage";
+import SubcontractorProjectsPage from "./modules/subcontractor/pages/SubcontractorProjectsPage";
+import SubcontractorProjectDetailPage from "./modules/subcontractor/pages/SubcontractorProjectDetailPage";
+import SubcontractorLocationsPage from "./modules/subcontractor/pages/SubcontractorLocationsPage";
 import {
   ClientLayout,
   ClientDashboard,
@@ -110,6 +113,7 @@ import ScheduleHubPage from "./modules/admin/pages/schedule/ScheduleHubPage";
 import MaterialPlanPage from "./modules/admin/pages/planning/MaterialPlanPage";
 import ResourcePlanPage from "./modules/admin/pages/planning/ResourcePlanPage";
 import ValidationInboxPage from "./modules/admin/pages/validation/ValidationInboxPage";
+import QualityTemplatesPage from "./modules/admin/pages/validation/QualityTemplatesPage";
 import ProjectSnagsPage from "./modules/admin/pages/snags/ProjectSnagsPage";
 import ProjectDocumentsPage from "./modules/admin/pages/documents/ProjectDocumentsPage";
 import ProjectReportingPage from "./modules/admin/pages/reporting/ProjectReportingPage";
@@ -212,6 +216,7 @@ function App() {
               <Route path="projects/:projectId/billing" element={<ProjectBillingPage />} />
               <Route path="projects/:projectId/subcontractors" element={<ProjectSubcontractorPage />} />
               <Route path="validation/inbox" element={<ValidationInboxPage />} />
+              <Route path="quality-templates" element={<QualityTemplatesPage />} />
               <Route path="schedule" element={<ScheduleHubPage />} />
               <Route path="projects/:projectId/drawings" element={<LazyDrawingPage><ProjectDrawingsPage /></LazyDrawingPage>} />
               <Route path="projects/:projectId/drawings/:drawingId/qto" element={<LazyDrawingPage><QtoWorkspacePage /></LazyDrawingPage>} />
@@ -281,6 +286,7 @@ function App() {
               <Route path="projects/:projectId/billing" element={<ProjectBillingPage />} />
               <Route path="projects/:projectId/subcontractors" element={<ProjectSubcontractorPage />} />
               <Route path="validation/inbox" element={<ValidationInboxPage />} />
+              <Route path="quality-templates" element={<QualityTemplatesPage />} />
               <Route path="schedule" element={<ScheduleHubPage />} />
               <Route path="site-visits" element={<SiteVisitsPage />} />
               <Route path="site-visits/:visitId/report" element={<SiteVisitReportPage />} />
@@ -327,6 +333,9 @@ function App() {
               }
             >
               <Route index element={<SubcontractorDashboard />} />
+              <Route path="projects" element={<SubcontractorProjectsPage />} />
+              <Route path="projects/:projectId" element={<SubcontractorProjectDetailPage />} />
+              <Route path="locations" element={<SubcontractorLocationsPage />} />
               <Route path="packages" element={<SubcontractorPackagesPage />} />
               <Route path="claims" element={<SubcontractorClaimsPage />} />
             </Route>

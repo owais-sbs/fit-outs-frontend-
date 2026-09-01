@@ -100,6 +100,12 @@ const NAV_GROUPS = [
         href: ROUTES.ADMIN.VALIDATION_INBOX,
         icon: CheckSquare,
       },
+      {
+        type: "link",
+        label: "Quality templates",
+        href: ROUTES.ADMIN.QUALITY_TEMPLATES,
+        icon: ClipboardList,
+      },
       { type: "link", label: "Communications", href: ROUTES.ADMIN.COMMUNICATIONS, icon: Mail },
     ],
   },

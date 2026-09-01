@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import {
-  Plus, ChevronRight, Building2, Trash2,
+  Plus, ChevronRight, Building2, Trash2, Search,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -39,6 +39,213 @@ function groupSelectionsByMaster(selections = []) {
     groups[key].push(sel);
   });
   return groups;
+}
+
+function WorkItemDetailPanel({
+  sel,
+  room,
+  onToggle,
+  onSetDimensionSource,
+  onPatchCustomDimension,
+}) {
+  return (
+    <div className="rounded-md border border-primary/20 bg-primary/5 px-3 py-2">
+      <div className="flex items-center gap-3">
+        <Checkbox
+          checked={!!sel.selected}
+          onCheckedChange={(checked) => onToggle(sel.workItemId, !!checked)}
+        />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium">{sel.workItemName}</p>
+          <p className="text-[11px] text-muted-foreground">
+            {sel.quantity} {unitLabel(sel.unitType)} × {formatCurrency(sel.defaultRate)}
+            {sel.dimensionSource === "custom" && (
+              <span className="ml-1 text-amber-700">· custom dims</span>
+            )}
+          </p>
+          {sel.materialLines?.length > 0 && (
+            <div className="mt-1.5 space-y-0.5">
+              {sel.materialLines.map((line) => (
+                <p key={line.materialId} className="text-[10px] text-muted-foreground">
+                  <span className="font-medium text-foreground/80">{line.materialName}</span>
+                  {" · "}
+                  {line.quantityPerUnit} {unitLabel(line.unitType)}
+                  {line.wastagePercent > 0 ? ` + ${line.wastagePercent}% wastage` : ""}
+                  {" · "}
+                  cost {formatCurrency(line.lineCost)}
+                </p>
+              ))}
+              <p className="text-[10px] text-emerald-700">
+                Material cost {formatCurrency(sel.costPrice)}
+                {sel.markupPercentage > 0 ? ` + ${sel.markupPercentage}% markup` : ""}
+                {" → "}
+                rate {formatCurrency(sel.defaultRate)}/{unitLabel(sel.unitType)}
+              </p>
+            </div>
+          )}
+        </div>
+        <span className="text-sm font-semibold tabular-nums shrink-0">
+          {sel.selected ? formatCurrency(sel.amount) : "—"}
+        </span>
+      </div>
+
+      <div className="mt-2 ml-7 space-y-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
+            Dimensions
+          </span>
+          <div className="flex rounded-md border overflow-hidden">
+            <button
+              type="button"
+              onClick={() => onSetDimensionSource(sel.workItemId, "room")}
+              className={`px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                sel.dimensionSource !== "custom"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-background text-muted-foreground hover:bg-muted/60"
+              }`}
+            >
+              Use room
+            </button>
+            <button
+              type="button"
+              onClick={() => onSetDimensionSource(sel.workItemId, "custom")}
+              className={`px-2.5 py-1 text-[11px] font-medium border-l transition-colors ${
+                sel.dimensionSource === "custom"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-background text-muted-foreground hover:bg-muted/60"
+              }`}
+            >
+              Custom
+            </button>
+          </div>
+          {sel.dimensionSource !== "custom" && (
+            <span className="text-[11px] text-muted-foreground tabular-nums">
+              {room.length || "—"} × {room.width || "—"} × {room.height || "—"} m
+            </span>
+          )}
+        </div>
+
+        {sel.dimensionSource === "custom" && (
+          <div className="grid grid-cols-3 gap-2 max-w-xs">
+            <div className="space-y-1">
+              <Label className="text-[10px] text-muted-foreground">L (m)</Label>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                className="h-8 text-xs"
+                value={sel.customLength ?? ""}
+                onChange={(e) => onPatchCustomDimension(sel.workItemId, "customLength", e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[10px] text-muted-foreground">W (m)</Label>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                className="h-8 text-xs"
+                value={sel.customWidth ?? ""}
+                onChange={(e) => onPatchCustomDimension(sel.workItemId, "customWidth", e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[10px] text-muted-foreground">H (m)</Label>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                className="h-8 text-xs"
+                value={sel.customHeight ?? ""}
+                onChange={(e) => onPatchCustomDimension(sel.workItemId, "customHeight", e.target.value)}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function WorkItemsScrollPanel({
+  masterName,
+  items,
+  room,
+  onToggle,
+  onSetDimensionSource,
+  onPatchCustomDimension,
+}) {
+  const [search, setSearch] = useState("");
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter((sel) => sel.workItemName?.toLowerCase().includes(q));
+  }, [items, search]);
+
+  const selectedItems = useMemo(
+    () => items.filter((sel) => sel.selected),
+    [items]
+  );
+
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{masterName}</p>
+
+      <div className="overflow-hidden rounded-md border bg-background">
+        <div className="border-b bg-muted/20 p-2">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={`Search ${masterName.toLowerCase()}...`}
+              className="h-8 border-0 bg-background pl-8 text-xs shadow-none focus-visible:ring-1"
+            />
+          </div>
+        </div>
+
+        <div className="max-h-52 overflow-y-auto overscroll-contain p-1">
+          {filtered.length === 0 ? (
+            <p className="px-3 py-6 text-center text-xs text-muted-foreground">No matching work items</p>
+          ) : (
+            filtered.map((sel) => (
+              <label
+                key={sel.workItemId}
+                className={`flex cursor-pointer items-center gap-2 rounded-sm px-2.5 py-2 text-sm transition-colors hover:bg-accent/60 ${
+                  sel.selected ? "bg-primary/5" : ""
+                }`}
+              >
+                <Checkbox
+                  checked={!!sel.selected}
+                  onCheckedChange={(checked) => onToggle(sel.workItemId, !!checked)}
+                />
+                <span className="min-w-0 flex-1 truncate font-medium">{sel.workItemName}</span>
+                <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+                  {sel.selected ? formatCurrency(sel.amount) : formatCurrency(sel.defaultRate)}
+                </span>
+              </label>
+            ))
+          )}
+        </div>
+      </div>
+
+      {selectedItems.length > 0 && (
+        <div className="space-y-2">
+          {selectedItems.map((sel) => (
+            <WorkItemDetailPanel
+              key={sel.workItemId}
+              sel={sel}
+              room={room}
+              onToggle={onToggle}
+              onSetDimensionSource={onSetDimensionSource}
+              onPatchCustomDimension={onPatchCustomDimension}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function RoomSurveyCard({ room, floorName, roomTypes, onUpdate, onRemove }) {
@@ -233,131 +440,15 @@ function RoomSurveyCard({ room, floorName, roomTypes, onUpdate, onRemove }) {
         )}
 
         {Object.entries(grouped).map(([masterName, items]) => (
-          <div key={masterName} className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{masterName}</p>
-            <div className="space-y-1.5">
-              {items.map((sel) => (
-                <div
-                  key={sel.workItemId}
-                  className="rounded-md border px-3 py-2 hover:bg-muted/40"
-                >
-                  <div className="flex items-center gap-3">
-                    <Checkbox
-                      checked={!!sel.selected}
-                      onCheckedChange={(checked) => toggleSelection(sel.workItemId, !!checked)}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{sel.workItemName}</p>
-                      <p className="text-[11px] text-muted-foreground">
-                        {sel.quantity} {unitLabel(sel.unitType)} × {formatCurrency(sel.defaultRate)}
-                        {sel.dimensionSource === "custom" && (
-                          <span className="ml-1 text-amber-700">· custom dims</span>
-                        )}
-                      </p>
-                      {sel.materialLines?.length > 0 && (
-                        <div className="mt-1.5 space-y-0.5">
-                          {sel.materialLines.map((line) => (
-                            <p key={line.materialId} className="text-[10px] text-muted-foreground">
-                              <span className="font-medium text-foreground/80">{line.materialName}</span>
-                              {" · "}
-                              {line.quantityPerUnit} {unitLabel(line.unitType)}
-                              {line.wastagePercent > 0 ? ` + ${line.wastagePercent}% wastage` : ""}
-                              {" · "}
-                              cost {formatCurrency(line.lineCost)}
-                            </p>
-                          ))}
-                          <p className="text-[10px] text-emerald-700">
-                            Material cost {formatCurrency(sel.costPrice)}
-                            {sel.markupPercentage > 0 ? ` + ${sel.markupPercentage}% markup` : ""}
-                            {" → "}
-                            rate {formatCurrency(sel.defaultRate)}/{unitLabel(sel.unitType)}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                    <span className="text-sm font-semibold tabular-nums shrink-0">
-                      {sel.selected ? formatCurrency(sel.amount) : "—"}
-                    </span>
-                  </div>
-
-                  <div className="mt-2 ml-7 space-y-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
-                        Dimensions
-                      </span>
-                      <div className="flex rounded-md border overflow-hidden">
-                        <button
-                          type="button"
-                          onClick={() => setDimensionSource(sel.workItemId, "room")}
-                          className={`px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                            sel.dimensionSource !== "custom"
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-background text-muted-foreground hover:bg-muted/60"
-                          }`}
-                        >
-                          Use room
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setDimensionSource(sel.workItemId, "custom")}
-                          className={`px-2.5 py-1 text-[11px] font-medium border-l transition-colors ${
-                            sel.dimensionSource === "custom"
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-background text-muted-foreground hover:bg-muted/60"
-                          }`}
-                        >
-                          Custom
-                        </button>
-                      </div>
-                      {sel.dimensionSource !== "custom" && (
-                        <span className="text-[11px] text-muted-foreground tabular-nums">
-                          {room.length || "—"} × {room.width || "—"} × {room.height || "—"} m
-                        </span>
-                      )}
-                    </div>
-
-                    {sel.dimensionSource === "custom" && (
-                      <div className="grid grid-cols-3 gap-2 max-w-xs">
-                        <div className="space-y-1">
-                          <Label className="text-[10px] text-muted-foreground">L (m)</Label>
-                          <Input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            className="h-8 text-xs"
-                            value={sel.customLength ?? ""}
-                            onChange={(e) => patchCustomDimension(sel.workItemId, "customLength", e.target.value)}
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-[10px] text-muted-foreground">W (m)</Label>
-                          <Input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            className="h-8 text-xs"
-                            value={sel.customWidth ?? ""}
-                            onChange={(e) => patchCustomDimension(sel.workItemId, "customWidth", e.target.value)}
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-[10px] text-muted-foreground">H (m)</Label>
-                          <Input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            className="h-8 text-xs"
-                            value={sel.customHeight ?? ""}
-                            onChange={(e) => patchCustomDimension(sel.workItemId, "customHeight", e.target.value)}
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <WorkItemsScrollPanel
+            key={masterName}
+            masterName={masterName}
+            items={items}
+            room={room}
+            onToggle={toggleSelection}
+            onSetDimensionSource={setDimensionSource}
+            onPatchCustomDimension={patchCustomDimension}
+          />
         ))}
       </CardContent>
     </Card>

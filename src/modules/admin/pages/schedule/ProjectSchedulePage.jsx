@@ -617,7 +617,6 @@ export default function ProjectSchedulePage() {
           name: selected.name,
           startDate: selected.startDate,
           endDate: selected.endDate,
-          percentComplete: Number(selected.percentComplete) || 0,
           assigneeAccountId: selected.assigneeAccountId || null,
         }),
       "Activity saved"
@@ -653,7 +652,7 @@ export default function ProjectSchedulePage() {
       });
       const list = await fetchActivityProgress(selected.uuid);
       setProgressHistory(Array.isArray(list) ? list : []);
-    }, "Progress posted");
+    }, "Submitted for PM validation");
   };
 
   if (loading) {
@@ -846,9 +845,9 @@ export default function ProjectSchedulePage() {
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <Label className="text-xs">%</Label>
-                  <Input type="number" min={0} max={100} value={selected.percentComplete}
-                    onChange={(e) => setSelected((s) => ({ ...s, percentComplete: e.target.value }))} />
+                  <Label className="text-xs">Approved %</Label>
+                  <Input type="number" min={0} max={100} value={selected.percentComplete} readOnly disabled
+                    className="bg-muted/40" />
                 </div>
                 <div>
                   <Label className="text-xs">Assignee account ID</Label>
@@ -859,12 +858,15 @@ export default function ProjectSchedulePage() {
                     }))} />
                 </div>
               </div>
-              <Button size="sm" disabled={busy} onClick={handleUpdateSelected}>Save dates / %</Button>
+              <Button size="sm" disabled={busy} onClick={handleUpdateSelected}>Save dates</Button>
             </div>
 
             <div className="space-y-3">
               <p className="text-sm font-medium flex items-center gap-1">
                 <Camera className="h-4 w-4" /> Progress update
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                Progress is applied to the schedule only after PM approval in the Validation Inbox.
               </p>
               <div>
                 <Label className="text-xs">Percent</Label>
@@ -881,12 +883,18 @@ export default function ProjectSchedulePage() {
                 <Textarea rows={2} value={progressForm.notes}
                   onChange={(e) => setProgressForm((f) => ({ ...f, notes: e.target.value }))} />
               </div>
-              <Button size="sm" disabled={busy} onClick={handleProgress}>Post progress</Button>
+              <Button size="sm" disabled={busy} onClick={handleProgress}>Submit for validation</Button>
               {progressHistory.length > 0 && (
                 <ul className="text-xs text-muted-foreground space-y-1 max-h-32 overflow-auto">
                   {progressHistory.map((u) => (
-                    <li key={u.uuid}>
-                      {u.percentComplete}% · {u.notes || "—"} · {u.reportedAt ? new Date(u.reportedAt).toLocaleString() : ""}
+                    <li key={u.uuid} className="flex flex-wrap items-center gap-1.5">
+                      <span>{u.percentComplete}% · {u.notes || "—"}</span>
+                      {u.validationStatus && (
+                        <Badge variant="secondary" className="text-[10px] h-5">
+                          {u.validationStatus}
+                        </Badge>
+                      )}
+                      <span>· {u.reportedAt ? new Date(u.reportedAt).toLocaleString() : ""}</span>
                     </li>
                   ))}
                 </ul>

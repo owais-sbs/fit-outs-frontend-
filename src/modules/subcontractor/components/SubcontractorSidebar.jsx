@@ -1,72 +1,22 @@
 import { NavLink, useLocation } from "react-router-dom";
-import {
-  LayoutDashboard,
-  Inbox,
-  Briefcase,
-  MapPin,
-  Mail,
-  ClipboardCheck,
-  GanttChart,
-  ClipboardList,
-} from "lucide-react";
 import { SidebarBrand } from "@/components/brand/BrandMark";
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarRail,
+  Sidebar, SidebarContent, SidebarFooter, SidebarGroup,
+  SidebarGroupContent, SidebarGroupLabel, SidebarHeader,
+  SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarRail,
 } from "@/components/ui/sidebar";
-import { ROUTES } from "@/shared/constants/routes";
 import { useAuth } from "@/shared/context/auth-context";
+import { ROUTES } from "@/shared/constants/routes";
+import { SC_NAV_GROUPS } from "../utils/subcontractor.utils";
 
-const GROUPS = [
-  {
-    label: "Overview",
-    items: [
-      { label: "Dashboard", href: ROUTES.PROJECT_MANAGER.DASHBOARD, icon: LayoutDashboard },
-    ],
-  },
-  {
-    label: "Delivery",
-    items: [
-      { label: "Projects", href: ROUTES.PROJECT_MANAGER.PROJECTS, icon: Briefcase },
-      { label: "Schedule", href: ROUTES.PROJECT_MANAGER.SCHEDULE_HUB, icon: GanttChart },
-      { label: "Validation Inbox", href: ROUTES.PROJECT_MANAGER.VALIDATION_INBOX, icon: ClipboardCheck },
-      { label: "Quality templates", href: ROUTES.PROJECT_MANAGER.QUALITY_TEMPLATES, icon: ClipboardList },
-      { label: "Communications", href: ROUTES.PROJECT_MANAGER.COMMUNICATIONS, icon: Mail },
-    ],
-  },
-  {
-    label: "Commercial",
-    items: [
-      { label: "BOQ Inbox", href: ROUTES.PROJECT_MANAGER.BOQ_INBOX, icon: Inbox },
-    ],
-  },
-  {
-    label: "Field",
-    items: [
-      { label: "Site Visits", href: ROUTES.PROJECT_MANAGER.SITE_VISITS, icon: MapPin },
-    ],
-  },
-];
-
-function isActivePath(pathname, href) {
-  if (pathname === href) return true;
-  if (href === ROUTES.PROJECT_MANAGER.DASHBOARD) return false;
-  if (href === ROUTES.PROJECT_MANAGER.SCHEDULE_HUB) {
-    return pathname === href || /\/projects\/[^/]+\/schedule\/?$/.test(pathname);
+function isNavActive(pathname, href) {
+  if (href === ROUTES.SUBCONTRACTOR.DASHBOARD) {
+    return pathname === href;
   }
-  return pathname.startsWith(`${href}/`);
+  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export default function PmSidebar() {
+export default function SubcontractorSidebar() {
   const location = useLocation();
   const { user } = useAuth();
 
@@ -76,14 +26,14 @@ export default function PmSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" className="pointer-events-none">
-              <SidebarBrand portal="PM Panel" />
+              <SidebarBrand portal="Subcontractor Portal" />
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
 
       <SidebarContent>
-        {GROUPS.map((group) => (
+        {SC_NAV_GROUPS.map((group) => (
           <SidebarGroup key={group.label}>
             <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/60">
               {group.label}
@@ -92,7 +42,7 @@ export default function PmSidebar() {
               <SidebarMenu>
                 {group.items.map((item) => {
                   const Icon = item.icon;
-                  const active = isActivePath(location.pathname, item.href);
+                  const active = isNavActive(location.pathname, item.href);
                   return (
                     <SidebarMenuItem key={item.href}>
                       <SidebarMenuButton asChild isActive={active} tooltip={item.label}>
@@ -114,12 +64,16 @@ export default function PmSidebar() {
         <div className="flex items-center gap-3 rounded-xl bg-secondary/70 p-2 ring-1 ring-border/50 group-data-[collapsible=icon]:hidden">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-background shadow-sm">
             <span className="text-xs font-semibold">
-              {user?.name?.substring(0, 2).toUpperCase() || "PM"}
+              {(user?.fullName || user?.name || "SC").substring(0, 2).toUpperCase()}
             </span>
           </div>
           <div className="flex flex-col overflow-hidden">
-            <span className="truncate text-xs font-medium">{user?.name || "Project Manager"}</span>
-            <span className="truncate text-[10px] text-muted-foreground">Project Manager</span>
+            <span className="truncate text-xs font-medium">
+              {user?.fullName || user?.name || "Subcontractor"}
+            </span>
+            <span className="truncate text-[10px] text-muted-foreground">
+              {user?.companyName || user?.email || "Subcontractor Portal"}
+            </span>
           </div>
         </div>
       </SidebarFooter>

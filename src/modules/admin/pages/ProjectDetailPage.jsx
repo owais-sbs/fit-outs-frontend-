@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link, useLocation } from "react-router-dom";
 import {
   ArrowLeft, DollarSign, CalendarDays, Clock,
   TrendingUp, Building2, Briefcase, Users, MapPin, FileImage, FileText, GanttChart,
-  AlertTriangle, BarChart3, CreditCard, HardHat,
+  AlertTriangle, BarChart3, CreditCard, HardHat, ClipboardCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -55,6 +55,7 @@ export default function ProjectDetailPage() {
   const reportingPath = routes.PROJECT_REPORTING.replace(":projectId", projectId);
   const billingPath = routes.PROJECT_BILLING.replace(":projectId", projectId);
   const subcontractorsPath = routes.PROJECT_SUBCONTRACTORS.replace(":projectId", projectId);
+  const validationPath = routes.PROJECT_VALIDATION.replace(":projectId", projectId);
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -188,6 +189,11 @@ export default function ProjectDetailPage() {
             <Button asChild size="sm" variant="outline">
               <Link to={subcontractorsPath}>
                 <HardHat className="w-4 h-4 mr-1" /> Subcontractors
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link to={validationPath}>
+                <ClipboardCheck className="w-4 h-4 mr-1" /> Validation
               </Link>
             </Button>
             <Select value={project.status} onValueChange={handleStatusChange} disabled={saving}>
