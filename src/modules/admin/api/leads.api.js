@@ -33,6 +33,7 @@ export function normalizeLead(item = {}) {
     assignedTo: item.assignedTo || null,
     referenceNo: item.referenceNo || "",
     createdAt: item.createdAt || "",
+    accountCreated: item.accountCreated === true || item.account_created === true,
     isactive: item.isactive,
     isdeleted: item.isdeleted,
   };
@@ -90,7 +91,14 @@ export const deleteLead = (id) =>
 export const convertLeadToClient = (id) =>
   axiosInstance
     .post(`/leads/${id}/convert-to-client`)
-    .then((r) => normalizeLead(r.data?.data));
+    .then((r) => {
+      const payload = r.data;
+      if (payload && payload.isSuccess === false) {
+        const message = payload.error || payload.message || "Failed to convert lead to client";
+        return Promise.reject(new Error(message));
+      }
+      return normalizeLead(payload?.data ?? payload);
+    });
 
 export const createLeadAccount = (id) =>
   axiosInstance

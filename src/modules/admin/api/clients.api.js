@@ -37,7 +37,15 @@ export const createClient = (form) =>
       companyUuid: form.companyUuid || null,
       roles: ["CLIENT"],
     })
-    .then((r) => normalizeClient(r.data?.data ?? r.data));
+    .then((r) => {
+      const payload = r.data;
+      if (payload && payload.isSuccess === false) {
+        return Promise.reject(
+          new Error(payload.error || payload.message || "Failed to create client")
+        );
+      }
+      return normalizeClient(payload?.data ?? payload);
+    });
 
 export const updateClient = (id, form) =>
   axiosInstance

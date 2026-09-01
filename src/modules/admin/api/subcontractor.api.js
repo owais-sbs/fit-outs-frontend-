@@ -2,6 +2,26 @@ import axiosInstance from "@/lib/axiosInstance";
 
 const unwrap = (r) => r.data?.data ?? r.data;
 
+export function normalizeSubcontractor(item = {}) {
+  return {
+    id: String(item.id),
+    fullName: item.fullName || "",
+    email: item.email || "",
+    phone: item.phone || "",
+    companyName: item.companyName || "",
+    active: item.active ?? true,
+    roles: item.roles || [],
+  };
+}
+
+export const fetchAllSubcontractors = () =>
+  axiosInstance
+    .get("/accounts/role/SUBCONTRACTOR")
+    .then((r) => {
+      const data = r.data?.data ?? r.data;
+      return (Array.isArray(data) ? data : []).map(normalizeSubcontractor);
+    });
+
 export const fetchScPackages = (projectId) =>
   axiosInstance.get(`/projects/${projectId}/sc-packages`).then(unwrap);
 

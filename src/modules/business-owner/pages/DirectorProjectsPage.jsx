@@ -12,6 +12,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { Plus } from "lucide-react";
 import { ROUTES } from "@/shared/constants/routes";
 import { fetchAllProjects } from "@/modules/admin/api/projects.api";
 import { fetchBoqsByProject } from "@/modules/admin/api/boq.api";
@@ -77,6 +78,12 @@ export default function DirectorProjectsPage() {
               {STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
             </SelectContent>
           </Select>
+          <Button asChild size="sm" className="gap-2">
+            <Link to={ROUTES.ADMIN.PROJECT_CREATE}>
+              <Plus className="h-4 w-4" />
+              Add new project
+            </Link>
+          </Button>
           <Button asChild size="sm" variant="outline">
             <Link to={ROUTES.ADMIN.PROJECTS}>Admin projects</Link>
           </Button>

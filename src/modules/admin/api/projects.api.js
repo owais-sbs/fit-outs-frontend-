@@ -44,7 +44,15 @@ export const createProject = (form) =>
       startDate: form.startDate || null,
       expectedCompletionDate: form.expectedCompletionDate || null,
     })
-    .then((r) => normalizeProject(r.data?.data ?? r.data));
+    .then((r) => {
+      const payload = r.data;
+      if (payload && payload.isSuccess === false) {
+        return Promise.reject(
+          new Error(payload.error || payload.message || "Failed to create project")
+        );
+      }
+      return normalizeProject(payload?.data ?? payload);
+    });
 
 export const updateProject = (id, payload) =>
   axiosInstance

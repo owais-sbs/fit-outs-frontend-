@@ -83,6 +83,7 @@ export default function LeadDetailPage() {
   const [noteText, setNoteText] = useState("");
   const [convertOpen, setConvertOpen] = useState(false);
   const [converting, setConverting] = useState(false);
+  const [convertError, setConvertError] = useState("");
   const [creatingAccount, setCreatingAccount] = useState(false);
 
   useEffect(() => {
@@ -121,12 +122,19 @@ export default function LeadDetailPage() {
 
   const handleConvertToClient = async () => {
     setConverting(true);
+    setConvertError("");
     try {
       const updated = await convertLeadToClient(leadId);
       setLead(updated);
       setStatus(updated.status);
       setConvertOpen(false);
     } catch (err) {
+      const message =
+        err?.response?.data?.error ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Failed to convert lead";
+      setConvertError(message);
       console.error("Failed to convert lead:", err);
     } finally {
       setConverting(false);
@@ -211,14 +219,15 @@ export default function LeadDetailPage() {
               <Calendar className="h-3.5 w-3.5" />Schedule visit
             </Link>
           </Button>
-          {status !== "CLIENT" && status !== "LOST" && (
+          {status !== "LOST" && (status !== "CLIENT" || !lead.accountCreated) && (
             <Button
               variant="default"
               size="sm"
               className="gap-1.5 bg-green-600 hover:bg-green-700"
               onClick={() => setConvertOpen(true)}
             >
-              <UserCheck className="h-3.5 w-3.5" />Convert to Client
+              <UserCheck className="h-3.5 w-3.5" />
+              {status === "CLIENT" && !lead.accountCreated ? "Finish client setup" : "Convert to Client"}
             </Button>
           )}
           {!lead.accountCreated && (
@@ -375,16 +384,21 @@ export default function LeadDetailPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={convertOpen} onOpenChange={setConvertOpen}>
+      <Dialog open={convertOpen} onOpenChange={(open) => { setConvertOpen(open); if (!open) setConvertError(""); }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Convert to Client</DialogTitle>
+            <DialogTitle>{status === "CLIENT" && !lead.accountCreated ? "Finish client setup" : "Convert to Client"}</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
             This will create a client portal account for{" "}
             <span className="font-medium text-foreground">{lead.email}</span>, email them a link to set their password,
-            and move this lead to Client status.
+            create a starter project, and move this lead to Client status.
           </p>
+          {convertError && (
+            <p className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+              {convertError}
+            </p>
+          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setConvertOpen(false)} disabled={converting}>Cancel</Button>
             <Button

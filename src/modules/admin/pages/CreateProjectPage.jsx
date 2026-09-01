@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, Save, Briefcase, MapPin, Calendar, DollarSign, Loader2 } from "lucide-react";
+import {
+  ArrowLeft, Save, Briefcase, MapPin, Calendar, DollarSign, Loader2, UserPlus,
+} from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,19 +12,36 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { projectStore } from "@/shared/store/projectStore";
 import { ROUTES } from "@/shared/constants/routes";
-import { INITIAL_EMPLOYEES } from "@/modules/admin/data/employees";
-import { fetchAllClients } from "@/modules/admin/api/clients.api";
+import { fetchAllClients, createClient } from "@/modules/admin/api/clients.api";
 import { createProject } from "@/modules/admin/api/projects.api";
 import { useAuth } from "@/shared/context/auth-context";
+
+const CLIENT_MODE = {
+  NONE: "none",
+  EXISTING: "existing",
+  NEW: "new",
+};
+
+function generateTempPassword() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789@#$%";
+  let out = "";
+  for (let i = 0; i < 14; i += 1) {
+    out += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return out;
+}
 
 export default function CreateProjectPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const isPm = location.pathname.startsWith("/project-manager");
+  const projectsListRoute = isPm ? ROUTES.PROJECT_MANAGER.PROJECTS : ROUTES.ADMIN.PROJECTS;
   const state = useMemo(() => location.state || {}, [location.state]);
 
   const [clients, setClients] = useState([]);
   const [submitting, setSubmitting] = useState(false);
+  const [clientMode, setClientMode] = useState(CLIENT_MODE.NONE);
   const [form, setForm] = useState({
     projectName: "",
     clientName: "",
@@ -34,6 +53,9 @@ export default function CreateProjectPage() {
     expectedCompletionDate: "",
     budget: "",
     description: "",
+    newClientName: "",
+    newClientEmail: "",
+    newClientPhone: "",
   });
 
   const [errors, setErrors] = useState({});
@@ -63,13 +85,31 @@ export default function CreateProjectPage() {
         startDate: req.expectedStartDate || "",
         budget: numericBudget,
         description: req.description || "",
+        newClientName: req.clientName || "",
       }));
+      if (req.clientId) setClientMode(CLIENT_MODE.EXISTING);
+      else if (req.clientName || req.clientEmail) setClientMode(CLIENT_MODE.NEW);
     }
   }, [state]);
 
   const handleChange = (field, val) => {
     setForm((prev) => ({ ...prev, [field]: val }));
-    setErrors((prev) => ({ ...prev, [field]: undefined }));
+    setErrors((prev) => ({ ...prev, [field]: undefined, submit: undefined }));
+  };
+
+  const handleClientModeChange = (mode) => {
+    setClientMode(mode);
+    setErrors((prev) => ({
+      ...prev,
+      clientId: undefined,
+      newClientName: undefined,
+      newClientEmail: undefined,
+      submit: undefined,
+    }));
+    if (mode !== CLIENT_MODE.EXISTING) {
+      handleChange("clientId", "");
+      handleChange("clientName", "");
+    }
   };
 
   const handleClientChange = (clientId) => {
@@ -81,15 +121,39 @@ export default function CreateProjectPage() {
   const validateForm = () => {
     const errs = {};
     if (!form.projectName.trim()) errs.projectName = "Project name is required";
-    if (!form.clientId) errs.clientId = "Client account is required";
     if (!form.location.trim()) errs.location = "Location is required";
-    if (!form.assignedManager) errs.assignedManager = "Assigned manager is required";
+    if (!form.assignedManager.trim()) errs.assignedManager = "Assigned manager is required";
     if (!form.startDate) errs.startDate = "Start date is required";
     if (!form.expectedCompletionDate) errs.expectedCompletionDate = "Expected completion date is required";
     if (!form.budget || isNaN(form.budget) || parseFloat(form.budget) <= 0) {
       errs.budget = "Valid budget amount is required";
     }
+
+    if (clientMode === CLIENT_MODE.EXISTING && !form.clientId) {
+      errs.clientId = "Select a client account, or choose another option";
+    }
+    if (clientMode === CLIENT_MODE.NEW) {
+      if (!form.newClientName.trim()) errs.newClientName = "Client name is required";
+      if (!form.newClientEmail.trim() || !/\S+@\S+\.\S+/.test(form.newClientEmail)) {
+        errs.newClientEmail = "Valid client email is required";
+      }
+    }
     return errs;
+  };
+
+  const resolveClientId = async () => {
+    if (clientMode === CLIENT_MODE.NONE) return null;
+    if (clientMode === CLIENT_MODE.EXISTING) return form.clientId || null;
+
+    const created = await createClient({
+      fullName: form.newClientName.trim(),
+      email: form.newClientEmail.trim(),
+      phone: form.newClientPhone.trim() || null,
+      password: generateTempPassword(),
+      companyUuid: user?.companyId || user?.companyUuid || null,
+      companyName: user?.companyName || null,
+    });
+    return created.id;
   };
 
   const handleSubmit = async (e) => {
@@ -102,14 +166,16 @@ export default function CreateProjectPage() {
 
     setSubmitting(true);
     try {
+      const clientId = await resolveClientId();
+
       await createProject({
         name: form.projectName.trim(),
         projectName: form.projectName.trim(),
-        clientId: form.clientId,
+        clientId: clientId || null,
         companyId: user?.companyId || user?.companyUuid || null,
         projectType: form.projectType,
         location: form.location.trim(),
-        assignedManager: form.assignedManager,
+        assignedManager: form.assignedManager.trim(),
         startDate: form.startDate,
         expectedCompletionDate: form.expectedCompletionDate,
         budget: parseFloat(form.budget),
@@ -122,9 +188,15 @@ export default function CreateProjectPage() {
         projectStore.updateRequestStatus(state.fromRequestId, "Approved");
       }
 
-      navigate(ROUTES.ADMIN.PROJECTS);
+      navigate(projectsListRoute);
     } catch (err) {
-      setErrors({ submit: err.response?.data?.message || "Failed to create project" });
+      setErrors({
+        submit:
+          err.response?.data?.error ||
+          err.response?.data?.message ||
+          err.message ||
+          "Failed to create project",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -136,7 +208,7 @@ export default function CreateProjectPage() {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => navigate(-1)}
+          onClick={() => navigate(projectsListRoute)}
           className="h-8 w-8 text-muted-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -146,7 +218,7 @@ export default function CreateProjectPage() {
 
       <PageHeader
         title="Create New Project"
-        description="Establish a new project contract, assign a client account and manager, and allocate budget details."
+        description="Start a project with the details you have. Client account is optional — you can skip it or create one here."
       />
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -195,21 +267,101 @@ export default function CreateProjectPage() {
               </div>
 
               <div className="space-y-1.5 md:col-span-2">
-                <Label htmlFor="clientId" className="text-xs font-semibold">Client Account *</Label>
-                <Select value={form.clientId} onValueChange={handleClientChange}>
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder="Select client portal account" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clients.map((client) => (
-                      <SelectItem key={client.id} value={String(client.id)}>
-                        {client.fullName} ({client.email})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.clientId && <p className="text-[11px] text-destructive">{errors.clientId}</p>}
+                <Label className="text-xs font-semibold">Client (optional)</Label>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={clientMode === CLIENT_MODE.NONE ? "default" : "outline"}
+                    onClick={() => handleClientModeChange(CLIENT_MODE.NONE)}
+                  >
+                    No client yet
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={clientMode === CLIENT_MODE.EXISTING ? "default" : "outline"}
+                    onClick={() => handleClientModeChange(CLIENT_MODE.EXISTING)}
+                  >
+                    Existing client
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={clientMode === CLIENT_MODE.NEW ? "default" : "outline"}
+                    className="gap-1.5"
+                    onClick={() => handleClientModeChange(CLIENT_MODE.NEW)}
+                  >
+                    <UserPlus className="h-3.5 w-3.5" />
+                    Create new client
+                  </Button>
+                </div>
               </div>
+
+              {clientMode === CLIENT_MODE.EXISTING && (
+                <div className="space-y-1.5 md:col-span-2">
+                  <Label htmlFor="clientId" className="text-xs font-semibold">Client Account</Label>
+                  <Select value={form.clientId} onValueChange={handleClientChange}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Select client portal account" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {clients.length === 0 ? (
+                        <SelectItem value="__none" disabled>No clients found</SelectItem>
+                      ) : (
+                        clients.map((client) => (
+                          <SelectItem key={client.id} value={String(client.id)}>
+                            {client.fullName} ({client.email})
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {errors.clientId && <p className="text-[11px] text-destructive">{errors.clientId}</p>}
+                </div>
+              )}
+
+              {clientMode === CLIENT_MODE.NEW && (
+                <>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="newClientName" className="text-xs font-semibold">New client name *</Label>
+                    <Input
+                      id="newClientName"
+                      placeholder="e.g. Marcus Reid"
+                      className="h-9"
+                      value={form.newClientName}
+                      onChange={(e) => handleChange("newClientName", e.target.value)}
+                    />
+                    {errors.newClientName && <p className="text-[11px] text-destructive">{errors.newClientName}</p>}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="newClientEmail" className="text-xs font-semibold">New client email *</Label>
+                    <Input
+                      id="newClientEmail"
+                      type="email"
+                      placeholder="client@company.com"
+                      className="h-9"
+                      value={form.newClientEmail}
+                      onChange={(e) => handleChange("newClientEmail", e.target.value)}
+                    />
+                    {errors.newClientEmail && <p className="text-[11px] text-destructive">{errors.newClientEmail}</p>}
+                  </div>
+                  <div className="space-y-1.5 md:col-span-2">
+                    <Label htmlFor="newClientPhone" className="text-xs font-semibold">New client phone</Label>
+                    <Input
+                      id="newClientPhone"
+                      type="tel"
+                      placeholder="+61 400 000 000"
+                      className="h-9"
+                      value={form.newClientPhone}
+                      onChange={(e) => handleChange("newClientPhone", e.target.value)}
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      Creates a CLIENT portal account and links it to this project. They can set a password later via invite/resend.
+                    </p>
+                  </div>
+                </>
+              )}
 
               <div className="space-y-1.5 md:col-span-2">
                 <Label htmlFor="location" className="text-xs font-semibold">Location / Address *</Label>
@@ -249,18 +401,13 @@ export default function CreateProjectPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="assignedManager" className="text-xs font-semibold">Assigned Project Manager *</Label>
-                <Select value={form.assignedManager} onValueChange={(val) => handleChange("assignedManager", val)}>
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder="Choose a manager" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {INITIAL_EMPLOYEES.map((emp) => (
-                      <SelectItem key={emp.id} value={emp.employeeName}>
-                        {emp.employeeName} ({emp.designation})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Input
+                  id="assignedManager"
+                  placeholder="e.g. Jane Smith"
+                  className="h-9"
+                  value={form.assignedManager}
+                  onChange={(e) => handleChange("assignedManager", e.target.value)}
+                />
                 {errors.assignedManager && <p className="text-[11px] text-destructive">{errors.assignedManager}</p>}
               </div>
 
@@ -314,7 +461,7 @@ export default function CreateProjectPage() {
         </Card>
 
         <div className="flex justify-end gap-3">
-          <Button type="button" variant="outline" onClick={() => navigate(-1)} disabled={submitting}>
+          <Button type="button" variant="outline" onClick={() => navigate(projectsListRoute)} disabled={submitting}>
             Cancel
           </Button>
           <Button type="submit" className="gap-2" disabled={submitting}>

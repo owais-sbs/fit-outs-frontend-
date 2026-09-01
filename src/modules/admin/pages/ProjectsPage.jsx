@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Briefcase, Search } from "lucide-react";
+import { Briefcase, Search, Plus } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import { PageShell, StatTile } from "@/components/layout/PageShell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { fetchAllProjects } from "../api/projects.api";
 import { fetchAllClients } from "../api/clients.api";
 import { ROUTES } from "@/shared/constants/routes";
@@ -15,6 +16,9 @@ export default function ProjectsPage() {
   const location = useLocation();
   const isPm = location.pathname.startsWith("/project-manager");
   const detailRoute = isPm ? ROUTES.PROJECT_MANAGER.PROJECT_DETAIL : ROUTES.ADMIN.PROJECT_DETAIL;
+  const createRoute = isPm
+    ? `${ROUTES.PROJECT_MANAGER.PROJECTS}/new`
+    : ROUTES.ADMIN.PROJECT_CREATE;
   const [projects, setProjects] = useState([]);
   const [clientMap, setClientMap] = useState(new Map());
   const [search, setSearch] = useState("");
@@ -57,6 +61,12 @@ export default function ProjectsPage() {
       <PageHeader
         title="Projects"
         description="All projects in your company."
+        actions={
+          <Button size="sm" className="gap-2" onClick={() => navigate(createRoute)}>
+            <Plus className="h-4 w-4" />
+            Add new project
+          </Button>
+        }
       />
 
       <div className="grid gap-3 sm:grid-cols-3">
@@ -107,6 +117,15 @@ export default function ProjectsPage() {
                   <td colSpan={5} className="py-12 text-center text-muted-foreground">
                     <Briefcase className="h-10 w-10 mx-auto mb-3 text-muted-foreground/30" />
                     <p className="font-medium">No projects found</p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="mt-4 gap-2"
+                      onClick={() => navigate(createRoute)}
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add new project
+                    </Button>
                   </td>
                 </tr>
               ) : (

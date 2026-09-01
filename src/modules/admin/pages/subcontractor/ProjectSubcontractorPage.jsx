@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
+  fetchAllSubcontractors,
   fetchScPackages,
   createScPackage,
   appointScPackage,
@@ -18,6 +19,17 @@ import {
 } from "../../api/subcontractor.api";
 import { ROUTES } from "@/shared/constants/routes";
 
+const APPOINT_MODE = { EXISTING: "existing", NEW: "new" };
+
+const emptyAppointForm = () => ({
+  mode: APPOINT_MODE.EXISTING,
+  accountId: "",
+  companyName: "",
+  fullName: "",
+  email: "",
+  phone: "",
+});
+
 export default function ProjectSubcontractorPage() {
   const { projectId } = useParams();
   const location = useLocation();
@@ -27,6 +39,7 @@ export default function ProjectSubcontractorPage() {
 
   const [packages, setPackages] = useState([]);
   const [claims, setClaims] = useState([]);
+  const [subcontractors, setSubcontractors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -39,10 +52,12 @@ export default function ProjectSubcontractorPage() {
     Promise.all([
       fetchScPackages(projectId).catch(() => []),
       fetchProjectScClaims(projectId).catch(() => []),
+      fetchAllSubcontractors().catch(() => []),
     ])
-      .then(([pkgs, cls]) => {
+      .then(([pkgs, cls, scs]) => {
         setPackages(Array.isArray(pkgs) ? pkgs : []);
         setClaims(Array.isArray(cls) ? cls : []);
+        setSubcontractors(Array.isArray(scs) ? scs : []);
       })
       .finally(() => setLoading(false));
   }, [projectId]);
@@ -77,16 +92,46 @@ export default function ProjectSubcontractorPage() {
   const handleGenerateFromBoq = () =>
     run(() => generateScPackagesFromBoq(projectId), "Packages generated from BOQ");
 
+  const setAppointField = (uuid, patch) => {
+    setAppointForms((m) => {
+      const current = m[uuid] || emptyAppointForm();
+      return { ...m, [uuid]: { ...current, ...patch } };
+    });
+  };
+
+  const canAppoint = (f) => {
+    if (!f) return false;
+    if (f.mode === APPOINT_MODE.EXISTING) return Boolean(f.accountId);
+    return Boolean(f.email?.trim() && f.fullName?.trim() && f.companyName?.trim());
+  };
+
   const handleAppoint = (uuid) => {
-    const f = appointForms[uuid] || {};
-    return run(
-      () =>
-        appointScPackage(projectId, uuid, {
-          accountId: f.accountId ? Number(f.accountId) : null,
-          companyName: (f.companyName || "").trim(),
-        }),
-      "Subcontractor appointed"
-    );
+    const f = appointForms[uuid] || emptyAppointForm();
+    return run(async () => {
+      if (f.mode === APPOINT_MODE.EXISTING) {
+        const selected = subcontractors.find((s) => String(s.id) === String(f.accountId));
+        await appointScPackage(projectId, uuid, {
+          accountId: Number(f.accountId),
+          companyName:
+            (f.companyName || "").trim() ||
+            selected?.companyName ||
+            selected?.fullName ||
+            null,
+        });
+      } else {
+        await appointScPackage(projectId, uuid, {
+          fullName: f.fullName.trim(),
+          email: f.email.trim(),
+          phone: f.phone?.trim() || null,
+          companyName: f.companyName.trim(),
+        });
+      }
+      setAppointForms((m) => {
+        const next = { ...m };
+        delete next[uuid];
+        return next;
+      });
+    }, "Subcontractor appointed — portal invite emailed");
   };
 
   if (loading) {
@@ -152,7 +197,7 @@ export default function ProjectSubcontractorPage() {
           ) : (
             <div className="divide-y divide-border/40">
               {packages.map((p) => {
-                const af = appointForms[p.uuid] || { accountId: "", companyName: "" };
+                const af = appointForms[p.uuid] || emptyAppointForm();
                 return (
                   <div key={p.uuid} className="flex flex-col gap-3 py-3">
                     <div className="flex flex-wrap items-center gap-2">
@@ -168,39 +213,104 @@ export default function ProjectSubcontractorPage() {
                         {p.appointedAccountId ? ` · account #${p.appointedAccountId}` : ""}
                       </p>
                     ) : (
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-                        <div className="space-y-1 flex-1">
-                          <Label className="text-xs">Account ID</Label>
-                          <Input
-                            value={af.accountId}
-                            onChange={(e) =>
-                              setAppointForms((m) => ({
-                                ...m,
-                                [p.uuid]: { ...af, accountId: e.target.value },
-                              }))
-                            }
-                            placeholder="123"
-                          />
+                      <div className="space-y-3 rounded-lg border border-border/50 p-3">
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={af.mode === APPOINT_MODE.EXISTING ? "default" : "outline"}
+                            onClick={() => setAppointField(p.uuid, { mode: APPOINT_MODE.EXISTING })}
+                          >
+                            Existing subcontractor
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={af.mode === APPOINT_MODE.NEW ? "default" : "outline"}
+                            onClick={() => setAppointField(p.uuid, { mode: APPOINT_MODE.NEW })}
+                          >
+                            Create new
+                          </Button>
                         </div>
-                        <div className="space-y-1 flex-1">
-                          <Label className="text-xs">Company name</Label>
-                          <Input
-                            value={af.companyName}
-                            onChange={(e) =>
-                              setAppointForms((m) => ({
-                                ...m,
-                                [p.uuid]: { ...af, companyName: e.target.value },
-                              }))
-                            }
-                            placeholder="ABC Contractors"
-                          />
-                        </div>
+
+                        {af.mode === APPOINT_MODE.EXISTING ? (
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <div className="space-y-1 sm:col-span-2">
+                              <Label className="text-xs">Subcontractor</Label>
+                              <select
+                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                value={af.accountId}
+                                onChange={(e) => {
+                                  const id = e.target.value;
+                                  const selected = subcontractors.find((s) => String(s.id) === id);
+                                  setAppointField(p.uuid, {
+                                    accountId: id,
+                                    companyName: selected?.companyName || selected?.fullName || "",
+                                  });
+                                }}
+                              >
+                                <option value="">Select…</option>
+                                {subcontractors.map((s) => (
+                                  <option key={s.id} value={s.id}>
+                                    {(s.companyName || s.fullName || s.email) +
+                                      (s.email ? ` (${s.email})` : "")}
+                                  </option>
+                                ))}
+                              </select>
+                              {subcontractors.length === 0 && (
+                                <p className="text-[11px] text-muted-foreground">
+                                  No subcontractors yet — use Create new.
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <div className="space-y-1">
+                              <Label className="text-xs">Full name</Label>
+                              <Input
+                                value={af.fullName}
+                                onChange={(e) => setAppointField(p.uuid, { fullName: e.target.value })}
+                                placeholder="Jane Contractor"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Company name</Label>
+                              <Input
+                                value={af.companyName}
+                                onChange={(e) => setAppointField(p.uuid, { companyName: e.target.value })}
+                                placeholder="ABC Contractors"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Email</Label>
+                              <Input
+                                type="email"
+                                value={af.email}
+                                onChange={(e) => setAppointField(p.uuid, { email: e.target.value })}
+                                placeholder="sc@example.com"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Phone (optional)</Label>
+                              <Input
+                                value={af.phone}
+                                onChange={(e) => setAppointField(p.uuid, { phone: e.target.value })}
+                                placeholder="+971…"
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        <p className="text-[11px] text-muted-foreground">
+                          They will receive an email to set a password and sign in to the subcontractor portal.
+                        </p>
                         <Button
                           size="sm"
-                          disabled={busy || !af.accountId || !af.companyName?.trim()}
+                          disabled={busy || !canAppoint(af)}
                           onClick={() => handleAppoint(p.uuid)}
                         >
-                          Appoint
+                          Appoint & send invite
                         </Button>
                       </div>
                     )}

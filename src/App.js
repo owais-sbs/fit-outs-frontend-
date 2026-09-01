@@ -269,6 +269,7 @@ function App() {
               <Route index element={<ProjectManagerDashboard />} />
               <Route path="boq/inbox" element={<BoqApprovalInboxPage />} />
               <Route path="projects" element={<ProjectsPage />} />
+              <Route path="projects/new" element={<CreateProjectPage />} />
               <Route path="projects/:projectId" element={<ProjectDetailPage />} />
               <Route path="projects/:projectId/schedule" element={<ProjectSchedulePage />} />
               <Route path="projects/:projectId/material-plan" element={<MaterialPlanPage />} />

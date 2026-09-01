@@ -1544,26 +1544,9 @@ export default function SiteVisitReportPage() {
           </DialogHeader>
           <div className="space-y-3 text-sm">
             <p className="text-muted-foreground">
-              The site visit is complete and the linked lead is now a client. Next, prepare a draft BoQ and cover letter.
+              The site visit is complete. The lead stays as a lead until you manually convert them to a client.
+              Next, prepare a draft BoQ and cover letter.
             </p>
-            {conversion?.clientEmail && (
-              <div className="rounded-lg border border-border/60 p-3">
-                <p className="text-xs text-muted-foreground">Client email</p>
-                <p className="font-medium">{conversion.clientEmail}</p>
-              </div>
-            )}
-            {conversion?.inviteEmailSent ? (
-              <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
-                <p className="text-sm text-foreground">
-                  A portal invite was emailed to <strong>{conversion.clientEmail}</strong>.
-                  They can set their password from the link and sign in to the client portal.
-                </p>
-              </div>
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                Client account is ready. Share portal access manually if the invite email could not be sent.
-              </p>
-            )}
           </div>
           <DialogFooter>
             <Button

@@ -5,10 +5,10 @@ import { ROUTES } from "@/shared/constants/routes";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import { PageShell } from "@/components/layout/PageShell";
 import { LEAD_SOURCES } from "../data/leads";
-import { fetchAllLeads } from "../api/leads.api";
+import { fetchAllLeads, updateLeadStatus, convertLeadToClient } from "../api/leads.api";
+import { useAuth } from "@/shared/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -20,6 +20,9 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious,
 } from "@/components/ui/pagination";
@@ -49,26 +52,19 @@ function matchesView(lead, view) {
   return true;
 }
 
-const STATUS_VARIANTS = {
-  NEW: "default",
-  CONTACTED: "outline",
-  QUALIFIED: "warning",
-  SITE_VISIT_SCHEDULED: "secondary",
-  LOST: "destructive",
-  CLIENT: "success",
-};
-
 const STATUS_LABELS = {
   NEW: "New",
   CONTACTED: "Contacted",
   QUALIFIED: "Qualified",
   SITE_VISIT_SCHEDULED: "Site Visit Scheduled",
+  FOLLOWUP: "Followup",
   LOST: "Lost",
   CLIENT: "Client",
 };
 
 export default function LeadsListPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const view = searchParams.get("view") || "all";
   const [allLeads, setAllLeads] = useState([]);
@@ -77,6 +73,10 @@ export default function LeadsListPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [sourceFilter, setSourceFilter] = useState("all");
   const [page, setPage] = useState(1);
+  const [statusSavingId, setStatusSavingId] = useState(null);
+  const [convertLead, setConvertLead] = useState(null);
+  const [converting, setConverting] = useState(false);
+  const [convertError, setConvertError] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -115,6 +115,53 @@ export default function LeadsListPage() {
       setSearchParams(searchParams, { replace: true });
     } else {
       setSearchParams({ view: next }, { replace: true });
+    }
+  };
+
+  const patchLeadInList = (updated) => {
+    setAllLeads((prev) => prev.map((l) => (String(l.id) === String(updated.id) ? updated : l)));
+  };
+
+  const openConvertDialog = (lead) => {
+    setConvertError("");
+    setConvertLead(lead);
+  };
+
+  const handleStatusChange = async (lead, newStatus) => {
+    if (!newStatus || newStatus === lead.status) return;
+    if (newStatus === "CLIENT") {
+      openConvertDialog(lead);
+      return;
+    }
+    setStatusSavingId(lead.id);
+    try {
+      const updated = await updateLeadStatus(lead.id, newStatus, user?.id);
+      patchLeadInList(updated);
+    } catch (err) {
+      console.error("Failed to update lead status:", err);
+    } finally {
+      setStatusSavingId(null);
+    }
+  };
+
+  const handleConfirmConvert = async () => {
+    if (!convertLead) return;
+    setConverting(true);
+    setConvertError("");
+    try {
+      const updated = await convertLeadToClient(convertLead.id);
+      patchLeadInList(updated);
+      setConvertLead(null);
+    } catch (err) {
+      const message =
+        err?.response?.data?.error ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Failed to convert lead to client";
+      setConvertError(message);
+      console.error("Failed to convert lead:", err);
+    } finally {
+      setConverting(false);
     }
   };
 
@@ -226,10 +273,31 @@ export default function LeadsListPage() {
                         {lead.referenceNo || "\u2014"}
                       </TableCell>
                       <TableCell className="font-medium">{lead.clientName}</TableCell>
-                      <TableCell>
-                        <Badge variant={STATUS_VARIANTS[lead.status]} className="capitalize">
-                          {STATUS_LABELS[lead.status] || lead.status}
-                        </Badge>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <Select
+                          key={`${lead.id}-${lead.status}`}
+                          value={lead.status}
+                          onValueChange={(value) => handleStatusChange(lead, value)}
+                          disabled={statusSavingId === lead.id || converting}
+                        >
+                          <SelectTrigger className="h-8 w-[180px] text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(STATUS_LABELS).map(([key, label]) => (
+                              <SelectItem key={key} value={key}>{label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {lead.status === "CLIENT" && !lead.accountCreated && (
+                          <button
+                            type="button"
+                            className="mt-1 block text-[11px] text-amber-700 underline"
+                            onClick={() => openConvertDialog(lead)}
+                          >
+                            Finish client setup
+                          </button>
+                        )}
                       </TableCell>
                       <TableCell className="text-muted-foreground">{lead.source}</TableCell>
                       <TableCell className="text-muted-foreground">{lead.projectType || "\u2014"}</TableCell>
@@ -284,6 +352,36 @@ export default function LeadsListPage() {
           </div>
         )}
       </Card>
+
+      <Dialog open={!!convertLead} onOpenChange={(open) => { if (!open && !converting) { setConvertLead(null); setConvertError(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Convert to Client</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            This will create a client portal account for{" "}
+            <span className="font-medium text-foreground">{convertLead?.email || convertLead?.clientName}</span>,
+            email them a link to set their password, create a starter project, and move this lead to Client status.
+          </p>
+          {convertError && (
+            <p className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+              {convertError}
+            </p>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setConvertLead(null); setConvertError(""); }} disabled={converting}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-green-600 hover:bg-green-700"
+              disabled={converting}
+              onClick={handleConfirmConvert}
+            >
+              {converting ? "Converting..." : "Convert"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageShell>
   );
 }
