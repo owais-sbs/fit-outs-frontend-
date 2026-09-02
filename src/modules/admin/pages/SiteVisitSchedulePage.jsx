@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Calendar, Check, CheckSquare, Clock3, Crosshair, Loader2, MapPin, Navigation2, Search, ShieldCheck, Sparkles, X } from "lucide-react";
 import L from "leaflet";
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
@@ -183,6 +183,9 @@ function LocationPickerMap({ position, onChange }) {
 
 export default function SiteVisitSchedulePage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const leadIdParam = searchParams.get("leadId");
+  const [leadPrefillWarning, setLeadPrefillWarning] = useState("");
   const locationSearchControllerRef = useRef(null);
   const reverseGeocodeControllerRef = useRef(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -261,6 +264,18 @@ export default function SiteVisitSchedulePage() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!leadIdParam || loadingOptions) return;
+    const match = leads.find((l) => String(l.id) === String(leadIdParam));
+    if (match) {
+      setTargetType("lead");
+      setForm((prev) => ({ ...prev, leadId: String(match.id) }));
+      setLeadPrefillWarning("");
+    } else if (targetType === "lead") {
+      setLeadPrefillWarning(`Lead #${leadIdParam} was not found in the list. Select manually or check that it exists.`);
+    }
+  }, [leadIdParam, leads, loadingOptions, targetType]);
 
   useEffect(() => {
     setLocationQuery(form.location);
@@ -596,6 +611,12 @@ export default function SiteVisitSchedulePage() {
         title="Schedule site visit"
         description="Book an on-site inspection with a clear lead, staff assignment, location pin, and checklist workflow."
       />
+
+      {leadPrefillWarning && (
+        <div className="rounded-xl border border-amber-200/60 bg-amber-50/60 px-4 py-3 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+          {leadPrefillWarning}
+        </div>
+      )}
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,0.9fr)]">
         <Card>
@@ -1036,8 +1057,8 @@ export default function SiteVisitSchedulePage() {
           </CardContent>
         </Card>
 
-        <div className="space-y-6">
-          <Card className="sticky top-6  ">
+        <div className="space-y-6 xl:sticky xl:top-6 xl:z-10 xl:max-h-[calc(100dvh-10rem)] xl:self-start xl:overflow-y-auto xl:overscroll-y-contain xl:pr-1">
+          <Card>
             <CardHeader>
               <div className="flex items-start justify-between gap-3">
                 <div>

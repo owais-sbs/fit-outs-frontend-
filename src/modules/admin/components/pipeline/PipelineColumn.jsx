@@ -58,7 +58,7 @@ export default function PipelineColumn({ column, leads, onLeadClick, onLeadNavig
               onClick={() => onLeadClick(lead.id)}
               onEdit={() => {}}
               onFollowUp={() => {}}
-              onScheduleVisit={() => navigate(ROUTES.ADMIN.SITE_VISIT_SCHEDULE)}
+              onScheduleVisit={() => navigate(`${ROUTES.ADMIN.SITE_VISIT_SCHEDULE}?leadId=${lead.id}`)}
             />
           ))}
         </SortableContext>
