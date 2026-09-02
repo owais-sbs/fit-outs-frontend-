@@ -176,7 +176,7 @@ export default function QualifiedLeadsPage() {
                         variant="outline" 
                         size="sm" 
                         className="font-medium"
-                        onClick={() => navigate(ROUTES.ADMIN.SITE_VISIT_SCHEDULE)}
+                        onClick={() => navigate(`${ROUTES.ADMIN.SITE_VISIT_SCHEDULE}?leadId=${lead.id}`)}
                       >
                         <Calendar className="w-4 h-4 mr-2 text-muted-foreground" />
                         Schedule Visit

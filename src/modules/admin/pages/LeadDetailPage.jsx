@@ -207,7 +207,7 @@ export default function LeadDetailPage() {
             <MessageSquare className="h-3.5 w-3.5" />Add note
           </Button>
           <Button size="sm" className="gap-1.5" asChild>
-            <Link to={ROUTES.ADMIN.SITE_VISIT_SCHEDULE}>
+            <Link to={`${ROUTES.ADMIN.SITE_VISIT_SCHEDULE}?leadId=${leadId}`}>
               <Calendar className="h-3.5 w-3.5" />Schedule visit
             </Link>
           </Button>
