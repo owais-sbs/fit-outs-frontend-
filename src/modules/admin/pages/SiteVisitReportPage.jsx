@@ -764,6 +764,7 @@ export default function SiteVisitReportPage() {
               <p className="py-8 text-center text-sm text-muted-foreground">Loading cover letter...</p>
             ) : (
               <CoverLetterStep
+                visitId={visitId}
                 estimate={estimate}
                 disabled={estimateReadOnly || estimateSaving}
                 onChange={setEstimate}

@@ -40,6 +40,10 @@ export function normalizeEstimate(item = {}) {
     locationLabel: item.locationLabel || "",
     subject: item.subject || "",
     preparedBy: item.preparedBy || "",
+    includeStamp: item.includeStamp !== false,
+    includeSignature: item.includeSignature !== false,
+    stampImageUrl: item.stampImageUrl || "",
+    signatureImageUrl: item.signatureImageUrl || "",
     currency: item.currency || "AED",
     notes: item.notes || "",
     subtotal: Number.isFinite(subtotal) ? subtotal : 0,
@@ -91,6 +95,8 @@ export const saveSiteVisitEstimate = (visitUuid, form) => {
       locationLabel: form.locationLabel || null,
       subject: form.subject || null,
       preparedBy: form.preparedBy || null,
+      includeStamp: form.includeStamp !== false,
+      includeSignature: form.includeSignature !== false,
       currency: form.currency || "AED",
       notes: form.notes || null,
       lines,
@@ -112,6 +118,32 @@ export const sendSiteVisitEstimateEmail = (visitUuid, { recipientEmail, subject,
   attachments.forEach((file) => form.append("attachments", file));
   return axiosInstance.post(`/site-visits/${visitUuid}/estimate/send`, form, multipartConfig({ timeout: 120000 }));
 };
+
+export const uploadVisitCoverStamp = (visitUuid, file) => {
+  const body = new FormData();
+  body.append("file", file);
+  return axiosInstance
+    .post(`/site-visits/${visitUuid}/estimate/stamp`, body, multipartConfig())
+    .then((r) => normalizeEstimate(r.data?.data ?? r.data));
+};
+
+export const uploadVisitCoverSignature = (visitUuid, file) => {
+  const body = new FormData();
+  body.append("file", file);
+  return axiosInstance
+    .post(`/site-visits/${visitUuid}/estimate/signature`, body, multipartConfig())
+    .then((r) => normalizeEstimate(r.data?.data ?? r.data));
+};
+
+export const clearVisitCoverStamp = (visitUuid) =>
+  axiosInstance
+    .delete(`/site-visits/${visitUuid}/estimate/stamp`)
+    .then((r) => normalizeEstimate(r.data?.data ?? r.data));
+
+export const clearVisitCoverSignature = (visitUuid) =>
+  axiosInstance
+    .delete(`/site-visits/${visitUuid}/estimate/signature`)
+    .then((r) => normalizeEstimate(r.data?.data ?? r.data));
 
 export function computeLineAmount(qty, rate) {
   const q = Number(qty);

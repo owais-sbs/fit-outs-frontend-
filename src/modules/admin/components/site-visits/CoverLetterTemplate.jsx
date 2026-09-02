@@ -147,9 +147,35 @@ const styles = {
     fontWeight: 600,
     color: "#111827",
   },
+  signNameAfterImage: {
+    margin: "4px 0 0",
+    fontWeight: 600,
+    color: "#111827",
+  },
   signTitle: {
     margin: "2px 0 0",
     color: "#6B6B6B",
+  },
+  closingRow: {
+    display: "flex",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 24,
+    marginBottom: 20,
+  },
+  signatureImg: {
+    display: "block",
+    width: 140,
+    height: "auto",
+    margin: "8px 0 0",
+    objectFit: "contain",
+  },
+  stampImg: {
+    width: 150,
+    height: "auto",
+    objectFit: "contain",
+    flexShrink: 0,
+    marginTop: 28,
   },
   thanks: {
     margin: "24px 0 0",
@@ -232,7 +258,7 @@ const styles = {
 };
 
 const CoverLetterTemplate = forwardRef(function CoverLetterTemplate(
-  { estimate, includeAppendix = true, selectedAppendices = [] },
+  { estimate, includeAppendix = true, selectedAppendices = [], stampSrc = "", signatureSrc = "" },
   ref
 ) {
   const lines = useMemo(
@@ -333,16 +359,36 @@ const CoverLetterTemplate = forwardRef(function CoverLetterTemplate(
             <p style={styles.totalNote}>Exclusive of Value Added Tax · from draft BoQ</p>
           </div>
 
-          <div style={styles.block}>
-            <p style={{ margin: 0 }}>{JCT_COVER_LETTER.closing}</p>
-            <p style={{ margin: "16px 0 0" }}>For</p>
-            <p style={{ margin: "4px 0 0", fontWeight: 600 }}>{JCT_COVER_LETTER.companyName}</p>
-            <p style={styles.signName}>{JCT_COVER_LETTER.signatoryName}</p>
-            <p style={styles.signTitle}>{JCT_COVER_LETTER.signatoryTitle}</p>
-            {estimate?.preparedBy ? (
-              <p style={{ margin: "16px 0 0", fontSize: 12, color: "#6B6B6B" }}>
-                Prepared by: {estimate.preparedBy} (Quantity Surveyor)
+          <div style={styles.closingRow}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ margin: 0 }}>{JCT_COVER_LETTER.closing}</p>
+              <p style={{ margin: "16px 0 0" }}>For</p>
+              <p style={{ margin: "4px 0 0", fontWeight: 600 }}>{JCT_COVER_LETTER.companyName}</p>
+              {signatureSrc ? (
+                <img
+                  src={signatureSrc}
+                  alt="Signature"
+                  style={styles.signatureImg}
+                  crossOrigin="anonymous"
+                />
+              ) : null}
+              <p style={signatureSrc ? styles.signNameAfterImage : styles.signName}>
+                {JCT_COVER_LETTER.signatoryName}
               </p>
+              <p style={styles.signTitle}>{JCT_COVER_LETTER.signatoryTitle}</p>
+              {estimate?.preparedBy ? (
+                <p style={{ margin: "16px 0 0", fontSize: 12, color: "#6B6B6B" }}>
+                  Prepared by: {estimate.preparedBy} (Quantity Surveyor)
+                </p>
+              ) : null}
+            </div>
+            {stampSrc ? (
+              <img
+                src={stampSrc}
+                alt="Company stamp"
+                style={styles.stampImg}
+                crossOrigin="anonymous"
+              />
             ) : null}
           </div>
 
