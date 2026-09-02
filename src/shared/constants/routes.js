@@ -68,6 +68,7 @@ export const ROUTES = {
     WORK_ITEM_CONFIG: "/admin/project-configuration/work-item",
     MATERIAL_CONFIG: "/admin/project-configuration/materials",
     APPENDIX_CONFIG: "/admin/project-configuration/appendices",
+    COVER_LETTER_CONFIG: "/admin/project-configuration/cover-letter",
     PROCUREMENT_STOCK: "/admin/procurement/stock",
     PROCUREMENT_RECEIPT: "/admin/procurement/receipt",
     PROCUREMENT_ISSUE: "/admin/procurement/issue",

@@ -78,6 +78,7 @@ export default function AddEmployeePage() {
   const navigate = useNavigate();
   const [errors, setErrors] = useState({});
   const [saved, setSaved] = useState(false);
+  const [inviteSent, setInviteSent] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [apiError, setApiError] = useState(null);
   const [form, setForm] = useState(emptyForm);
@@ -113,17 +114,19 @@ export default function AddEmployeePage() {
     setSubmitting(true);
     setApiError(null);
     try {
-      await createEmployee(form);
+      const created = await createEmployee(form);
+      setInviteSent(created?.inviteEmailSent !== false);
       setSaved(true);
       setTimeout(() => {
         if (andAnother) {
           setForm(emptyForm());
           setSaved(false);
+          setInviteSent(true);
           setSubmitting(false);
         } else {
           navigate(ROUTES.ADMIN.EMPLOYEES);
         }
-      }, 1000);
+      }, 1600);
     } catch (err) {
       setApiError(err.response?.data?.message || err.message || "Failed to create employee");
       setSubmitting(false);
@@ -134,7 +137,7 @@ export default function AddEmployeePage() {
     <PageShell className="pb-28">
       <PageHeader
         title="Add Employee"
-        description="Create staff with a portal role. Login account password defaults to 123456."
+        description="Create staff with a portal role. They will receive an email to set their password."
       />
 
       {apiError && (
@@ -147,7 +150,9 @@ export default function AddEmployeePage() {
       {saved && (
         <div className="flex items-center gap-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-400">
           <CheckCircle2 className="h-4 w-4 shrink-0" />
-          Employee saved successfully!
+          {inviteSent
+            ? "Employee created. An invite was emailed so they can set their password."
+            : "Employee created, but the invite email could not be sent. Use Resend invite from the employees list."}
         </div>
       )}
 
