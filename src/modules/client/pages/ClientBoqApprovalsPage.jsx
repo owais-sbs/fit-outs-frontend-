@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { CheckCircle2, XCircle } from "lucide-react";
+import { Link } from "react-router-dom";
+import { CheckCircle2, Eye, XCircle } from "lucide-react";
 import { PageShell, PageTitle, Surface } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +21,9 @@ import {
   fetchBoqInbox,
   rejectBoq,
 } from "@/modules/admin/api/boq.api";
+import { useAuth } from "@/shared/context/auth-context";
+import { boqViewPath } from "@/shared/constants/routes";
+import { canApproveBoq, filterBoqInboxForRole, isBoqPendingForRole } from "@/shared/constants/roles";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -27,6 +31,7 @@ function formatDate(value) {
 }
 
 export default function ClientBoqApprovalsPage() {
+  const { role } = useAuth();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
@@ -38,11 +43,11 @@ export default function ClientBoqApprovalsPage() {
 
   const loadInbox = useCallback(() => {
     setLoading(true);
-    fetchBoqInbox()
-      .then((list) => setItems(Array.isArray(list) ? list : []))
+    fetchBoqInbox(role)
+      .then((list) => setItems(filterBoqInboxForRole(list, role)))
       .catch(() => setItems([]))
       .finally(() => setLoading(false));
-  }, []);
+  }, [role]);
 
   useEffect(() => {
     loadInbox();
@@ -120,7 +125,9 @@ export default function ClientBoqApprovalsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {items.map((item) => (
+              {items.map((item) => {
+                const canAct = canApproveBoq(role) && isBoqPendingForRole(role, item.status);
+                return (
                 <TableRow key={item.id}>
                   <TableCell className="font-medium">{item.projectName}</TableCell>
                   <TableCell className="font-mono text-xs">v{item.version}</TableCell>
@@ -132,16 +139,26 @@ export default function ClientBoqApprovalsPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
-                      <Button size="sm" variant="outline" onClick={() => openAction(item, "approve")}>
-                        <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Approve
+                      <Button size="sm" variant="ghost" asChild>
+                        <Link to={boqViewPath(role, item.id, item.projectId)}>
+                          <Eye className="mr-1 h-3.5 w-3.5" /> View document
+                        </Link>
                       </Button>
-                      <Button size="sm" variant="outline" className="text-destructive" onClick={() => openAction(item, "reject")}>
-                        <XCircle className="mr-1 h-3.5 w-3.5" /> Reject
-                      </Button>
+                      {canAct && (
+                        <>
+                          <Button size="sm" variant="outline" onClick={() => openAction(item, "approve")}>
+                            <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Approve
+                          </Button>
+                          <Button size="sm" variant="outline" className="text-destructive" onClick={() => openAction(item, "reject")}>
+                            <XCircle className="mr-1 h-3.5 w-3.5" /> Reject
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+                );
+              })}
             </TableBody>
           </Table>
         )}

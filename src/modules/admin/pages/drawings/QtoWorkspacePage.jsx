@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { PageShell, PageTitle } from "@/components/layout/PageShell";
-import { ROUTES } from "@/shared/constants/routes";
+import { boqViewPath } from "@/shared/constants/routes";
+import { useAuth } from "@/shared/context/auth-context";
 import { fetchDrawingPreviewBlob, reconvertProjectDrawing } from "../../api/drawing.api";
 import {
   QTO_LINE_TYPES,
@@ -26,6 +27,7 @@ import { defaultUnitForType } from "./drawingQtoUtils";
 export default function QtoWorkspacePage() {
   const { projectId, drawingId } = useParams();
   const navigate = useNavigate();
+  const { role } = useAuth();
   const [session, setSession] = useState(null);
   const [lines, setLines] = useState([]);
   const [previewUrl, setPreviewUrl] = useState("");
@@ -193,7 +195,7 @@ export default function QtoWorkspacePage() {
       await approveQtoSession(session.id);
       const boq = await generateBoqFromQto(session.id);
       setMessage(`BOQ generated (${boq.id})`);
-      navigate(`${ROUTES.ADMIN.BOQ}?boqId=${boq.id}&projectId=${projectId}`);
+      navigate(boqViewPath(role, boq.id, projectId));
     } catch (e) {
       setMessage(e.response?.data?.message || "Failed to generate BOQ");
     } finally {

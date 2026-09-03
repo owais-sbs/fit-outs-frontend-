@@ -202,3 +202,32 @@ export function canApproveBoq(role) {
   const perms = ROLE_PERMISSIONS[role] || [];
   return perms.includes("*") || perms.includes("boq.approve");
 }
+
+const PENDING_STATUS_FOR_ROLE = {
+  [ROLES.SENIOR_QS]: "PENDING_SENIOR_QS",
+  [ROLES.PROJECT_MANAGER]: "PENDING_PM",
+  [ROLES.BUSINESS_OWNER]: "PENDING_DIRECTOR",
+  [ROLES.CLIENT]: "PENDING_CLIENT",
+};
+
+/** True when this role is the current approval step (Super Admin can act on any pending step). */
+export function isBoqPendingForRole(role, status) {
+  const s = String(status || "").toUpperCase();
+  if (!s.startsWith("PENDING")) return false;
+  if (role === ROLES.SUPER_ADMIN) return true;
+  return PENDING_STATUS_FOR_ROLE[role] === s;
+}
+
+/** Status this portal role is allowed to action in the sequential approval inbox. */
+export function boqInboxStatusForRole(role) {
+  return PENDING_STATUS_FOR_ROLE[role] || null;
+}
+
+/** Keep each portal inbox on its own step (PM never sees PENDING_SENIOR_QS). */
+export function filterBoqInboxForRole(items, role) {
+  const expected = boqInboxStatusForRole(role);
+  if (!expected) return [];
+  return (Array.isArray(items) ? items : []).filter(
+    (item) => String(item.status || "").toUpperCase() === expected
+  );
+}

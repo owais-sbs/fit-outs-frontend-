@@ -16,7 +16,8 @@ import { PageShell, PageTitle, StatTile } from "@/components/layout/PageShell";
 import { fetchProjectById, updateProject } from "../api/projects.api";
 import { fetchAllClients } from "../api/clients.api";
 import { fetchBoqsByProject } from "../api/boq.api";
-import { ROUTES } from "@/shared/constants/routes";
+import { ROUTES, boqViewPath } from "@/shared/constants/routes";
+import { useAuth } from "@/shared/context/auth-context";
 import { BoqStatusBadge } from "./boq/BoqApprovalTimeline";
 import { formatCurrency } from "./boq/quantityCalcUtils";
 import { INITIAL_EMPLOYEES } from "@/modules/admin/data/employees";
@@ -47,6 +48,7 @@ export default function ProjectDetailPage() {
   const { projectId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const { role } = useAuth();
   const isPm = location.pathname.startsWith("/project-manager");
   const routes = isPm ? ROUTES.PROJECT_MANAGER : ROUTES.ADMIN;
   const schedulePath = routes.PROJECT_SCHEDULE.replace(":projectId", projectId);
@@ -270,9 +272,11 @@ export default function ProjectDetailPage() {
             <FileText className="h-4 w-4 text-primary" />
             BOQ Documents
           </CardTitle>
-          <Button asChild size="sm" variant="outline">
-            <Link to={`${ROUTES.ADMIN.QAS}?projectId=${projectId}`}>New survey BOQ</Link>
-          </Button>
+          {!isPm && (
+            <Button asChild size="sm" variant="outline">
+              <Link to={`${ROUTES.ADMIN.QAS}?projectId=${projectId}`}>New survey BOQ</Link>
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           {boqsLoading ? (
@@ -301,7 +305,7 @@ export default function ProjectDetailPage() {
                   <div className="flex items-center gap-3">
                     <span className="font-bold tabular-nums text-sm">{formatCurrency(boq.grandTotal)}</span>
                     <Button asChild size="sm" variant="ghost">
-                      <Link to={`${ROUTES.ADMIN.BOQ}?boqId=${boq.id}&projectId=${projectId}`}>Open</Link>
+                      <Link to={boqViewPath(role, boq.id, projectId)}>Open</Link>
                     </Button>
                   </div>
                 </div>

@@ -8,7 +8,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { ROUTES } from "@/shared/constants/routes";
+import { ROUTES, boqViewPath } from "@/shared/constants/routes";
+import { filterBoqInboxForRole } from "@/shared/constants/roles";
+import { useAuth } from "@/shared/context/auth-context";
 import { fetchAllProjects } from "@/modules/admin/api/projects.api";
 import { fetchBoqsByProject, fetchBoqInbox } from "@/modules/admin/api/boq.api";
 import { BoqStatusBadge } from "@/modules/admin/pages/boq/BoqApprovalTimeline";
@@ -17,6 +19,7 @@ import { formatAed } from "../utils/directorDashboardUtils";
 import { boqFunnelCounts } from "../utils/directorDashboardUtils";
 
 export default function DirectorCommercialPage() {
+  const { role } = useAuth();
   const [rows, setRows] = useState([]);
   const [inbox, setInbox] = useState([]);
   const [funnel, setFunnel] = useState([]);
@@ -24,9 +27,9 @@ export default function DirectorCommercialPage() {
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([fetchAllProjects(), fetchBoqInbox()])
+    Promise.all([fetchAllProjects(), fetchBoqInbox(role)])
       .then(async ([projects, inboxItems]) => {
-        setInbox(Array.isArray(inboxItems) ? inboxItems : []);
+        setInbox(filterBoqInboxForRole(inboxItems, role));
         const allBoqs = [];
         const tableRows = [];
         for (const p of projects) {
@@ -50,7 +53,7 @@ export default function DirectorCommercialPage() {
         setInbox([]);
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [role]);
 
   const approvedTotal = rows
     .filter((r) => ["APPROVED", "FINAL"].includes(String(r.status).toUpperCase()))
@@ -122,7 +125,7 @@ export default function DirectorCommercialPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <Button asChild size="sm" variant="ghost">
-                          <Link to={`${ROUTES.ADMIN.BOQ}?boqId=${r.id}&projectId=${r.projectId}`}>Open</Link>
+                          <Link to={boqViewPath(role, r.id, r.projectId)}>Open</Link>
                         </Button>
                       </TableCell>
                     </TableRow>

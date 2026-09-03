@@ -38,9 +38,9 @@ export function apiBoqToDocument(apiBoq, session) {
     description: line.description,
     unit: line.unit,
     unitShort: line.unit,
-    qty: line.quantity,
-    rate: line.rate,
-    amount: line.amount,
+    qty: Number(line.quantity) || 0,
+    rate: Number(line.rate) || 0,
+    amount: Number(line.amount) || 0,
     floor: line.floorLabel,
     room: line.roomLabel,
   }));
@@ -59,7 +59,12 @@ export function apiBoqToDocument(apiBoq, session) {
     qasRef: session?.ref || "—",
     generatedAt: apiBoq.createdAt,
     savedAt: apiBoq.updatedAt,
-    project: session?.project || { id: apiBoq.projectId },
+    project: {
+      id: apiBoq.projectId,
+      name: apiBoq.projectName,
+      projectName: apiBoq.projectName,
+      ...(session?.project || {}),
+    },
     lines,
     totals: {
       subtotal: apiBoq.subtotal,

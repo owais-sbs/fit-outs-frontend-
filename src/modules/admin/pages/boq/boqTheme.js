@@ -58,10 +58,48 @@ export function resolveSurface(wallName, categoryLabel) {
   return wallName || "Walls";
 }
 
+/** Group persisted BOQ lines by floor/room labels when no QAS survey tree exists. */
+export function buildBoqHierarchyFromLines(lines = []) {
+  const floors = new Map();
+
+  (lines || []).forEach((line) => {
+    const floorName = String(line.floor || line.floorLabel || "").trim() || "General";
+    const roomName = String(line.room || line.roomLabel || "").trim() || "Items";
+    if (!floors.has(floorName)) {
+      floors.set(floorName, {
+        floor: { id: `floor-${floorName}`, name: floorName },
+        rooms: new Map(),
+      });
+    }
+    const floorEntry = floors.get(floorName);
+    if (!floorEntry.rooms.has(roomName)) {
+      floorEntry.rooms.set(roomName, {
+        room: { id: `room-${floorName}-${roomName}`, name: roomName },
+        lines: [],
+        total: 0,
+      });
+    }
+    const roomEntry = floorEntry.rooms.get(roomName);
+    roomEntry.lines.push(line);
+    roomEntry.total += parseFloat(line.amount) || 0;
+  });
+
+  return Array.from(floors.values()).map(({ floor, rooms }) => {
+    const roomGroups = Array.from(rooms.values());
+    const total = roomGroups.reduce((sum, g) => sum + g.total, 0);
+    return { floor, rooms: roomGroups, total };
+  });
+}
+
 export function buildBoqHierarchy(floors, rooms, lines) {
   const qasLines = (lines || []).filter((l) => l.source !== "additional");
+  const hasSurveyTree = Array.isArray(floors) && floors.length > 0 && Array.isArray(rooms) && rooms.length > 0;
 
-  return floors
+  if (!hasSurveyTree) {
+    return buildBoqHierarchyFromLines(qasLines);
+  }
+
+  const fromTree = floors
     .map((floor) => {
       const floorRooms = rooms.filter((r) => String(r.floorId) === String(floor.id));
       const roomGroups = floorRooms
@@ -80,6 +118,11 @@ export function buildBoqHierarchy(floors, rooms, lines) {
       return { floor, rooms: roomGroups, total: floorTotal };
     })
     .filter((f) => f.rooms.length > 0);
+
+  if (fromTree.length === 0 && qasLines.length > 0) {
+    return buildBoqHierarchyFromLines(qasLines);
+  }
+  return fromTree;
 }
 
 export function buildAdditionalHierarchy(lines = []) {

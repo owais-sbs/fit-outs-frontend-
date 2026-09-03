@@ -181,7 +181,7 @@ export default function BoqInvoiceTemplate({ boq, floors, rooms }) {
                           className="px-4 py-3 text-right text-[13px] font-semibold align-middle"
                           style={{ color: "#111827", fontVariantNumeric: "tabular-nums" }}
                         >
-                          {line.qty.toFixed(2)}
+                          {Number(line.qty || 0).toFixed(2)}
                         </td>
                         <td
                           className="px-4 py-3 text-right text-[13px] align-middle"
@@ -288,7 +288,7 @@ export default function BoqInvoiceTemplate({ boq, floors, rooms }) {
                           className="px-4 py-3 text-right text-[13px] font-semibold align-middle"
                           style={{ color: "#111827", fontVariantNumeric: "tabular-nums" }}
                         >
-                          {line.qty.toFixed(2)}
+                          {Number(line.qty || 0).toFixed(2)}
                         </td>
                         <td
                           className="px-4 py-3 text-right text-[13px] align-middle"
