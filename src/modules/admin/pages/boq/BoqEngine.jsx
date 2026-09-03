@@ -1,5 +1,4 @@
 import { createContext, useContext, useState, useCallback, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
 
 import {
   BOQ_STATUS,
@@ -7,7 +6,7 @@ import {
   generateBoqDocument,
 } from "./boqDataUtils";
 import { calcLineAmount } from "./quantityCalcUtils";
-import { saveBoqFromSurvey, fetchBoq, submitBoq as submitBoqApi, updateBoq, createBoqRevision } from "../../api/boq.api";
+import { saveBoqFromSurvey, submitBoq as submitBoqApi, updateBoq, createBoqRevision } from "../../api/boq.api";
 import { apiBoqToDocument, boqDocumentToApiPayload } from "./boqApiUtils";
 import { fetchProjectQasSurveySeed, hydrateQasSurveySeed } from "../../api/qas-survey-seed.api";
 
@@ -181,7 +180,6 @@ export const useBoq = () => useContext(QasContext);
 export const useQas = useBoq;
 
 export function BoqProvider({ children }) {
-  const [searchParams] = useSearchParams();
   const [session, setSession] = useState(null);
   const [currentStep, setStep] = useState(1);
   const [floors, setFloors] = useState([]);
@@ -191,25 +189,6 @@ export function BoqProvider({ children }) {
   const [savedBoqs, setSavedBoqs] = useState([]);
   const [saveNotice, setSaveNotice] = useState(null);
   const [apiBoqId, setApiBoqId] = useState(null);
-
-  useEffect(() => {
-    const boqId = searchParams.get("boqId");
-    const projectId = searchParams.get("projectId");
-    if (!boqId) return;
-    fetchBoq(boqId)
-      .then((apiBoq) => {
-        setApiBoqId(apiBoq.id);
-        const stubSession = {
-          ref: `QTO-${apiBoq.id?.slice(0, 8)}`,
-          project: { id: projectId || apiBoq.projectId },
-          status: QAS_STATUS.DRAFT,
-        };
-        setSession(stubSession);
-        setGeneratedBoq(apiBoqToDocument(apiBoq, stubSession));
-        setStep(3);
-      })
-      .catch(console.error);
-  }, [searchParams]);
 
   useEffect(() => {
     if (session?.ref && currentStep < 3) {

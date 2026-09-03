@@ -1,5 +1,6 @@
 import { BoqProvider, useBoq, QAS_STEPS } from "./BoqEngine";
 import BoqProgressBar from "./BoqProgressBar";
+import { Navigate, useSearchParams } from "react-router-dom";
 
 import Step01ProjectSelection from "./steps/Step01ProjectSelection";
 import Step02SurveyRooms from "./steps/Step02SurveyRooms";
@@ -64,6 +65,13 @@ function QasWorkspace() {
 }
 
 export default function BoqFlowPage() {
+  const [searchParams] = useSearchParams();
+  const boqId = searchParams.get("boqId");
+  const projectId = searchParams.get("projectId");
+  if (boqId) {
+    const query = projectId ? `?projectId=${encodeURIComponent(projectId)}` : "";
+    return <Navigate to={`/admin/boq/${boqId}${query}`} replace />;
+  }
   return (
     <BoqProvider>
       <QasWorkspace />

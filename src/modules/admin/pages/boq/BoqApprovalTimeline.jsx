@@ -30,7 +30,10 @@ export function BoqStatusBadge({ status, className = "" }) {
       ? "secondary"
       : "outline";
   return (
-    <Badge variant={variant} className={`capitalize ${className}`}>
+    <Badge
+      variant={variant}
+      className={`capitalize ${s === "OBSOLETE" ? "text-muted-foreground" : ""} ${className}`}
+    >
       {label}
     </Badge>
   );

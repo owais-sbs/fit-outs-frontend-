@@ -1,3 +1,5 @@
+import { ROLES } from "./roles";
+
 export const ROUTES = {
   AUTH: {
     LOGIN: "/login",
@@ -74,6 +76,7 @@ export const ROUTES = {
     PROCUREMENT_ISSUE: "/admin/procurement/issue",
     PROCUREMENT_MOVEMENTS: "/admin/procurement/movements",
     BOQ: "/admin/boq",
+    BOQ_VIEW: "/admin/boq/:boqId",
     BOQ_INBOX: "/admin/boq/inbox",
     QAS: "/admin/qas",
     SETTINGS: "/admin/settings",
@@ -81,6 +84,7 @@ export const ROUTES = {
   BUSINESS_OWNER: {
     DASHBOARD: "/business-owner",
     BOQ_INBOX: "/business-owner/boq/inbox",
+    BOQ_VIEW: "/business-owner/boq/:boqId",
     PROJECTS: "/business-owner/projects",
     PROCUREMENT: "/business-owner/procurement",
     COMMERCIAL: "/business-owner/commercial",
@@ -92,6 +96,7 @@ export const ROUTES = {
   PROJECT_MANAGER: {
     DASHBOARD: "/project-manager",
     BOQ_INBOX: "/project-manager/boq/inbox",
+    BOQ_VIEW: "/project-manager/boq/:boqId",
     PROJECTS: "/project-manager/projects",
     SCHEDULE_HUB: "/project-manager/schedule",
     PROJECT_DETAIL: "/project-manager/projects/:projectId",
@@ -158,6 +163,7 @@ export const ROUTES = {
     DESIGNS_REVISIONS: "/client/designs/revisions",
     DESIGNS_APPROVED: "/client/designs/approved",
     BOQ_APPROVALS: "/client/boq-approvals",
+    BOQ_VIEW: "/client/boq/:boqId",
     SETTINGS: "/client/settings",
   },
   SALES: {
@@ -177,3 +183,32 @@ export const ROUTES = {
     COMMUNICATIONS: "/employee/communications",
   },
 };
+
+/** Read-only BOQ document in the portal the current role can actually open. */
+export function boqViewPath(role, boqId, projectId) {
+  if (!boqId) return ROUTES.ADMIN.BOQ;
+  const query = projectId != null && projectId !== "" ? `?projectId=${encodeURIComponent(projectId)}` : "";
+  switch (role) {
+    case ROLES.PROJECT_MANAGER:
+      return `/project-manager/boq/${boqId}${query}`;
+    case ROLES.BUSINESS_OWNER:
+      return `/business-owner/boq/${boqId}${query}`;
+    case ROLES.CLIENT:
+      return `/client/boq/${boqId}${query}`;
+    default:
+      return `/admin/boq/${boqId}${query}`;
+  }
+}
+
+export function boqInboxPath(role) {
+  switch (role) {
+    case ROLES.PROJECT_MANAGER:
+      return ROUTES.PROJECT_MANAGER.BOQ_INBOX;
+    case ROLES.BUSINESS_OWNER:
+      return ROUTES.BUSINESS_OWNER.BOQ_INBOX;
+    case ROLES.CLIENT:
+      return ROUTES.CLIENT.BOQ_APPROVALS;
+    default:
+      return ROUTES.ADMIN.BOQ_INBOX;
+  }
+}
