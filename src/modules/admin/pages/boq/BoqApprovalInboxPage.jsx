@@ -19,6 +19,7 @@ import { ROUTES, boqViewPath } from "@/shared/constants/routes";
 import { canApproveBoq, filterBoqInboxForRole, isBoqPendingForRole, ROLES } from "@/shared/constants/roles";
 import { formatCurrency } from "./quantityCalcUtils";
 import { BoqStatusBadge } from "./BoqApprovalTimeline";
+import BoqApprovalPipeline from "./BoqApprovalPipeline";
 import {
   approveBoq,
   fetchBoq,
@@ -146,7 +147,12 @@ export default function BoqApprovalInboxPage() {
                   const canAct = canApproveBoq(role) && isBoqPendingForRole(role, item.status);
                   return (
                   <TableRow key={item.id}>
-                    <TableCell className="font-medium">{item.projectName}</TableCell>
+                    <TableCell className="font-medium">
+                      <div className="space-y-2">
+                        <span>{item.projectName}</span>
+                        <BoqApprovalPipeline status={item.status} compact className="max-w-[220px]" />
+                      </div>
+                    </TableCell>
                     <TableCell className="font-mono text-xs">v{item.version}</TableCell>
                     <TableCell><BoqStatusBadge status={item.status} /></TableCell>
                     <TableCell className="text-right font-mono tabular-nums">

@@ -64,18 +64,56 @@ export const BOQ_STATUS = {
   PENDING_DIRECTOR: "PENDING_DIRECTOR",
   PENDING_CLIENT: "PENDING_CLIENT",
   APPROVED: "APPROVED",
+  OBSOLETE: "OBSOLETE",
   /** @deprecated */
   FINAL: "APPROVED",
 };
 
+export function normalizeBoqStatus(status) {
+  return String(status || BOQ_STATUS.DRAFT).toUpperCase().replace(/-/g, "_");
+}
+
+export function isBoqObsolete(status) {
+  return normalizeBoqStatus(status) === BOQ_STATUS.OBSOLETE;
+}
+
+export function isBoqLive(boq) {
+  if (!boq) return false;
+  if (boq.live === false) return false;
+  return !isBoqObsolete(boq.status);
+}
+
 export function isBoqEditable(status) {
-  const s = String(status || BOQ_STATUS.DRAFT).toUpperCase();
-  return s === BOQ_STATUS.DRAFT;
+  return normalizeBoqStatus(status) === BOQ_STATUS.DRAFT;
 }
 
 export function isBoqApproved(status) {
-  const s = String(status || "").toUpperCase();
+  const s = normalizeBoqStatus(status);
   return s === BOQ_STATUS.APPROVED || s === "FINAL";
+}
+
+export function isProjectBoqFrozen(boqs = []) {
+  return (Array.isArray(boqs) ? boqs : []).some((b) => isBoqApproved(b.status));
+}
+
+/** One live document plus obsolete history for a project. */
+export function splitProjectBoqs(boqs = []) {
+  const list = Array.isArray(boqs) ? boqs : [];
+  const liveCandidates = list.filter(isBoqLive);
+  const live = [...liveCandidates].sort((a, b) => {
+    const aApp = isBoqApproved(a.status) ? 1 : 0;
+    const bApp = isBoqApproved(b.status) ? 1 : 0;
+    if (aApp !== bApp) return bApp - aApp;
+    return new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0);
+  })[0] || null;
+  const history = list
+    .filter((b) => b.id !== live?.id)
+    .sort((a, b) => new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0));
+  return {
+    live,
+    history,
+    frozen: isProjectBoqFrozen(list),
+  };
 }
 
 export function createAdditionalLine(overrides = {}) {

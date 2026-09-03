@@ -56,6 +56,7 @@ export function apiBoqToDocument(apiBoq, session) {
     lastRejectionComment: apiBoq.lastRejectionComment,
     submittedAt: apiBoq.submittedAt,
     approvedAt: apiBoq.approvedAt,
+    live: apiBoq.live !== false && String(apiBoq.status || "").toUpperCase() !== "OBSOLETE",
     qasRef: session?.ref || "—",
     generatedAt: apiBoq.createdAt,
     savedAt: apiBoq.updatedAt,

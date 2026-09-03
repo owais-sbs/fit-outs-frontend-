@@ -185,6 +185,7 @@ export const BOQ_STATUS_LABELS = {
   APPROVED: "Approved",
   FINAL: "Approved",
   REJECTED: "Rejected",
+  OBSOLETE: "Obsolete",
 };
 
 export function boqStatusLabel(status) {

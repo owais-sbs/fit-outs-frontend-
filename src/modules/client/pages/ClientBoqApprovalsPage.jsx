@@ -16,6 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { formatCurrency } from "@/modules/admin/pages/boq/quantityCalcUtils";
 import { DIRHAM_SYMBOL } from "@/shared/utils/currency";
 import { BoqStatusBadge } from "@/modules/admin/pages/boq/BoqApprovalTimeline";
+import BoqApprovalPipeline from "@/modules/admin/pages/boq/BoqApprovalPipeline";
 import {
   approveBoq,
   fetchBoq,
@@ -130,7 +131,12 @@ export default function ClientBoqApprovalsPage() {
                 const canAct = canApproveBoq(role) && isBoqPendingForRole(role, item.status);
                 return (
                 <TableRow key={item.id}>
-                  <TableCell className="font-medium">{item.projectName}</TableCell>
+                  <TableCell className="font-medium">
+                    <div className="space-y-2">
+                      <span>{item.projectName}</span>
+                      <BoqApprovalPipeline status={item.status} compact className="max-w-[220px]" />
+                    </div>
+                  </TableCell>
                   <TableCell className="font-mono text-xs">v{item.version}</TableCell>
                   <TableCell className="text-right font-mono tabular-nums">
                     {formatCurrency(item.grandTotal)}

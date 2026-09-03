@@ -22,7 +22,9 @@ import { fetchBoqsByProject } from "../api/boq.api";
 import { ROUTES, boqViewPath } from "@/shared/constants/routes";
 import { useAuth } from "@/shared/context/auth-context";
 import { BoqStatusBadge } from "./boq/BoqApprovalTimeline";
+import BoqApprovalPipeline from "./boq/BoqApprovalPipeline";
 import { formatCurrency, formatAed } from "@/shared/utils/currency";
+import { splitProjectBoqs } from "./boq/boqDataUtils";
 import ProjectRoomsSection from "./roomcollab/ProjectRoomsSection";
 import ProjectTeamAssignmentSection from "./ProjectTeamAssignmentSection";
 import { fetchPlanningStatus } from "../api/planning.api";
@@ -143,6 +145,11 @@ export default function ProjectDetailPage() {
       return list;
     }, []);
   }, [crewAssignments]);
+
+  const { live: liveBoq, history: boqHistory, frozen: boqFrozen } = useMemo(
+    () => splitProjectBoqs(boqs),
+    [boqs]
+  );
 
   const handleTeamSaved = (updated) => {
     setTeamAssignments(updated);
@@ -325,9 +332,9 @@ export default function ProjectDetailPage() {
         <CardHeader className="pb-2 flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-sm font-semibold">
             <FileText className="h-4 w-4 text-primary" />
-            BOQ Documents
+            BOQ
           </CardTitle>
-          {!isPm && (
+          {!isPm && !boqFrozen && (
             <Button asChild size="sm" variant="outline">
               <Link to={`${ROUTES.ADMIN.QAS}?projectId=${projectId}`}>New survey BOQ</Link>
             </Button>
@@ -339,32 +346,64 @@ export default function ProjectDetailPage() {
           ) : boqs.length === 0 ? (
             <p className="text-sm text-muted-foreground">No BOQs saved for this project yet.</p>
           ) : (
-            <div className="space-y-2">
-              {boqs.map((boq) => (
-                <div
-                  key={boq.id}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg border px-3 py-2.5"
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-mono text-xs font-semibold">v{boq.version}</span>
-                      <BoqStatusBadge status={boq.status} />
-                      {boq.revisionLabel && (
-                        <span className="text-xs text-muted-foreground">{boq.revisionLabel}</span>
-                      )}
+            <div className="space-y-4">
+              {liveBoq && (
+                <div className="rounded-lg border px-3 py-3 space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-mono text-xs font-semibold">v{liveBoq.version}</span>
+                        <BoqStatusBadge status={liveBoq.status} />
+                        {liveBoq.revisionLabel && (
+                          <span className="text-xs text-muted-foreground">{liveBoq.revisionLabel}</span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {liveBoq.lines?.length || 0} lines · Updated {liveBoq.updatedAt ? new Date(liveBoq.updatedAt).toLocaleString() : "—"}
+                      </p>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      {boq.lines?.length || 0} lines · Updated {boq.updatedAt ? new Date(boq.updatedAt).toLocaleString() : "—"}
+                    <div className="flex items-center gap-3">
+                      <span className="font-bold tabular-nums text-sm">{formatCurrency(liveBoq.grandTotal)}</span>
+                      <Button asChild size="sm" variant="ghost">
+                        <Link to={boqViewPath(role, liveBoq.id, projectId)}>Open</Link>
+                      </Button>
+                    </div>
+                  </div>
+                  <BoqApprovalPipeline status={liveBoq.status} />
+                  {boqFrozen && (
+                    <p className="text-xs text-emerald-700">
+                      Client-approved and locked. This is the live BOQ for the project.
                     </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="font-bold tabular-nums text-sm">{formatCurrency(boq.grandTotal)}</span>
-                    <Button asChild size="sm" variant="ghost">
-                      <Link to={boqViewPath(role, boq.id, projectId)}>Open</Link>
-                    </Button>
-                  </div>
+                  )}
                 </div>
-              ))}
+              )}
+              {boqHistory.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase text-muted-foreground">Previous versions</p>
+                  {boqHistory.map((boq) => (
+                    <div
+                      key={boq.id}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg border border-dashed px-3 py-2.5"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-mono text-xs font-semibold">v{boq.version}</span>
+                          <BoqStatusBadge status={boq.status} />
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {boq.updatedAt ? new Date(boq.updatedAt).toLocaleString() : "—"}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="font-bold tabular-nums text-sm">{formatCurrency(boq.grandTotal)}</span>
+                        <Button asChild size="sm" variant="ghost">
+                          <Link to={boqViewPath(role, boq.id, projectId)}>Open</Link>
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </CardContent>

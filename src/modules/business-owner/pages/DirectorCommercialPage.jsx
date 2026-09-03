@@ -45,7 +45,7 @@ export default function DirectorCommercialPage() {
           });
         }
         tableRows.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
-        setRows(tableRows);
+        setRows(tableRows.filter((r) => String(r.status || "").toUpperCase() !== "OBSOLETE"));
         setFunnel(boqFunnelCounts(allBoqs));
       })
       .catch(() => {
@@ -63,7 +63,7 @@ export default function DirectorCommercialPage() {
     <PageShell>
       <DashboardHeader
         title="Commercial / BOQ Pipeline"
-        description="All BOQ versions, approval status, and director sign-off queue."
+        description="Live BOQ per project, approval status, and director sign-off queue."
       >
         <div className="flex gap-2">
           <Button asChild size="sm" variant="outline">
@@ -95,7 +95,7 @@ export default function DirectorCommercialPage() {
         </Card>
 
         <Card className="lg:col-span-2">
-          <CardHeader className="pb-2"><CardTitle className="text-base">All BOQ documents</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Live BOQ documents</CardTitle></CardHeader>
           <CardContent className="p-0 overflow-x-auto">
             {loading ? (
               <div className="p-6 space-y-2">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-10 w-full" />)}</div>

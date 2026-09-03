@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, Download, FileText, GitBranch, Save, Send, Sparkles } from "lucide-react";
+import { ArrowLeft, Download, FileText, Save, Send, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useBoq } from "../BoqEngine";
 import BoqInvoiceTemplate from "../BoqInvoiceTemplate";
 import BoqChargesEditor from "../BoqChargesEditor";
@@ -11,6 +10,7 @@ import { formatCurrency } from "../quantityCalcUtils";
 import { downloadBoqPdf, printBoqDocument } from "../boqPdfExport";
 import { BoqStatusBadge } from "../BoqApprovalTimeline";
 import BoqApprovalTimeline from "../BoqApprovalTimeline";
+import BoqApprovalPipeline from "../BoqApprovalPipeline";
 import { fetchBoqApprovalHistory } from "../../../api/boq.api";
 import { canSubmitBoq } from "@/shared/constants/roles";
 import { useAuth } from "@/shared/context/auth-context";
@@ -30,7 +30,6 @@ export default function Step03GenerateQuotation() {
     removeAdditionalLine,
     saveBoqDraft,
     submitBoqForApproval,
-    createRevision,
     apiBoqId,
     saveNotice,
     prevStep,
@@ -38,7 +37,6 @@ export default function Step03GenerateQuotation() {
   } = useBoq();
   const [refreshing, setRefreshing] = useState(false);
   const [history, setHistory] = useState(null);
-  const [revisionLabel, setRevisionLabel] = useState("Client revision");
 
   useEffect(() => {
     if (!generatedBoq) {
@@ -129,21 +127,10 @@ export default function Step03GenerateQuotation() {
       </div>
 
       {approved && (
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 flex flex-col sm:flex-row sm:items-end gap-3 print:hidden">
-          <div className="flex-1 space-y-2">
-            <p className="text-sm font-medium text-emerald-800">This BOQ is approved and locked.</p>
-            <div className="flex gap-2">
-              <Input
-                value={revisionLabel}
-                onChange={(e) => setRevisionLabel(e.target.value)}
-                placeholder="Revision label"
-                className="max-w-xs h-8 text-sm"
-              />
-              <Button type="button" size="sm" variant="outline" onClick={() => createRevision(revisionLabel)}>
-                <GitBranch className="h-4 w-4 mr-1" /> Create Revision
-              </Button>
-            </div>
-          </div>
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 print:hidden">
+          <p className="text-sm font-medium text-emerald-800">
+            This BOQ is client-approved and locked. No further versions can be submitted.
+          </p>
         </div>
       )}
 
@@ -172,11 +159,12 @@ export default function Step03GenerateQuotation() {
         </div>
       </div>
 
-      <div className="rounded-lg border p-4 print:hidden">
-        <h3 className="text-sm font-semibold mb-3">Approval workflow</h3>
+      <div className="rounded-lg border p-4 print:hidden space-y-3">
+        <BoqApprovalPipeline status={doc.status} />
+        <h3 className="text-sm font-semibold">Approval history</h3>
         <BoqApprovalTimeline history={history} />
-        <p className="text-xs text-muted-foreground mt-3">
-          QS → Senior QS → PM → Director → Client.{" "}
+        <p className="text-xs text-muted-foreground">
+          Senior QS → PM → PD → Client.{" "}
           <Link to={ROUTES.ADMIN.BOQ_INBOX} className="underline">Open approval inbox</Link>
         </p>
       </div>

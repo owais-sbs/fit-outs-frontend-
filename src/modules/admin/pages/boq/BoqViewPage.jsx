@@ -20,6 +20,7 @@ import { formatCurrency } from "./quantityCalcUtils";
 import { apiBoqToDocument } from "./boqApiUtils";
 import BoqInvoiceTemplate from "./BoqInvoiceTemplate";
 import BoqApprovalTimeline, { BoqStatusBadge } from "./BoqApprovalTimeline";
+import BoqApprovalPipeline from "./BoqApprovalPipeline";
 import { downloadBoqPdf, printBoqDocument } from "./boqPdfExport";
 import {
   approveBoq,
@@ -218,10 +219,20 @@ export default function BoqViewPage() {
         <p className="text-sm text-destructive">Last rejection: {doc.lastRejectionComment}</p>
       )}
 
+      <div className="rounded-lg border p-4 print:hidden">
+        <BoqApprovalPipeline status={doc.status} />
+        {String(doc.status || "").toUpperCase() === "APPROVED" && (
+          <p className="mt-2 text-xs text-emerald-700">Approved by the client and locked.</p>
+        )}
+        {String(doc.status || "").toUpperCase() === "OBSOLETE" && (
+          <p className="mt-2 text-xs text-muted-foreground">This version is history only.</p>
+        )}
+      </div>
+
       <BoqInvoiceTemplate boq={doc} floors={[]} rooms={[]} />
 
       <div className="rounded-lg border p-4 print:hidden">
-        <h3 className="text-sm font-semibold mb-3">Approval workflow</h3>
+        <h3 className="text-sm font-semibold mb-3">Approval history</h3>
         <BoqApprovalTimeline history={history} />
       </div>
 
