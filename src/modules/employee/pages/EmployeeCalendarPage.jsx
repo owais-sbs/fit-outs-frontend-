@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, MapPin, Clock } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ChevronLeft, ChevronRight, MapPin, Clock, GanttChart } from "lucide-react";
 import { PageShell, PageTitle, Surface } from "@/components/layout/PageShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,13 @@ import { useAuth } from "@/shared/context/auth-context";
 import { fetchEmployeeSiteVisits } from "@/modules/admin/api/site-visits.api";
 import { fetchAllLeads } from "@/modules/admin/api/leads.api";
 import { fetchAllClients } from "@/modules/admin/api/clients.api";
+import { fetchMyScheduleActivities } from "@/modules/admin/api/schedule.api";
+import { ROUTES } from "@/shared/constants/routes";
+import {
+  buildEventsByDate,
+  mapScheduleActivityToCalendarEvent,
+  mapSiteVisitToCalendarEvent,
+} from "@/shared/utils/scheduleCalendar";
 
 // ── Calendar helpers ──────────────────────────────────────────────────────────
 function ds(y, m, d) {
@@ -48,6 +56,7 @@ function fmtDate(d) {
 const STATUS_DOT  = { Scheduled: "bg-amber-500",  Completed: "bg-emerald-500" };
 const STATUS_PILL = { Scheduled: "bg-amber-500/15 text-amber-700",  Completed: "bg-emerald-500/15 text-emerald-700" };
 const PILL_COLOR  = ["bg-primary/15 text-primary border-primary/20", "bg-emerald-500/15 text-emerald-700 border-emerald-500/20"];
+const SCHEDULE_PILL = "bg-violet-500/15 text-violet-800 border-violet-500/25";
 
 export default function EmployeeCalendarPage() {
   const { user } = useAuth();
@@ -56,6 +65,7 @@ export default function EmployeeCalendarPage() {
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [detail, setDetail] = useState(null);
   const [visits, setVisits] = useState([]);
+  const [scheduleActivities, setScheduleActivities] = useState([]);
   const today = todayStr();
 
   useEffect(() => {
@@ -65,8 +75,9 @@ export default function EmployeeCalendarPage() {
       fetchEmployeeSiteVisits(user.id).catch(() => []),
       fetchAllLeads().catch(() => []),
       fetchAllClients().catch(() => []),
+      fetchMyScheduleActivities().catch(() => []),
     ])
-      .then(([visitsList, leadList, clientList]) => {
+      .then(([visitsList, leadList, clientList, scheduleList]) => {
         if (cancelled) return;
         
         const leadMap = new Map(leadList.map((l) => [String(l.id), l.clientName]));
@@ -104,6 +115,7 @@ export default function EmployeeCalendarPage() {
         });
 
         setVisits(enriched);
+        setScheduleActivities(Array.isArray(scheduleList) ? scheduleList : []);
       })
       .catch((err) => {
         console.error("Failed to load employee site visits:", err);
@@ -122,31 +134,45 @@ export default function EmployeeCalendarPage() {
 
   const grid = useMemo(() => buildGrid(year, month), [year, month]);
 
-  const visitsByDate = useMemo(() => {
-    const map = {};
-    visits.forEach((v) => {
-      if (!map[v.date]) map[v.date] = [];
-      map[v.date].push(v);
-    });
-    return map;
-  }, [visits]);
+  const monthPrefix = `${year}-${String(month).padStart(2, "0")}`;
+
+  const calendarEvents = useMemo(() => {
+    const visitEvents = visits.map((v) => mapSiteVisitToCalendarEvent(v));
+    const scheduleEvents = scheduleActivities.map((a) => mapScheduleActivityToCalendarEvent(a));
+    return [...visitEvents, ...scheduleEvents];
+  }, [visits, scheduleActivities]);
+
+  const eventsByDate = useMemo(
+    () => buildEventsByDate(calendarEvents, { expandMultiDay: true }),
+    [calendarEvents]
+  );
+
+  const monthEvents = useMemo(
+    () => calendarEvents.filter((e) => e.date?.startsWith(monthPrefix) || e.endDate?.startsWith(monthPrefix)),
+    [calendarEvents, monthPrefix]
+  );
 
   const upcoming = useMemo(() => {
-    return visits.filter((v) => v.date >= today && v.status === "Scheduled")
-      .sort((a, b) => a.date.localeCompare(b.date))
+    return calendarEvents
+      .filter((e) => {
+        if (e.type === "schedule_activity") {
+          return String(e.endDate || e.date) >= today;
+        }
+        return e.date >= today && e.status === "Scheduled";
+      })
+      .sort((a, b) => String(a.date).localeCompare(String(b.date)))
       .slice(0, 5);
-  }, [visits, today]);
+  }, [calendarEvents, today]);
 
-  const thisMonthVisits = useMemo(() => {
-    return visits.filter((v) => v.date?.startsWith(`${year}-${String(month).padStart(2,"0")}`))
-      .sort((a, b) => a.date.localeCompare(b.date));
-  }, [visits, year, month]);
+  const thisMonthEvents = useMemo(() => {
+    return monthEvents.sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  }, [monthEvents]);
 
   return (
     <PageShell>
       <PageTitle
         title="My Calendar"
-        subtitle="Your site visit schedule. Click any event to view details."
+        subtitle="Site visits and assigned schedule activities. Click any event to view details."
       />
 
       <div className="grid gap-6 xl:grid-cols-[1fr_300px]">
@@ -182,7 +208,7 @@ export default function EmployeeCalendarPage() {
 
             <div className="grid grid-cols-7">
               {grid.map((cell, idx) => {
-                const cellVisits = cell.date ? (visitsByDate[cell.date] || []) : [];
+                const cellEvents = cell.date ? (eventsByDate[cell.date] || []) : [];
                 const isToday = cell.date === today;
                 const MAX = 2;
 
@@ -205,21 +231,26 @@ export default function EmployeeCalendarPage() {
                     </div>
 
                     <div className="space-y-0.5">
-                      {cellVisits.slice(0, MAX).map((v, i) => (
+                      {cellEvents.slice(0, MAX).map((ev, i) => (
                         <button
-                          key={v.id}
+                          key={`${ev.type}-${ev.id}-${i}`}
                           type="button"
-                          onClick={() => setDetail(v)}
-                          className={`w-full rounded-md border px-1.5 py-0.5 text-left transition-opacity hover:opacity-75 ${PILL_COLOR[i % PILL_COLOR.length]}`}
+                          onClick={() => setDetail(ev)}
+                          className={`w-full rounded-md border px-1.5 py-0.5 text-left transition-opacity hover:opacity-75 ${
+                            ev.type === "schedule_activity" ? SCHEDULE_PILL : PILL_COLOR[i % PILL_COLOR.length]
+                          }`}
                         >
-                          <p className="truncate text-[10px] font-semibold leading-tight">
-                            {(v.project || "Unnamed").split(" ").slice(0, 2).join(" ")}
+                          <p className="truncate text-[10px] font-semibold leading-tight flex items-center gap-0.5">
+                            {ev.type === "schedule_activity" && <GanttChart className="h-2.5 w-2.5 shrink-0" />}
+                            {(ev.title || ev.project || "Event").split(" ").slice(0, 2).join(" ")}
                           </p>
-                          <p className="text-[9px] opacity-75">{v.time}</p>
+                          <p className="text-[9px] opacity-75">
+                            {ev.type === "schedule_activity" ? `${ev.status}` : ev.time}
+                          </p>
                         </button>
                       ))}
-                      {cellVisits.length > MAX && (
-                        <p className="pl-1 text-[9px] text-muted-foreground">+{cellVisits.length - MAX} more</p>
+                      {cellEvents.length > MAX && (
+                        <p className="pl-1 text-[9px] text-muted-foreground">+{cellEvents.length - MAX} more</p>
                       )}
                     </div>
                   </div>
@@ -234,6 +265,10 @@ export default function EmployeeCalendarPage() {
                   {label}
                 </span>
               ))}
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="h-2 w-2 rounded-full bg-violet-500" />
+                Schedule
+              </span>
             </div>
           </div>
         </Surface>
@@ -241,33 +276,29 @@ export default function EmployeeCalendarPage() {
         <div className="space-y-4">
           <Surface className="p-4">
             <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              Upcoming Visits
+              Upcoming
             </p>
             {upcoming.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">No upcoming visits.</p>
+              <p className="py-6 text-center text-sm text-muted-foreground">No upcoming events.</p>
             ) : (
               <div className="space-y-3">
-                {upcoming.map((v) => (
+                {upcoming.map((ev) => (
                   <button
-                    key={v.id}
+                    key={`${ev.type}-${ev.id}`}
                     type="button"
-                    onClick={() => setDetail(v)}
+                    onClick={() => setDetail(ev)}
                     className="w-full space-y-1.5 rounded-xl bg-secondary/50 p-3 text-left transition-colors hover:bg-secondary"
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <p className="text-xs font-semibold leading-tight">{v.project}</p>
-                      <Badge className={`${STATUS_PILL[v.status]} shrink-0 border-none text-[9px]`}>
-                        {v.status}
+                      <p className="text-xs font-semibold leading-tight">{ev.title || ev.project}</p>
+                      <Badge className={`${ev.type === "schedule_activity" ? "bg-violet-500/15 text-violet-700" : STATUS_PILL[ev.status]} shrink-0 border-none text-[9px]`}>
+                        {ev.type === "schedule_activity" ? "Schedule" : ev.status}
                       </Badge>
                     </div>
-                    <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                      <Clock className="h-3 w-3 shrink-0" />
-                      {fmtDate(v.date)} · {v.time}
-                    </div>
-                    <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                      <MapPin className="h-3 w-3 shrink-0" />
-                      {v.site}
-                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      {fmtDate(ev.date)}
+                      {ev.type === "site_visit" ? ` · ${ev.time}` : ` → ${fmtDate(ev.endDate || ev.date)}`}
+                    </p>
                   </button>
                 ))}
               </div>
@@ -278,23 +309,27 @@ export default function EmployeeCalendarPage() {
             <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
               This Month ({MONTHS[month - 1]})
             </p>
-            {thisMonthVisits.length === 0 ? (
-              <p className="py-4 text-center text-sm text-muted-foreground">No visits this month.</p>
+            {thisMonthEvents.length === 0 ? (
+              <p className="py-4 text-center text-sm text-muted-foreground">No events this month.</p>
             ) : (
               <div className="space-y-2">
-                {thisMonthVisits.map((v) => (
+                {thisMonthEvents.map((ev) => (
                   <div
-                    key={v.id}
+                    key={`${ev.type}-${ev.id}`}
                     className="flex cursor-pointer items-center justify-between gap-2 rounded-xl bg-secondary/40 px-3 py-2 transition-colors hover:bg-secondary/70"
-                    onClick={() => setDetail(v)}
+                    onClick={() => setDetail(ev)}
                   >
                     <div>
                       <p className="text-xs font-medium">
-                        {v.date ? new Date(v.date + "T00:00").getDate() : "—"} — {(v.project || "Unnamed").split(" ").slice(0,3).join(" ")}
+                        {ev.date ? new Date(ev.date + "T00:00").getDate() : "—"} — {(ev.title || ev.project || "Event").split(" ").slice(0, 3).join(" ")}
                       </p>
-                      <p className="text-[11px] text-muted-foreground">{v.time}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {ev.type === "schedule_activity" ? ev.status : ev.time}
+                      </p>
                     </div>
-                    <span className={`h-2 w-2 shrink-0 rounded-full ${STATUS_DOT[v.status]}`} />
+                    <span className={`h-2 w-2 shrink-0 rounded-full ${
+                      ev.type === "schedule_activity" ? "bg-violet-500" : STATUS_DOT[ev.status]
+                    }`} />
                   </div>
                 ))}
               </div>
@@ -308,29 +343,56 @@ export default function EmployeeCalendarPage() {
           <DialogContent className="sm:max-w-sm">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-base">
-                Site Visit Details
+                {detail.type === "schedule_activity" ? (
+                  <><GanttChart className="h-4 w-4" /> Schedule Activity</>
+                ) : (
+                  "Site Visit Details"
+                )}
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-2.5 rounded-xl bg-secondary/40 p-4">
-              {[
-                ["Project",  detail.project],
-                ["Site",     detail.site],
-                ["Date",     fmtDate(detail.date)],
-                ["Time",     detail.time],
-                ["Purpose",  detail.purpose],
-              ].map(([label, value]) => (
-                <div key={label} className="flex items-start gap-3">
-                  <span className="w-20 shrink-0 text-xs text-muted-foreground">{label}</span>
-                  <span className="text-sm font-medium">{value}</span>
-                </div>
-              ))}
-              <Separator className="opacity-40" />
-              <div className="flex items-start gap-3">
-                <span className="w-20 shrink-0 text-xs text-muted-foreground">Status</span>
-                <Badge className={`${STATUS_PILL[detail.status]} border-none`}>{detail.status}</Badge>
-              </div>
+              {detail.type === "schedule_activity" ? (
+                <>
+                  {[
+                    ["Activity", detail.title],
+                    ["Project", detail.project],
+                    ["Dates", `${fmtDate(detail.date)} → ${fmtDate(detail.endDate || detail.date)}`],
+                    ["Progress", detail.status],
+                  ].map(([label, value]) => (
+                    <div key={label} className="flex items-start gap-3">
+                      <span className="w-20 shrink-0 text-xs text-muted-foreground">{label}</span>
+                      <span className="text-sm font-medium">{value}</span>
+                    </div>
+                  ))}
+                </>
+              ) : (
+                <>
+                  {[
+                    ["Project",  detail.project],
+                    ["Site",     detail.site],
+                    ["Date",     fmtDate(detail.date)],
+                    ["Time",     detail.time],
+                    ["Purpose",  detail.purpose],
+                  ].map(([label, value]) => (
+                    <div key={label} className="flex items-start gap-3">
+                      <span className="w-20 shrink-0 text-xs text-muted-foreground">{label}</span>
+                      <span className="text-sm font-medium">{value}</span>
+                    </div>
+                  ))}
+                  <Separator className="opacity-40" />
+                  <div className="flex items-start gap-3">
+                    <span className="w-20 shrink-0 text-xs text-muted-foreground">Status</span>
+                    <Badge className={`${STATUS_PILL[detail.status]} border-none`}>{detail.status}</Badge>
+                  </div>
+                </>
+              )}
             </div>
-            <DialogFooter>
+            <DialogFooter className="gap-2">
+              {detail.type === "schedule_activity" && (
+                <Button asChild size="sm" variant="outline">
+                  <Link to={ROUTES.EMPLOYEE.ACTIVITIES}>My activities</Link>
+                </Button>
+              )}
               <Button variant="outline" size="sm" onClick={() => setDetail(null)}>Close</Button>
             </DialogFooter>
           </DialogContent>

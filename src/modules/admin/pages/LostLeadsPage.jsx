@@ -21,12 +21,9 @@ import {
 import {
   Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious,
 } from "@/components/ui/pagination";
+import { formatCurrencyOrDash as formatCurrency } from "@/shared/utils/currency";
 
 const PAGE_SIZE = 10;
-
-function formatCurrency(n) {
-  return n ? `$${n.toLocaleString()}` : "\u2014";
-}
 
 export default function LostLeadsPage() {
   const navigate = useNavigate();

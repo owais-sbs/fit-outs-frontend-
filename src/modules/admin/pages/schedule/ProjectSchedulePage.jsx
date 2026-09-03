@@ -13,16 +13,22 @@ import { PageShell, PageTitle } from "@/components/layout/PageShell";
 import {
   fetchProjectSchedule,
   createScheduleActivity,
+  createScheduleActivityFromRoomTask,
   updateScheduleActivity,
   deleteScheduleActivity,
   addScheduleDependency,
+  deleteScheduleDependency,
   publishSchedule,
   createScheduleBaseline,
   fetchScheduleBaseline,
   postActivityProgress,
   fetchActivityProgress,
 } from "../../api/schedule.api";
+import { fetchProjectRooms, fetchProjectRoomTasks } from "../../api/room-collab.api";
+import { fetchAllEmployees } from "../../api/employees.api";
 import ScheduleReadinessStrip from "./ScheduleReadinessStrip";
+import ScheduleActivityList from "./ScheduleActivityList";
+import BaselineVarianceTable from "./BaselineVarianceTable";
 import { ROUTES } from "@/shared/constants/routes";
 import { Switch } from "@/components/ui/switch";
 
@@ -216,7 +222,7 @@ function SimpleGantt({
   }, [dependencies, barMeta]);
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden hidden lg:block">
       <CardHeader className="pb-2 flex flex-row items-center justify-between gap-2">
         <CardTitle className="text-sm font-semibold">Gantt chart</CardTitle>
         <div className="flex items-center gap-3 text-[11px] text-muted-foreground flex-wrap justify-end">
@@ -307,6 +313,9 @@ function SimpleGantt({
                         <p className="text-[10px] text-muted-foreground truncate">
                           {String(a.startDate).slice(0, 10)} → {String(a.endDate).slice(0, 10)} · {pct}%
                           {a.publishStatus === "PUBLISHED" ? " · Live" : " · Draft"}
+                          {(a.roomName || a.roomTaskTitle) && (
+                            <> · {a.roomName}{a.roomTaskTitle ? ` / ${a.roomTaskTitle}` : ""}</>
+                          )}
                         </p>
                       </button>
                     );
@@ -466,8 +475,14 @@ export default function ProjectSchedulePage() {
   const isPm = location.pathname.startsWith("/project-manager");
   const detailPath = (isPm ? ROUTES.PROJECT_MANAGER.PROJECT_DETAIL : ROUTES.ADMIN.PROJECT_DETAIL)
     .replace(":projectId", projectId);
+  const roomTaskPath = (taskId) =>
+    ROUTES.ADMIN.PROJECT_ROOM_TASK.replace(":projectId", projectId).replace(":taskId", taskId);
 
   const [schedule, setSchedule] = useState(null);
+  const [rooms, setRooms] = useState([]);
+  const [roomTasks, setRoomTasks] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [fromRoomTaskId, setFromRoomTaskId] = useState("");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -479,6 +494,8 @@ export default function ProjectSchedulePage() {
     endDate: formatDate(new Date(Date.now() + 7 * DAY_MS)),
     percentComplete: 0,
     assigneeAccountId: "",
+    projectRoomId: "",
+    roomTaskId: "",
   });
   const [depPred, setDepPred] = useState("");
   const [depSucc, setDepSucc] = useState("");
@@ -562,6 +579,15 @@ export default function ProjectSchedulePage() {
 
   useEffect(() => {
     load();
+    Promise.all([
+      fetchProjectRooms(projectId).catch(() => []),
+      fetchProjectRoomTasks(projectId).catch(() => []),
+      fetchAllEmployees().catch(() => []),
+    ]).then(([roomList, taskList, empList]) => {
+      setRooms(Array.isArray(roomList) ? roomList : []);
+      setRoomTasks(Array.isArray(taskList) ? taskList : []);
+      setEmployees(Array.isArray(empList) ? empList : []);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
@@ -596,30 +622,61 @@ export default function ProjectSchedulePage() {
     }
   };
 
+  const tasksForRoom = useCallback(
+    (roomId) => {
+      if (!roomId) return roomTasks;
+      return roomTasks.filter((t) => String(t.projectRoomId) === String(roomId));
+    },
+    [roomTasks]
+  );
+
+  const buildActivityPayload = (data, { isUpdate = false } = {}) => {
+    const payload = {
+      name: data.name,
+      startDate: data.startDate,
+      endDate: data.endDate,
+      percentComplete: Number(data.percentComplete) || 0,
+      assigneeAccountId: data.assigneeAccountId ? Number(data.assigneeAccountId) : null,
+    };
+    if (data.clearRoomLinks) {
+      payload.clearRoomLinks = true;
+    } else if (data.roomTaskId) {
+      payload.roomTaskId = data.roomTaskId;
+    } else if (data.projectRoomId) {
+      payload.projectRoomId = data.projectRoomId;
+    } else if (isUpdate && !data.projectRoomId && !data.roomTaskId) {
+      payload.clearRoomLinks = true;
+    }
+    return payload;
+  };
+
   const handleCreate = () =>
     run(
-      () =>
-        createScheduleActivity(projectId, {
-          name: form.name,
-          startDate: form.startDate,
-          endDate: form.endDate,
-          percentComplete: Number(form.percentComplete) || 0,
-          assigneeAccountId: form.assigneeAccountId ? Number(form.assigneeAccountId) : null,
-        }),
+      () => createScheduleActivity(projectId, buildActivityPayload(form)),
       "Activity created"
     );
+
+  const handleCreateFromRoomTask = () => {
+    if (!fromRoomTaskId) return;
+    run(
+      () => createScheduleActivityFromRoomTask(projectId, fromRoomTaskId),
+      "Activity created from room task"
+    ).then(() => setFromRoomTaskId(""));
+  };
 
   const handleUpdateSelected = () => {
     if (!selected) return;
     run(
       () =>
-        updateScheduleActivity(selected.uuid, {
+        updateScheduleActivity(selected.uuid, buildActivityPayload({
           name: selected.name,
           startDate: selected.startDate,
           endDate: selected.endDate,
-          percentComplete: Number(selected.percentComplete) || 0,
-          assigneeAccountId: selected.assigneeAccountId || null,
-        }),
+          percentComplete: selected.percentComplete,
+          assigneeAccountId: selected.assigneeAccountId || "",
+          projectRoomId: selected.projectRoomId || "",
+          roomTaskId: selected.roomTaskId || "",
+        }, { isUpdate: true })),
       "Activity saved"
     );
   };
@@ -638,6 +695,9 @@ export default function ProjectSchedulePage() {
         }),
       "FS dependency added"
     );
+
+  const handleDeleteDep = (dependencyUuid) =>
+    run(() => deleteScheduleDependency(dependencyUuid), "Dependency removed");
 
   const handlePublish = () => run(() => publishSchedule(projectId), "Schedule published");
   const handleBaseline = () =>
@@ -718,6 +778,13 @@ export default function ProjectSchedulePage() {
         <p className="text-xs text-amber-700">{baselineNote}</p>
       )}
 
+      <ScheduleActivityList
+        activities={activities}
+        selectedUuid={selected?.uuid}
+        onSelect={setSelected}
+        roomTaskPath={roomTaskPath}
+      />
+
       <SimpleGantt
         activities={activities}
         dependencies={deps}
@@ -742,15 +809,88 @@ export default function ProjectSchedulePage() {
         }
       />
 
+      {showBaseline && baselineActivities.length > 0 && (
+        <div className="space-y-2 hidden lg:block">
+          <p className="text-sm font-semibold">Baseline variance</p>
+          <BaselineVarianceTable activities={activities} baselineActivities={baselineActivities} />
+        </div>
+      )}
+
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm">Add activity</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
+            {roomTasks.length > 0 && (
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                <div className="flex-1">
+                  <Label className="text-xs">Create from room task</Label>
+                  <select
+                    className="w-full h-9 rounded-md border bg-background px-2 text-sm"
+                    value={fromRoomTaskId}
+                    onChange={(e) => setFromRoomTaskId(e.target.value)}
+                  >
+                    <option value="">Select room task…</option>
+                    {roomTasks.map((t) => (
+                      <option key={t.uuid} value={t.uuid}>
+                        {t.roomName ? `${t.roomName} · ` : ""}{t.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <Button size="sm" variant="outline" disabled={busy || !fromRoomTaskId} onClick={handleCreateFromRoomTask}>
+                  Create
+                </Button>
+              </div>
+            )}
             <div>
               <Label className="text-xs">Name</Label>
               <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs">Room (optional)</Label>
+                <select
+                  className="w-full h-9 rounded-md border bg-background px-2 text-sm"
+                  value={form.projectRoomId}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      projectRoomId: e.target.value,
+                      roomTaskId: "",
+                    }))
+                  }
+                >
+                  <option value="">None</option>
+                  {rooms.map((r) => (
+                    <option key={r.uuid} value={r.uuid}>
+                      {r.floorLabel ? `${r.floorLabel} · ` : ""}{r.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs">Room task (optional)</Label>
+                <select
+                  className="w-full h-9 rounded-md border bg-background px-2 text-sm"
+                  value={form.roomTaskId}
+                  onChange={(e) => {
+                    const taskId = e.target.value;
+                    const task = roomTasks.find((t) => String(t.uuid) === String(taskId));
+                    setForm((f) => ({
+                      ...f,
+                      roomTaskId: taskId,
+                      projectRoomId: task?.projectRoomId || f.projectRoomId,
+                    }));
+                  }}
+                >
+                  <option value="">None</option>
+                  {tasksForRoom(form.projectRoomId).map((t) => (
+                    <option key={t.uuid} value={t.uuid}>{t.title}</option>
+                  ))}
+                </select>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
@@ -769,10 +909,17 @@ export default function ProjectSchedulePage() {
                   onChange={(e) => setForm((f) => ({ ...f, percentComplete: e.target.value }))} />
               </div>
               <div>
-                <Label className="text-xs">Assignee account ID</Label>
-                <Input value={form.assigneeAccountId}
+                <Label className="text-xs">Assignee</Label>
+                <select
+                  className="w-full h-9 rounded-md border bg-background px-2 text-sm"
+                  value={form.assigneeAccountId}
                   onChange={(e) => setForm((f) => ({ ...f, assigneeAccountId: e.target.value }))}
-                  placeholder="optional" />
+                >
+                  <option value="">Unassigned</option>
+                  {employees.map((emp) => (
+                    <option key={emp.id} value={emp.id}>{emp.employeeName || emp.fullName}</option>
+                  ))}
+                </select>
               </div>
             </div>
             <Button size="sm" disabled={busy || !form.name} onClick={handleCreate}>
@@ -810,7 +957,21 @@ export default function ProjectSchedulePage() {
                 {deps.map((d) => {
                   const p = activities.find((a) => a.uuid === d.predecessorUuid)?.name || d.predecessorUuid;
                   const s = activities.find((a) => a.uuid === d.successorUuid)?.name || d.successorUuid;
-                  return <li key={d.uuid}>{p} → {s} (FS)</li>;
+                  return (
+                    <li key={d.uuid} className="flex items-center justify-between gap-2">
+                      <span>{p} → {s} (FS)</span>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 px-1 text-destructive"
+                        disabled={busy}
+                        onClick={() => handleDeleteDep(d.uuid)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </li>
+                  );
                 })}
               </ul>
             )}
@@ -834,6 +995,64 @@ export default function ProjectSchedulePage() {
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
+                  <Label className="text-xs">Room</Label>
+                  <select
+                    className="w-full h-9 rounded-md border bg-background px-2 text-sm"
+                    value={selected.projectRoomId || ""}
+                    onChange={(e) =>
+                      setSelected((s) => ({
+                        ...s,
+                        projectRoomId: e.target.value || null,
+                        roomTaskId: e.target.value ? s.roomTaskId : null,
+                      }))
+                    }
+                  >
+                    <option value="">None</option>
+                    {rooms.map((r) => (
+                      <option key={r.uuid} value={r.uuid}>
+                        {r.floorLabel ? `${r.floorLabel} · ` : ""}{r.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <Label className="text-xs">Room task</Label>
+                  <select
+                    className="w-full h-9 rounded-md border bg-background px-2 text-sm"
+                    value={selected.roomTaskId || ""}
+                    onChange={(e) => {
+                      const taskId = e.target.value;
+                      const task = roomTasks.find((t) => String(t.uuid) === String(taskId));
+                      setSelected((s) => ({
+                        ...s,
+                        roomTaskId: taskId || null,
+                        projectRoomId: task?.projectRoomId || s.projectRoomId,
+                      }));
+                    }}
+                  >
+                    <option value="">None</option>
+                    {tasksForRoom(selected.projectRoomId).map((t) => (
+                      <option key={t.uuid} value={t.uuid}>{t.title}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              {(selected.roomTaskId || selected.roomName || selected.roomTaskTitle) && (
+                <p className="text-xs text-muted-foreground">
+                  {selected.roomName || ""}
+                  {selected.roomTaskTitle ? ` · ${selected.roomTaskTitle}` : ""}
+                  {selected.roomTaskId && (
+                    <>
+                      {" · "}
+                      <Link to={roomTaskPath(selected.roomTaskId)} className="text-primary underline">
+                        Open room task
+                      </Link>
+                    </>
+                  )}
+                </p>
+              )}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
                   <Label className="text-xs">Start</Label>
                   <Input type="date" value={String(selected.startDate).slice(0, 10)}
                     onChange={(e) => setSelected((s) => ({ ...s, startDate: e.target.value }))} />
@@ -851,15 +1070,25 @@ export default function ProjectSchedulePage() {
                     onChange={(e) => setSelected((s) => ({ ...s, percentComplete: e.target.value }))} />
                 </div>
                 <div>
-                  <Label className="text-xs">Assignee account ID</Label>
-                  <Input value={selected.assigneeAccountId || ""}
-                    onChange={(e) => setSelected((s) => ({
-                      ...s,
-                      assigneeAccountId: e.target.value ? Number(e.target.value) : null,
-                    }))} />
+                  <Label className="text-xs">Assignee</Label>
+                  <select
+                    className="w-full h-9 rounded-md border bg-background px-2 text-sm"
+                    value={selected.assigneeAccountId || ""}
+                    onChange={(e) =>
+                      setSelected((s) => ({
+                        ...s,
+                        assigneeAccountId: e.target.value ? Number(e.target.value) : null,
+                      }))
+                    }
+                  >
+                    <option value="">Unassigned</option>
+                    {employees.map((emp) => (
+                      <option key={emp.id} value={emp.id}>{emp.employeeName || emp.fullName}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
-              <Button size="sm" disabled={busy} onClick={handleUpdateSelected}>Save dates / %</Button>
+              <Button size="sm" disabled={busy} onClick={handleUpdateSelected}>Save activity</Button>
             </div>
 
             <div className="space-y-3">

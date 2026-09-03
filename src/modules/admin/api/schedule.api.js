@@ -8,6 +8,11 @@ export const fetchProjectSchedule = (projectId) =>
 export const createScheduleActivity = (projectId, payload) =>
   axiosInstance.post(`/projects/${projectId}/schedule/activities`, payload).then(unwrap);
 
+export const createScheduleActivityFromRoomTask = (projectId, roomTaskId) =>
+  axiosInstance
+    .post(`/projects/${projectId}/schedule/activities/from-room-task`, { roomTaskId })
+    .then(unwrap);
+
 export const updateScheduleActivity = (activityUuid, payload) =>
   axiosInstance.put(`/schedule/activities/${activityUuid}`, payload).then(unwrap);
 
@@ -38,3 +43,15 @@ export const fetchActivityProgress = (activityUuid) =>
 
 export const fetchMyScheduleActivities = () =>
   axiosInstance.get(`/schedule/my-activities`).then(unwrap);
+
+export const fetchScheduleCalendarEvents = ({ startDate, endDate, projectId, assigneeAccountId } = {}) =>
+  axiosInstance
+    .get("/schedule/calendar-events", {
+      params: {
+        startDate,
+        endDate,
+        ...(projectId != null ? { projectId } : {}),
+        ...(assigneeAccountId != null ? { assigneeAccountId } : {}),
+      },
+    })
+    .then(unwrap);

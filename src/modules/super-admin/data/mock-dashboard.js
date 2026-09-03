@@ -23,7 +23,7 @@ export const DASHBOARD_STATS = [
   {
     id: "mrr",
     title: "Monthly Recurring Revenue",
-    value: "$128.4k",
+    value: "د.إ 128.4k",
     growth: 5.7,
     growthLabel: "vs last month",
   },

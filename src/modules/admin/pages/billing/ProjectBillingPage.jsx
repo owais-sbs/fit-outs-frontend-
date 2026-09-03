@@ -18,6 +18,7 @@ import {
   markPaymentRequestPaid,
 } from "../../api/billing.api";
 import { ROUTES } from "@/shared/constants/routes";
+import { formatAed } from "@/shared/utils/currency";
 
 export default function ProjectBillingPage() {
   const { projectId } = useParams();
@@ -179,7 +180,7 @@ export default function ProjectBillingPage() {
                         <Badge variant="secondary">{m.status || "DRAFT"}</Badge>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        AED {Number(m.amount || 0).toLocaleString()}
+                        {formatAed(m.amount || 0)}
                         {m.dueDate ? ` · due ${m.dueDate}` : ""}
                         {m.percentCompleteRequired != null
                           ? ` · ≥${m.percentCompleteRequired}%`

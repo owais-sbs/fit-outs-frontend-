@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatCurrency } from "@/modules/admin/pages/boq/quantityCalcUtils";
+import { DIRHAM_SYMBOL } from "@/shared/utils/currency";
 import { BoqStatusBadge } from "@/modules/admin/pages/boq/BoqApprovalTimeline";
 import {
   approveBoq,
@@ -119,7 +120,7 @@ export default function ClientBoqApprovalsPage() {
               <TableRow>
                 <TableHead>Project</TableHead>
                 <TableHead>Version</TableHead>
-                <TableHead className="text-right">Total (AED)</TableHead>
+                <TableHead className="text-right">Total ({DIRHAM_SYMBOL})</TableHead>
                 <TableHead>Submitted</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>

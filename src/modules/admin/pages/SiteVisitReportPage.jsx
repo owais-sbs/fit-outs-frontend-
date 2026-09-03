@@ -11,7 +11,6 @@ import {
   Clock3,
   Download,
   FileText,
-  IndianRupee,
   ImagePlus,
   LockKeyhole,
   Mail,
@@ -27,6 +26,7 @@ import L from "leaflet";
 import { MapContainer, Marker, TileLayer } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { useSiteVisitPortalRoutes } from "@/shared/hooks/use-site-visit-portal-routes";
+import { formatAed, formatCurrency, DIRHAM_SYMBOL } from "@/shared/utils/currency";
 import { REPORT_CHECKLIST } from "../data/site-visits";
 import {
   appendCustomItemToRoomScopes,
@@ -167,16 +167,6 @@ function formatTime(time) {
   const period = h >= 12 ? "PM" : "AM";
   const display = h % 12 === 0 ? 12 : h % 12;
   return `${display}:${minutes || "00"} ${period}`;
-}
-
-function formatBudget(value) {
-  const n = Number(value);
-  if (!Number.isFinite(n) || n <= 0) return "—";
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(n);
 }
 
 function statusBadgeVariant(status = "") {
@@ -439,7 +429,7 @@ export default function SiteVisitReportPage() {
     const rate = Number(customWorkPrice);
     if (!description || readOnly || !activeRoomTab) return;
     if (!Number.isFinite(rate) || rate <= 0) {
-      setError("Enter a valid price in AED for this custom work item.");
+      setError(`Enter a valid price in ${DIRHAM_SYMBOL} for this custom work item.`);
       return;
     }
 
@@ -946,8 +936,7 @@ export default function SiteVisitReportPage() {
                 <div>
                   <p className="text-xs uppercase tracking-wide text-muted-foreground">Budget</p>
                   <p className="flex items-center gap-1.5 font-medium">
-                    <IndianRupee className="h-3.5 w-3.5 text-muted-foreground" />
-                    {formatBudget(lead.budget)}
+                    <span className="text-xs font-medium text-muted-foreground">{formatAed(lead.budget)}</span>
                   </p>
                 </div>
               )}
@@ -1319,11 +1308,7 @@ export default function SiteVisitReportPage() {
                                         {item.custom && item.rateAed != null && (
                                           <p className="text-xs font-medium text-foreground">
                                             Price:{" "}
-                                            {Number(item.rateAed).toLocaleString("en-AE", {
-                                              minimumFractionDigits: 2,
-                                              maximumFractionDigits: 2,
-                                            })}{" "}
-                                            AED
+                                            {formatCurrency(item.rateAed)}
                                           </p>
                                         )}
                                         <div>
@@ -1365,7 +1350,7 @@ export default function SiteVisitReportPage() {
                             />
                           </div>
                           <div className="w-36 space-y-1">
-                            <Label className="text-xs">Price (AED)</Label>
+                            <Label className="text-xs">Price ({DIRHAM_SYMBOL})</Label>
                             <Input
                               type="number"
                               min="0"

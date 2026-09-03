@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { fetchClientInvoices } from "@/modules/admin/api/billing.api";
 import { fetchAllProjects } from "@/modules/admin/api/projects.api";
 import { resolveFileUrl } from "@/modules/admin/api/documents.api";
+import { formatAed } from "@/shared/utils/currency";
 
 const STATUS_VARIANT = {
   Paid: "success",
@@ -29,12 +30,6 @@ const STATUS_LABEL = {
   DRAFT: "Draft",
   REJECTED: "Rejected",
 };
-
-function formatCurrency(amount) {
-  return new Intl.NumberFormat("en-AU", { style: "currency", currency: "AED", maximumFractionDigits: 0 }).format(
-    Number(amount) || 0
-  );
-}
 
 function formatDate(d) {
   if (!d) return "—";
@@ -65,7 +60,7 @@ function printInvoice(inv) {
     <div class="meta">${status} · Due ${formatDate(inv.dueDate)}</div>
     <div class="row"><span>Description</span><span>${inv.description || inv.notes || "Payment request"}</span></div>
     <div class="row"><span>Status</span><span>${status}</span></div>
-    <div class="amount">${formatCurrency(inv.amount)}</div>
+    <div class="amount">${formatAed(inv.amount)}</div>
     <p style="margin-top:32px"><button onclick="window.print()">Print</button></p>
     <script>window.onload=function(){setTimeout(function(){window.print()},200)}</script>
     </body></html>`);
@@ -158,9 +153,9 @@ export default function ClientInvoicesPage() {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <StatTile label="Total Invoiced" value={formatCurrency(totals.total)} />
-        <StatTile label="Paid" value={formatCurrency(totals.paid)} hint="Collected" />
-        <StatTile label="Outstanding" value={formatCurrency(totals.pending)} hint="Remaining" />
+        <StatTile label="Total Invoiced" value={formatAed(totals.total)} />
+        <StatTile label="Paid" value={formatAed(totals.paid)} hint="Collected" />
+        <StatTile label="Outstanding" value={formatAed(totals.pending)} hint="Remaining" />
       </div>
 
       <div className="relative max-w-sm">
@@ -205,7 +200,7 @@ export default function ClientInvoicesPage() {
                     </p>
                   </div>
                   <div className="hidden shrink-0 text-right sm:block">
-                    <p className="text-sm font-bold">{formatCurrency(inv.amount)}</p>
+                    <p className="text-sm font-bold">{formatAed(inv.amount)}</p>
                     <p className="text-xs text-muted-foreground">Due {formatDate(inv.dueDate)}</p>
                   </div>
                   {fileHref ? (

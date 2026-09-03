@@ -549,6 +549,58 @@ export function filterScopeItemsByReportYes(roomScopes = [], reportItems = []) {
   return all.filter((scope) => reportItems.some((row) => reportItemMatchesScope(row, scope)));
 }
 
+/** Rebuild floor → room → selections using only checklist items marked YES. */
+export function filterRoomScopesByReportYes(roomScopes = [], reportItems = []) {
+  const approved = filterScopeItemsByReportYes(roomScopes, reportItems);
+  if (approved.length === 0) return [];
+
+  const floorOrder = [];
+  const floorMap = new Map();
+
+  approved.forEach((item) => {
+    const floorName = item.floorName || "General";
+    const roomName = item.roomName || "General";
+    const category = item.category || "General";
+    const label = item.label;
+    if (!label) return;
+
+    if (!floorMap.has(floorName)) {
+      floorMap.set(floorName, { roomOrder: [], rooms: new Map() });
+      floorOrder.push(floorName);
+    }
+    const floor = floorMap.get(floorName);
+
+    if (!floor.rooms.has(roomName)) {
+      floor.rooms.set(roomName, { catOrder: [], categories: new Map() });
+      floor.roomOrder.push(roomName);
+    }
+    const room = floor.rooms.get(roomName);
+
+    if (!room.categories.has(category)) {
+      room.categories.set(category, []);
+      room.catOrder.push(category);
+    }
+    room.categories.get(category).push(label);
+  });
+
+  return floorOrder.map((floorName) => {
+    const floor = floorMap.get(floorName);
+    return {
+      floorName,
+      rooms: floor.roomOrder.map((roomName) => {
+        const room = floor.rooms.get(roomName);
+        return {
+          roomName,
+          selections: room.catOrder.map((category) => ({
+            category,
+            items: room.categories.get(category),
+          })),
+        };
+      }),
+    };
+  });
+}
+
 /** Client-side search over the renovation checklist catalog (for typeahead). */
 export function searchRenovationCatalogItems(query = "", limit = 6) {
   const q = String(query).trim().toLowerCase();

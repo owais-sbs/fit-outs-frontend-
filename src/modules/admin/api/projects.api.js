@@ -7,6 +7,8 @@ export function normalizeProject(item = {}) {
     projectName: item.name || item.projectName || "",
     clientName: item.clientName || "—",
     clientId: item.clientId != null ? String(item.clientId) : null,
+    leadId: item.leadId != null ? String(item.leadId) : null,
+    leadReferenceNo: item.leadReferenceNo || "",
     projectType: item.projectType || "—",
     location: item.location || "—",
     description: item.description || "",

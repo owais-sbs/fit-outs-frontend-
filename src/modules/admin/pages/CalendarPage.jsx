@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   CalendarDays, Check, ChevronLeft, ChevronRight,
-  MapPin, MoreHorizontal, Plus, Search, X,
+  MapPin, MoreHorizontal, Plus, Search, X, GanttChart,
 } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import { PageShell, StatTile } from "@/components/layout/PageShell";
@@ -13,9 +14,18 @@ import { fetchAllSiteVisits } from "../api/site-visits.api";
 import { fetchAllEmployees } from "../api/employees.api";
 import { fetchAllLeads } from "../api/leads.api";
 import { fetchAllClients } from "../api/clients.api";
+import { fetchScheduleCalendarEvents } from "../api/schedule.api";
+import { ROUTES } from "@/shared/constants/routes";
+import {
+  buildEventsByDate,
+  mapScheduleActivityToCalendarEvent,
+  mapSiteVisitToCalendarEvent,
+  monthDateRange,
+} from "@/shared/utils/scheduleCalendar";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -112,36 +122,62 @@ function fmtDate(d) {
   });
 }
 
+const SCHEDULE_EVENT_COLOR = "bg-violet-500/15 text-violet-800 border-violet-500/25";
+
 // ─── Event Detail Modal ───────────────────────────────────────────────────────
 function EventModal({ visit, onClose, onEdit }) {
   if (!visit) return null;
+  const isSchedule = visit.type === "schedule_activity";
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <CalendarDays className="h-4 w-4 text-primary" />
-            Site Visit Details
+            {isSchedule ? (
+              <><GanttChart className="h-4 w-4 text-primary" /> Schedule Activity</>
+            ) : (
+              <><CalendarDays className="h-4 w-4 text-primary" /> Site Visit Details</>
+            )}
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <div className="rounded-xl bg-muted/30 p-4 space-y-2.5">
-            <Row label="Employee"    value={visit.employee} />
-            <Row label="Project"     value={visit.project} />
-            <Row label="Site"        value={visit.site} />
-            <Row label="Date"        value={fmtDate(visit.date)} />
-            <Row label="Time"        value={formatTime(visit.time)} />
-            <Row label="Assigned By" value={visit.assignedBy} />
-            {visit.remarks && <Row label="Remarks" value={visit.remarks} />}
-            <div className="flex items-start gap-4 pt-0.5">
-              <span className="w-28 shrink-0 text-xs text-muted-foreground">Status</span>
-              <Badge variant={STATUS_VARIANT[visit.status]}>{visit.status}</Badge>
-            </div>
+            {isSchedule ? (
+              <>
+                <Row label="Activity" value={visit.title} />
+                <Row label="Project" value={visit.project} />
+                <Row label="Dates" value={`${fmtDate(visit.date)} → ${fmtDate(visit.endDate || visit.date)}`} />
+                <Row label="Assignee" value={visit.assignee || "Unassigned"} />
+                <Row label="Progress" value={visit.status} />
+              </>
+            ) : (
+              <>
+                <Row label="Employee"    value={visit.employee} />
+                <Row label="Project"     value={visit.project} />
+                <Row label="Site"        value={visit.site} />
+                <Row label="Date"        value={fmtDate(visit.date)} />
+                <Row label="Time"        value={formatTime(visit.time)} />
+                <Row label="Assigned By" value={visit.assignedBy} />
+                {visit.remarks && <Row label="Remarks" value={visit.remarks} />}
+                <div className="flex items-start gap-4 pt-0.5">
+                  <span className="w-28 shrink-0 text-xs text-muted-foreground">Status</span>
+                  <Badge variant={STATUS_VARIANT[visit.status]}>{visit.status}</Badge>
+                </div>
+              </>
+            )}
           </div>
         </div>
         <DialogFooter className="gap-2">
           <Button variant="outline" size="sm" onClick={onClose}>Close</Button>
-          <Button size="sm" onClick={() => onEdit(visit)}>Edit Schedule</Button>
+          {isSchedule && visit.projectId ? (
+            <Button asChild size="sm">
+              <Link to={ROUTES.ADMIN.PROJECT_SCHEDULE.replace(":projectId", visit.projectId)}>
+                Open schedule
+              </Link>
+            </Button>
+          ) : (
+            <Button size="sm" onClick={() => onEdit(visit)}>Edit Schedule</Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -285,6 +321,9 @@ export default function CalendarPage() {
   const [year,  setYear]  = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [visits, setVisits] = useState([]);
+  const [scheduleEvents, setScheduleEvents] = useState([]);
+  const [showSiteVisits, setShowSiteVisits] = useState(true);
+  const [showSchedule, setShowSchedule] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -304,6 +343,21 @@ export default function CalendarPage() {
       });
     return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const { startDate, endDate } = monthDateRange(year, month);
+    fetchScheduleCalendarEvents({ startDate, endDate })
+      .then((list) => {
+        if (!cancelled) {
+          setScheduleEvents(Array.isArray(list) ? list : []);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setScheduleEvents([]);
+      });
+    return () => { cancelled = true; };
+  }, [year, month]);
 
   // Filters
   const [search,   setSearch]   = useState("");
@@ -346,7 +400,22 @@ export default function CalendarPage() {
     return visits.filter((v) => v.date?.startsWith(prefix));
   }, [visits, year, month]);
 
-  // Map date → visits for O(1) lookup
+  const calendarEvents = useMemo(() => {
+    const visitEvents = showSiteVisits
+      ? monthVisits.map((v) => mapSiteVisitToCalendarEvent(v))
+      : [];
+    const schedEvents = showSchedule
+      ? scheduleEvents.map((a) => mapScheduleActivityToCalendarEvent(a, a.projectName))
+      : [];
+    return [...visitEvents, ...schedEvents];
+  }, [monthVisits, scheduleEvents, showSiteVisits, showSchedule]);
+
+  const eventsByDate = useMemo(
+    () => buildEventsByDate(calendarEvents, { expandMultiDay: true }),
+    [calendarEvents]
+  );
+
+  // Map date → visits for O(1) lookup (legacy table — site visits only)
   const visitsByDate = useMemo(() => {
     const map = {};
     monthVisits.forEach((v) => {
@@ -385,7 +454,7 @@ export default function CalendarPage() {
     <PageShell>
       <PageHeader
         title="Calendar"
-        description="Manage employee site visit schedules."
+        description="Site visits and published project schedule activities."
         actions={
           <Button size="sm" className="gap-2" onClick={() => { setScheduleForm(null); setShowForm(true); }}>
             <Plus className="h-4 w-4" />
@@ -559,6 +628,16 @@ export default function CalendarPage() {
           <Button variant="outline" size="sm" onClick={goToday} className="text-xs">
             Today
           </Button>
+          <div className="flex items-center gap-3 ml-2">
+            <div className="flex items-center gap-1.5">
+              <Switch id="cal-visits" checked={showSiteVisits} onCheckedChange={setShowSiteVisits} />
+              <Label htmlFor="cal-visits" className="text-xs">Site visits</Label>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Switch id="cal-schedule" checked={showSchedule} onCheckedChange={setShowSchedule} />
+              <Label htmlFor="cal-schedule" className="text-xs">Schedule</Label>
+            </div>
+          </div>
         </div>
 
         <CardContent className="p-0">
@@ -577,10 +656,10 @@ export default function CalendarPage() {
           {/* Calendar cells */}
           <div className="grid grid-cols-7">
             {grid.map((cell, idx) => {
-              const cellVisits = cell.date ? (visitsByDate[cell.date] || []) : [];
+              const cellEvents = cell.date ? (eventsByDate[cell.date] || []) : [];
               const isToday = cell.date === today;
               const MAX_SHOW = 3;
-              const extra = cellVisits.length - MAX_SHOW;
+              const extra = cellEvents.length - MAX_SHOW;
 
               return (
                 <div
@@ -604,27 +683,33 @@ export default function CalendarPage() {
                     >
                       {cell.day}
                     </span>
-                    {cell.current && cellVisits.length > 0 && (
+                    {cell.current && cellEvents.length > 0 && (
                       <span className="text-[9px] font-semibold text-muted-foreground">
-                        {cellVisits.length}
+                        {cellEvents.length}
                       </span>
                     )}
                   </div>
 
                   {/* Events */}
                   <div className="space-y-0.5">
-                    {cellVisits.slice(0, MAX_SHOW).map((v) => (
+                    {cellEvents.slice(0, MAX_SHOW).map((ev) => (
                       <button
-                        key={v.id}
+                        key={`${ev.type}-${ev.id}-${ev.date}`}
                         type="button"
-                        onClick={() => setDetailVisit(v)}
-                        className={`w-full rounded border px-1.5 py-0.5 text-left transition-opacity hover:opacity-80 ${eventColor(v.employee)}`}
+                        onClick={() => setDetailVisit(ev)}
+                        className={`w-full rounded border px-1.5 py-0.5 text-left transition-opacity hover:opacity-80 ${
+                          ev.type === "schedule_activity"
+                            ? SCHEDULE_EVENT_COLOR
+                            : eventColor(ev.employee || "Staff")
+                        }`}
                       >
                         <p className="truncate text-[10px] font-semibold leading-tight">
-                          {v.employee.split(" ")[0]}
+                          {ev.type === "schedule_activity"
+                            ? (ev.title || "Activity").split(" ").slice(0, 2).join(" ")
+                            : (ev.employee || "").split(" ")[0]}
                         </p>
                         <p className="truncate text-[9px] leading-tight opacity-80">
-                          {v.project.split(" ").slice(0, 3).join(" ")}
+                          {(ev.project || "").split(" ").slice(0, 3).join(" ")}
                         </p>
                       </button>
                     ))}
@@ -647,6 +732,11 @@ export default function CalendarPage() {
                 {label}
               </span>
             ))}
+            <Separator orientation="vertical" className="h-4" />
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span className="h-2 w-2 rounded-full bg-violet-500" />
+              Schedule activity
+            </span>
             <Separator orientation="vertical" className="h-4" />
             <span className="text-xs text-muted-foreground">
               Click any event to view details

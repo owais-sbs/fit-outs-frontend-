@@ -7,6 +7,7 @@ import { PageShell, StatTile } from "@/components/layout/PageShell";
 import { MODULES, PLAN_MODULES, TENANT_DETAIL } from "../data/tenants";
 import { PLAN_TYPES } from "../data/plans";
 import { TenantQuickActions } from "../components/tenant-management";
+import { formatAed } from "@/shared/utils/currency";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,7 +55,7 @@ export default function TenantDetailPage() {
       lastInvoice: "-",
       nextBilling: "-",
       paymentMethod: "-",
-      outstanding: "$0",
+      outstanding: "د.إ 0",
     },
   };
 
@@ -95,7 +96,7 @@ export default function TenantDetailPage() {
           <PageHeader
             title={tenant.company}
             description={`${tenant.plan} plan - ${tenant.activeUsers} active users - MRR ${
-              tenant.mrr ? `$${tenant.mrr}` : "-"
+              tenant.mrr ? formatAed(tenant.mrr) : "-"
             }`}
             actions={<TenantQuickActions />}
           />
@@ -111,7 +112,7 @@ export default function TenantDetailPage() {
             />
             <StatTile
               label="Revenue"
-              value={`$${tenant.revenue?.toLocaleString() || 0}`}
+              value={formatAed(tenant.revenue || 0)}
             />
           </div>
 

@@ -25,6 +25,7 @@ import {
   createMaterialCategory,
   updateMaterialCategory,
 } from "../../api/material.api";
+import { formatCurrency, DIRHAM_SYMBOL } from "@/shared/utils/currency";
 
 const UNIT_TYPES = [
   { value: "SQFT", label: "Sq Ft" },
@@ -38,11 +39,6 @@ const UNIT_TYPES = [
   { value: "BOX", label: "Box" },
   { value: "BAG", label: "Bag" },
 ];
-
-const formatCurrency = (val) =>
-  val != null && !Number.isNaN(Number(val))
-    ? `AED ${Number(val).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-    : "—";
 
 export default function MaterialConfigurationPage() {
   const [materials, setMaterials] = useState([]);
@@ -396,8 +392,16 @@ export default function MaterialConfigurationPage() {
                                   </div>
                                 </TableCell>
                                 <TableCell className="text-xs">{item.unitType}</TableCell>
-                                <TableCell className="text-xs font-medium">{formatCurrency(item.costPrice)}</TableCell>
-                                <TableCell className="text-xs">{formatCurrency(item.sellingPrice)}</TableCell>
+                                <TableCell className="text-xs font-medium">
+                                  {item.costPrice != null && !Number.isNaN(Number(item.costPrice))
+                                    ? formatCurrency(item.costPrice)
+                                    : "—"}
+                                </TableCell>
+                                <TableCell className="text-xs">
+                                  {item.sellingPrice != null && !Number.isNaN(Number(item.sellingPrice))
+                                    ? formatCurrency(item.sellingPrice)
+                                    : "—"}
+                                </TableCell>
                                 <TableCell>
                                   <div className="flex items-center gap-2">
                                     <span className="text-xs">{item.quantityOnHand ?? 0}</span>
@@ -471,7 +475,7 @@ export default function MaterialConfigurationPage() {
           </div>
           <div className="grid grid-cols-2 gap-4 p-4 border rounded-lg bg-muted/30">
             <div className="space-y-2">
-              <Label>Cost Price (AED) *</Label>
+              <Label>Cost Price ({DIRHAM_SYMBOL}) *</Label>
               <Input type="number" step="0.01" value={formData.costPrice} onChange={(e) => handleInputChange("costPrice", e.target.value)} className={formErrors.costPrice ? "border-destructive" : ""} />
             </div>
             <div className="space-y-2">

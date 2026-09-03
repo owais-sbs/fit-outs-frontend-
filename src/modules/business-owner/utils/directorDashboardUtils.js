@@ -1,8 +1,6 @@
 const ACTIVE_STATUSES = ["Planning", "In Progress", "On Hold"];
 
-export function formatAed(value) {
-  return `AED ${Number(value || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
-}
+export { formatAed } from "@/shared/utils/currency";
 
 export function formatDate(value) {
   if (!value) return "—";

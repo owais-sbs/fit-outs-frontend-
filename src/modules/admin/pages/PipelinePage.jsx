@@ -10,6 +10,7 @@ import {
 } from "@dnd-kit/core";
 import { Search, SlidersHorizontal, Plus, X } from "lucide-react";
 import { ROUTES } from "@/shared/constants/routes";
+import { formatCurrencyCompact, formatAed } from "@/shared/utils/currency";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import {
   PIPELINE_COLUMNS,
@@ -189,7 +190,7 @@ export default function PipelinePage() {
       {/* ── Stats bar ─────────────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center divide-x divide-border/60 rounded-xl border border-border/60 bg-card shadow-sm w-fit">
         <PipelineStat label="Total leads" value={totalLeads} />
-        <PipelineStat label="Pipeline value" value={`$${(totalValue / 1000).toFixed(0)}k`} />
+        <PipelineStat label="Pipeline value" value={formatCurrencyCompact(totalValue)} />
         <PipelineStat label="Won" value={wonLeads} sub={totalLeads ? `${Math.round((wonLeads / totalLeads) * 100)}%` : "0%"} />
         <PipelineStat label="Active cols" value={PIPELINE_COLUMNS.length} />
       </div>
@@ -342,7 +343,7 @@ export default function PipelinePage() {
                 <CardContent className="grid grid-cols-2 gap-3 p-4 text-sm">
                   <div>
                     <p className="text-xs text-muted-foreground">Budget</p>
-                    <p className="font-semibold text-primary">${previewLead.budget?.toLocaleString()}</p>
+                    <p className="font-semibold text-primary">{formatAed(previewLead.budget)}</p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Source</p>

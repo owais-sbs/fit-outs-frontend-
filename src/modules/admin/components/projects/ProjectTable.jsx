@@ -18,10 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import ProjectStatusBadge from "./ProjectStatusBadge";
 import PaymentStatusBadge from "./PaymentStatusBadge";
-
-function formatCurrency(n) {
-  return n ? `$${n.toLocaleString()}` : "\u2014";
-}
+import { formatCurrencyOrDash as formatCurrency } from "@/shared/utils/currency";
 
 function formatDate(d) {
   if (!d) return "\u2014";
