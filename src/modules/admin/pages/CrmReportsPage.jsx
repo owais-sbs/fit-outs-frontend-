@@ -93,11 +93,11 @@ const PROJECT_TYPE_CONFIG = {
 
 // ─── Extended KPIs (6 cards) ──────────────────────────────────────────────────
 const EXTENDED_KPIS = [
-  { id: "pipeline",   title: "Pipeline value",    value: "$2.4M",  growth: 11.2, growthLabel: "open deals" },
-  { id: "won",        title: "Won this month",    value: "$428k",  growth: 18.4, growthLabel: "vs last month" },
-  { id: "lost",       title: "Lost this month",   value: "$95k",   growth: -4.2, growthLabel: "vs last month" },
+  { id: "pipeline",   title: "Pipeline value",    value: "د.إ 2.4M",  growth: 11.2, growthLabel: "open deals" },
+  { id: "won",        title: "Won this month",    value: "د.إ 428k",  growth: 18.4, growthLabel: "vs last month" },
+  { id: "lost",       title: "Lost this month",   value: "د.إ 95k",   growth: -4.2, growthLabel: "vs last month" },
   { id: "conversion", title: "Win rate",          value: "24%",    growth: 2.1,  growthLabel: "qualified → won" },
-  { id: "revenue",    title: "Monthly revenue",   value: "$142k",  growth: 9.8,  growthLabel: "vs target" },
+  { id: "revenue",    title: "Monthly revenue",   value: "د.إ 142k",  growth: 9.8,  growthLabel: "vs target" },
   { id: "visits",     title: "Site visits",       value: "12",     growth: 20.0, growthLabel: "this month" },
 ];
 
@@ -266,8 +266,8 @@ export default function CrmReportsPage() {
                 <TableRow key={r.month}>
                   <TableCell className="pl-6 font-semibold">{r.month}</TableCell>
                   <TableCell>{r.leads}</TableCell>
-                  <TableCell className="font-medium">${r.forecast}k</TableCell>
-                  <TableCell>{r.committed ? `$${r.committed}k` : "—"}</TableCell>
+                  <TableCell className="font-medium">د.إ {r.forecast}k</TableCell>
+                  <TableCell>{r.committed ? `د.إ ${r.committed}k` : "—"}</TableCell>
                   <TableCell className="pr-6">
                     <Badge variant={STATUS_VARIANT[r.status] || "secondary"} className="capitalize text-[10px]">
                       {r.status.replace("-", " ")}

@@ -19,7 +19,11 @@ import { fetchRoomTypes, fetchRoomTypeById } from "../../api/room-type.api";
 import { computeSubtotal, flattenSurveyToEstimateLines, surveyShellFromEstimateLines, surveyShellFromRoomScopes, scopeItemsFromRoom, attachScopeMetadataToRooms, LINE_SOURCE } from "../../api/site-visit-estimate.api";
 import { formatEstimateAmount } from "../../data/jctCoverLetterCopy";
 import AppendixPicker from "./AppendixPicker";
-import { countScopedItems, normalizeRoomScopes } from "../../data/renovationChecklist";
+import {
+  countScopedItems,
+  filterRoomScopesByReportYes,
+  normalizeRoomScopes,
+} from "../../data/renovationChecklist";
 import {
   buildSelectionsFromWorkItems,
   calcLineAmount,
@@ -665,7 +669,11 @@ export default function VisitDraftBoqEditor({
   disabled = false,
 }) {
   const floorsFromScopes = normalizeRoomScopes(roomScopes);
-  const scopedItemCount = countScopedItems(floorsFromScopes);
+  const referenceFloorsFromScopes = useMemo(
+    () => filterRoomScopesByReportYes(roomScopes, reportItems),
+    [roomScopes, reportItems]
+  );
+  const scopedItemCount = countScopedItems(referenceFloorsFromScopes);
   const initKeyRef = useRef(null);
   const scopeHydrated = useRef(false);
 
@@ -1059,11 +1067,11 @@ export default function VisitDraftBoqEditor({
           <p className="text-xs text-muted-foreground">
             Site-visit checklist for reference while you pick catalog work jobs on the left.
           </p>
-          {floorsFromScopes.length === 0 ? (
-            <p className="text-xs text-muted-foreground">No room scope on this visit.</p>
+          {referenceFloorsFromScopes.length === 0 ? (
+            <p className="text-xs text-muted-foreground">No checklist items marked on this visit.</p>
           ) : (
             <div className="max-h-[520px] space-y-3 overflow-y-auto pr-1">
-              {floorsFromScopes.map((floor) => (
+              {referenceFloorsFromScopes.map((floor) => (
                 <div
                   key={floor.floorName}
                   className="rounded-md border border-border/50 bg-background p-2.5"

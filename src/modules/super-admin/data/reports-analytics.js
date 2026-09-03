@@ -1,9 +1,9 @@
 import { CHART_COLORS } from "./analytics-dashboard";
 
 export const REPORTS_KPIS = [
-  { id: "mrr", title: "Platform MRR", value: "$128.4k", growth: 5.7, growthLabel: "vs prior period" },
+  { id: "mrr", title: "Platform MRR", value: "د.إ 128.4k", growth: 5.7, growthLabel: "vs prior period" },
   { id: "tenants", title: "Active Tenants", value: "214", growth: 6.4, growthLabel: "vs prior period" },
-  { id: "crm", title: "CRM Pipeline", value: "$2.4M", growth: 11.2, growthLabel: "open value" },
+  { id: "crm", title: "CRM Pipeline", value: "د.إ 2.4M", growth: 11.2, growthLabel: "open value" },
   { id: "conversion", title: "Lead Conversion", value: "24.8%", growth: 3.1, growthLabel: "won / qualified" },
 ];
 
@@ -100,7 +100,7 @@ export const MONTHLY_TRENDS_CONFIG = {
 };
 
 export const REPORTS_TABLE_ROWS = [
-  { metric: "Average deal size", value: "$48,200", change: "+6.2%" },
+  { metric: "Average deal size", value: "د.إ 48,200", change: "+6.2%" },
   { metric: "Sales cycle (days)", value: "34", change: "-4 days" },
   { metric: "Site visit completion", value: "92%", change: "+2.1%" },
   { metric: "Trial → paid conversion", value: "68%", change: "+4.2%" },

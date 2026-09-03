@@ -1,4 +1,6 @@
 /** Fit-outs BOQ document theme — matches branded invoice template */
+import { formatCurrency } from "@/shared/utils/currency";
+
 export const BOQ_THEME = {
   navy: "#1F3A34",
   navyDark: "#0F2027",
@@ -43,10 +45,8 @@ export function formatBoqDate(iso) {
   });
 }
 
-export function formatBoqAmount(amount, currency = "AED") {
-  const n = Number(amount);
-  if (Number.isNaN(n)) return `${currency} ${n.toLocaleString("en-AE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  return `${currency} ${n.toLocaleString("en-AE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+export function formatBoqAmount(amount) {
+  return formatCurrency(amount, { decimals: 2 });
 }
 
 export function resolveSurface(wallName, categoryLabel) {

@@ -11,9 +11,7 @@ import {
 } from "@/components/ui/table";
 import { PROJECT_TYPES } from "../../constants/project.constants";
 
-function formatCurrency(n) {
-  return n ? `$${n.toLocaleString()}` : "\u2014";
-}
+import { formatCurrencyOrDash as formatCurrency } from "@/shared/utils/currency";
 
 export default function ReadyForConversionTable({
   leads,

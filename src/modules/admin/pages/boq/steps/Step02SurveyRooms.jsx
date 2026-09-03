@@ -58,7 +58,7 @@ function matchesWorkItemSearch(sel, query) {
 function RoomSurveyCard({ room, floorName, roomTypes, onUpdate, onRemove }) {
   const [loadingItems, setLoadingItems] = useState(false);
   const [itemSearch, setItemSearch] = useState("");
-  const [openSections, setOpenSections] = useState(null);
+  const [openSections, setOpenSections] = useState([]);
   const roomDimensions = useMemo(
     () => ({
       length: room.length,
@@ -184,13 +184,13 @@ function RoomSurveyCard({ room, floorName, roomTypes, onUpdate, onRemove }) {
   const hasWorkItems = allMasterNames.length > 0;
 
   useEffect(() => {
-    setOpenSections(null);
+    setOpenSections([]);
     setItemSearch("");
   }, [room.roomTypeId]);
 
   const accordionValue = isSearching
     ? visibleMasterNames
-    : (openSections ?? allMasterNames);
+    : openSections;
 
   return (
     <Card className="border-border/70">
@@ -480,7 +480,7 @@ function RoomSurveyCard({ room, floorName, roomTypes, onUpdate, onRemove }) {
 }
 
 export default function Step02SurveyRooms() {
-  const { floors, setFloors, rooms, setRooms, prevStep, nextStep } = useBoq();
+  const { floors, setFloors, rooms, setRooms, prevStep, nextStep, saveNotice, setSaveNotice } = useBoq();
   const [roomTypes, setRoomTypes] = useState([]);
   const [activeFloorId, setActiveFloorId] = useState(floors[0]?.id || null);
   const [newFloorName, setNewFloorName] = useState("");
@@ -561,6 +561,19 @@ export default function Step02SurveyRooms() {
           Project total: {formatCurrency(projectTotal)}
         </Badge>
       </div>
+
+      {saveNotice && (
+        <p className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+          {saveNotice}
+          <button
+            type="button"
+            className="ml-2 text-xs underline text-emerald-800"
+            onClick={() => setSaveNotice?.(null)}
+          >
+            Dismiss
+          </button>
+        </p>
+      )}
 
       {/* Floors */}
       <Card>

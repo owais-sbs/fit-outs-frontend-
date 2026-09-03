@@ -25,10 +25,7 @@ import SiteVisitSummaryCard from "../components/client-conversion/SiteVisitSumma
 import NegotiationSummaryCard from "../components/client-conversion/NegotiationSummaryCard";
 import ConversionSuccessModal from "../components/client-conversion/ConversionSuccessModal";
 import useClientConversion from "../hooks/useClientConversion";
-
-function formatCurrency(n) {
-  return n ? `$${n.toLocaleString()}` : "$0";
-}
+import { formatCurrency } from "@/shared/utils/currency";
 
 function formatDate(d) {
   if (!d) return "\u2014";

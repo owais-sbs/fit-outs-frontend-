@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useTenantManagement } from "../../context/tenant-management-context";
+import { formatAed } from "@/shared/utils/currency";
 
 function StatChip({ icon: Icon, label, value }) {
   return (
@@ -37,11 +38,7 @@ export default function TenantManagementPanels() {
     setExportOpen(false);
   };
 
-  const revenueLabel = new Intl.NumberFormat("en-AU", {
-    style: "currency",
-    currency: "AED",
-    maximumFractionDigits: 0,
-  }).format(stats.totalRevenue);
+  const revenueLabel = formatAed(stats.totalRevenue);
 
   return (
     <>

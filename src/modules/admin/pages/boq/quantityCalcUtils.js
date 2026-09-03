@@ -141,11 +141,7 @@ export function roomSurveyTotal(selections = []) {
     .reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0);
 }
 
-export function formatCurrency(amount, currency = "AED") {
-  const n = Number(amount);
-  if (Number.isNaN(n)) return `${currency} 0.00`;
-  return `${currency} ${n.toLocaleString("en-AE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
+export { formatCurrency, formatCurrencyCompact, formatAed, DIRHAM_SYMBOL } from "@/shared/utils/currency";
 
 export function unitLabel(unitType) {
   const map = {

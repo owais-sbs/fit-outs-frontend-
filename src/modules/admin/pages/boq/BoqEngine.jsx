@@ -9,6 +9,7 @@ import {
 import { calcLineAmount } from "./quantityCalcUtils";
 import { saveBoqFromSurvey, fetchBoq, submitBoq as submitBoqApi, updateBoq, createBoqRevision } from "../../api/boq.api";
 import { apiBoqToDocument, boqDocumentToApiPayload } from "./boqApiUtils";
+import { fetchProjectQasSurveySeed, hydrateQasSurveySeed } from "../../api/qas-survey-seed.api";
 
 export const QAS_TOTAL_STEPS = 3;
 
@@ -231,7 +232,7 @@ export function BoqProvider({ children }) {
     [floors, rooms, session, additionalLines]
   );
 
-  const startSession = useCallback((project) => {
+  const startSession = useCallback(async (project) => {
     const key = projectKey(project);
     const existingBoq = getBoqDraftForProject(project);
     if (existingBoq) {
@@ -261,21 +262,40 @@ export function BoqProvider({ children }) {
     }
 
     const ref = `QAS-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 99999)).padStart(5, "0")}`;
-    setSession({
+    const nextSession = {
       ref,
       version: 1,
       project,
       status: QAS_STATUS.IN_PROGRESS,
       startedAt: new Date().toISOString(),
       lastSaved: new Date().toISOString(),
-    });
+    };
+    setSession(nextSession);
     setStep(2);
-    setFloors([{ id: "floor-1", name: "Ground Floor" }]);
-    setRooms([]);
     setAdditionalLines([]);
     setGeneratedBoq(null);
     setSavedBoqs([]);
     setSaveNotice(null);
+
+    let seeded = false;
+    try {
+      const seed = await fetchProjectQasSurveySeed(project?.id);
+      const hydrated = await hydrateQasSurveySeed(seed);
+      if (hydrated?.floors?.length) {
+        setFloors(hydrated.floors);
+        setRooms(hydrated.rooms || []);
+        setSaveNotice("Pre-filled from issued site-visit estimate");
+        saveDraftToStorage(nextSession, hydrated.floors, hydrated.rooms || []);
+        seeded = true;
+      }
+    } catch (err) {
+      console.error("Failed to load QAS survey seed", err);
+    }
+
+    if (!seeded) {
+      setFloors([{ id: "floor-1", name: "Ground Floor" }]);
+      setRooms([]);
+    }
   }, []);
 
   const resumeSession = useCallback((draft) => {
@@ -465,6 +485,7 @@ export function BoqProvider({ children }) {
     generatedBoq,
     savedBoqs,
     saveNotice,
+    setSaveNotice,
     startSession,
     resumeSession,
     loadDrafts,

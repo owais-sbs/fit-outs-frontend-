@@ -13,9 +13,7 @@ function Row({ label, value }) {
   );
 }
 
-function formatCurrency(n) {
-  return n ? `$${n.toLocaleString()}` : "$0";
-}
+import { formatCurrency } from "@/shared/utils/currency";
 
 function formatDate(d) {
   if (!d) return "\u2014";

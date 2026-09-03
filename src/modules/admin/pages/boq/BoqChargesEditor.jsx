@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { BOQ_CATEGORIES, CUSTOM_CATEGORY_VALUE } from "./boqDataUtils";
 import { formatCurrency } from "./quantityCalcUtils";
+import { DIRHAM_SYMBOL } from "@/shared/utils/currency";
 
 const UNIT_OPTIONS = [
   { value: "lot", label: "Lot" },
@@ -172,7 +173,7 @@ export default function BoqChargesEditor({
             </Select>
           </div>
           <div className="md:col-span-2 space-y-1.5">
-            <Label className="text-xs">Rate (AED) *</Label>
+            <Label className="text-xs">Rate ({DIRHAM_SYMBOL}) *</Label>
             <Input
               type="number"
               min="0"
