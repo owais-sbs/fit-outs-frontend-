@@ -1,4 +1,5 @@
 import axiosInstance from "@/lib/axiosInstance";
+import { multipartConfig } from "@/lib/multipart";
 
 const unwrap = (r) => r.data?.data ?? r.data;
 
@@ -68,3 +69,18 @@ export const createScClaim = (packageUuid, payload) =>
 
 export const submitScClaim = (claimUuid) =>
   axiosInstance.post(`/subcontractor/claims/${claimUuid}/submit`).then(unwrap);
+
+export const uploadScClaimAttachment = (claimUuid, file) => {
+  const fd = new FormData();
+  fd.append("file", file);
+  return axiosInstance
+    .post(`/subcontractor/claims/${claimUuid}/attachments`, fd, multipartConfig({ timeout: 120000 }))
+    .then((r) => {
+      if (r.data?.isSuccess === false) {
+        const err = new Error(r.data?.error || r.data?.message || "Upload failed");
+        err.response = r;
+        throw err;
+      }
+      return r.data?.data ?? r.data;
+    });
+};

@@ -1,4 +1,5 @@
 import axiosInstance from "@/lib/axiosInstance";
+import { multipartConfig } from "@/lib/multipart";
 
 const unwrap = (r) => r.data?.data ?? r.data;
 
@@ -10,30 +11,34 @@ export const SNAG_STATUSES = [
   "CLOSED",
 ];
 
+/** Primary workflow shown in UI (RESOLVED remains supported as optional). */
+export const SNAG_WORKFLOW_STATUSES = [
+  "OPEN",
+  "IN_PROGRESS",
+  "READY_FOR_INSPECTION",
+  "CLOSED",
+];
+
 export const SNAG_SEVERITIES = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
 
 export const fetchProjectSnags = (projectId) =>
   axiosInstance.get(`/projects/${projectId}/snags`).then(unwrap);
 
-/**
- * Create snag. When `photo` (File) is provided, posts multipart FormData
- * including severity, dueDate, and photo.
- */
-export const createSnag = (projectId, payload = {}) => {
-  const { photo, ...rest } = payload;
-  if (photo instanceof File) {
-    const fd = new FormData();
-    Object.entries(rest).forEach(([k, v]) => {
-      if (v != null && v !== "") fd.append(k, v instanceof Date ? v.toISOString().slice(0, 10) : String(v));
-    });
-    fd.append("photo", photo);
-    return axiosInstance
-      .post(`/projects/${projectId}/snags`, fd, {
-        headers: { "Content-Type": "multipart/form-data" },
-      })
-      .then(unwrap);
+export const createSnag = async (projectId, payload = {}) => {
+  const { photo, photos, ...rest } = payload;
+  const files = [
+    ...(photo instanceof File ? [photo] : []),
+    ...(Array.isArray(photos) ? photos.filter((f) => f instanceof File) : []),
+  ];
+  const created = await axiosInstance.post(`/projects/${projectId}/snags`, rest).then(unwrap);
+  if (created?.uuid && files.length > 0) {
+    let latest = created;
+    for (const file of files) {
+      latest = await uploadSnagPhoto(projectId, created.uuid, file);
+    }
+    return latest;
   }
-  return axiosInstance.post(`/projects/${projectId}/snags`, rest).then(unwrap);
+  return created;
 };
 
 export const updateSnag = (projectId, uuid, payload) =>
@@ -44,12 +49,15 @@ export const updateSnagStatus = (projectId, uuid, status) =>
 
 export const uploadSnagPhoto = (projectId, uuid, file) => {
   const fd = new FormData();
-  fd.append("photo", file);
+  fd.append("file", file);
   return axiosInstance
-    .post(`/projects/${projectId}/snags/${uuid}/photo`, fd, {
-      headers: { "Content-Type": "multipart/form-data" },
-    })
-    .then(unwrap);
+    .post(`/projects/${projectId}/snags/${uuid}/photos`, fd, multipartConfig({ timeout: 120000 }))
+    .then((r) => {
+      if (r.data?.isSuccess === false) {
+        throw new Error(r.data?.error || r.data?.message || "Upload failed");
+      }
+      return r.data?.data ?? r.data;
+    });
 };
 
 export const deleteSnag = (projectId, uuid) =>
@@ -57,3 +65,36 @@ export const deleteSnag = (projectId, uuid) =>
 
 export const fetchClientSnags = (projectId) =>
   axiosInstance.get(`/client/projects/${projectId}/snags`).then(unwrap);
+
+export const createClientSnag = async (projectId, payload = {}) => {
+  const { photo, photos, ...rest } = payload;
+  const files = [
+    ...(photo instanceof File ? [photo] : []),
+    ...(Array.isArray(photos) ? photos.filter((f) => f instanceof File) : []),
+  ];
+  const created = await axiosInstance.post(`/client/projects/${projectId}/snags`, rest).then(unwrap);
+  if (created?.uuid && files.length > 0) {
+    let latest = created;
+    for (const file of files) {
+      latest = await uploadClientSnagPhoto(projectId, created.uuid, file);
+    }
+    return latest;
+  }
+  return created;
+};
+
+export const approveClientSnag = (projectId, uuid) =>
+  axiosInstance.post(`/client/projects/${projectId}/snags/${uuid}/approve`).then(unwrap);
+
+export const uploadClientSnagPhoto = (projectId, uuid, file) => {
+  const fd = new FormData();
+  fd.append("file", file);
+  return axiosInstance
+    .post(`/client/projects/${projectId}/snags/${uuid}/photos`, fd, multipartConfig({ timeout: 120000 }))
+    .then((r) => {
+      if (r.data?.isSuccess === false) {
+        throw new Error(r.data?.error || r.data?.message || "Upload failed");
+      }
+      return r.data?.data ?? r.data;
+    });
+};

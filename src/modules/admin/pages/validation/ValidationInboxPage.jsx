@@ -3,6 +3,7 @@ import { Link, useLocation, useParams } from "react-router-dom";
 import { ArrowLeft, Check, ClipboardCheck, HardHat, Loader2, Plus, X, ShieldAlert, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageShell, PageTitle } from "@/components/layout/PageShell";
+import { AttachmentList } from "@/components/shared/AttachmentField";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -232,6 +233,7 @@ export default function ValidationInboxPage() {
                       {item.progressNotes && (
                         <p className="text-xs text-muted-foreground mt-1">{item.progressNotes}</p>
                       )}
+                      <AttachmentList paths={item.photoPaths} className="mt-2" />
                       {item.reason && (
                         <p className="text-xs text-destructive mt-1">Reason: {item.reason}</p>
                       )}
@@ -320,6 +322,7 @@ export default function ValidationInboxPage() {
                       {item.notes && (
                         <p className="text-xs text-muted-foreground mt-1">{item.notes}</p>
                       )}
+                      <AttachmentList paths={item.attachmentPaths} className="mt-2" />
                     </div>
                     {(item.status === "SUBMITTED" || item.status === "PENDING") && (
                       <div className="flex flex-col sm:flex-row gap-2 sm:items-center">

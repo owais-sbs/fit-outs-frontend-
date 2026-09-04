@@ -1,4 +1,5 @@
 import axiosInstance from "@/lib/axiosInstance";
+import { multipartConfig } from "@/lib/multipart";
 
 const unwrap = (r) => r.data?.data ?? r.data;
 
@@ -55,3 +56,18 @@ export const fetchScheduleCalendarEvents = ({ startDate, endDate, projectId, ass
       },
     })
     .then(unwrap);
+
+export const uploadProgressAttachment = (progressUuid, file) => {
+  const fd = new FormData();
+  fd.append("file", file);
+  return axiosInstance
+    .post(`/schedule/progress/${progressUuid}/attachments`, fd, multipartConfig({ timeout: 120000 }))
+    .then((r) => {
+      if (r.data?.isSuccess === false) {
+        const err = new Error(r.data?.error || r.data?.message || "Upload failed");
+        err.response = r;
+        throw err;
+      }
+      return r.data?.data ?? r.data;
+    });
+};

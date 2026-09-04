@@ -85,6 +85,8 @@ import SubcontractorClaimsPage from "./modules/subcontractor/pages/Subcontractor
 import SubcontractorProjectsPage from "./modules/subcontractor/pages/SubcontractorProjectsPage";
 import SubcontractorProjectDetailPage from "./modules/subcontractor/pages/SubcontractorProjectDetailPage";
 import SubcontractorLocationsPage from "./modules/subcontractor/pages/SubcontractorLocationsPage";
+import SubcontractorProgressLogsPage from "./modules/subcontractor/pages/SubcontractorProgressLogsPage";
+import SubcontractorDocumentsPage from "./modules/subcontractor/pages/SubcontractorDocumentsPage";
 import {
   ClientLayout,
   ClientDashboard,
@@ -341,8 +343,10 @@ function App() {
               <Route path="projects" element={<SubcontractorProjectsPage />} />
               <Route path="projects/:projectId" element={<SubcontractorProjectDetailPage />} />
               <Route path="locations" element={<SubcontractorLocationsPage />} />
+              <Route path="progress-logs" element={<SubcontractorProgressLogsPage />} />
               <Route path="packages" element={<SubcontractorPackagesPage />} />
               <Route path="claims" element={<SubcontractorClaimsPage />} />
+              <Route path="documents" element={<SubcontractorDocumentsPage />} />
             </Route>
             <Route
               path={ROUTES.CLIENT.DASHBOARD}

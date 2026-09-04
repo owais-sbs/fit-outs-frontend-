@@ -1,5 +1,5 @@
 import { FileText, Download, Eye, Search, FolderOpen, Loader2 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { PageShell, PageTitle, Surface } from "@/components/layout/PageShell";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { fetchClientDocuments, resolveFileUrl } from "@/modules/admin/api/documents.api";
 import { fetchAllProjects } from "@/modules/admin/api/projects.api";
 
+const FOLDER_ORDER = ["drawings", "H&S", "commercial", "photos", "method statements", "other"];
+
 function formatDate(d) {
   if (!d) return "—";
   try {
@@ -15,6 +17,25 @@ function formatDate(d) {
   } catch {
     return String(d);
   }
+}
+
+function groupByCategory(docs) {
+  const map = new Map();
+  for (const d of docs) {
+    const cat = d.category || "other";
+    if (!map.has(cat)) map.set(cat, []);
+    map.get(cat).push(d);
+  }
+  return Array.from(map.entries())
+    .sort(([a], [b]) => {
+      const ia = FOLDER_ORDER.indexOf(a);
+      const ib = FOLDER_ORDER.indexOf(b);
+      if (ia === -1 && ib === -1) return a.localeCompare(b);
+      if (ia === -1) return 1;
+      if (ib === -1) return -1;
+      return ia - ib;
+    })
+    .map(([category, items]) => ({ category, items }));
 }
 
 export default function ClientDocumentsPage() {
@@ -53,14 +74,17 @@ export default function ClientDocumentsPage() {
     loadDocs();
   }, [loadDocs]);
 
-  const filtered = docs.filter((d) => {
-    if (!search.trim()) return true;
+  const filtered = useMemo(() => {
+    if (!search.trim()) return docs;
     const q = search.toLowerCase();
-    return (
-      String(d.title || d.name || "").toLowerCase().includes(q) ||
-      String(d.category || "").toLowerCase().includes(q)
+    return docs.filter(
+      (d) =>
+        String(d.title || d.name || "").toLowerCase().includes(q) ||
+        String(d.category || "").toLowerCase().includes(q)
     );
-  });
+  }, [docs, search]);
+
+  const folders = useMemo(() => groupByCategory(filtered), [filtered]);
 
   if (loading) {
     return (
@@ -109,7 +133,7 @@ export default function ClientDocumentsPage() {
           <div className="flex justify-center py-16 text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin" />
           </div>
-        ) : filtered.length === 0 ? (
+        ) : folders.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
             <FolderOpen className="mb-3 h-12 w-12 opacity-30" />
             <p className="font-medium">No documents found</p>
@@ -119,54 +143,61 @@ export default function ClientDocumentsPage() {
           </div>
         ) : (
           <div className="divide-y divide-border/30">
-            {filtered.map((doc) => {
-              const href = resolveFileUrl(doc.filePath);
-              return (
-                <div key={doc.uuid || doc.id} className="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-muted/30">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-500/10">
-                    <FileText className="h-5 w-5 text-red-500" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{doc.title || doc.name}</p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      {doc.category || "Document"}
-                      {doc.filePath ? ` · ${doc.filePath}` : ""}
-                      {doc.updatedAt || doc.createdAt ? ` · ${formatDate(doc.updatedAt || doc.createdAt)}` : ""}
-                    </p>
-                  </div>
-                  {doc.category && (
-                    <Badge variant="secondary" className="hidden shrink-0 sm:flex">
-                      {doc.category}
-                    </Badge>
-                  )}
-                  <div className="flex shrink-0 items-center gap-1">
-                    {href ? (
-                      <>
-                        <Button asChild variant="ghost" size="icon" className="h-8 w-8">
-                          <a href={href} target="_blank" rel="noopener noreferrer" title="View">
-                            <Eye className="h-4 w-4" />
-                          </a>
-                        </Button>
-                        <Button asChild variant="ghost" size="icon" className="h-8 w-8">
-                          <a href={href} target="_blank" rel="noopener noreferrer" title="Download">
-                            <Download className="h-4 w-4" />
-                          </a>
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
-                          <Download className="h-4 w-4" />
-                        </Button>
-                      </>
-                    )}
-                  </div>
+            {folders.map((folder) => (
+              <div key={folder.category}>
+                <div className="flex items-center gap-2 bg-muted/40 px-5 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <FolderOpen className="h-3.5 w-3.5" />
+                  {folder.category}
                 </div>
-              );
-            })}
+                {folder.items.map((doc) => {
+                  const href = resolveFileUrl(doc.filePath);
+                  return (
+                    <div key={doc.uuid || doc.id} className="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-muted/30">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-500/10">
+                        <FileText className="h-5 w-5 text-red-500" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">{doc.title || doc.name}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          v{doc.version ?? 1}
+                          {doc.updatedAt || doc.createdAt ? ` · ${formatDate(doc.updatedAt || doc.createdAt)}` : ""}
+                        </p>
+                      </div>
+                      {doc.category && (
+                        <Badge variant="secondary" className="hidden shrink-0 sm:flex">
+                          {doc.category}
+                        </Badge>
+                      )}
+                      <div className="flex shrink-0 items-center gap-1">
+                        {href ? (
+                          <>
+                            <Button asChild variant="ghost" size="icon" className="h-8 w-8">
+                              <a href={href} target="_blank" rel="noopener noreferrer" title="View">
+                                <Eye className="h-4 w-4" />
+                              </a>
+                            </Button>
+                            <Button asChild variant="ghost" size="icon" className="h-8 w-8">
+                              <a href={href} target="_blank" rel="noopener noreferrer" title="Download">
+                                <Download className="h-4 w-4" />
+                              </a>
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
+                              <Download className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
           </div>
         )}
       </Surface>

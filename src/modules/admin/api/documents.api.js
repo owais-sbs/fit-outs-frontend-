@@ -1,4 +1,5 @@
 import axiosInstance from "@/lib/axiosInstance";
+import { multipartConfig } from "@/lib/multipart";
 
 const unwrap = (r) => r.data?.data ?? r.data;
 
@@ -24,9 +25,7 @@ export const uploadDocument = (projectId, { title, category, file, parentDocumen
   if (file) fd.append("file", file);
   if (parentDocumentUuid) fd.append("parentDocumentUuid", parentDocumentUuid);
   return axiosInstance
-    .post(`/projects/${projectId}/documents/upload`, fd, {
-      headers: { "Content-Type": "multipart/form-data" },
-    })
+    .post(`/projects/${projectId}/documents/upload`, fd, multipartConfig())
     .then(unwrap);
 };
 
@@ -41,6 +40,15 @@ export const deleteProjectDocument = deleteDocument;
 
 export const publishDocumentToClient = (projectId, uuid) =>
   axiosInstance.post(`/projects/${projectId}/documents/${uuid}/publish-to-client`).then(unwrap);
+
+export const unpublishDocumentFromClient = (projectId, uuid) =>
+  axiosInstance.post(`/projects/${projectId}/documents/${uuid}/unpublish-from-client`).then(unwrap);
+
+export const fetchDocumentVersions = (projectId, uuid) =>
+  axiosInstance.get(`/projects/${projectId}/documents/${uuid}/versions`).then(unwrap);
+
+export const syncDrawingsIntoDocuments = (projectId) =>
+  axiosInstance.post(`/projects/${projectId}/documents/sync-drawings`).then(unwrap);
 
 export const fetchClientDocuments = (projectId) =>
   axiosInstance.get(`/client/projects/${projectId}/documents`).then(unwrap);

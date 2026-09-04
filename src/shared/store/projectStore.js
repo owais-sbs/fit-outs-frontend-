@@ -125,48 +125,7 @@ const INITIAL_UPDATES = [
   }
 ];
 
-const INITIAL_DOCUMENTS = [
-  {
-    id: "doc-101",
-    projectId: "PRJ-201",
-    name: "Architectural_Drawings_Rev3.pdf",
-    type: "Drawings", // Contracts, Approvals, Drawings, BOQ, Invoices, Other
-    size: "14.5 MB",
-    uploadedAt: "2026-03-10"
-  },
-  {
-    id: "doc-102",
-    projectId: "PRJ-201",
-    name: "Executed_Client_Agreement.pdf",
-    type: "Contracts",
-    size: "4.8 MB",
-    uploadedAt: "2026-03-12"
-  },
-  {
-    id: "doc-103",
-    projectId: "PRJ-201",
-    name: "Bill_of_Quantities_Final.xlsx",
-    type: "BOQ",
-    size: "1.2 MB",
-    uploadedAt: "2026-03-14"
-  },
-  {
-    id: "doc-104",
-    projectId: "PRJ-202",
-    name: "Council_Development_Approval.pdf",
-    type: "Approvals",
-    size: "3.1 MB",
-    uploadedAt: "2026-05-28"
-  },
-  {
-    id: "doc-105",
-    projectId: "PRJ-202",
-    name: "Invoice_Deposit_001.pdf",
-    type: "Invoices",
-    size: "820 KB",
-    uploadedAt: "2026-06-01"
-  }
-];
+const INITIAL_DOCUMENTS = [];
 
 const INITIAL_SITE_VISITS = [
   {
@@ -209,7 +168,7 @@ const INITIAL_SITE_VISITS = [
 
 // ─── LocalStorage Helpers ──────────────────────────────────────────────────────
 
-const STORE_VERSION = "pms-v3"; // bumped: employees now use roles[] array
+const STORE_VERSION = "pms-v4"; // bumped: dropped mock project documents (Module 18 uses API)
 
 function getStored(key, fallback) {
   try {

@@ -147,6 +147,7 @@ export const ROUTES = {
     PACKAGES: "/subcontractor/packages",
     TASKS: "/subcontractor/tasks",
     CLAIMS: "/subcontractor/claims",
+    PROGRESS_LOGS: "/subcontractor/progress-logs",
     DOCUMENTS: "/subcontractor/documents",
     PAYMENTS: "/subcontractor/payments",
   },

@@ -1,4 +1,4 @@
-import { LayoutDashboard, Briefcase, Package, FileText, MapPin } from "lucide-react";
+import { LayoutDashboard, Briefcase, Package, FileText, MapPin, ClipboardList, FolderOpen } from "lucide-react";
 import { ROUTES } from "@/shared/constants/routes";
 
 export const SC_STATUS_BADGE = {
@@ -51,7 +51,9 @@ export const SC_NAV_GROUPS = [
     items: [
       { label: "My Projects", href: ROUTES.SUBCONTRACTOR.PROJECTS, icon: Briefcase },
       { label: "Packages", href: ROUTES.SUBCONTRACTOR.PACKAGES, icon: Package },
+      { label: "Progress logs", href: ROUTES.SUBCONTRACTOR.PROGRESS_LOGS, icon: ClipboardList },
       { label: "Claims", href: ROUTES.SUBCONTRACTOR.CLAIMS, icon: FileText },
+      { label: "Documents", href: ROUTES.SUBCONTRACTOR.DOCUMENTS, icon: FolderOpen },
     ],
   },
   {

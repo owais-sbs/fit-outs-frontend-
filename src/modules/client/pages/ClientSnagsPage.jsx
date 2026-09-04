@@ -1,11 +1,22 @@
-import { AlertTriangle, Search, Loader2 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { AlertTriangle, Check, Loader2, Plus, Search } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { PageShell, PageTitle, Surface } from "@/components/layout/PageShell";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { fetchClientSnags } from "@/modules/admin/api/snags.api";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AttachmentList, AttachmentUploadField } from "@/components/shared/AttachmentField";
+import {
+  approveClientSnag,
+  createClientSnag,
+  fetchClientSnags,
+  SNAG_SEVERITIES,
+} from "@/modules/admin/api/snags.api";
 import { fetchAllProjects } from "@/modules/admin/api/projects.api";
+import { fetchProjectRooms } from "@/modules/admin/api/room-collab.api";
+import { fetchProjectSchedule } from "@/modules/admin/api/schedule.api";
 
 const statusClass = {
   OPEN: "bg-amber-500/15 text-amber-700",
@@ -24,13 +35,29 @@ function formatDate(d) {
   }
 }
 
+const emptyForm = {
+  title: "",
+  description: "",
+  location: "",
+  projectRoomId: "",
+  activityUuid: "",
+  severity: "MEDIUM",
+  dueDate: "",
+  photos: [],
+};
+
 export default function ClientSnagsPage() {
   const [search, setSearch] = useState("");
   const [projects, setProjects] = useState([]);
   const [projectId, setProjectId] = useState("");
   const [snags, setSnags] = useState([]);
+  const [rooms, setRooms] = useState([]);
+  const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [snagsLoading, setSnagsLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const [form, setForm] = useState(emptyForm);
 
   useEffect(() => {
     setLoading(true);
@@ -47,12 +74,21 @@ export default function ClientSnagsPage() {
   const loadSnags = useCallback(() => {
     if (!projectId) {
       setSnags([]);
+      setRooms([]);
+      setActivities([]);
       return;
     }
     setSnagsLoading(true);
-    fetchClientSnags(projectId)
-      .then((list) => setSnags(Array.isArray(list) ? list : []))
-      .catch(() => setSnags([]))
+    Promise.all([
+      fetchClientSnags(projectId).catch(() => []),
+      fetchProjectRooms(projectId).catch(() => []),
+      fetchProjectSchedule(projectId).catch(() => ({ activities: [] })),
+    ])
+      .then(([snagList, roomList, schedule]) => {
+        setSnags(Array.isArray(snagList) ? snagList : []);
+        setRooms(Array.isArray(roomList) ? roomList : []);
+        setActivities(Array.isArray(schedule?.activities) ? schedule.activities : []);
+      })
       .finally(() => setSnagsLoading(false));
   }, [projectId]);
 
@@ -60,16 +96,56 @@ export default function ClientSnagsPage() {
     loadSnags();
   }, [loadSnags]);
 
+  const filteredActivities = useMemo(() => {
+    if (!form.projectRoomId) return activities;
+    return activities.filter(
+      (a) => !a.projectRoomId || String(a.projectRoomId) === String(form.projectRoomId)
+    );
+  }, [activities, form.projectRoomId]);
+
   const filtered = snags.filter((s) => {
     if (!search.trim()) return true;
     const q = search.toLowerCase();
     return (
       String(s.title || "").toLowerCase().includes(q) ||
       String(s.location || "").toLowerCase().includes(q) ||
+      String(s.roomName || "").toLowerCase().includes(q) ||
+      String(s.activityName || "").toLowerCase().includes(q) ||
       String(s.status || "").toLowerCase().includes(q) ||
       String(s.severity || "").toLowerCase().includes(q)
     );
   });
+
+  const run = async (fn, okMsg) => {
+    setBusy(true);
+    setMessage("");
+    try {
+      await fn();
+      await loadSnags();
+      if (okMsg) setMessage(okMsg);
+    } catch (e) {
+      setMessage(e?.response?.data?.error || e?.response?.data?.message || e?.message || "Request failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleCreate = () => {
+    if (!projectId || !form.title.trim()) return;
+    run(async () => {
+      await createClientSnag(projectId, {
+        title: form.title.trim(),
+        description: form.description.trim() || null,
+        location: form.location.trim() || null,
+        projectRoomId: form.projectRoomId || null,
+        activityUuid: form.activityUuid || null,
+        severity: form.severity,
+        dueDate: form.dueDate || null,
+        photos: form.photos,
+      });
+      setForm(emptyForm);
+    }, "Snag raised");
+  };
 
   if (loading) {
     return (
@@ -85,8 +161,12 @@ export default function ClientSnagsPage() {
     <PageShell>
       <PageTitle
         title="Snags"
-        subtitle="Defects and punch-list items visible on your projects."
+        subtitle="Raise defects and approve items ready for inspection."
       />
+
+      {message && (
+        <p className="rounded-lg border border-border bg-secondary/40 px-3 py-2 text-sm">{message}</p>
+      )}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
         <div className="w-full space-y-1 sm:max-w-xs">
@@ -113,6 +193,105 @@ export default function ClientSnagsPage() {
         </div>
       </div>
 
+      {projectId && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold">Raise a snag</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Title *</Label>
+                <Input
+                  value={form.title}
+                  onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                  placeholder="Describe the defect"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Location notes</Label>
+                <Input
+                  value={form.location}
+                  onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
+                  placeholder="Optional notes"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Room</Label>
+                <select
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                  value={form.projectRoomId}
+                  onChange={(e) => setForm((f) => ({
+                    ...f,
+                    projectRoomId: e.target.value,
+                    activityUuid: "",
+                  }))}
+                >
+                  <option value="">No room linked</option>
+                  {rooms.map((r) => (
+                    <option key={r.uuid || r.id} value={r.uuid || r.id}>
+                      {[r.floorLabel, r.name].filter(Boolean).join(" / ")}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Activity</Label>
+                <select
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                  value={form.activityUuid}
+                  onChange={(e) => setForm((f) => ({ ...f, activityUuid: e.target.value }))}
+                >
+                  <option value="">No activity linked</option>
+                  {filteredActivities.map((a) => (
+                    <option key={a.uuid} value={a.uuid}>{a.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Severity</Label>
+                <select
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                  value={form.severity}
+                  onChange={(e) => setForm((f) => ({ ...f, severity: e.target.value }))}
+                >
+                  {SNAG_SEVERITIES.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Due date</Label>
+                <Input
+                  type="date"
+                  value={form.dueDate}
+                  onChange={(e) => setForm((f) => ({ ...f, dueDate: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Description</Label>
+              <Textarea
+                rows={2}
+                value={form.description}
+                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+              />
+            </div>
+            <AttachmentUploadField
+              label="Photos"
+              hint="Attach photos of the issue."
+              files={form.photos}
+              onFilesChange={(photos) => setForm((f) => ({ ...f, photos }))}
+              disabled={busy}
+              accept="image/*"
+            />
+            <Button size="sm" onClick={handleCreate} disabled={busy || !form.title.trim()}>
+              <Plus className="h-4 w-4 mr-1" /> Raise snag
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       <Surface className="overflow-hidden">
         {snagsLoading ? (
           <div className="flex justify-center py-16 text-muted-foreground">
@@ -129,7 +308,7 @@ export default function ClientSnagsPage() {
         ) : (
           <div className="divide-y divide-border/30">
             {filtered.map((s) => (
-              <div key={s.uuid || s.id} className="flex items-start gap-4 px-5 py-4">
+              <div key={s.uuid || s.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-start">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/10">
                   <AlertTriangle className="h-5 w-5 text-amber-600" />
                 </div>
@@ -140,15 +319,37 @@ export default function ClientSnagsPage() {
                       {String(s.status || "OPEN").replace(/_/g, " ")}
                     </Badge>
                     {s.severity && <Badge variant="secondary">{s.severity}</Badge>}
+                    {s.raisedByClient && (
+                      <Badge variant="outline" className="text-[10px]">Raised by you</Badge>
+                    )}
+                    {s.clientApprovedAt && (
+                      <Badge className="border-none bg-emerald-500/15 text-emerald-700 text-[10px]">
+                        Approved {formatDate(s.clientApprovedAt)}
+                      </Badge>
+                    )}
                   </div>
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    {s.location || "—"}
+                    {s.roomName || s.location || "—"}
+                    {s.activityName ? ` · ${s.activityName}` : ""}
                     {s.dueDate ? ` · Due ${formatDate(s.dueDate)}` : ""}
+                    {s.assigneeName ? ` · Assigned to ${s.assigneeName}` : ""}
                   </p>
                   {s.description && (
                     <p className="mt-1 text-sm text-muted-foreground line-clamp-2">{s.description}</p>
                   )}
+                  <AttachmentList paths={s.photoPaths} className="mt-2" inlinePreview={false} />
                 </div>
+                {(s.status === "READY_FOR_INSPECTION" || s.status === "RESOLVED") && !s.clientApprovedAt && (
+                  <Button
+                    size="sm"
+                    disabled={busy}
+                    onClick={() =>
+                      run(() => approveClientSnag(projectId, s.uuid), "Snag approved and closed")
+                    }
+                  >
+                    <Check className="h-4 w-4 mr-1" /> Approve & close
+                  </Button>
+                )}
               </div>
             ))}
           </div>

@@ -16,9 +16,11 @@ import {
   fetchPackageClaims,
   createScClaim,
   submitScClaim,
+  uploadScClaimAttachment,
 } from "@/modules/admin/api/subcontractor.api";
 import { ROUTES } from "@/shared/constants/routes";
 import { SC_STATUS_BADGE, formatScStatus } from "../utils/subcontractor.utils";
+import { AttachmentList, AttachmentUploadField } from "@/components/shared/AttachmentField";
 
 export default function SubcontractorClaimsPage() {
   const [packages, setPackages] = useState([]);
@@ -28,6 +30,8 @@ export default function SubcontractorClaimsPage() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [form, setForm] = useState({ claimedQty: "", notes: "" });
+  const [pendingFiles, setPendingFiles] = useState([]);
+  const [uploadingClaimId, setUploadingClaimId] = useState(null);
 
   const selectedPkg = useMemo(
     () => packages.find((p) => String(p.uuid) === String(selectedPackage)),
@@ -84,14 +88,39 @@ export default function SubcontractorClaimsPage() {
     }
   };
 
+  const uploadToClaim = async (claimUuid, files, okMsg) => {
+    if (!files?.length) return;
+    setUploadingClaimId(claimUuid);
+    setMessage("");
+    try {
+      for (const file of files) {
+        await uploadScClaimAttachment(claimUuid, file);
+      }
+      await loadClaims();
+      if (okMsg) setMessage(okMsg);
+    } catch (err) {
+      setMessage(err?.response?.data?.error || err?.response?.data?.message || err?.message || "Upload failed");
+      throw err;
+    } finally {
+      setUploadingClaimId(null);
+    }
+  };
+
   const handleCreate = () =>
     run(async () => {
-      await createScClaim(selectedPackage, {
+      const created = await createScClaim(selectedPackage, {
         claimedQty: Number(form.claimedQty) || 0,
         notes: form.notes.trim(),
       });
+      if (!created?.uuid) {
+        throw new Error("Claim was created but no id was returned — attachments were not uploaded");
+      }
+      if (pendingFiles.length > 0) {
+        await uploadToClaim(created.uuid, pendingFiles);
+      }
       setForm({ claimedQty: "", notes: "" });
-    }, "Claim drafted");
+      setPendingFiles([]);
+    }, pendingFiles.length > 0 ? "Claim drafted with attachments" : "Claim drafted");
 
   if (loading) {
     return (
@@ -186,6 +215,12 @@ export default function SubcontractorClaimsPage() {
                 placeholder="Optional notes for the PM..."
               />
             </div>
+            <AttachmentUploadField
+              files={pendingFiles}
+              onFilesChange={setPendingFiles}
+              disabled={busy}
+              hint="Add site photos or supporting documents with this claim."
+            />
             <Button className="w-full" onClick={handleCreate} disabled={busy || !selectedPackage}>
               <Plus className="mr-1 h-4 w-4" /> Draft claim
             </Button>
@@ -215,6 +250,22 @@ export default function SubcontractorClaimsPage() {
                       </Badge>
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">{c.notes || "No notes"}</p>
+                    <AttachmentList paths={c.attachmentPaths} className="mt-2" />
+                    {(c.status === "DRAFT" || c.status === "REJECTED") && (
+                      <div className="mt-2">
+                        <AttachmentUploadField
+                          label="Add photos / documents"
+                          hint={
+                            uploadingClaimId === c.uuid
+                              ? "Uploading..."
+                              : "Files upload immediately to this draft claim."
+                          }
+                          files={[]}
+                          disabled={busy || uploadingClaimId === c.uuid}
+                          onFilesChange={(picked) => uploadToClaim(c.uuid, picked, "Attachment(s) uploaded")}
+                        />
+                      </div>
+                    )}
                     {c.status === "REJECTED" && c.reason && (
                       <p className="mt-1 text-xs text-destructive">Rejected: {c.reason}</p>
                     )}
