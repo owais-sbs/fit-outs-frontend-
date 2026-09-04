@@ -50,6 +50,7 @@ import {
   WorkItemConfigurationPage,
   MaterialConfigurationPage,
   AppendixMastersPage,
+  CoverLetterBrandingPage,
   StockDashboardPage,
   GoodsReceiptPage,
   StockIssuePage,
@@ -62,7 +63,7 @@ import {
   DesignApprovalsPage,
 } from "./modules/admin/pages/design-qas";
 
-import { BoqFlowPage } from "./modules/admin/pages/boq";
+import { BoqFlowPage, BoqViewPage } from "./modules/admin/pages/boq";
 import BoqApprovalInboxPage from "./modules/admin/pages/boq/BoqApprovalInboxPage";
 
 import AdminDashboard from "./modules/admin/pages/dashboard";
@@ -232,13 +233,15 @@ function App() {
               <Route path="project-configuration/work-item" element={<WorkItemConfigurationPage />} />
               <Route path="project-configuration/materials" element={<MaterialConfigurationPage />} />
               <Route path="project-configuration/appendices" element={<AppendixMastersPage />} />
+              <Route path="project-configuration/cover-letter" element={<CoverLetterBrandingPage />} />
               <Route path="procurement/stock" element={<StockDashboardPage />} />
               <Route path="procurement/receipt" element={<GoodsReceiptPage />} />
               <Route path="procurement/issue" element={<StockIssuePage />} />
               <Route path="procurement/movements" element={<MovementHistoryPage />} />
               <Route path="qas" element={<BoqFlowPage />} />
-              <Route path="boq" element={<BoqFlowPage />} />
               <Route path="boq/inbox" element={<BoqApprovalInboxPage />} />
+              <Route path="boq/:boqId" element={<BoqViewPage />} />
+              <Route path="boq" element={<BoqFlowPage />} />
               <Route path="settings" element={<AdminSettingsPage />} />
 
             </Route>
@@ -255,6 +258,7 @@ function App() {
               }>
               <Route index element={<DirectorDashboard />} />
               <Route path="boq/inbox" element={<BoqApprovalInboxPage />} />
+              <Route path="boq/:boqId" element={<BoqViewPage />} />
               <Route path="procurement" element={<DirectorProcurementPage />} />
               <Route path="projects" element={<DirectorProjectsPage />} />
               <Route path="commercial" element={<DirectorCommercialPage />} />
@@ -273,6 +277,7 @@ function App() {
             >
               <Route index element={<ProjectManagerDashboard />} />
               <Route path="boq/inbox" element={<BoqApprovalInboxPage />} />
+              <Route path="boq/:boqId" element={<BoqViewPage />} />
               <Route path="projects" element={<ProjectsPage />} />
               <Route path="projects/new" element={<CreateProjectPage />} />
               <Route path="projects/:projectId" element={<ProjectDetailPage />} />
@@ -355,6 +360,7 @@ function App() {
               <Route path="designs/revisions" element={<RevisionHistoryPage />} />
               <Route path="designs/approved" element={<ApprovedDesignsPage />} />
               <Route path="boq-approvals" element={<ClientBoqApprovalsPage />} />
+              <Route path="boq/:boqId" element={<BoqViewPage />} />
               <Route path="designs/:id" element={<DesignDetailPage />} />
               <Route path="documents" element={<ClientDocumentsPage />} />
               <Route path="snags" element={<ClientSnagsPage />} />

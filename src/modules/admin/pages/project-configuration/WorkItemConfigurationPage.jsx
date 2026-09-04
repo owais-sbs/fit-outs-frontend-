@@ -31,6 +31,7 @@ import {
   deleteWorkItemMaster
 } from "../../api/work-item.api";
 import { fetchMaterials } from "../../api/material.api";
+import { formatCurrency, DIRHAM_SYMBOL } from "@/shared/utils/currency";
 
 const UNIT_TYPES = [
   { value: "SQFT", label: "Sq Ft" },
@@ -72,9 +73,6 @@ const computeAutoSelling = (cost, markup) => {
   const m = Number(markup) || 0;
   return c * (1 + m / 100);
 };
-
-const formatCurrency = (val) =>
-  `AED ${Number(val || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 export default function WorkItemConfigurationPage() {
   const [workItems, setWorkItems] = useState([]);
@@ -1223,7 +1221,7 @@ export default function WorkItemConfigurationPage() {
                     </label>
                   </div>
                   <div className="relative">
-                    <span className="absolute left-3 top-2.5 text-xs text-muted-foreground">AED</span>
+                    <span className="absolute left-3 top-2.5 text-xs text-muted-foreground">{DIRHAM_SYMBOL}</span>
                     <Input
                       id="defaultRate"
                       type="number"
@@ -1249,7 +1247,7 @@ export default function WorkItemConfigurationPage() {
                 <div className="space-y-2">
                   <Label htmlFor="subcontractorRate" className="font-bold text-amber-700">Subcontractor Price *</Label>
                   <div className="relative">
-                    <span className="absolute left-3 top-2.5 text-xs text-amber-600">AED</span>
+                    <span className="absolute left-3 top-2.5 text-xs text-amber-600">{DIRHAM_SYMBOL}</span>
                     <Input
                       id="subcontractorRate"
                       type="number"

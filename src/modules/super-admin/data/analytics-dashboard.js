@@ -56,7 +56,7 @@ export const ANALYTICS_STATS = [
   {
     id: "monthly-revenue",
     title: "Monthly Revenue",
-    value: "$128.4k",
+    value: "د.إ 128.4k",
     growth: 5.7,
     growthLabel: "MRR",
   },
@@ -87,11 +87,11 @@ export const REVENUE_ANALYTICS_DATA = [
 
 export const REVENUE_CHART_CONFIG = {
   mrr: {
-    label: "MRR ($k)",
+    label: "MRR (د.إ k)",
     colors: CHART_COLORS.chart1,
   },
   crmPipeline: {
-    label: "CRM pipeline ($k)",
+    label: "CRM pipeline (د.إ k)",
     colors: CHART_COLORS.chart2,
   },
 };

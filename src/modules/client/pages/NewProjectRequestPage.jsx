@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { projectStore } from "@/shared/store/projectStore";
+import { BUDGET_RANGE_OPTIONS, DEFAULT_BUDGET_RANGE } from "@/shared/constants/budgetRanges";
 import { useAuth } from "@/shared/context/auth-context";
 
 export default function NewProjectRequestPage() {
@@ -21,7 +22,7 @@ export default function NewProjectRequestPage() {
     projectType: "Commercial",
     location: "",
     expectedStartDate: "",
-    budgetRange: "$100,000 - $150,000",
+    budgetRange: DEFAULT_BUDGET_RANGE,
     description: "",
   });
 
@@ -80,7 +81,7 @@ export default function NewProjectRequestPage() {
       projectType: "Commercial",
       location: "",
       expectedStartDate: "",
-      budgetRange: "$100,000 - $150,000",
+      budgetRange: DEFAULT_BUDGET_RANGE,
       description: "",
     });
 
@@ -195,12 +196,9 @@ export default function NewProjectRequestPage() {
                       <SelectValue placeholder="Budget range" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="$10,000 - $50,000">$10,000 - $50,000</SelectItem>
-                      <SelectItem value="$50,000 - $100,000">$50,000 - $100,000</SelectItem>
-                      <SelectItem value="$100,000 - $150,000">$100,000 - $150,000</SelectItem>
-                      <SelectItem value="$150,000 - $200,000">$150,000 - $200,000</SelectItem>
-                      <SelectItem value="$200,000 - $500,000">$200,000 - $500,000</SelectItem>
-                      <SelectItem value="$500,000+">$500,000+</SelectItem>
+                      {BUDGET_RANGE_OPTIONS.map((range) => (
+                        <SelectItem key={range} value={range}>{range}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

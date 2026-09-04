@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
+import { formatAed } from "@/shared/utils/currency";
 import {
   Select,
   SelectContent,
@@ -239,7 +240,7 @@ export default function CreateCompanyPage() {
                       <SelectContent>
                         {plans.map((plan) => (
                           <SelectItem key={plan.uuid} value={plan.uuid}>
-                            {plan.planName} — ${plan.priceMonthly}/mo ({plan.maxUsers} users)
+                            {plan.planName} — {formatAed(plan.priceMonthly)}/mo ({plan.maxUsers} users)
                           </SelectItem>
                         ))}
                       </SelectContent>

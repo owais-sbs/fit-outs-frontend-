@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { fetchAllProjects } from "@/modules/admin/api/projects.api";
 import { fetchStockBalances, fetchStockMovements } from "@/modules/admin/api/stock.api";
 import { fetchBoqInbox, fetchBoqsByProject } from "@/modules/admin/api/boq.api";
+import { ROLES, filterBoqInboxForRole } from "@/shared/constants/roles";
 import { fetchAllLeads } from "@/modules/admin/api/leads.api";
 import { fetchAllSiteVisits } from "@/modules/admin/api/site-visits.api";
 import {
@@ -35,14 +36,16 @@ export default function useDirectorDashboard() {
     setLoading(true);
     setError(null);
     try {
-      const [projects, stock, inbox, leads, siteVisits, movementsRes] = await Promise.all([
+      const [projects, stock, inboxRaw, leads, siteVisits, movementsRes] = await Promise.all([
         fetchAllProjects(),
         fetchStockBalances(),
-        fetchBoqInbox(),
+        fetchBoqInbox(ROLES.BUSINESS_OWNER),
         fetchAllLeads(),
         fetchAllSiteVisits(),
         fetchStockMovements(0, 8),
       ]);
+
+      const inbox = filterBoqInboxForRole(inboxRaw, ROLES.BUSINESS_OWNER);
 
       const movements = movementsRes?.content ?? (Array.isArray(movementsRes) ? movementsRes : []);
 

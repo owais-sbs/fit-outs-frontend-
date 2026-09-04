@@ -25,14 +25,7 @@ export function buildDefaultSubject(locationLabel) {
   return "TURNKEY RENOVATION, DUBAI, UAE";
 }
 
-export function formatEstimateAmount(amount, currency = "AED") {
-  const n = Number(amount);
-  const safe = Number.isFinite(n) ? n : 0;
-  return `${currency} ${safe.toLocaleString("en-AE", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-}
+export { formatEstimateAmount } from "@/shared/utils/currency";
 
 export function formatEstimateDate(value) {
   if (!value) return "—";

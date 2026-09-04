@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
-  ArrowLeft, Save, Briefcase, MapPin, Calendar, DollarSign, Loader2, UserPlus,
+  ArrowLeft, Save, Briefcase, MapPin, Calendar, Loader2, UserPlus,
 } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import { ROUTES } from "@/shared/constants/routes";
 import { fetchAllClients, createClient } from "@/modules/admin/api/clients.api";
 import { fetchAllEmployees } from "@/modules/admin/api/employees.api";
 import { createProject } from "@/modules/admin/api/projects.api";
+import { DIRHAM_SYMBOL } from "@/shared/utils/currency";
 import { useAuth } from "@/shared/context/auth-context";
 import { ROLES } from "@/shared/constants/roles";
 
@@ -44,8 +45,7 @@ export default function CreateProjectPage() {
   const state = useMemo(() => location.state || {}, [location.state]);
 
   const [clients, setClients] = useState([]);
-  const [projectManagers, setProjectManagers] = useState([]);
-  const [loadingManagers, setLoadingManagers] = useState(true);
+  const [employees, setEmployees] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [clientMode, setClientMode] = useState(CLIENT_MODE.NONE);
   const [form, setForm] = useState({
@@ -66,26 +66,21 @@ export default function CreateProjectPage() {
 
   const [errors, setErrors] = useState({});
 
-  const loadProjectManagers = useCallback(() => {
-    setLoadingManagers(true);
-    return fetchAllEmployees()
-      .then((list) => {
-        const active = (Array.isArray(list) ? list : []).filter((e) => e.isActive !== false);
-        const managers = active.filter(
-          (e) => !e.role || PM_ASSIGNABLE_ROLES.includes(e.role)
-        );
-        setProjectManagers(managers.length > 0 ? managers : active);
-      })
-      .catch(() => setProjectManagers([]))
-      .finally(() => setLoadingManagers(false));
-  }, []);
-
   useEffect(() => {
     fetchAllClients()
       .then((list) => setClients(Array.isArray(list) ? list : []))
       .catch(() => setClients([]));
-    loadProjectManagers();
-  }, [loadProjectManagers]);
+    fetchAllEmployees()
+      .then((list) => setEmployees(Array.isArray(list) ? list.filter((e) => e.isActive !== false) : []))
+      .catch(() => setEmployees([]));
+  }, []);
+
+  const managerOptions = useMemo(() => {
+    const managers = employees.filter(
+      (emp) => !emp.role || PM_ASSIGNABLE_ROLES.includes(emp.role) || emp.role === ROLES.PROJECT_MANAGER
+    );
+    return managers.length > 0 ? managers : employees;
+  }, [employees]);
 
   useEffect(() => {
     if (state.requestData) {
@@ -423,28 +418,24 @@ export default function CreateProjectPage() {
               <div className="space-y-1.5">
                 <Label htmlFor="assignedManager" className="text-xs font-semibold">Assigned Project Manager *</Label>
                 <Select
-                  value={form.assignedManager}
-                  onValueChange={(val) => handleChange("assignedManager", val)}
-                  disabled={loadingManagers}
+                  value={form.assignedManager || undefined}
+                  onValueChange={(value) => handleChange("assignedManager", value)}
                 >
                   <SelectTrigger id="assignedManager" className="h-9">
-                    <SelectValue placeholder={loadingManagers ? "Loading managers..." : "Select project manager"} />
+                    <SelectValue placeholder="Select project manager" />
                   </SelectTrigger>
                   <SelectContent>
-                    {projectManagers.length === 0 ? (
-                      <SelectItem value="__none" disabled>
-                        {loadingManagers ? "Loading..." : "No project managers found"}
+                    {managerOptions.length === 0 ? (
+                      <SelectItem value="__none__" disabled>
+                        No employees available — add staff in Employees first
                       </SelectItem>
                     ) : (
-                      projectManagers.map((manager) => {
-                        const name = manager.employeeName || manager.fullName;
-                        const subtitle = manager.roleLabel || manager.designation || manager.email;
-                        return (
-                          <SelectItem key={manager.id} value={name}>
-                            {name}{subtitle ? ` (${subtitle})` : ""}
-                          </SelectItem>
-                        );
-                      })
+                      managerOptions.map((emp) => (
+                        <SelectItem key={emp.id} value={emp.employeeName}>
+                          {emp.employeeName}
+                          {emp.designation ? ` · ${emp.designation}` : ""}
+                        </SelectItem>
+                      ))
                     )}
                   </SelectContent>
                 </Select>
@@ -452,9 +443,9 @@ export default function CreateProjectPage() {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="budget" className="text-xs font-semibold">Total Contract Budget ($) *</Label>
+                <Label htmlFor="budget" className="text-xs font-semibold">Total Contract Budget ({DIRHAM_SYMBOL}) *</Label>
                 <div className="relative">
-                  <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground/75" />
+                  <span className="absolute left-3 top-2.5 text-sm font-medium text-muted-foreground/90">{DIRHAM_SYMBOL}</span>
                   <Input
                     id="budget"
                     type="number"

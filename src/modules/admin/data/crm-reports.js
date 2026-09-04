@@ -1,8 +1,8 @@
 import { CHART_COLORS } from "@/modules/super-admin/data/analytics-dashboard";
 
 export const CRM_REPORT_KPIS = [
-  { id: "pipeline", title: "Pipeline value", value: "$2.4M", growth: 11.2, growthLabel: "open deals" },
-  { id: "won", title: "Won this month", value: "$428k", growth: 18.4, growthLabel: "vs last month" },
+  { id: "pipeline", title: "Pipeline value", value: "د.إ 2.4M", growth: 11.2, growthLabel: "open deals" },
+  { id: "won", title: "Won this month", value: "د.إ 428k", growth: 18.4, growthLabel: "vs last month" },
   { id: "conversion", title: "Win rate", value: "24%", growth: 2.1, growthLabel: "qualified → won" },
   { id: "cycle", title: "Avg sales cycle", value: "34d", growth: -5.2, growthLabel: "days" },
 ];
@@ -17,7 +17,7 @@ export const PIPELINE_PERF_DATA = [
 ];
 
 export const PIPELINE_PERF_CONFIG = {
-  value: { label: "Pipeline ($k)", colors: CHART_COLORS.chart1 },
+  value: { label: "Pipeline (د.إ k)", colors: CHART_COLORS.chart1 },
 };
 
 export const LEAD_SOURCE_DATA = [
@@ -45,5 +45,5 @@ export const TEAM_PERF_DATA = [
 
 export const TEAM_PERF_CONFIG = {
   deals: { label: "Deals won", colors: CHART_COLORS.chart2 },
-  revenue: { label: "Revenue ($k)", colors: CHART_COLORS.chart1 },
+  revenue: { label: "Revenue (د.إ k)", colors: CHART_COLORS.chart1 },
 };

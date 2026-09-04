@@ -15,10 +15,11 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageShell, PageTitle } from "@/components/layout/PageShell";
 import { useAuth } from "@/shared/context/auth-context";
-import { ROUTES } from "@/shared/constants/routes";
-import { ROLES } from "@/shared/constants/roles";
+import { ROUTES, boqViewPath } from "@/shared/constants/routes";
+import { canApproveBoq, filterBoqInboxForRole, isBoqPendingForRole, ROLES } from "@/shared/constants/roles";
 import { formatCurrency } from "./quantityCalcUtils";
 import { BoqStatusBadge } from "./BoqApprovalTimeline";
+import BoqApprovalPipeline from "./BoqApprovalPipeline";
 import {
   approveBoq,
   fetchBoq,
@@ -34,8 +35,14 @@ function formatDate(value) {
 export default function BoqApprovalInboxPage() {
   const navigate = useNavigate();
   const { role } = useAuth();
-  const boqWorkspaceUrl = role === ROLES.BUSINESS_OWNER ? ROUTES.BUSINESS_OWNER.COMMERCIAL : ROUTES.ADMIN.BOQ;
-  const boqDetailUrl = ROUTES.ADMIN.BOQ;
+  const boqWorkspaceUrl =
+    role === ROLES.BUSINESS_OWNER
+      ? ROUTES.BUSINESS_OWNER.COMMERCIAL
+      : role === ROLES.PROJECT_MANAGER
+        ? ROUTES.PROJECT_MANAGER.PROJECTS
+        : role === ROLES.CLIENT
+          ? ROUTES.CLIENT.BOQ_APPROVALS
+          : ROUTES.ADMIN.QAS;
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
@@ -47,11 +54,11 @@ export default function BoqApprovalInboxPage() {
 
   const loadInbox = useCallback(() => {
     setLoading(true);
-    fetchBoqInbox()
-      .then((list) => setItems(Array.isArray(list) ? list : []))
+    fetchBoqInbox(role)
+      .then((list) => setItems(filterBoqInboxForRole(list, role)))
       .catch(() => setItems([]))
       .finally(() => setLoading(false));
-  }, []);
+  }, [role]);
 
   useEffect(() => {
     loadInbox();
@@ -136,9 +143,16 @@ export default function BoqApprovalInboxPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {items.map((item) => (
+                {items.map((item) => {
+                  const canAct = canApproveBoq(role) && isBoqPendingForRole(role, item.status);
+                  return (
                   <TableRow key={item.id}>
-                    <TableCell className="font-medium">{item.projectName}</TableCell>
+                    <TableCell className="font-medium">
+                      <div className="space-y-2">
+                        <span>{item.projectName}</span>
+                        <BoqApprovalPipeline status={item.status} compact className="max-w-[220px]" />
+                      </div>
+                    </TableCell>
                     <TableCell className="font-mono text-xs">v{item.version}</TableCell>
                     <TableCell><BoqStatusBadge status={item.status} /></TableCell>
                     <TableCell className="text-right font-mono tabular-nums">
@@ -152,20 +166,25 @@ export default function BoqApprovalInboxPage() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => navigate(`${boqDetailUrl}?boqId=${item.id}`)}
+                          onClick={() => navigate(boqViewPath(role, item.id, item.projectId))}
                         >
                           <Eye className="h-3.5 w-3.5 mr-1" /> View
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => openAction(item, "approve")}>
-                          <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Approve
-                        </Button>
-                        <Button size="sm" variant="outline" className="text-destructive" onClick={() => openAction(item, "reject")}>
-                          <XCircle className="h-3.5 w-3.5 mr-1" /> Reject
-                        </Button>
+                        {canAct && (
+                          <>
+                            <Button size="sm" variant="outline" onClick={() => openAction(item, "approve")}>
+                              <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Approve
+                            </Button>
+                            <Button size="sm" variant="outline" className="text-destructive" onClick={() => openAction(item, "reject")}>
+                              <XCircle className="h-3.5 w-3.5 mr-1" /> Reject
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           )}

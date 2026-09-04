@@ -44,6 +44,6 @@ export const TENANT_DETAIL = {
       { user: "James Wu", action: "Exported CRM report", time: "5 hours ago", ip: "203.45.12.19" },
       { user: "Sarah Chen", action: "Updated project budget", time: "Yesterday", ip: "203.45.12.8" },
     ],
-    billing: { lastInvoice: "$4,800", nextBilling: "2026-04-15", paymentMethod: "Visa •••• 4242", outstanding: "$0" },
+    billing: { lastInvoice: "د.إ 4,800", nextBilling: "2026-04-15", paymentMethod: "Visa •••• 4242", outstanding: "د.إ 0" },
   },
 };

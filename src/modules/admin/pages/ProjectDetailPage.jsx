@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useNavigate, Link, useLocation } from "react-router-dom";
 import {
   ArrowLeft, DollarSign, CalendarDays, Clock,
-  TrendingUp, Building2, Briefcase, Users, MapPin, FileImage, FileText, GanttChart,
+  TrendingUp, Building2, Briefcase, MapPin, FileImage, FileText, GanttChart,
   AlertTriangle, BarChart3, CreditCard, HardHat, ClipboardCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,12 +15,18 @@ import { Label } from "@/components/ui/label";
 import { PageShell, PageTitle, StatTile } from "@/components/layout/PageShell";
 import { fetchProjectById, updateProject } from "../api/projects.api";
 import { fetchAllClients } from "../api/clients.api";
+import { fetchAllEmployees } from "../api/employees.api";
+import { fetchCrewAssignments } from "../api/resource.api";
+import { fetchProjectTeamAssignments } from "../api/project-team.api";
 import { fetchBoqsByProject } from "../api/boq.api";
-import { ROUTES } from "@/shared/constants/routes";
+import { ROUTES, boqViewPath } from "@/shared/constants/routes";
+import { useAuth } from "@/shared/context/auth-context";
 import { BoqStatusBadge } from "./boq/BoqApprovalTimeline";
-import { formatCurrency } from "./boq/quantityCalcUtils";
-import { INITIAL_EMPLOYEES } from "@/modules/admin/data/employees";
+import BoqApprovalPipeline from "./boq/BoqApprovalPipeline";
+import { formatCurrency, formatAed } from "@/shared/utils/currency";
+import { splitProjectBoqs } from "./boq/boqDataUtils";
 import ProjectRoomsSection from "./roomcollab/ProjectRoomsSection";
+import ProjectTeamAssignmentSection from "./ProjectTeamAssignmentSection";
 import { fetchPlanningStatus } from "../api/planning.api";
 
 function InfoItem({ label, value, mono = false }) {
@@ -43,10 +49,27 @@ function StatusBadge({ status }) {
   return <Badge className={map[status] || ""}>{status}</Badge>;
 }
 
+function resolveManagerDisplay(project, teamAssignments = [], employees = []) {
+  const pm = teamAssignments.find((a) => a.role === "PROJECT_MANAGER");
+  if (pm?.displayName) return pm.displayName;
+
+  const assignedManager = project?.assignedManager;
+  if (!assignedManager?.trim()) return "Unassigned";
+
+  const key = assignedManager.trim().toLowerCase();
+  const match = employees.find(
+    (emp) =>
+      emp.employeeName?.trim().toLowerCase() === key ||
+      emp.email?.trim().toLowerCase() === key
+  );
+  return match?.employeeName || assignedManager;
+}
+
 export default function ProjectDetailPage() {
   const { projectId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const { role } = useAuth();
   const isPm = location.pathname.startsWith("/project-manager");
   const routes = isPm ? ROUTES.PROJECT_MANAGER : ROUTES.ADMIN;
   const schedulePath = routes.PROJECT_SCHEDULE.replace(":projectId", projectId);
@@ -65,6 +88,9 @@ export default function ProjectDetailPage() {
   const [planningReady, setPlanningReady] = useState(null);
   const [clients, setClients] = useState([]);
   const [clientSaving, setClientSaving] = useState(false);
+  const [employees, setEmployees] = useState([]);
+  const [crewAssignments, setCrewAssignments] = useState([]);
+  const [teamAssignments, setTeamAssignments] = useState([]);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -91,7 +117,45 @@ export default function ProjectDetailPage() {
     fetchPlanningStatus(projectId)
       .then((p) => setPlanningReady(!!p?.planningReady || !!p?.ganttPublishAllowed))
       .catch(() => setPlanningReady(null));
+    fetchAllEmployees()
+      .then((list) => setEmployees(Array.isArray(list) ? list.filter((e) => e.isActive !== false) : []))
+      .catch(() => setEmployees([]));
+    fetchCrewAssignments(projectId)
+      .then((list) => setCrewAssignments(Array.isArray(list) ? list : []))
+      .catch(() => setCrewAssignments([]));
+    fetchProjectTeamAssignments(projectId)
+      .then(setTeamAssignments)
+      .catch(() => setTeamAssignments([]));
   }, [load, loadBoqs, projectId]);
+
+  const managerDisplay = useMemo(
+    () => resolveManagerDisplay(project, teamAssignments, employees),
+    [project, teamAssignments, employees]
+  );
+
+  const labourCrews = useMemo(() => {
+    const seen = new Set();
+    return (crewAssignments || []).reduce((list, assignment) => {
+      const crewName = assignment?.crewName?.trim();
+      if (!crewName || seen.has(crewName.toLowerCase())) return list;
+      seen.add(crewName.toLowerCase());
+      list.push({
+        id: `crew-${assignment.crewUuid || assignment.uuid || crewName}`,
+        name: crewName,
+      });
+      return list;
+    }, []);
+  }, [crewAssignments]);
+
+  const { live: liveBoq, history: boqHistory, frozen: boqFrozen } = useMemo(
+    () => splitProjectBoqs(boqs),
+    [boqs]
+  );
+
+  const handleTeamSaved = (updated) => {
+    setTeamAssignments(updated);
+    load();
+  };
 
   const handleStatusChange = async (newStatus) => {
     setProject((p) => ({ ...p, status: newStatus }));
@@ -215,7 +279,7 @@ export default function ProjectDetailPage() {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile
           label="Contract Value"
-          value={`AED ${Number(project.budget || 0).toLocaleString()}`}
+          value={formatAed(project.budget || 0)}
           icon={DollarSign}
         />
         <StatTile
@@ -274,11 +338,13 @@ export default function ProjectDetailPage() {
         <CardHeader className="pb-2 flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-sm font-semibold">
             <FileText className="h-4 w-4 text-primary" />
-            BOQ Documents
+            BOQ
           </CardTitle>
-          <Button asChild size="sm" variant="outline">
-            <Link to={`${ROUTES.ADMIN.QAS}?projectId=${projectId}`}>New survey BOQ</Link>
-          </Button>
+          {!isPm && !boqFrozen && (
+            <Button asChild size="sm" variant="outline">
+              <Link to={`${ROUTES.ADMIN.QAS}?projectId=${projectId}`}>New survey BOQ</Link>
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           {boqsLoading ? (
@@ -286,32 +352,64 @@ export default function ProjectDetailPage() {
           ) : boqs.length === 0 ? (
             <p className="text-sm text-muted-foreground">No BOQs saved for this project yet.</p>
           ) : (
-            <div className="space-y-2">
-              {boqs.map((boq) => (
-                <div
-                  key={boq.id}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg border px-3 py-2.5"
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-mono text-xs font-semibold">v{boq.version}</span>
-                      <BoqStatusBadge status={boq.status} />
-                      {boq.revisionLabel && (
-                        <span className="text-xs text-muted-foreground">{boq.revisionLabel}</span>
-                      )}
+            <div className="space-y-4">
+              {liveBoq && (
+                <div className="rounded-lg border px-3 py-3 space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-mono text-xs font-semibold">v{liveBoq.version}</span>
+                        <BoqStatusBadge status={liveBoq.status} />
+                        {liveBoq.revisionLabel && (
+                          <span className="text-xs text-muted-foreground">{liveBoq.revisionLabel}</span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {liveBoq.lines?.length || 0} lines · Updated {liveBoq.updatedAt ? new Date(liveBoq.updatedAt).toLocaleString() : "—"}
+                      </p>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      {boq.lines?.length || 0} lines · Updated {boq.updatedAt ? new Date(boq.updatedAt).toLocaleString() : "—"}
+                    <div className="flex items-center gap-3">
+                      <span className="font-bold tabular-nums text-sm">{formatCurrency(liveBoq.grandTotal)}</span>
+                      <Button asChild size="sm" variant="ghost">
+                        <Link to={boqViewPath(role, liveBoq.id, projectId)}>Open</Link>
+                      </Button>
+                    </div>
+                  </div>
+                  <BoqApprovalPipeline status={liveBoq.status} />
+                  {boqFrozen && (
+                    <p className="text-xs text-emerald-700">
+                      Client-approved and locked. This is the live BOQ for the project.
                     </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="font-bold tabular-nums text-sm">{formatCurrency(boq.grandTotal)}</span>
-                    <Button asChild size="sm" variant="ghost">
-                      <Link to={`${ROUTES.ADMIN.BOQ}?boqId=${boq.id}&projectId=${projectId}`}>Open</Link>
-                    </Button>
-                  </div>
+                  )}
                 </div>
-              ))}
+              )}
+              {boqHistory.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase text-muted-foreground">Previous versions</p>
+                  {boqHistory.map((boq) => (
+                    <div
+                      key={boq.id}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg border border-dashed px-3 py-2.5"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-mono text-xs font-semibold">v{boq.version}</span>
+                          <BoqStatusBadge status={boq.status} />
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {boq.updatedAt ? new Date(boq.updatedAt).toLocaleString() : "—"}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="font-bold tabular-nums text-sm">{formatCurrency(boq.grandTotal)}</span>
+                        <Button asChild size="sm" variant="ghost">
+                          <Link to={boqViewPath(role, boq.id, projectId)}>Open</Link>
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </CardContent>
@@ -335,6 +433,23 @@ export default function ProjectDetailPage() {
             <div className="grid gap-x-6 sm:grid-cols-2">
               <div>
                 <InfoItem label="Project ID"     value={project.id} mono />
+                {project.leadReferenceNo ? (
+                  <div className="flex items-start gap-3 py-2 border-b border-border/40 last:border-0">
+                    <span className="w-36 shrink-0 text-xs text-muted-foreground">Lead Ref</span>
+                    {project.leadId ? (
+                      <Link
+                        to={ROUTES.ADMIN.LEAD_DETAIL.replace(":leadId", project.leadId)}
+                        className="text-sm font-medium font-mono text-xs text-primary hover:underline"
+                      >
+                        {project.leadReferenceNo}
+                      </Link>
+                    ) : (
+                      <span className="text-sm font-medium font-mono text-xs">{project.leadReferenceNo}</span>
+                    )}
+                  </div>
+                ) : (
+                  <InfoItem label="Lead Ref" value="—" mono />
+                )}
                 <InfoItem label="Project Type"   value={project.projectType} />
                 <InfoItem label="Location"       value={project.location} />
                 <InfoItem label="Start Date"     value={project.startDate} />
@@ -342,8 +457,8 @@ export default function ProjectDetailPage() {
               </div>
               <div>
                 <InfoItem label="Status"         value={project.status} />
-                <InfoItem label="Manager"        value={project.assignedManager || "Unassigned"} />
-                <InfoItem label="Budget"         value={`$${project.budget?.toLocaleString()}`} />
+                <InfoItem label="Manager"        value={managerDisplay} />
+                <InfoItem label="Budget"         value={formatAed(project.budget)} />
                 <InfoItem label="Client"         value={project.clientName} />
                 <InfoItem label="Progress"       value={`${project.progress}%`} />
               </div>
@@ -406,9 +521,9 @@ export default function ProjectDetailPage() {
             <CardContent className="space-y-3">
               <div className="grid grid-cols-3 gap-2 text-center">
                 {[
-                  { label: "Total",       value: `$${project.budget?.toLocaleString()}`,                     c: "text-foreground" },
-                  { label: "Paid",        value: `$${Math.round(project.budget * 0.45).toLocaleString()}`,   c: "text-emerald-600" },
-                  { label: "Outstanding", value: `$${Math.round(project.budget * 0.55).toLocaleString()}`,   c: "text-amber-600" },
+                  { label: "Total",       value: formatAed(project.budget),                     c: "text-foreground" },
+                  { label: "Paid",        value: formatAed(Math.round(project.budget * 0.45)),   c: "text-emerald-600" },
+                  { label: "Outstanding", value: formatAed(Math.round(project.budget * 0.55)),   c: "text-amber-600" },
                 ].map(({ label, value, c }) => (
                   <div key={label} className="rounded-lg bg-muted/30 p-2">
                     <p className={`text-sm font-bold ${c}`}>{value}</p>
@@ -425,33 +540,33 @@ export default function ProjectDetailPage() {
         </div>
       </div>
 
-      {/* Team */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-            <Users className="h-4 w-4 text-primary" />
-            Assigned Team
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {INITIAL_EMPLOYEES.slice(0, 8).map((emp) => {
-              const inits = (emp.employeeName || "").split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
-              return (
-                <div key={emp.id} className="flex items-center gap-3 rounded-xl bg-secondary/50 p-3">
+      <ProjectTeamAssignmentSection projectId={projectId} onSaved={handleTeamSaved} />
+
+      {labourCrews.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+              <HardHat className="h-4 w-4 text-primary" />
+              Labour Crews
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {labourCrews.map((crew) => (
+                <div key={crew.id} className="flex items-center gap-3 rounded-xl bg-secondary/50 p-3">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                    {inits}
+                    {(crew.name || "?").slice(0, 2).toUpperCase()}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">{emp.employeeName}</p>
-                    <p className="text-xs text-muted-foreground truncate">{emp.designation}</p>
+                    <p className="text-sm font-medium truncate">{crew.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">Resource plan</p>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Site visits summary */}
       <Card>

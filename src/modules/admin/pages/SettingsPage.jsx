@@ -204,12 +204,10 @@ export default function AdminSettingsPage() {
               </div>
               <div className="space-y-2">
                 <Label>Currency</Label>
-                <Select defaultValue="usd">
+                <Select defaultValue="aed">
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="usd">USD ($)</SelectItem>
-                    <SelectItem value="aud">AED ($)</SelectItem>
-                    <SelectItem value="eur">EUR (€)</SelectItem>
+                    <SelectItem value="aed">AED (د.إ)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

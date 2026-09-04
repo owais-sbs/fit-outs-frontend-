@@ -16,10 +16,14 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { fetchRoomTypes, fetchRoomTypeById } from "../../api/room-type.api";
-import { computeSubtotal, flattenSurveyToEstimateLines, surveyShellFromEstimateLines } from "../../api/site-visit-estimate.api";
+import { computeSubtotal, flattenSurveyToEstimateLines, surveyShellFromEstimateLines, surveyShellFromRoomScopes, scopeItemsFromRoom, attachScopeMetadataToRooms, LINE_SOURCE } from "../../api/site-visit-estimate.api";
 import { formatEstimateAmount } from "../../data/jctCoverLetterCopy";
 import AppendixPicker from "./AppendixPicker";
-import { countScopedItems, normalizeRoomScopes } from "../../data/renovationChecklist";
+import {
+  countScopedItems,
+  filterRoomScopesByReportYes,
+  normalizeRoomScopes,
+} from "../../data/renovationChecklist";
 import {
   buildSelectionsFromWorkItems,
   calcLineAmount,
@@ -59,10 +63,16 @@ function applySavedLinesToSelections(selections, savedLines = []) {
       selected: true,
       quantity,
       defaultRate,
+      lineSource: saved.lineSource || sel.lineSource || LINE_SOURCE.CATALOG,
+      scopeRef: saved.scopeRef || sel.scopeRef || null,
       amount: calcLineAmount(quantity, defaultRate),
       qtyLocked: true,
     };
   });
+}
+
+function isCatalogWorkJob(sel) {
+  return !sel?.isScopeChecklist && !sel?.isCustomScope && sel?.lineSource !== LINE_SOURCE.SITE_VISIT;
 }
 
 function matchesWorkItemSearch(sel, query) {
@@ -78,7 +88,7 @@ function matchesWorkItemSearch(sel, query) {
   return haystack.includes(query);
 }
 
-function WorkItemRow({ sel, disabled, onUpdateSelection }) {
+function WorkItemRow({ sel, disabled, onUpdateSelection, onRemove }) {
   return (
     <div className="rounded-md border border-border/70 bg-background px-3 py-2 hover:bg-muted/30">
       <div className="flex items-start gap-3">
@@ -90,20 +100,36 @@ function WorkItemRow({ sel, disabled, onUpdateSelection }) {
             onUpdateSelection(sel.workItemId, (s) => ({
               ...s,
               selected: !!checked,
+              lineSource: s.lineSource || (checked ? LINE_SOURCE.MANUAL : s.lineSource),
             }))
           }
         />
         <div className="min-w-0 flex-1 space-y-2">
           <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1 space-y-1">
               <p className="text-sm font-medium leading-snug">{sel.workItemName}</p>
-              <p className="text-[11px] text-muted-foreground">
-                {unitLabel(sel.unitType)} · list rate {formatCurrency(sel.defaultRate)}
-              </p>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <p className="text-[11px] text-muted-foreground">
+                  {unitLabel(sel.unitType)} · rate {formatCurrency(sel.defaultRate)}
+                </p>
+              </div>
             </div>
-            <span className="shrink-0 text-sm font-semibold tabular-nums">
-              {sel.selected ? formatCurrency(sel.amount) : "—"}
-            </span>
+            <div className="flex shrink-0 items-center gap-1">
+              <span className="text-sm font-semibold tabular-nums">
+                {sel.selected ? formatCurrency(sel.amount) : "—"}
+              </span>
+              {sel.selected && !disabled && onRemove && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-destructive"
+                  onClick={() => onRemove(sel.workItemId)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
           </div>
           {sel.selected && (
             <div className="grid max-w-sm grid-cols-2 gap-2">
@@ -151,15 +177,45 @@ function WorkItemRow({ sel, disabled, onUpdateSelection }) {
   );
 }
 
-function RoomBoqCard({ room, floorName, roomTypes, disabled, onUpdate, onRemove }) {
+function BrowseWorkItemRow({ sel, disabled, pending, onToggle }) {
+  return (
+    <div className="rounded-md border border-border/70 bg-background px-3 py-2 hover:bg-muted/30">
+      <div className="flex items-start gap-3">
+        <Checkbox
+          checked={pending}
+          disabled={disabled}
+          className="mt-0.5"
+          onCheckedChange={() => onToggle(sel.workItemId)}
+        />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium leading-snug">{sel.workItemName}</p>
+          <p className="text-[11px] text-muted-foreground">
+            {unitLabel(sel.unitType)} · rate {formatCurrency(sel.defaultRate)}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RoomBoqCard({
+  room,
+  floorName,
+  roomTypes,
+  disabled,
+  onUpdate,
+  onRemove,
+}) {
   const [loadingItems, setLoadingItems] = useState(false);
   const [itemSearch, setItemSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("");
+  const [showBrowse, setShowBrowse] = useState(false);
+  const [pendingIds, setPendingIds] = useState(() => new Set());
   const roomDimensions = useMemo(
     () => ({ length: room.length, width: room.width, height: room.height }),
     [room.length, room.width, room.height]
   );
-  const total = roomSurveyTotal(room.selections);
+  const total = roomSurveyTotal((room.selections || []).filter(isCatalogWorkJob));
 
   const loadWorkItemsForType = useCallback(
     async (roomTypeId, existingRoom = room) => {
@@ -180,6 +236,7 @@ function RoomBoqCard({ room, floorName, roomTypes, disabled, onUpdate, onRemove 
         if (existingRoom.savedLines?.length) {
           selections = applySavedLinesToSelections(selections, existingRoom.savedLines);
         }
+        selections = selections.filter(isCatalogWorkJob);
         onUpdate({
           ...existingRoom,
           roomTypeId,
@@ -214,6 +271,8 @@ function RoomBoqCard({ room, floorName, roomTypes, disabled, onUpdate, onRemove 
     if (disabled) return;
     setItemSearch("");
     setActiveCategory("");
+    setShowBrowse(false);
+    setPendingIds(new Set());
     const rt = roomTypes.find((r) => r.id === roomTypeId);
     loadWorkItemsForType(roomTypeId, {
       ...room,
@@ -261,7 +320,10 @@ function RoomBoqCard({ room, floorName, roomTypes, disabled, onUpdate, onRemove 
     onUpdate({ ...room, selections });
   };
 
-  const allSelections = useMemo(() => room.selections || [], [room.selections]);
+  const allSelections = useMemo(
+    () => (room.selections || []).filter(isCatalogWorkJob),
+    [room.selections]
+  );
   const totalSelectable = allSelections.length;
 
   const masterCategories = useMemo(() => {
@@ -280,7 +342,7 @@ function RoomBoqCard({ room, floorName, roomTypes, disabled, onUpdate, onRemove 
     [allSelections]
   );
 
-  const browseActive = Boolean(itemSearch.trim() || activeCategory);
+  const browseActive = showBrowse || Boolean(itemSearch.trim() || activeCategory);
   const searchQuery = itemSearch.trim().toLowerCase();
 
   const browseItems = useMemo(() => {
@@ -296,10 +358,56 @@ function RoomBoqCard({ room, floorName, roomTypes, disabled, onUpdate, onRemove 
 
   const groupedBrowse = groupSelectionsByMaster(browseItems);
 
+  const togglePending = (workItemId) => {
+    if (disabled) return;
+    setPendingIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(workItemId)) next.delete(workItemId);
+      else next.add(workItemId);
+      return next;
+    });
+  };
+
+  const commitPendingSelections = () => {
+    if (disabled || pendingIds.size === 0) return;
+    const selections = (room.selections || []).map((sel) => {
+      if (!pendingIds.has(sel.workItemId)) return sel;
+      const withSelected = {
+        ...sel,
+        selected: true,
+        lineSource: sel.lineSource || LINE_SOURCE.MANUAL,
+      };
+      if (withSelected.qtyLocked) {
+        return {
+          ...withSelected,
+          amount: calcLineAmount(withSelected.quantity, withSelected.defaultRate),
+        };
+      }
+      return recalcSelection(withSelected, roomDimensions);
+    });
+    onUpdate({ ...room, selections });
+    setPendingIds(new Set());
+    setItemSearch("");
+    setActiveCategory("");
+    setShowBrowse(false);
+  };
+
   const clearBrowse = () => {
     setItemSearch("");
     setActiveCategory("");
+    setShowBrowse(false);
+    setPendingIds(new Set());
   };
+
+  const removeWorkJob = (workItemId) => {
+    updateSelection(workItemId, (s) => ({
+      ...s,
+      selected: false,
+      lineSource: s.lineSource || LINE_SOURCE.MANUAL,
+    }));
+  };
+
+  const unselectedCount = allSelections.filter((s) => !s.selected).length;
 
   return (
     <Card className="border-border/70">
@@ -315,7 +423,7 @@ function RoomBoqCard({ room, floorName, roomTypes, disabled, onUpdate, onRemove 
             <Badge variant="secondary" className="font-mono tabular-nums">
               {formatCurrency(total)}
             </Badge>
-            {!disabled && (
+            {!disabled && !room.seededFromScope && onRemove && (
               <Button
                 type="button"
                 variant="ghost"
@@ -393,9 +501,9 @@ function RoomBoqCard({ room, floorName, roomTypes, disabled, onUpdate, onRemove 
           <div className="space-y-3 rounded-lg border border-border/70 bg-muted/10 p-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <p className="text-sm font-medium">Work items</p>
+                <p className="text-sm font-medium">Work jobs</p>
                 <p className="text-[11px] text-muted-foreground">
-                  {totalSelectable} items · pick a category or search to browse
+                  {totalSelectable} catalog items · use the checklist on the right for reference
                 </p>
               </div>
               {selectedItems.length > 0 ? (
@@ -415,10 +523,25 @@ function RoomBoqCard({ room, floorName, roomTypes, disabled, onUpdate, onRemove 
                       sel={sel}
                       disabled={disabled}
                       onUpdateSelection={updateSelection}
+                      onRemove={removeWorkJob}
                     />
                   ))}
                 </div>
               </div>
+            )}
+
+            {!disabled && totalSelectable > 0 && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => setShowBrowse(true)}
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add work job
+                {unselectedCount > 0 ? ` (${unselectedCount} available)` : ""}
+              </Button>
             )}
 
             <div className="space-y-2 border-t border-border/50 pt-3">
@@ -494,20 +617,45 @@ function RoomBoqCard({ room, floorName, roomTypes, disabled, onUpdate, onRemove 
                         </p>
                       )}
                       {items.map((sel) => (
-                        <WorkItemRow
+                        <BrowseWorkItemRow
                           key={sel.workItemId}
                           sel={sel}
                           disabled={disabled}
-                          onUpdateSelection={updateSelection}
+                          pending={pendingIds.has(sel.workItemId)}
+                          onToggle={togglePending}
                         />
                       ))}
                     </div>
                   ))}
                 </div>
+                {!disabled && (
+                  <div className="sticky bottom-0 space-y-2 border-t border-border/50 bg-muted/10 pt-3">
+                    {pendingIds.size > 0 ? (
+                      <p className="text-center text-xs text-muted-foreground">
+                        {pendingIds.size} selected — click Add to apply
+                      </p>
+                    ) : null}
+                    <div className="flex items-center justify-end gap-2">
+                      <Button type="button" variant="outline" size="sm" onClick={clearBrowse}>
+                        Cancel
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={pendingIds.size === 0}
+                        onClick={commitPendingSelections}
+                      >
+                        Add {pendingIds.size > 0 ? `${pendingIds.size} ` : ""}work job
+                        {pendingIds.size === 1 ? "" : "s"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
         )}
+
       </CardContent>
     </Card>
   );
@@ -516,18 +664,30 @@ function RoomBoqCard({ room, floorName, roomTypes, disabled, onUpdate, onRemove 
 export default function VisitDraftBoqEditor({
   estimate,
   roomScopes = [],
+  reportItems = [],
   onChange,
   disabled = false,
 }) {
   const floorsFromScopes = normalizeRoomScopes(roomScopes);
-  const scopedItemCount = countScopedItems(floorsFromScopes);
-  const bootstrapped = useRef(false);
+  const referenceFloorsFromScopes = useMemo(
+    () => filterRoomScopesByReportYes(roomScopes, reportItems),
+    [roomScopes, reportItems]
+  );
+  const scopedItemCount = countScopedItems(referenceFloorsFromScopes);
+  const initKeyRef = useRef(null);
+  const scopeHydrated = useRef(false);
 
   const [floors, setFloors] = useState(() => [{ id: uid("floor"), name: "Ground Floor" }]);
   const [rooms, setRooms] = useState([]);
   const [roomTypes, setRoomTypes] = useState([]);
   const [activeFloorId, setActiveFloorId] = useState(null);
   const [newFloorName, setNewFloorName] = useState("");
+  const [seededFromScope, setSeededFromScope] = useState(false);
+
+  useEffect(() => {
+    initKeyRef.current = null;
+    scopeHydrated.current = false;
+  }, [estimate?.uuid]);
 
   useEffect(() => {
     fetchRoomTypes({}, 0, 200)
@@ -539,21 +699,66 @@ export default function VisitDraftBoqEditor({
   }, []);
 
   useEffect(() => {
-    if (bootstrapped.current) return;
-    bootstrapped.current = true;
     const lines = Array.isArray(estimate?.lines) ? estimate.lines : [];
     if (lines.length > 0) {
+      const key = `lines:${estimate?.uuid}:${lines.length}`;
+      if (initKeyRef.current === key) return;
+      initKeyRef.current = key;
       const shell = surveyShellFromEstimateLines(lines);
-      setFloors(shell.floors.length ? shell.floors : [{ id: uid("floor"), name: "Ground Floor" }]);
-      setRooms(shell.rooms);
-      setActiveFloorId(shell.floors[0]?.id || null);
+      const nextFloors = shell.floors.length
+        ? shell.floors
+        : [{ id: uid("floor"), name: "Ground Floor" }];
+      const nextRooms =
+        floorsFromScopes.length > 0 && roomTypes.length > 0
+          ? attachScopeMetadataToRooms(
+              shell.rooms,
+              nextFloors,
+              floorsFromScopes,
+              roomTypes,
+              reportItems
+            )
+          : shell.rooms;
+      setFloors(nextFloors);
+      setRooms(nextRooms);
+      setActiveFloorId(nextFloors[0]?.id || null);
+      setSeededFromScope(
+        nextRooms.some(
+          (r) =>
+            r.seededFromScope ||
+            scopeItemsFromRoom(r).length > 0 ||
+            (Array.isArray(r.savedLines) && r.savedLines.length > 0)
+        )
+      );
+      scopeHydrated.current = false;
       return;
     }
+
+    if (floorsFromScopes.length > 0) {
+      if (roomTypes.length === 0) return;
+      const key = `scope:${estimate?.uuid}:${floorsFromScopes.length}:${roomTypes.length}`;
+      if (initKeyRef.current === key) return;
+      initKeyRef.current = key;
+      const scopeShell = surveyShellFromRoomScopes(floorsFromScopes, roomTypes, reportItems);
+      if (scopeShell.seededFromScope && scopeShell.floors.length > 0) {
+        setFloors(scopeShell.floors);
+        setRooms(scopeShell.rooms);
+        setActiveFloorId(scopeShell.floors[0]?.id || null);
+        setSeededFromScope(true);
+        scopeHydrated.current = false;
+        return;
+      }
+    }
+
+    const key = `empty:${estimate?.uuid}`;
+    if (initKeyRef.current === key) return;
+    initKeyRef.current = key;
     const id = uid("floor");
     setFloors([{ id, name: "Ground Floor" }]);
     setRooms([]);
     setActiveFloorId(id);
-  }, [estimate?.uuid, estimate?.lines]);
+    setSeededFromScope(false);
+    scopeHydrated.current = true;
+  }, [estimate?.uuid, estimate?.lines, floorsFromScopes, roomTypes, reportItems]);
 
   useEffect(() => {
     if (!activeFloorId && floors.length > 0) {
@@ -574,9 +779,79 @@ export default function VisitDraftBoqEditor({
     [disabled, estimate, onChange]
   );
 
+  useEffect(() => {
+    if (!seededFromScope || scopeHydrated.current) return;
+    const needsLoad = rooms.some((r) => {
+      if (r.workItemsLoaded) return false;
+      return Boolean(r.roomTypeId) || (Array.isArray(r.savedLines) && r.savedLines.length > 0);
+    });
+    if (!needsLoad) {
+      scopeHydrated.current = true;
+      return;
+    }
+    const needsCatalogTypes = rooms.some((r) => !r.workItemsLoaded && r.roomTypeId);
+    if (needsCatalogTypes && roomTypes.length === 0) return;
+
+    let cancelled = false;
+    (async () => {
+      const nextRooms = [...rooms];
+      let changed = false;
+      for (let i = 0; i < nextRooms.length; i += 1) {
+        const room = nextRooms[i];
+        if (room.workItemsLoaded) continue;
+        const hasCatalog = Boolean(room.roomTypeId);
+        const hasSaved = Array.isArray(room.savedLines) && room.savedLines.length > 0;
+        if (!hasCatalog && !hasSaved) continue;
+
+        try {
+          let selections = [];
+          if (hasCatalog) {
+            const detail = await fetchRoomTypeById(room.roomTypeId);
+            selections = buildSelectionsFromWorkItems(detail.workItems || [], {
+              length: room.length,
+              width: room.width,
+              height: room.height,
+            });
+            nextRooms[i] = {
+              ...room,
+              roomTypeName: detail.roomTypeName,
+              name: room.name || detail.roomTypeName,
+            };
+          }
+          if (hasSaved) {
+            selections = applySavedLinesToSelections(selections, room.savedLines);
+          }
+          selections = selections.filter(isCatalogWorkJob);
+          nextRooms[i] = {
+            ...(nextRooms[i] || room),
+            selections,
+            workItemsLoaded: true,
+          };
+          changed = true;
+        } catch (err) {
+          console.error(err);
+        }
+      }
+      if (!cancelled && changed) {
+        setRooms(nextRooms);
+        syncEstimate(floors, nextRooms);
+      }
+      scopeHydrated.current = true;
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- hydrate scope rooms once
+  }, [seededFromScope, roomTypes, rooms, floors, syncEstimate, estimate?.lines]);
+
   const updateRooms = (nextRooms) => {
-    setRooms(nextRooms);
-    syncEstimate(floors, nextRooms);
+    const sanitized = nextRooms.map((room) => ({
+      ...room,
+      selections: (room.selections || []).filter(isCatalogWorkJob),
+    }));
+    setRooms(sanitized);
+    syncEstimate(floors, sanitized);
   };
 
   const updateFloors = (nextFloors) => {
@@ -587,7 +862,11 @@ export default function VisitDraftBoqEditor({
   const activeFloor = floors.find((f) => f.id === activeFloorId);
   const floorRooms = rooms.filter((r) => String(r.floorId) === String(activeFloorId));
   const projectTotal = useMemo(
-    () => rooms.reduce((sum, r) => sum + roomSurveyTotal(r.selections), 0),
+    () =>
+      rooms.reduce(
+        (sum, r) => sum + roomSurveyTotal((r.selections || []).filter(isCatalogWorkJob)),
+        0
+      ),
     [rooms]
   );
 
@@ -641,14 +920,21 @@ export default function VisitDraftBoqEditor({
           <div>
             <h2 className="text-base font-semibold">Draft BoQ</h2>
             <p className="text-xs text-muted-foreground">
-              Add floors and rooms, pick room types, select work items with selling rates. Not a
-              finalized project BoQ.
+              Add floors and rooms, pick room types, then select work jobs from the catalog. Use the
+              checklist on the right as reference only.
             </p>
           </div>
           <Badge variant="secondary">
             {formatEstimateAmount(projectTotal, estimate?.currency || "AED")}
           </Badge>
         </div>
+
+        {seededFromScope && (
+          <p className="rounded-md border border-border/50 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+            Floor and room structure imported from the site visit checklist. Select work jobs from
+            the catalog for each room — checklist items stay in the reference panel on the right.
+          </p>
+        )}
 
         <div className="flex flex-wrap gap-2">
           {floors.map((floor) => (
@@ -667,7 +953,7 @@ export default function VisitDraftBoqEditor({
           ))}
         </div>
 
-        {!disabled && (
+        {!disabled && !seededFromScope && (
           <div className="flex flex-wrap items-end gap-2">
             <div className="space-y-1">
               <Label className="text-xs">Add floor</Label>
@@ -716,7 +1002,7 @@ export default function VisitDraftBoqEditor({
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-2">
               <p className="text-sm font-medium">{activeFloor.name} rooms</p>
-              {!disabled && (
+              {!disabled && !seededFromScope && (
                 <Button type="button" variant="outline" size="sm" onClick={addRoom}>
                   <Plus className="mr-1 h-3.5 w-3.5" />
                   Add room
@@ -779,14 +1065,13 @@ export default function VisitDraftBoqEditor({
             <Badge variant="outline">{scopedItemCount} items</Badge>
           </div>
           <p className="text-xs text-muted-foreground">
-            Use the site-visit checklist as context while building the draft BoQ from real work
-            items.
+            Site-visit checklist for reference while you pick catalog work jobs on the left.
           </p>
-          {floorsFromScopes.length === 0 ? (
-            <p className="text-xs text-muted-foreground">No room scope on this visit.</p>
+          {referenceFloorsFromScopes.length === 0 ? (
+            <p className="text-xs text-muted-foreground">No checklist items marked on this visit.</p>
           ) : (
             <div className="max-h-[520px] space-y-3 overflow-y-auto pr-1">
-              {floorsFromScopes.map((floor) => (
+              {referenceFloorsFromScopes.map((floor) => (
                 <div
                   key={floor.floorName}
                   className="rounded-md border border-border/50 bg-background p-2.5"

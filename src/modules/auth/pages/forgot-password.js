@@ -54,7 +54,7 @@ export default function ForgotPasswordPage() {
             {BRAND_NAME}
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Client portal password setup
+            Portal password setup
           </p>
         </div>
 
@@ -74,7 +74,7 @@ export default function ForgotPasswordPage() {
               <div>
                 <h2 className="text-lg font-semibold">Check your email</h2>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  If a client portal account exists for <strong>{email}</strong>, we sent a link to set your password.
+                  If an account exists for <strong>{email}</strong>, we sent a link to set your password.
                   The link expires in 7 days.
                 </p>
               </div>
@@ -87,7 +87,7 @@ export default function ForgotPasswordPage() {
               <div className="space-y-1 text-center">
                 <h2 className="text-lg font-semibold">Forgot password?</h2>
                 <p className="text-sm text-muted-foreground">
-                  Enter your email and we&apos;ll send you a link to set or reset your client portal password.
+                  Enter your email and we&apos;ll send you a link to set or reset your password.
                 </p>
               </div>
 

@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { fetchProjectById } from "@/modules/admin/api/projects.api";
 import { fetchIssuedEstimatesForClient } from "@/modules/admin/api/site-visits.api";
 import { ROUTES } from "@/shared/constants/routes";
+import { formatAed } from "@/shared/utils/currency";
 import ClientProjectRoomsSection from "./ClientProjectRoomsSection";
 
 function InfoItem({ label, value, mono = false }) {
@@ -118,7 +119,7 @@ export default function ClientProjectDetailPage() {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile
           label="Contract Value"
-          value={`$${budget.toLocaleString()}`}
+          value={formatAed(budget)}
           icon={DollarSign}
         />
         <StatTile
@@ -173,7 +174,7 @@ export default function ClientProjectDetailPage() {
             <div>
               <InfoItem label="Status"    value={project.status} />
               <InfoItem label="Manager"   value={project.assignedManager || "Unassigned"} />
-              <InfoItem label="Budget"    value={`$${budget.toLocaleString()}`} />
+              <InfoItem label="Budget"    value={formatAed(budget)} />
               <InfoItem label="Progress"  value={`${project.progress}%`} />
             </div>
           </div>
@@ -214,9 +215,9 @@ export default function ClientProjectDetailPage() {
             </h2>
             <div className="grid grid-cols-3 gap-2 text-center">
               {[
-                { label: "Total",       value: `$${budget.toLocaleString()}`,                   c: "text-foreground" },
-                { label: "Paid",        value: `$${Math.round(budget * 0.45).toLocaleString()}`, c: "text-emerald-600" },
-                { label: "Outstanding", value: `$${Math.round(budget * 0.55).toLocaleString()}`, c: "text-amber-600" },
+                { label: "Total",       value: formatAed(budget),                   c: "text-foreground" },
+                { label: "Paid",        value: formatAed(Math.round(budget * 0.45)), c: "text-emerald-600" },
+                { label: "Outstanding", value: formatAed(Math.round(budget * 0.55)), c: "text-amber-600" },
               ].map(({ label, value, c }) => (
                 <div key={label} className="rounded-xl bg-secondary/50 p-2">
                   <p className={`text-xs font-bold ${c}`}>{value}</p>

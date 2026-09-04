@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Briefcase, Search, Plus } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import { PageShell, StatTile } from "@/components/layout/PageShell";
@@ -51,6 +51,7 @@ export default function ProjectsPage() {
       return (
         String(p.id).includes(q) ||
         (p.name || "").toLowerCase().includes(q) ||
+        (p.leadReferenceNo || "").toLowerCase().includes(q) ||
         clientName.toLowerCase().includes(q)
       );
     });
@@ -80,7 +81,7 @@ export default function ProjectsPage() {
           <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Search project ID, name, client..."
+              placeholder="Search project ID, lead ref, name, client..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9"
@@ -95,6 +96,7 @@ export default function ProjectsPage() {
             <thead>
               <tr className="border-b border-border/50 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 <th className="py-3 px-4 pl-6">ID</th>
+                <th className="py-3 px-4">Lead Ref</th>
                 <th className="py-3 px-4">Project Name</th>
                 <th className="py-3 px-4">Client</th>
                 <th className="py-3 px-4">Status</th>
@@ -106,6 +108,7 @@ export default function ProjectsPage() {
                 Array.from({ length: 4 }).map((_, i) => (
                   <tr key={i} className="animate-pulse">
                     <td className="py-4 px-4 pl-6"><div className="h-4 w-10 bg-muted rounded" /></td>
+                    <td className="py-4 px-4"><div className="h-4 w-24 bg-muted rounded" /></td>
                     <td className="py-4 px-4"><div className="h-4 w-36 bg-muted rounded" /></td>
                     <td className="py-4 px-4"><div className="h-4 w-28 bg-muted rounded" /></td>
                     <td className="py-4 px-4"><div className="h-5 w-14 bg-muted rounded-full" /></td>
@@ -114,7 +117,7 @@ export default function ProjectsPage() {
                 ))
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={6} className="py-12 text-center text-muted-foreground">
                     <Briefcase className="h-10 w-10 mx-auto mb-3 text-muted-foreground/30" />
                     <p className="font-medium">No projects found</p>
                     <Button
@@ -139,6 +142,23 @@ export default function ProjectsPage() {
                     >
                       <td className="py-4 px-4 pl-6 font-mono text-xs font-semibold text-muted-foreground group-hover:text-primary">
                         {p.id}
+                      </td>
+                      <td className="py-4 px-4 font-mono text-xs text-muted-foreground">
+                        {p.leadReferenceNo ? (
+                          p.leadId ? (
+                            <Link
+                              to={ROUTES.ADMIN.LEAD_DETAIL.replace(":leadId", p.leadId)}
+                              className="text-primary hover:underline"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {p.leadReferenceNo}
+                            </Link>
+                          ) : (
+                            p.leadReferenceNo
+                          )
+                        ) : (
+                          "—"
+                        )}
                       </td>
                       <td className="py-4 px-4 font-medium">{p.name}</td>
                       <td className="py-4 px-4 text-muted-foreground">{clientName}</td>

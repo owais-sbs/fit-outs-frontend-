@@ -1,8 +1,6 @@
 const ACTIVE_STATUSES = ["Planning", "In Progress", "On Hold"];
 
-export function formatAed(value) {
-  return `AED ${Number(value || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
-}
+export { formatAed } from "@/shared/utils/currency";
 
 export function formatDate(value) {
   if (!value) return "—";
@@ -67,6 +65,7 @@ export function boqFunnelCounts(allBoqs = []) {
   statuses.forEach((s) => { counts[s] = 0; });
   allBoqs.forEach((b) => {
     const key = String(b.status || "DRAFT").toUpperCase().replace(/-/g, "_");
+    if (key === "OBSOLETE") return;
     if (counts[key] !== undefined) counts[key] += 1;
     else if (key === "FINAL") counts.APPROVED += 1;
     else counts.DRAFT += 1;

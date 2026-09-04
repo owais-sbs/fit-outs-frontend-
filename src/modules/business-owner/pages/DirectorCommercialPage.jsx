@@ -8,7 +8,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { ROUTES } from "@/shared/constants/routes";
+import { ROUTES, boqViewPath } from "@/shared/constants/routes";
+import { filterBoqInboxForRole } from "@/shared/constants/roles";
+import { useAuth } from "@/shared/context/auth-context";
 import { fetchAllProjects } from "@/modules/admin/api/projects.api";
 import { fetchBoqsByProject, fetchBoqInbox } from "@/modules/admin/api/boq.api";
 import { BoqStatusBadge } from "@/modules/admin/pages/boq/BoqApprovalTimeline";
@@ -17,6 +19,7 @@ import { formatAed } from "../utils/directorDashboardUtils";
 import { boqFunnelCounts } from "../utils/directorDashboardUtils";
 
 export default function DirectorCommercialPage() {
+  const { role } = useAuth();
   const [rows, setRows] = useState([]);
   const [inbox, setInbox] = useState([]);
   const [funnel, setFunnel] = useState([]);
@@ -24,9 +27,9 @@ export default function DirectorCommercialPage() {
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([fetchAllProjects(), fetchBoqInbox()])
+    Promise.all([fetchAllProjects(), fetchBoqInbox(role)])
       .then(async ([projects, inboxItems]) => {
-        setInbox(Array.isArray(inboxItems) ? inboxItems : []);
+        setInbox(filterBoqInboxForRole(inboxItems, role));
         const allBoqs = [];
         const tableRows = [];
         for (const p of projects) {
@@ -42,7 +45,7 @@ export default function DirectorCommercialPage() {
           });
         }
         tableRows.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
-        setRows(tableRows);
+        setRows(tableRows.filter((r) => String(r.status || "").toUpperCase() !== "OBSOLETE"));
         setFunnel(boqFunnelCounts(allBoqs));
       })
       .catch(() => {
@@ -50,7 +53,7 @@ export default function DirectorCommercialPage() {
         setInbox([]);
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [role]);
 
   const approvedTotal = rows
     .filter((r) => ["APPROVED", "FINAL"].includes(String(r.status).toUpperCase()))
@@ -60,7 +63,7 @@ export default function DirectorCommercialPage() {
     <PageShell>
       <DashboardHeader
         title="Commercial / BOQ Pipeline"
-        description="All BOQ versions, approval status, and director sign-off queue."
+        description="Live BOQ per project, approval status, and director sign-off queue."
       >
         <div className="flex gap-2">
           <Button asChild size="sm" variant="outline">
@@ -92,7 +95,7 @@ export default function DirectorCommercialPage() {
         </Card>
 
         <Card className="lg:col-span-2">
-          <CardHeader className="pb-2"><CardTitle className="text-base">All BOQ documents</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Live BOQ documents</CardTitle></CardHeader>
           <CardContent className="p-0 overflow-x-auto">
             {loading ? (
               <div className="p-6 space-y-2">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
@@ -122,7 +125,7 @@ export default function DirectorCommercialPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <Button asChild size="sm" variant="ghost">
-                          <Link to={`${ROUTES.ADMIN.BOQ}?boqId=${r.id}&projectId=${r.projectId}`}>Open</Link>
+                          <Link to={boqViewPath(role, r.id, r.projectId)}>Open</Link>
                         </Button>
                       </TableCell>
                     </TableRow>

@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fetchMaterials } from "../../api/material.api";
 import { recordStockReceipt } from "../../api/stock.api";
+import { DIRHAM_SYMBOL } from "@/shared/utils/currency";
 
 export default function GoodsReceiptPage() {
   const [materials, setMaterials] = useState([]);
@@ -94,7 +95,7 @@ export default function GoodsReceiptPage() {
                 <Input type="number" step="0.001" min="0" value={form.quantity} onChange={(e) => setForm((p) => ({ ...p, quantity: e.target.value }))} />
               </div>
               <div className="space-y-2">
-                <Label>Unit Cost (AED)</Label>
+                <Label>Unit Cost ({DIRHAM_SYMBOL})</Label>
                 <Input type="number" step="0.01" value={form.unitCost} onChange={(e) => setForm((p) => ({ ...p, unitCost: e.target.value }))} />
               </div>
             </div>

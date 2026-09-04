@@ -7,11 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchStockMovements } from "../../api/stock.api";
+import { formatCurrency } from "@/shared/utils/currency";
 
 const MOVEMENT_TYPES = ["All", "RECEIPT", "ISSUE", "ADJUSTMENT", "RETURN"];
 
-const formatCurrency = (val) =>
-  val != null ? `AED ${Number(val).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—";
+const formatCurrencyNullable = (val) =>
+  val != null ? formatCurrency(val) : "—";
 
 export default function MovementHistoryPage() {
   const [movements, setMovements] = useState([]);
@@ -93,8 +94,8 @@ export default function MovementHistoryPage() {
                         <div className="text-[10px] text-muted-foreground">{m.materialCode}</div>
                       </TableCell>
                       <TableCell className="text-xs">{m.quantity}</TableCell>
-                      <TableCell className="text-xs">{formatCurrency(m.unitCost)}</TableCell>
-                      <TableCell className="text-xs">{formatCurrency(m.totalCost)}</TableCell>
+                      <TableCell className="text-xs">{formatCurrencyNullable(m.unitCost)}</TableCell>
+                      <TableCell className="text-xs">{formatCurrencyNullable(m.totalCost)}</TableCell>
                       <TableCell className="text-xs">{m.projectName || "—"}</TableCell>
                       <TableCell className="text-xs">{m.referenceNo || "—"}</TableCell>
                       <TableCell className="max-w-[150px] truncate text-xs">{m.notes || "—"}</TableCell>

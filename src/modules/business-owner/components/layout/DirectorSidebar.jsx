@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
 import { ROUTES } from "@/shared/constants/routes";
+import { filterBoqInboxForRole } from "@/shared/constants/roles";
 import { useAuth } from "@/shared/context/auth-context";
 import { SidebarBrand } from "@/components/brand/BrandMark";
 import { fetchBoqInbox } from "@/modules/admin/api/boq.api";
@@ -126,10 +127,10 @@ export default function DirectorSidebar() {
   const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
-    fetchBoqInbox()
-      .then((list) => setPendingCount(Array.isArray(list) ? list.length : 0))
+    fetchBoqInbox(role)
+      .then((list) => setPendingCount(filterBoqInboxForRole(list, role).length))
       .catch(() => setPendingCount(0));
-  }, []);
+  }, [role]);
 
   const renderGroup = (label, items) => (
     <SidebarGroup key={label}>

@@ -11,13 +11,14 @@ import {
   Clock3,
   Download,
   FileText,
-  IndianRupee,
   ImagePlus,
   LockKeyhole,
   Mail,
   MapPin,
   Navigation2,
   Phone,
+  Plus,
+  Trash2,
   User,
   X,
 } from "lucide-react";
@@ -25,12 +26,17 @@ import L from "leaflet";
 import { MapContainer, Marker, TileLayer } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { useSiteVisitPortalRoutes } from "@/shared/hooks/use-site-visit-portal-routes";
+import { formatAed, formatCurrency, DIRHAM_SYMBOL } from "@/shared/utils/currency";
 import { REPORT_CHECKLIST } from "../data/site-visits";
 import {
+  appendCustomItemToRoomScopes,
+  buildCustomChecklistItem,
   checklistItemsFromScopes,
   countScopedItems,
   countScopedRooms,
   isValidRoomScopes,
+  parseRoomTabLabel,
+  removeCustomItemFromRoomScopes,
 } from "../data/renovationChecklist";
 import {
   fetchSiteVisitByUuid,
@@ -48,6 +54,7 @@ import {
   sendSiteVisitEstimateEmail,
 } from "../api/site-visit-estimate.api";
 import RoomChecklistScopeBuilder from "../components/site-visits/RoomChecklistScopeBuilder";
+import WorkItemSuggestInput from "../components/site-visits/WorkItemSuggestInput";
 import VisitDraftBoqEditor from "../components/site-visits/VisitDraftBoqEditor";
 import CoverLetterStep from "../components/site-visits/CoverLetterStep";
 import SiteVisitAudioRecorder from "../components/site-visits/SiteVisitAudioRecorder";
@@ -162,16 +169,6 @@ function formatTime(time) {
   return `${display}:${minutes || "00"} ${period}`;
 }
 
-function formatBudget(value) {
-  const n = Number(value);
-  if (!Number.isFinite(n) || n <= 0) return "—";
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(n);
-}
-
 function statusBadgeVariant(status = "") {
   const s = String(status).toUpperCase();
   if (s === "COMPLETED") return "success";
@@ -219,6 +216,7 @@ export default function SiteVisitReportPage() {
   const [draftPropertyTypeCustom, setDraftPropertyTypeCustom] = useState("");
   const [draftRoomScopes, setDraftRoomScopes] = useState([]);
   const [estimate, setEstimate] = useState(null);
+  const [reportItems, setReportItems] = useState([]);
   const [estimateLoading, setEstimateLoading] = useState(false);
   const [estimateSaving, setEstimateSaving] = useState(false);
   const [pdfExporting, setPdfExporting] = useState(false);
@@ -228,6 +226,9 @@ export default function SiteVisitReportPage() {
   const [sendSubject, setSendSubject] = useState("");
   const [sendBody, setSendBody] = useState("");
   const [sending, setSending] = useState(false);
+  const [customWorkInput, setCustomWorkInput] = useState("");
+  const [customWorkPrice, setCustomWorkPrice] = useState("");
+  const [addingCustomWork, setAddingCustomWork] = useState(false);
   const coverLetterRef = useRef(null);
 
   const goToStep = (step) => {
@@ -297,6 +298,7 @@ export default function SiteVisitReportPage() {
             fetchSiteVisitReport(visitId)
               .then((report) => {
                 if (cancelled || !report?.items) return;
+                setReportItems(report.items);
                 const photos = {};
                 const loadedChecks = {};
                 const loadedNotes = {};
@@ -331,7 +333,14 @@ export default function SiteVisitReportPage() {
                   setActiveStep("cover");
                 }
               })
-              .catch(() => {})
+              .catch((err) => {
+                if (cancelled) return;
+                setError(
+                  err.response?.data?.error ||
+                    err.response?.data?.message ||
+                    "Unable to load draft BoQ"
+                );
+              })
           );
         }
         if (sideLoads.length) await Promise.all(sideLoads);
@@ -359,10 +368,20 @@ export default function SiteVisitReportPage() {
   );
   const progress = checklistItems.length > 0 ? Math.round((completedCount / checklistItems.length) * 100) : 0;
   const requiredMissing = checklistItems.filter((item) => item.required && !checks[item.id]);
+  const incompleteCount = checklistItems.length - completedCount;
   const readOnly = submitted;
-  const canSubmit = requiredMissing.length === 0 && checklistItems.length > 0 && !editingScope;
+  const canContinueToBoq = checklistItems.length > 0 && !editingScope;
 
   const [activeRoomTab, setActiveRoomTab] = useState("");
+
+  const customWorkExcludeLabels = useMemo(
+    () =>
+      checklistItems
+        .filter((item) => (item.roomName || "General") === activeRoomTab)
+        .map((item) => item.question || item.label)
+        .filter(Boolean),
+    [checklistItems, activeRoomTab]
+  );
 
   const roomTabs = useMemo(() => {
     const byRoom = new Map();
@@ -403,6 +422,86 @@ export default function SiteVisitReportPage() {
   const updateItemNote = (id, value) => {
     if (readOnly) return;
     setItemNotes((current) => ({ ...current, [id]: value }));
+  };
+
+  const addCustomWorkItem = async () => {
+    const description = customWorkInput.trim();
+    const rate = Number(customWorkPrice);
+    if (!description || readOnly || !activeRoomTab) return;
+    if (!Number.isFinite(rate) || rate <= 0) {
+      setError(`Enter a valid price in ${DIRHAM_SYMBOL} for this custom work item.`);
+      return;
+    }
+
+    const { floorName, roomOnly } = parseRoomTabLabel(activeRoomTab);
+    const newItem = buildCustomChecklistItem(floorName, roomOnly, "Additional works", description, rate);
+    const nextScopes = appendCustomItemToRoomScopes(
+      visit?.roomScopes || [],
+      floorName,
+      roomOnly,
+      description,
+      "Additional works",
+      rate
+    );
+
+    setAddingCustomWork(true);
+    setError("");
+    try {
+      const updated = await updateSiteVisitChecklistScope(visitId, {
+        propertyType: visit?.propertyType || draftPropertyType,
+        propertyTypeCustom: visit?.propertyTypeCustom || draftPropertyTypeCustom,
+        roomScopes: nextScopes,
+      });
+      setVisit(updated);
+      setDraftRoomScopes(updated.roomScopes || []);
+      setChecklistItems((items) => [...items, newItem]);
+      setChecks((current) => ({ ...current, [newItem.id]: false }));
+      setCustomWorkInput("");
+      setCustomWorkPrice("");
+    } catch (err) {
+      setError(err.response?.data?.error || err.response?.data?.message || "Unable to add work item");
+    } finally {
+      setAddingCustomWork(false);
+    }
+  };
+
+  const removeCustomWorkItem = async (item) => {
+    if (readOnly || !item?.custom) return;
+
+    const { floorName, roomOnly } = parseRoomTabLabel(item.roomName || activeRoomTab);
+    const nextScopes = removeCustomItemFromRoomScopes(
+      visit?.roomScopes || [],
+      floorName,
+      roomOnly,
+      item.question || item.label
+    );
+
+    setAddingCustomWork(true);
+    setError("");
+    try {
+      const updated = await updateSiteVisitChecklistScope(visitId, {
+        propertyType: visit?.propertyType || draftPropertyType,
+        propertyTypeCustom: visit?.propertyTypeCustom || draftPropertyTypeCustom,
+        roomScopes: nextScopes,
+      });
+      setVisit(updated);
+      setDraftRoomScopes(updated.roomScopes || []);
+      setChecklistItems((items) => items.filter((i) => i.id !== item.id));
+      setChecks((current) => {
+        const next = { ...current };
+        delete next[item.id];
+        return next;
+      });
+      setItemNotes((current) => {
+        const next = { ...current };
+        delete next[item.id];
+        return next;
+      });
+    } catch (err) {
+      setError(err.response?.data?.error || err.response?.data?.message || "Unable to remove work item");
+    } finally {
+      setAddingCustomWork(false);
+    }
   };
 
   const startEditScope = () => {
@@ -451,19 +550,21 @@ export default function SiteVisitReportPage() {
     setSubmitting(true);
     setError("");
     try {
+      const submittedReportItems = checklistItems.map((item) => ({
+        response: checks[item.id] ? "YES" : "NO",
+        remarks: itemNotes[item.id] || "",
+        roomName: item.roomName || "",
+        sectionName: item.sectionName || "",
+        question: item.question || item.label || "",
+        photoUrls: itemPhotos[item.id] || [],
+      }));
       const data = await submitSiteVisitReport(visitId, {
         outcome: "QUALIFIED",
         notes,
-        items: checklistItems.map((item) => ({
-          response: checks[item.id] ? "YES" : "NO",
-          remarks: itemNotes[item.id] || "",
-          roomName: item.roomName || "",
-          sectionName: item.sectionName || "",
-          question: item.question || item.label || "",
-          photoUrls: itemPhotos[item.id] || [],
-        })),
+        items: submittedReportItems,
       });
 
+      setReportItems(submittedReportItems);
       setConversion(data || null);
       setSubmitted(true);
       setSubmitOpen(false);
@@ -737,12 +838,22 @@ export default function SiteVisitReportPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {estimateLoading || !estimate ? (
+            {estimateLoading ? (
               <p className="py-8 text-center text-sm text-muted-foreground">Loading draft BoQ...</p>
+            ) : !estimate ? (
+              <div className="space-y-3 py-8 text-center">
+                <p className="text-sm text-muted-foreground">
+                  {error || "Could not load the draft BoQ."}
+                </p>
+                <Button type="button" variant="outline" size="sm" onClick={loadEstimate}>
+                  Retry
+                </Button>
+              </div>
             ) : (
               <VisitDraftBoqEditor
                 estimate={estimate}
                 roomScopes={visit?.roomScopes || []}
+                reportItems={reportItems}
                 disabled={estimateReadOnly || estimateSaving}
                 onChange={setEstimate}
               />
@@ -764,6 +875,7 @@ export default function SiteVisitReportPage() {
               <p className="py-8 text-center text-sm text-muted-foreground">Loading cover letter...</p>
             ) : (
               <CoverLetterStep
+                visitId={visitId}
                 estimate={estimate}
                 disabled={estimateReadOnly || estimateSaving}
                 onChange={setEstimate}
@@ -824,8 +936,7 @@ export default function SiteVisitReportPage() {
                 <div>
                   <p className="text-xs uppercase tracking-wide text-muted-foreground">Budget</p>
                   <p className="flex items-center gap-1.5 font-medium">
-                    <IndianRupee className="h-3.5 w-3.5 text-muted-foreground" />
-                    {formatBudget(lead.budget)}
+                    <span className="text-xs font-medium text-muted-foreground">{formatAed(lead.budget)}</span>
                   </p>
                 </div>
               )}
@@ -1115,7 +1226,7 @@ export default function SiteVisitReportPage() {
                         >
                           <span>{room}</span>
                           <Badge
-                            variant="secondary"
+                            variant={done < total ? "destructive" : "secondary"}
                             className="h-5 min-w-5 justify-center rounded-md px-1.5 text-[10px] font-medium"
                           >
                             {done}/{total}
@@ -1161,6 +1272,11 @@ export default function SiteVisitReportPage() {
                                       <div className="min-w-0 flex-1 space-y-2">
                                         <div className="flex flex-wrap items-center gap-2">
                                           <p className="text-sm font-medium">{item.label}</p>
+                                          {item.custom && (
+                                            <Badge variant="outline" className="text-[10px]">
+                                              Custom
+                                            </Badge>
+                                          )}
                                           {item.required && (
                                             <Badge
                                               variant={checked ? "success" : "destructive"}
@@ -1169,14 +1285,32 @@ export default function SiteVisitReportPage() {
                                               Required
                                             </Badge>
                                           )}
+                                          {item.custom && !readOnly && (
+                                            <Button
+                                              type="button"
+                                              variant="ghost"
+                                              size="icon"
+                                              className="ml-auto h-7 w-7 text-destructive"
+                                              disabled={addingCustomWork}
+                                              onClick={() => removeCustomWorkItem(item)}
+                                            >
+                                              <Trash2 className="h-3.5 w-3.5" />
+                                            </Button>
+                                          )}
                                         </div>
                                         <p className="text-xs text-muted-foreground">
                                           {checked
                                             ? "Completed"
                                             : item.required
-                                              ? "Must be completed before submission"
+                                              ? "Required inspection item"
                                               : "Optional inspection item"}
                                         </p>
+                                        {item.custom && item.rateAed != null && (
+                                          <p className="text-xs font-medium text-foreground">
+                                            Price:{" "}
+                                            {formatCurrency(item.rateAed)}
+                                          </p>
+                                        )}
                                         <div>
                                           <Label
                                             htmlFor={`note-${item.id}`}
@@ -1203,6 +1337,53 @@ export default function SiteVisitReportPage() {
                           </section>
                         );
                       })}
+
+                      {!readOnly && (
+                        <div className="flex flex-wrap items-end gap-2 rounded-lg border border-dashed border-border/60 bg-muted/10 p-3">
+                          <div className="min-w-[200px] flex-1">
+                            <WorkItemSuggestInput
+                              value={customWorkInput}
+                              onChange={setCustomWorkInput}
+                              onSubmit={addCustomWorkItem}
+                              disabled={addingCustomWork}
+                              excludeLabels={customWorkExcludeLabels}
+                            />
+                          </div>
+                          <div className="w-36 space-y-1">
+                            <Label className="text-xs">Price ({DIRHAM_SYMBOL})</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={customWorkPrice}
+                              placeholder="0.00"
+                              disabled={addingCustomWork}
+                              onChange={(e) => setCustomWorkPrice(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  addCustomWorkItem();
+                                }
+                              }}
+                            />
+                          </div>
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="gap-1.5"
+                            disabled={
+                              !customWorkInput.trim() ||
+                              !customWorkPrice ||
+                              Number(customWorkPrice) <= 0 ||
+                              addingCustomWork
+                            }
+                            onClick={addCustomWorkItem}
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                            Add
+                          </Button>
+                        </div>
+                      )}
                     </TabsContent>
                   ))}
                 </Tabs>
@@ -1384,7 +1565,9 @@ export default function SiteVisitReportPage() {
 
               {!readOnly && (
                 <div className="rounded-lg border border-border/60 bg-muted/20 p-3 text-xs text-muted-foreground">
-                  Required checklist items must be completed before submission. The report becomes read-only once submitted.
+                  {completedCount}/{checklistItems.length} checklist items done. You can continue to
+                  draft BoQ without completing every item. The report becomes read-only after you
+                  continue.
                 </div>
               )}
             </CardContent>
@@ -1396,12 +1579,18 @@ export default function SiteVisitReportPage() {
       {effectiveStep === "checklist" && !readOnly && (
         <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-border bg-background/95 p-4 backdrop-blur md:left-[var(--sidebar-width)]">
           <div className="mx-auto flex max-w-[1600px] flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+            {incompleteCount > 0 && checklistItems.length > 0 && (
+              <p className="text-xs text-muted-foreground sm:mr-auto">
+                {incompleteCount} of {checklistItems.length} items not checked — you can still
+                continue to draft BoQ
+              </p>
+            )}
             <Button variant="outline" asChild>
               <Link to={portal.list}>Cancel</Link>
             </Button>
-            <Button disabled={!canSubmit} onClick={() => setSubmitOpen(true)} className="gap-2">
+            <Button disabled={!canContinueToBoq} onClick={() => setSubmitOpen(true)} className="gap-2">
               <Check className="h-4 w-4" />
-              Submit report
+              Continue to BoQ
             </Button>
           </div>
         </div>
@@ -1516,10 +1705,13 @@ export default function SiteVisitReportPage() {
       <Dialog open={submitOpen} onOpenChange={setSubmitOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Submit report?</DialogTitle>
+            <DialogTitle>Continue to draft BoQ?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            The report will switch to read-only mode after submission. You can then prepare a draft BoQ and cover letter.
+            {incompleteCount > 0
+              ? `${incompleteCount} checklist item${incompleteCount === 1 ? "" : "s"} are not checked yet. Unchecked items will be saved as "No" on the report. `
+              : ""}
+            The report will switch to read-only mode and you can prepare a draft BoQ and cover letter.
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setSubmitOpen(false)}>
@@ -1531,7 +1723,7 @@ export default function SiteVisitReportPage() {
               }}
               disabled={submitting}
             >
-              {submitting ? "Submitting..." : "Submit"}
+              {submitting ? "Continuing..." : "Continue to BoQ"}
             </Button>
           </DialogFooter>
         </DialogContent>

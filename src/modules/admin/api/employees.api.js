@@ -11,6 +11,7 @@ export function normalizeEmployee(item = {}) {
     fullName: item.employeeName || "",
     isActive: activeFlag === undefined || activeFlag === null ? true : Boolean(activeFlag),
     features: item.features || [],
+    inviteEmailSent: item.inviteEmailSent,
     role,
     roleLabel: roleLabel(role || item.role),
     avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(item.employeeName || "")}&background=7C3AED&color=ffffff&size=80&bold=true`,
@@ -52,3 +53,6 @@ export const updateEmployee = (id, form) =>
 
 export const deleteEmployee = (id) =>
   axiosInstance.delete(`/employees/${id}`).then((r) => r.data?.data);
+
+export const resendEmployeeInvite = (id) =>
+  axiosInstance.post(`/employees/${id}/resend-invite`).then((r) => r.data);

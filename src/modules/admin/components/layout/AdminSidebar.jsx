@@ -6,7 +6,7 @@ import {
   UserCheck, Mail, Grid, Wrench, Settings, PenTool,
   CheckCircle, PieChart, CheckSquare, FileText, ClipboardList,
   Package, Warehouse, ArrowDownToLine, ArrowUpFromLine, History, ImagePlus, Inbox,
-  GanttChart,
+  GanttChart, Stamp,
 } from "lucide-react";
 import {
   Sidebar,
@@ -49,6 +49,7 @@ const PROJECT_CONFIG_SUB_ITEMS = [
   { label: "Work Item Config", href: ROUTES.ADMIN.WORK_ITEM_CONFIG, icon: Wrench },
   { label: "Materials Master", href: ROUTES.ADMIN.MATERIAL_CONFIG, icon: Package },
   { label: "Appendices", href: ROUTES.ADMIN.APPENDIX_CONFIG, icon: ImagePlus },
+  { label: "Cover letter", href: ROUTES.ADMIN.COVER_LETTER_CONFIG, icon: Stamp },
 ];
 
 const PROCUREMENT_SUB_ITEMS = [

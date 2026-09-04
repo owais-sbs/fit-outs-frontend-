@@ -1,4 +1,5 @@
 import { CHART_COLORS } from "@/modules/super-admin/data/analytics-dashboard";
+import { formatCurrencyCompact } from "@/shared/utils/currency";
 
 const OPEN_STATUSES = new Set([
   "NEW",
@@ -80,10 +81,7 @@ function pctChange(current, previous) {
 }
 
 function formatBudget(amount) {
-  const n = Number(amount) || 0;
-  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `$${Math.round(n / 1000)}k`;
-  return `$${Math.round(n).toLocaleString()}`;
+  return formatCurrencyCompact(amount);
 }
 
 function assigneeIdOf(lead) {

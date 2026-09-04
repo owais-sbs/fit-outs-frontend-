@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/select";
 import { PROJECT_TYPES } from "../../constants/project.constants";
 import { PAYMENT_METHODS, PRIORITIES } from "../../constants/client-conversion.constants";
+import { DIRHAM_SYMBOL } from "@/shared/utils/currency";
 import { MANAGERS } from "../../data/client-conversion";
 
 function FormField({ label, required, error, children }) {
@@ -149,10 +150,10 @@ export default function ClientConversionForm({ selectedLead, onSubmit, onSaveDra
           </div>
 
           <div className={gridClass}>
-            <FormField label="Budget ($)" required error={errors.budget}>
+            <FormField label={`Budget (${DIRHAM_SYMBOL})`} required error={errors.budget}>
               <Input type="number" value={form.budget} onChange={set("budget")} placeholder="0" className="h-9" />
             </FormField>
-            <FormField label="Initial Payment ($)">
+            <FormField label={`Initial Payment (${DIRHAM_SYMBOL})`}>
               <Input type="number" value={form.initialPayment} onChange={set("initialPayment")} placeholder="0" className="h-9" />
             </FormField>
           </div>

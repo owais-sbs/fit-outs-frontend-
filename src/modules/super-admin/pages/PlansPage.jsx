@@ -3,6 +3,7 @@ import { Check, Loader2, Plus, Sparkles, ShieldCheck, Upload, Users2, Database, 
 import PageHeader from "../components/shared/PageHeader";
 import { PageShell } from "@/components/layout/PageShell";
 import { PLAN_TYPES, ALL_MODULES } from "../data/plans";
+import { formatAed } from "@/shared/utils/currency";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -240,14 +241,13 @@ export default function PlansPage() {
                         <div>
                           <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Monthly</p>
                           <div className="mt-1 flex items-baseline gap-1">
-                            <span className="text-3xl font-semibold tracking-tight">${plan.price}</span>
-                            <span className="text-sm text-muted-foreground">AED</span>
+                            <span className="text-3xl font-semibold tracking-tight">{formatAed(plan.price)}</span>
                           </div>
                         </div>
                         <div className="text-right">
                           <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Annual</p>
                           <p className="mt-1 text-sm font-medium text-foreground">
-                            ${plan.annualPrice.toLocaleString()}
+                            {formatAed(plan.annualPrice)}
                           </p>
                         </div>
                       </div>

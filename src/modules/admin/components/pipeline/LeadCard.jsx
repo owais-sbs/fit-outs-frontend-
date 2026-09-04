@@ -13,6 +13,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatCurrencyCompact } from "@/shared/utils/currency";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -131,7 +132,7 @@ export default function LeadCard({ lead, onClick, onEdit, onFollowUp, onSchedule
 
       {/* Budget */}
       <p className="mt-2 text-sm font-semibold text-primary">
-        ${(lead.budget / 1000).toFixed(0)}k
+        {formatCurrencyCompact(lead.budget || 0)}
       </p>
 
       {/* Location */}

@@ -10,8 +10,7 @@ import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/shared/constants/routes";
 import { fetchStockBalances, fetchStockMovements } from "../../api/stock.api";
 
-const formatCurrency = (val) =>
-  `AED ${Number(val || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+import { formatCurrency } from "@/shared/utils/currency";
 
 export default function StockDashboardPage() {
   const [balances, setBalances] = useState([]);

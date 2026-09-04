@@ -18,9 +18,7 @@ function formatDate(d) {
   return new Intl.DateTimeFormat("en-AU", { day: "numeric", month: "short", year: "numeric" }).format(new Date(d));
 }
 
-function formatCurrency(n) {
-  return n ? `$${n.toLocaleString()}` : "\u2014";
-}
+import { formatCurrencyOrDash as formatCurrency } from "@/shared/utils/currency";
 
 export default function ClientInfoCard({ lead }) {
   if (!lead) {
