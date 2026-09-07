@@ -20,7 +20,7 @@ import {
   clearHoldPoint,
   fetchQualityTemplate,
 } from "../../api/validation.api";
-import { ROUTES } from "@/shared/constants/routes";
+import { projectPlanningBackPath } from "@/shared/constants/routes";
 
 const TAB = { PROGRESS: "progress", CLAIMS: "claims" };
 
@@ -49,11 +49,10 @@ function formatDate(value) {
 export default function ValidationInboxPage() {
   const { projectId } = useParams();
   const location = useLocation();
-  const isPm = location.pathname.startsWith("/project-manager");
-  const routes = isPm ? ROUTES.PROJECT_MANAGER : ROUTES.ADMIN;
-  const backPath = projectId
-    ? routes.PROJECT_DETAIL.replace(":projectId", projectId)
-    : routes.DASHBOARD;
+  const backPath = projectPlanningBackPath(location, projectId);
+  const backLabel = projectId
+    ? (location.state?.from === "detail" ? "Project" : "Schedule")
+    : "Dashboard";
 
   const [inbox, setInbox] = useState({
     progressItems: [],
@@ -165,9 +164,10 @@ export default function ValidationInboxPage() {
   return (
     <PageShell className="max-w-4xl mx-auto">
       <div className="flex items-center gap-2">
-        <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
+        <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" title={`Back to ${backLabel}`}>
           <Link to={backPath}><ArrowLeft className="h-4 w-4" /></Link>
         </Button>
+        <span className="text-sm text-muted-foreground hidden sm:inline">Back to {backLabel}</span>
         <PageTitle
           title={projectId ? "Project Validations" : "Validation Inbox"}
           subtitle={

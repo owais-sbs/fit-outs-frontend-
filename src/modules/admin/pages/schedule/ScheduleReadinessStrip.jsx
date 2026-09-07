@@ -11,7 +11,7 @@ import {
   fetchPlanningGates,
   fetchPlanningAudit,
 } from "../../api/planning.api";
-import { ROUTES } from "@/shared/constants/routes";
+import { ROUTES, SCHEDULE_NAV_STATE } from "@/shared/constants/routes";
 
 const AREAS = [
   { key: "materialStatus", label: "Material", routeKey: "PROJECT_MATERIAL_PLAN", icon: Package, gateKey: "requireMaterial" },
@@ -165,6 +165,7 @@ export default function ScheduleReadinessStrip({ projectId, onChanged }) {
             <Link
               key={key}
               to={routes[routeKey].replace(":projectId", projectId)}
+              state={SCHEDULE_NAV_STATE}
               className="hover:opacity-90"
             >
               {body}

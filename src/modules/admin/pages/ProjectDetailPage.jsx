@@ -19,7 +19,7 @@ import { fetchAllEmployees } from "../api/employees.api";
 import { fetchCrewAssignments } from "../api/resource.api";
 import { fetchProjectTeamAssignments } from "../api/project-team.api";
 import { fetchBoqsByProject } from "../api/boq.api";
-import { ROUTES, boqViewPath } from "@/shared/constants/routes";
+import { ROUTES, PROJECT_DETAIL_NAV_STATE, boqViewPath } from "@/shared/constants/routes";
 import { useAuth } from "@/shared/context/auth-context";
 import { BoqStatusBadge } from "./boq/BoqApprovalTimeline";
 import BoqApprovalPipeline from "./boq/BoqApprovalPipeline";
@@ -251,12 +251,12 @@ export default function ProjectDetailPage() {
               </Link>
             </Button>
             <Button asChild size="sm" variant="outline">
-              <Link to={subcontractorsPath}>
+              <Link to={subcontractorsPath} state={PROJECT_DETAIL_NAV_STATE}>
                 <HardHat className="w-4 h-4 mr-1" /> Subcontractors
               </Link>
             </Button>
             <Button asChild size="sm" variant="outline">
-              <Link to={validationPath}>
+              <Link to={validationPath} state={PROJECT_DETAIL_NAV_STATE}>
                 <ClipboardCheck className="w-4 h-4 mr-1" /> Validation
               </Link>
             </Button>

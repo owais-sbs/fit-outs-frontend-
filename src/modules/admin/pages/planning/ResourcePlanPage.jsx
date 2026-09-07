@@ -15,14 +15,13 @@ import {
   deleteCrewAssignment,
   fetchResourceUtilisation,
 } from "../../api/resource.api";
-import { ROUTES } from "@/shared/constants/routes";
+import { projectPlanningBackPath } from "@/shared/constants/routes";
 
 export default function ResourcePlanPage() {
   const { projectId } = useParams();
   const location = useLocation();
-  const isPm = location.pathname.startsWith("/project-manager");
-  const detailPath = (isPm ? ROUTES.PROJECT_MANAGER.PROJECT_DETAIL : ROUTES.ADMIN.PROJECT_DETAIL)
-    .replace(":projectId", projectId);
+  const backPath = projectPlanningBackPath(location, projectId);
+  const backLabel = location.state?.from === "detail" ? "Project" : "Schedule";
 
   const [crews, setCrews] = useState([]);
   const [assignments, setAssignments] = useState([]);
@@ -105,9 +104,10 @@ export default function ResourcePlanPage() {
   return (
     <PageShell className="max-w-5xl mx-auto">
       <div className="flex items-center gap-2">
-        <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
-          <Link to={detailPath}><ArrowLeft className="h-4 w-4" /></Link>
+        <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" title={`Back to ${backLabel}`}>
+          <Link to={backPath}><ArrowLeft className="h-4 w-4" /></Link>
         </Button>
+        <span className="text-sm text-muted-foreground hidden sm:inline">Back to {backLabel}</span>
         <PageTitle title="Resource & Labour Plan" subtitle={`Project #${projectId}`} />
       </div>
 

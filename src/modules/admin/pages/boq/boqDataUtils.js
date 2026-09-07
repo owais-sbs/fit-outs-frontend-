@@ -171,6 +171,7 @@ export function buildBoqLines(floors, rooms) {
           const amount = calcLineAmount(qty, rate);
           lines.push({
             id: `${room.id}-${sel.workItemId}`,
+            workItemId: sel.workItemId,
             source: "qas",
             sr: 0,
             floorId: floor.id,

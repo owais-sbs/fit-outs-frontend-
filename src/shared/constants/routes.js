@@ -218,3 +218,29 @@ export function boqInboxPath(role) {
       return ROUTES.ADMIN.BOQ_INBOX;
   }
 }
+
+export const SCHEDULE_NAV_STATE = { from: "schedule" };
+export const PROJECT_DETAIL_NAV_STATE = { from: "detail" };
+
+export function projectRoutesForPath(pathname = "") {
+  return pathname.startsWith("/project-manager") ? ROUTES.PROJECT_MANAGER : ROUTES.ADMIN;
+}
+
+export function projectSchedulePath(pathname, projectId) {
+  return projectRoutesForPath(pathname).PROJECT_SCHEDULE.replace(":projectId", projectId);
+}
+
+export function projectDetailPath(pathname, projectId) {
+  return projectRoutesForPath(pathname).PROJECT_DETAIL.replace(":projectId", projectId);
+}
+
+/** Back target for pages opened from the schedule workspace (materials, resources, validation, etc.). */
+export function projectPlanningBackPath(location, projectId) {
+  if (!projectId) {
+    return projectRoutesForPath(location?.pathname || "").DASHBOARD;
+  }
+  if (location?.state?.from === "detail") {
+    return projectDetailPath(location.pathname, projectId);
+  }
+  return projectSchedulePath(location.pathname, projectId);
+}

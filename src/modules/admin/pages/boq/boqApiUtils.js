@@ -8,6 +8,7 @@ export function boqDocumentToApiPayload(doc, session) {
     unit: line.unitShort || line.unit || "lot",
     quantity: parseFloat(line.qty) || 0,
     rate: parseFloat(line.rate) || 0,
+    workItemId: line.workItemId || parseWorkItemIdFromLineKey(line.id),
     floorLabel: line.floor || null,
     roomLabel: line.room || null,
     sortOrder: idx,
@@ -27,9 +28,19 @@ function mapParentToCategory(parent) {
   return match?.code || "OTHER";
 }
 
+/** Survey line ids are `${roomId}-${workItemId}`; recover work item when missing. */
+function parseWorkItemIdFromLineKey(lineId) {
+  if (!lineId || typeof lineId !== "string") return null;
+  const idx = lineId.lastIndexOf("-");
+  if (idx <= 0 || idx >= lineId.length - 1) return null;
+  const candidate = lineId.slice(idx + 1);
+  return /^[0-9a-f-]{36}$/i.test(candidate) ? candidate : null;
+}
+
 export function apiBoqToDocument(apiBoq, session) {
   const lines = (apiBoq.lines || []).map((line, idx) => ({
     id: line.id || `api-${idx}`,
+    workItemId: line.workItemId || null,
     source: line.source === "ADDITIONAL" ? "additional" : "qas",
     sr: idx + 1,
     categoryCode: line.categoryCode,
