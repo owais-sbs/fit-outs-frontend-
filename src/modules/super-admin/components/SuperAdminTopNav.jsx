@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, LogOut, Menu, Search, Settings, User } from "lucide-react";
+import { Bell, LogOut, Menu, Settings, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -66,24 +65,9 @@ export default function SuperAdminTopNav() {
         </SheetContent>
       </Sheet>
 
-      <div className="relative hidden max-w-md flex-1 sm:block">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          type="search"
-          placeholder="Search tenants, users, plans..."
-          className="h-10 rounded-xl pl-9"
-        />
-      </div>
+      <div className="flex-1" />
 
       <div className="ml-auto flex items-center gap-2">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="relative sm:hidden"
-          aria-label="Search">
-          <Search className="h-5 w-5" />
-        </Button>
-
         <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">
           <Bell className="h-5 w-5" />
           <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary" />

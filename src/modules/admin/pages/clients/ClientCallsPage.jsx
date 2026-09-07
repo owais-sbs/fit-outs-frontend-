@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
 import {
   Phone, PhoneIncoming, PhoneOutgoing,
-  Plus, Search, Clock,
+  Plus, Clock,
 } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import StatCard from "@/modules/super-admin/components/StatCard";
+import { FilterToolbar, SearchInput } from "@/components/layout/PageShell";
 import { INITIAL_CALLS, INITIAL_CLIENTS } from "../../data/clients";
 import { ROUTES } from "@/shared/constants/routes";
 import { Button } from "@/components/ui/button";
@@ -169,29 +170,21 @@ export default function ClientCallsPage() {
       </section>
 
       {/* Filters */}
-      <Card className="">
-        <CardContent className="p-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
+      <FilterToolbar>
+            <SearchInput
                 placeholder="Search client, company, outcome..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9"
-              />
-            </div>
+            />
             <Select value={dirFilter} onValueChange={setDirFilter}>
-              <SelectTrigger className="w-[150px]"><SelectValue placeholder="Direction" /></SelectTrigger>
+              <SelectTrigger className="h-8 w-[150px] rounded-lg"><SelectValue placeholder="Direction" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All calls</SelectItem>
                 <SelectItem value="outbound">Outbound</SelectItem>
                 <SelectItem value="inbound">Inbound</SelectItem>
               </SelectContent>
             </Select>
-          </div>
-        </CardContent>
-      </Card>
+      </FilterToolbar>
 
       {/* Table */}
       <Card className="overflow-hidden">

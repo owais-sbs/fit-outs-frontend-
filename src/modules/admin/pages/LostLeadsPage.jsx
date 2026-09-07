@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { MoreHorizontal, Search, XCircle, DollarSign, TrendingDown, RotateCcw } from "lucide-react";
+import { MoreHorizontal, XCircle, DollarSign, TrendingDown, RotateCcw } from "lucide-react";
 import { ROUTES } from "@/shared/constants/routes";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import StatCard from "@/modules/super-admin/components/StatCard";
+import { FilterToolbar, SearchInput } from "@/components/layout/PageShell";
 import { getAllLeads, LEAD_SOURCES } from "../data/leads";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -79,30 +79,22 @@ export default function LostLeadsPage() {
         <StatCard title="Won vs Lost" value={`${stats.wonCount}W / ${stats.total}L`} icon={RotateCcw} growth={stats.wonCount > stats.total ? 10 : -10} growthLabel="win rate trend" />
       </section>
 
-      <Card className="">
-        <CardContent className="p-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
+      <FilterToolbar>
+            <SearchInput
                 placeholder="Search lost leads..."
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                className="pl-9"
-              />
-            </div>
+            />
             <div className="flex flex-wrap gap-2">
               <Select value={sourceFilter} onValueChange={(v) => { setSourceFilter(v); setPage(1); }}>
-                <SelectTrigger className="w-[130px]"><SelectValue placeholder="Source" /></SelectTrigger>
+                <SelectTrigger className="h-8 w-[130px] rounded-lg"><SelectValue placeholder="Source" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All sources</SelectItem>
                   {LEAD_SOURCES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+      </FilterToolbar>
 
       <Card className="overflow-hidden">
         <div className="max-h-[calc(100vh-26rem)] overflow-auto">

@@ -1,17 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  MoreHorizontal, Plus, Search, Users,
+  MoreHorizontal, Plus, Users,
 } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
-import { PageShell, StatTile } from "@/components/layout/PageShell";
+import { PageShell, StatTile, FilterToolbar, SearchInput } from "@/components/layout/PageShell";
 import { ROUTES } from "@/shared/constants/routes";
 import { fetchAllClients } from "../../api/clients.api";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -94,29 +93,21 @@ export default function ClientsPage() {
         <StatTile label="Inactive" value={stats.inactive} />
       </div>
 
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
+      <FilterToolbar>
+            <SearchInput
                 placeholder="Search name, company, email..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9"
-              />
-            </div>
+            />
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[150px]"><SelectValue placeholder="All statuses" /></SelectTrigger>
+              <SelectTrigger className="h-8 w-[150px] rounded-lg"><SelectValue placeholder="All statuses" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All statuses</SelectItem>
                 <SelectItem value="Active">Active</SelectItem>
                 <SelectItem value="Inactive">Inactive</SelectItem>
               </SelectContent>
             </Select>
-          </div>
-        </CardContent>
-      </Card>
+      </FilterToolbar>
 
       <Card className="overflow-hidden">
         <div className="overflow-auto">

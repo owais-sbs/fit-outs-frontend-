@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   CalendarDays, Check, ChevronLeft, ChevronRight,
-  MapPin, MoreHorizontal, Plus, Search, X, GanttChart,
+  MapPin, MoreHorizontal, Plus, X, GanttChart,
 } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
-import { PageShell, StatTile } from "@/components/layout/PageShell";
+import { PageShell, StatTile, FilterToolbar, SearchInput } from "@/components/layout/PageShell";
 import {
   CALENDAR_EMPLOYEES, CALENDAR_PROJECTS, CALENDAR_SITES,
   VISIT_STATUSES,
@@ -472,28 +472,22 @@ export default function CalendarPage() {
       </section>
 
       {/* ── Filters ───────────────────────────────────────────────────────── */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
+      <FilterToolbar>
+            <SearchInput
                 placeholder="Search employee, project, site..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9"
-              />
-            </div>
+            />
             <div className="flex flex-wrap gap-2">
               <Select value={projFilt} onValueChange={setProjFilt}>
-                <SelectTrigger className="w-[185px]"><SelectValue placeholder="All projects" /></SelectTrigger>
+                <SelectTrigger className="h-8 w-[185px] rounded-lg"><SelectValue placeholder="All projects" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All projects</SelectItem>
                   {CALENDAR_PROJECTS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
                 </SelectContent>
               </Select>
               <Select value={statFilt} onValueChange={setStatFilt}>
-                <SelectTrigger className="w-[140px]"><SelectValue placeholder="All statuses" /></SelectTrigger>
+                <SelectTrigger className="h-8 w-[140px] rounded-lg"><SelectValue placeholder="All statuses" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All statuses</SelectItem>
                   {VISIT_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
@@ -503,7 +497,7 @@ export default function CalendarPage() {
                 type="date"
                 value={dateFilt}
                 onChange={(e) => setDateFilt(e.target.value)}
-                className="w-[145px]"
+                className="h-8 w-[145px] rounded-lg"
               />
               {(search || projFilt !== "all" || statFilt !== "all" || dateFilt) && (
                 <Button
@@ -517,9 +511,7 @@ export default function CalendarPage() {
                 </Button>
               )}
             </div>
-          </div>
-        </CardContent>
-      </Card>
+      </FilterToolbar>
 
       {/* ── Schedule table ────────────────────────────────────────────────── */}
       <Card className="overflow-hidden">

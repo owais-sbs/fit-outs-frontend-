@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { Search, Phone, Mail, CheckCircle, Clock, AlertTriangle } from "lucide-react";
+import { Phone, Mail, CheckCircle, Clock, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import StatCard from "@/modules/super-admin/components/StatCard";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { FilterToolbar, SearchInput } from "@/components/layout/PageShell";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -120,21 +120,15 @@ export default function FollowUpsPage() {
         <StatCard title="Upcoming" value={upcomingCount} icon={CheckCircle} valueColor="text-orange-500" />
       </section>
 
-      <Card className="">
-        <CardContent className="p-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
+      <FilterToolbar>
+          <SearchInput
                 placeholder="Search by name or email..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 bg-muted/30"
               />
-            </div>
             <div className="flex flex-wrap gap-2">
               <Select value={statusFilter} onValueChange={setStatusFilter} disabled={loading}>
-                <SelectTrigger className="w-[140px] bg-muted/30">
+                <SelectTrigger className="h-8 w-[140px] rounded-lg">
                   <SelectValue placeholder="All Statuses" />
                 </SelectTrigger>
                 <SelectContent>
@@ -145,7 +139,7 @@ export default function FollowUpsPage() {
               </Select>
               
               <Select value={userFilter} onValueChange={setUserFilter} disabled={loading}>
-                <SelectTrigger className="w-[180px] bg-muted/30">
+                <SelectTrigger className="h-8 w-[180px] rounded-lg">
                   <SelectValue placeholder="All Users" />
                 </SelectTrigger>
                 <SelectContent>
@@ -159,9 +153,7 @@ export default function FollowUpsPage() {
                 </SelectContent>
               </Select>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+      </FilterToolbar>
 
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">

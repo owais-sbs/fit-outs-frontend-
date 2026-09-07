@@ -314,7 +314,7 @@ export default function SiteVisitsPage() {
       ) : null}
 
       <Tabs value={tab} onValueChange={setTab}>
-        <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-2 rounded-lg border border-border bg-card p-2 shadow-sm sm:flex-row sm:items-center sm:justify-between">
           <TabsList className="h-auto w-full flex-wrap justify-start gap-1 bg-muted/40 p-1 sm:w-auto">
             <TabsTrigger value="upcoming" className="rounded-lg">
               Upcoming ({filteredUpcoming.length})

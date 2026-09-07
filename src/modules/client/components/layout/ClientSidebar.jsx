@@ -119,7 +119,7 @@ export default function ClientSidebar() {
   const { user } = useAuth();
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="border-b border-sidebar-border">
+      <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" className="pointer-events-none">

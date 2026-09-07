@@ -6,6 +6,7 @@ import {
   Eye, PlayCircle, Info, FileText, ClipboardList, FileImage,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FilterToolbar } from "@/components/layout/PageShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -289,22 +290,20 @@ export default function Step01ProjectSelection() {
       )}
 
       {/* ── Filter bar ── */}
-      <Card className="">
-        <CardContent className="p-4">
-          <div className="flex flex-wrap gap-3 items-center">
-            <div className="relative flex-1 min-w-[200px] max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      <FilterToolbar>
+          <div className="relative w-full max-w-sm">
+              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search project, client, location…"
-                className="pl-9 bg-muted/30"
+                className="h-8 rounded-lg pl-8"
               />
             </div>
             <select
               value={filterType}
               onChange={(e) => setType(e.target.value)}
-              className="h-9 rounded-md border border-input bg-muted/30 px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+              className="h-8 rounded-lg border border-input bg-background px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
             >
               {PROJECT_TYPES.map((t) => <option key={t}>{t}</option>)}
             </select>
@@ -317,9 +316,7 @@ export default function Step01ProjectSelection() {
                 <RotateCcw className="h-3.5 w-3.5" /> Reset
               </Button>
             )}
-          </div>
-        </CardContent>
-      </Card>
+      </FilterToolbar>
 
       {/* ── Projects table ── */}
       <Card className="overflow-hidden">

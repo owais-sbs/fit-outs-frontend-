@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Briefcase, Search, Plus } from "lucide-react";
+import { Briefcase, Plus } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
-import { PageShell, StatTile } from "@/components/layout/PageShell";
-import { Card, CardContent } from "@/components/ui/card";
+import { PageShell, StatTile, SearchInput } from "@/components/layout/PageShell";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { fetchAllProjects } from "../api/projects.api";
 import { fetchAllClients } from "../api/clients.api";
@@ -76,19 +75,11 @@ export default function ProjectsPage() {
         <StatTile label="Inactive" value={stats.inactive} />
       </div>
 
-      <Card>
-        <CardContent className="p-4">
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
+      <SearchInput
               placeholder="Search project ID, lead ref, name, client..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
             />
-          </div>
-        </CardContent>
-      </Card>
 
       <Card className="overflow-hidden">
         <div className="overflow-auto">

@@ -1,12 +1,12 @@
 import { useState, useMemo } from "react";
 import {
-  Search, ChevronUp, ChevronDown, ChevronsUpDown,
+  ChevronUp, ChevronDown, ChevronsUpDown,
   MoreHorizontal, UserPlus, Eye, ArrowRight, Plus,
 } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
+import { FilterToolbar, SearchInput } from "@/components/layout/PageShell";
 import { DESIGN_REQUESTS, DESIGNERS } from "../../data/design-workflow";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -130,21 +130,15 @@ export default function DesignRequestsPage() {
       </div>
 
       {/* Filters */}
-      <Card className="">
-        <CardContent className="p-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
+      <FilterToolbar>
+            <SearchInput
                 placeholder="Search project or client..."
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                className="pl-9"
-              />
-            </div>
+            />
             <div className="flex flex-wrap gap-2">
               <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
-                <SelectTrigger className="w-[130px]"><SelectValue placeholder="Status" /></SelectTrigger>
+                <SelectTrigger className="h-8 w-[130px] rounded-lg"><SelectValue placeholder="Status" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="Pending">Pending</SelectItem>
@@ -153,7 +147,7 @@ export default function DesignRequestsPage() {
                 </SelectContent>
               </Select>
               <Select value={priorityFilter} onValueChange={(v) => { setPriorityFilter(v); setPage(1); }}>
-                <SelectTrigger className="w-[130px]"><SelectValue placeholder="Priority" /></SelectTrigger>
+                <SelectTrigger className="h-8 w-[130px] rounded-lg"><SelectValue placeholder="Priority" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Priority</SelectItem>
                   <SelectItem value="Low">Low</SelectItem>
@@ -163,16 +157,14 @@ export default function DesignRequestsPage() {
                 </SelectContent>
               </Select>
               <Select value={typeFilter} onValueChange={(v) => { setTypeFilter(v); setPage(1); }}>
-                <SelectTrigger className="w-[190px]"><SelectValue placeholder="Design Type" /></SelectTrigger>
+                <SelectTrigger className="h-8 w-[190px] rounded-lg"><SelectValue placeholder="Design Type" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Types</SelectItem>
                   {allTypes.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+      </FilterToolbar>
 
       {/* Table */}
       <Card className="overflow-hidden">

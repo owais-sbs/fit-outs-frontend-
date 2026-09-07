@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Loader2, MapPin, Package, Search } from "lucide-react";
-import { PageShell, PageTitle, Surface } from "@/components/layout/PageShell";
+import { Loader2, MapPin, Package } from "lucide-react";
+import { PageShell, PageTitle, Surface, FilterToolbar, SearchInput } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -78,19 +76,14 @@ export default function SubcontractorPackagesPage() {
         </p>
       )}
 
-      <Card>
-        <CardContent className="flex flex-col gap-3 p-4 lg:flex-row lg:items-center">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
+      <FilterToolbar>
+          <SearchInput
               placeholder="Search package, project, or section..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
             />
-          </div>
           <Select value={projectFilter} onValueChange={setProjectFilter}>
-            <SelectTrigger className="w-full lg:w-[220px]">
+            <SelectTrigger className="h-8 w-full rounded-lg lg:w-[220px]">
               <SelectValue placeholder="All projects" />
             </SelectTrigger>
             <SelectContent>
@@ -102,8 +95,7 @@ export default function SubcontractorPackagesPage() {
               ))}
             </SelectContent>
           </Select>
-        </CardContent>
-      </Card>
+      </FilterToolbar>
 
       {filtered.length === 0 ? (
         <Surface className="px-4 py-16 text-center">

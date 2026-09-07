@@ -224,10 +224,10 @@ export default function AdminSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="border-b border-sidebar-border">
+      <SidebarHeader className="px-0">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" className="pointer-events-none">
+            <SidebarMenuButton size="lg" className="h-14 rounded-none pointer-events-none">
               <SidebarBrand portal={QS_ROLES.has(role) ? "QS Panel" : "Admin Panel"} />
             </SidebarMenuButton>
           </SidebarMenuItem>

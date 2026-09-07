@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Briefcase, Sliders, CheckCircle, MapPin, Eye, Search, Loader2 } from "lucide-react";
-import { PageShell, PageTitle, StatTile, Surface } from "@/components/layout/PageShell";
+import { Briefcase, Sliders, CheckCircle, MapPin, Eye, Loader2 } from "lucide-react";
+import { PageShell, PageTitle, StatTile, Surface, SearchInput } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { fetchMyScProjects } from "@/modules/admin/api/subcontractor.api";
 import { ROUTES } from "@/shared/constants/routes";
 
@@ -110,17 +109,11 @@ export default function SubcontractorProjectsPage() {
         <StatTile label="Completed" value={stats.completed} icon={CheckCircle} hint="Delivered" />
       </div>
 
-      <Surface className="p-4">
-        <div className="relative w-full max-w-sm">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by project name, ID..."
-            className="h-9 pl-9"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-      </Surface>
+      <SearchInput
+        placeholder="Search by project name, ID..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+      />
 
       <Surface className="overflow-hidden">
         <div className="overflow-x-auto">

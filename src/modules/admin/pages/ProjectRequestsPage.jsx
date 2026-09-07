@@ -89,19 +89,19 @@ export default function ProjectRequestsPage() {
 
       {/* Filters */}
       <Card className="bg-card/65 backdrop-blur-sm">
-        <CardContent className="p-4 flex flex-col md:flex-row gap-3 items-center justify-between">
+        <CardContent className="flex flex-col items-center justify-between gap-2 p-2 md:flex-row">
           <div className="relative w-full md:w-80">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Search request ID, client, project..."
-              className="pl-9 h-9"
+              className="h-8 rounded-lg pl-8"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
 
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full sm:w-[150px] h-9">
+            <SelectTrigger className="h-8 w-full rounded-lg sm:w-[150px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>

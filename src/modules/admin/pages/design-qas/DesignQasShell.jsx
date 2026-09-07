@@ -1,6 +1,4 @@
-import { Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { PageShell } from "@/components/layout/PageShell";
+import { PageShell, SearchInput } from "@/components/layout/PageShell";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 
 /** Shared page chrome for Design QAS routes. */
@@ -11,16 +9,12 @@ export function DesignQasPageShell({ title, description, actions, stats, search,
 
       {stats ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{stats}</div> : null}
 
-      <div className="flex flex-col gap-3 rounded-xl border border-border/50 bg-muted/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative w-full sm:max-w-md">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
+      <div className="flex flex-col gap-2 rounded-lg sm:flex-row sm:items-center sm:justify-between">
+        <SearchInput
             placeholder={searchPlaceholder}
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="h-9 border-border/60 bg-background pl-9"
           />
-        </div>
         {typeof resultCount === "number" && (
           <p className="shrink-0 text-xs text-muted-foreground sm:text-sm">
             {resultCount} {resultCount === 1 ? "item" : "items"}

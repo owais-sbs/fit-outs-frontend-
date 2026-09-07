@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { CheckCircle, Search } from "lucide-react";
+import { CheckCircle } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
-import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/layout/PageShell";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { fetchAllSiteVisits } from "../api/site-visits.api";
@@ -59,10 +59,7 @@ export default function CompletedVisitsPage() {
         description="Review past site visits and access their reports."
       />
 
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input placeholder="Search completed visits..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 bg-muted/30" />
-      </div>
+      <SearchInput placeholder="Search completed visits..." value={search} onChange={(e) => setSearch(e.target.value)} />
 
       {error ? (
         <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">

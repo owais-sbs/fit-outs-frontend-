@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Clock, FileText, MapPin, Search } from "lucide-react";
+import { Clock, FileText, MapPin } from "lucide-react";
 import { ROUTES } from "@/shared/constants/routes";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
+import { SearchInput } from "@/components/layout/PageShell";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -120,10 +120,7 @@ export default function UpcomingVisitsPage() {
         }
       />
 
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input placeholder="Search upcoming visits..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 bg-muted/30" />
-      </div>
+      <SearchInput placeholder="Search upcoming visits..." value={search} onChange={(e) => setSearch(e.target.value)} />
 
       {error ? (
         <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
