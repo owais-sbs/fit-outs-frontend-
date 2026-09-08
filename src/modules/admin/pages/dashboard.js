@@ -105,17 +105,26 @@ function AdminCrmDashboard() {
     setLoading(true);
     setError("");
     try {
-      const [leadData, projectData, visitData, employeeData] = await Promise.all([
+      const [leadRes, projectRes, visitRes, employeeRes] = await Promise.allSettled([
         fetchAllLeads(0, 500),
         fetchAllProjects(),
         fetchAllSiteVisits(),
-        fetchAllEmployees().catch(() => []),
+        fetchAllEmployees(),
       ]);
-      setLeads(leadData || []);
-      setProjects(projectData || []);
-      setSiteVisits(visitData || []);
-      setEmployees(employeeData || []);
+      const leadData = leadRes.status === "fulfilled" ? leadRes.value : [];
+      const projectData = projectRes.status === "fulfilled" ? projectRes.value : [];
+      const visitData = visitRes.status === "fulfilled" ? visitRes.value : [];
+      const employeeData = employeeRes.status === "fulfilled" ? employeeRes.value : [];
+      setLeads(Array.isArray(leadData) ? leadData : []);
+      setProjects(Array.isArray(projectData) ? projectData : []);
+      setSiteVisits(Array.isArray(visitData) ? visitData : []);
+      setEmployees(Array.isArray(employeeData) ? employeeData : []);
       setRefreshedAt(new Date());
+      const failed = [leadRes, projectRes, visitRes].find((r) => r.status === "rejected");
+      if (failed) {
+        const err = failed.reason;
+        setError(err?.response?.data?.error || err?.response?.data?.message || err?.message || "Some dashboard data failed to load");
+      }
     } catch (err) {
       console.error(err);
       setError(err?.response?.data?.message || err?.message || "Failed to load dashboard data");

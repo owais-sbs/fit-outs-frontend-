@@ -132,7 +132,7 @@ export default function ScheduleApplyWizard({ projectId, onApplied, onPreviewCha
       const result = await applySchedule(projectId, payload);
       if (!result?.activitiesWritten) {
         throw new Error(
-          "No activities were written. Import the seed file from Authority library, then try again."
+          "No activities were written. Import the schedule seed, then try again."
         );
       }
       onApplied?.(result);

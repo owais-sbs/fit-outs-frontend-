@@ -1,5 +1,4 @@
-import { Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { FilterToolbar, SearchInput } from "@/components/layout/PageShell";
 import {
   Select,
   SelectContent,
@@ -17,20 +16,16 @@ export default function FiltersBar({
   onStatusChange,
 }) {
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div className="relative flex-1 max-w-md">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
+    <FilterToolbar>
+      <SearchInput
           type="search"
           placeholder="Search tenants..."
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="pl-9"
         />
-      </div>
       <div className="flex flex-wrap gap-2">
         <Select value={planFilter} onValueChange={onPlanChange}>
-          <SelectTrigger className="w-[140px] bg-background">
+          <SelectTrigger className="h-8 w-[140px] rounded-lg bg-background">
             <SelectValue placeholder="Plan" />
           </SelectTrigger>
           <SelectContent>
@@ -41,7 +36,7 @@ export default function FiltersBar({
           </SelectContent>
         </Select>
         <Select value={statusFilter} onValueChange={onStatusChange}>
-          <SelectTrigger className="w-[140px] bg-background">
+          <SelectTrigger className="h-8 w-[140px] rounded-lg bg-background">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -52,6 +47,6 @@ export default function FiltersBar({
           </SelectContent>
         </Select>
       </div>
-    </div>
+    </FilterToolbar>
   );
 }

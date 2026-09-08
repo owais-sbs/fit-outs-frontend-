@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { CheckSquare, Search, Loader2 } from "lucide-react";
+import { CheckSquare, Loader2 } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
-import { PageShell } from "@/components/layout/PageShell";
+import { PageShell, SearchInput } from "@/components/layout/PageShell";
 import { fetchAllChecklists } from "../api/checklists.api";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -55,19 +54,11 @@ export default function ChecklistsPage({ embedded = false }) {
         </p>
       )}
 
-      <Card>
-        <CardContent className="p-4">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
+      <SearchInput
               placeholder="Search checklists..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 bg-muted/30"
             />
-          </div>
-        </CardContent>
-      </Card>
 
       {loading ? (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">

@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { 
   Search, Trash2, Copy, Filter, X, AlertCircle,
-  ChevronLeft, ChevronDown, ChevronRight, Edit2, Folder
+  ChevronLeft, ChevronDown, ChevronRight, Edit2, Folder, Plus
 } from "lucide-react";
 import ConfigurationLayout from "../../components/shared/configuration/ConfigurationLayout";
 import PageHeader from "../../components/shared/configuration/PageHeader";
@@ -17,6 +17,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import { 
   fetchWorkItems,
@@ -31,6 +39,7 @@ import {
   deleteWorkItemMaster
 } from "../../api/work-item.api";
 import { fetchMaterials } from "../../api/material.api";
+import { fetchScopeTags } from "../../api/approvals-config.api";
 import { formatCurrency, DIRHAM_SYMBOL } from "@/shared/utils/currency";
 
 const UNIT_TYPES = [
@@ -74,13 +83,38 @@ const computeAutoSelling = (cost, markup) => {
   return c * (1 + m / 100);
 };
 
+const PAGE_SIZE = 40;
+
+function isLastWorkItemPage(res, chunk, pageToLoad) {
+  if (pageToLoad > 0 && chunk.length === 0) return true;
+  const totalPages = Number(res?.totalPages ?? res?.page?.totalPages);
+  if (Number.isFinite(totalPages) && totalPages > 0) {
+    return pageToLoad >= totalPages - 1;
+  }
+  const totalElements = Number(res?.totalElements ?? res?.page?.totalElements);
+  const size = Number(res?.size ?? res?.page?.size) || chunk.length || PAGE_SIZE;
+  if (Number.isFinite(totalElements) && totalElements >= 0) {
+    return pageToLoad * size + chunk.length >= totalElements;
+  }
+  if (res?.last === true) return true;
+  return false;
+}
+
 export default function WorkItemConfigurationPage() {
   const [workItems, setWorkItems] = useState([]);
   const [workItemMasters, setWorkItemMasters] = useState([]);
   const [allMaterials, setAllMaterials] = useState([]);
+  const [scopeTags, setScopeTags] = useState([]);
   const [materialSearch, setMaterialSearch] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const pageRef = useRef(0);
+  const loadingRef = useRef(false);
+  const hasMoreRef = useRef(true);
+  const sentinelRef = useRef(null);
+  const requestIdRef = useRef(0);
 
   // Grouped collapse state
   const [collapsedMasters, setCollapsedMasters] = useState(new Set());
@@ -101,6 +135,7 @@ export default function WorkItemConfigurationPage() {
 
   // Table Filters
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [workItemMasterIdFilter, setWorkItemMasterIdFilter] = useState("All");
 
   // Form Data (Two-Step Form)
@@ -124,6 +159,7 @@ export default function WorkItemConfigurationPage() {
     costPriceOverride: false,
     sellingPriceOverride: false,
     materialLines: [],
+    scopeTagIds: [],
     formula: "MANUAL",
     active: true
   });
@@ -142,6 +178,15 @@ export default function WorkItemConfigurationPage() {
     }
   };
 
+  const loadScopeTags = async () => {
+    try {
+      const list = await fetchScopeTags();
+      setScopeTags(Array.isArray(list) ? list.filter((tag) => tag.active !== false) : []);
+    } catch (e) {
+      console.error("Error loading scope tags", e);
+    }
+  };
+
   // Load Work Item Masters
   const loadWorkItemMasters = async () => {
     try {
@@ -153,35 +198,93 @@ export default function WorkItemConfigurationPage() {
     }
   };
 
-  // Load Work Items
-  const loadData = async () => {
-    setIsLoading(true);
+  const loadData = useCallback(async (append = false) => {
+    if (append && (loadingRef.current || !hasMoreRef.current)) return;
+    const requestId = append ? requestIdRef.current : ++requestIdRef.current;
+    loadingRef.current = true;
+    const pageToLoad = append ? pageRef.current + 1 : 0;
+    if (!append) {
+      hasMoreRef.current = true;
+      pageRef.current = 0;
+    }
+    if (append) setIsLoadingMore(true);
+    else setIsLoading(true);
     try {
       const filterBody = {
-        search: searchTerm.trim() !== "" ? searchTerm : null,
+        search: debouncedSearch !== "" ? debouncedSearch : null,
         workItemMasterId: workItemMasterIdFilter === "All" ? null : workItemMasterIdFilter
       };
 
-      const res = await fetchWorkItems(filterBody, 0, 1000);
-      setWorkItems(res.content || []);
+      const res = await fetchWorkItems(filterBody, pageToLoad, PAGE_SIZE);
+      if (requestId !== requestIdRef.current) return;
+      const chunk = Array.isArray(res?.content)
+        ? res.content
+        : Array.isArray(res)
+          ? res
+          : [];
+      const last = isLastWorkItemPage(res, chunk, pageToLoad);
+      pageRef.current = pageToLoad;
+      hasMoreRef.current = !last;
+      setHasMore(!last);
+      setWorkItems((prev) => {
+        if (!append) return chunk;
+        if (!chunk.length) return prev;
+        const seen = new Set(prev.map((w) => w.id));
+        const extra = chunk.filter((w) => !seen.has(w.id));
+        return extra.length ? [...prev, ...extra] : prev;
+      });
+      if (append && chunk.length === 0) {
+        hasMoreRef.current = false;
+        setHasMore(false);
+      }
     } catch (e) {
+      if (requestId !== requestIdRef.current) return;
       console.error("Error fetching work items", e);
-      triggerToast("error", "Fetch Failed", "Could not retrieve work items catalog.");
+      hasMoreRef.current = false;
+      setHasMore(false);
+      setToast({ type: "error", title: "Fetch Failed", message: "Could not retrieve work items catalog." });
     } finally {
-      setIsLoading(false);
+      if (requestId === requestIdRef.current) {
+        loadingRef.current = false;
+        setIsLoading(false);
+        setIsLoadingMore(false);
+      }
     }
-  };
+  }, [debouncedSearch, workItemMasterIdFilter]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchTerm.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   useEffect(() => {
     loadWorkItemMasters();
     loadMaterials();
+    loadScopeTags();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm, workItemMasterIdFilter]);
+    pageRef.current = 0;
+    hasMoreRef.current = true;
+    loadData(false);
+  }, [loadData]);
+
+  useEffect(() => {
+    if (!hasMore || (isLoading && workItems.length === 0)) return undefined;
+    const el = sentinelRef.current;
+    if (!el) return undefined;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0]?.isIntersecting) return;
+        if (!hasMoreRef.current || loadingRef.current) return;
+        loadData(true);
+      },
+      { root: null, rootMargin: "0px 0px 180% 0px", threshold: 0 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasMore, loadData, isLoading, workItems.length]);
 
   // Toast auto-dismissal
   useEffect(() => {
@@ -223,7 +326,10 @@ export default function WorkItemConfigurationPage() {
       groups[mId].items.push(w);
     });
 
-    return Object.values(groups);
+    return Object.values(groups).filter((g) => {
+      if (g.items.length > 0) return true;
+      return workItemMasterIdFilter !== "All" && g.masterId === workItemMasterIdFilter;
+    });
   };
 
   const toggleCollapseMaster = (masterId) => {
@@ -257,6 +363,7 @@ export default function WorkItemConfigurationPage() {
       costPriceOverride: false,
       sellingPriceOverride: false,
       materialLines: [],
+      scopeTagIds: [],
       formula: "MANUAL",
       active: true
     });
@@ -300,6 +407,7 @@ export default function WorkItemConfigurationPage() {
         quantityPerUnit: line.quantityPerUnit?.toString() || "1",
         wastagePercent: line.wastagePercent?.toString() || "0",
       })),
+      scopeTagIds: detail.scopeTagIds || (detail.scopeTags || []).map((tag) => tag.id),
       formula: detail.quantityFormulaType || "MANUAL",
       active: detail.active ?? true
     });
@@ -327,6 +435,16 @@ export default function WorkItemConfigurationPage() {
         next.defaultRate = computeAutoSelling(cost, prev.markupPercentage).toFixed(2);
       }
       return next;
+    });
+  };
+
+  const handleScopeTagToggle = (tagId, checked) => {
+    setFormData((prev) => {
+      const ids = [...(prev.scopeTagIds || [])];
+      const idx = ids.indexOf(tagId);
+      if (checked && idx === -1) ids.push(tagId);
+      else if (!checked && idx !== -1) ids.splice(idx, 1);
+      return { ...prev, scopeTagIds: ids };
     });
   };
 
@@ -528,6 +646,7 @@ export default function WorkItemConfigurationPage() {
           quantityPerUnit: parseFloat(line.quantityPerUnit) || 1,
           wastagePercent: parseFloat(line.wastagePercent) || 0,
         })),
+        scopeTagIds: formData.scopeTagIds || [],
         quantityFormulaType: formData.formula,
         icon: "Wrench",
         colorTag: "blue"
@@ -550,6 +669,52 @@ export default function WorkItemConfigurationPage() {
       triggerToast("error", "Failed to Save", errMsg);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleToggleRowScopeTag = async (item, tag, checked) => {
+    let nextIds = [];
+    let previousTags = [];
+    let previousIds = [];
+    let nextTags = [];
+
+    setWorkItems((prev) => {
+      const current = prev.find((wi) => wi.id === item.id) || item;
+      previousTags = current.scopeTags || [];
+      previousIds = current.scopeTagIds || previousTags.map((t) => t.id);
+      const currentIds = previousTags.map((t) => t.id);
+      nextIds = checked
+        ? [...currentIds.filter((id) => id !== tag.id), tag.id]
+        : currentIds.filter((id) => id !== tag.id);
+      nextTags = checked
+        ? [...previousTags.filter((t) => t.id !== tag.id), { id: tag.id, code: tag.code, name: tag.name }]
+        : previousTags.filter((t) => t.id !== tag.id);
+      return prev.map((wi) =>
+        wi.id === item.id ? { ...wi, scopeTagIds: nextIds, scopeTags: nextTags } : wi
+      );
+    });
+
+    try {
+      const updated = await updateWorkItem(item.id, { scopeTagIds: nextIds });
+      setWorkItems((prev) =>
+        prev.map((wi) =>
+          wi.id === item.id
+            ? {
+                ...wi,
+                scopeTagIds: updated.scopeTagIds ?? nextIds,
+                scopeTags: updated.scopeTags ?? nextTags,
+              }
+            : wi
+        )
+      );
+    } catch (err) {
+      console.error(err);
+      setWorkItems((prev) =>
+        prev.map((wi) =>
+          wi.id === item.id ? { ...wi, scopeTagIds: previousIds, scopeTags: previousTags } : wi
+        )
+      );
+      triggerToast("error", "Failed to Save", err.response?.data?.message || err.message || "Could not update scope tags.");
     }
   };
 
@@ -678,14 +843,14 @@ export default function WorkItemConfigurationPage() {
         />
 
         {/* Filters and Search Toolbar */}
-        <div className="flex flex-col md:flex-row gap-4 justify-between items-stretch md:items-center rounded-2xl bg-secondary/50 p-4">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <div className="relative w-full max-w-sm">
+            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Search work items..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9"
+              className="h-8 rounded-lg pl-8"
             />
           </div>
           
@@ -709,23 +874,25 @@ export default function WorkItemConfigurationPage() {
         {/* Grouped Master Table */}
         <Card>
           <CardContent className="p-0 overflow-x-auto">
-            {isLoading ? (
+            {isLoading && workItems.length === 0 ? (
               <div className="p-6 space-y-4">
                 {[1, 2, 3].map(i => (
                   <Skeleton key={i} className="h-12 w-full" />
                 ))}
               </div>
             ) : groupedData.length > 0 ? (
-              <Table className="min-w-[1050px]">
+              <>
+              <Table className="min-w-[1180px]">
                 <TableHeader className="bg-muted/30">
                   <TableRow>
-                    <TableHead className="w-[22%]">Work Category (Parent)</TableHead>
-                    <TableHead className="w-[22%]">Work Items (Child)</TableHead>
-                    <TableHead className="w-[10%]">Unit Type</TableHead>
+                    <TableHead className="w-[20%]">Work Category (Parent)</TableHead>
+                    <TableHead className="w-[20%]">Work Items (Child)</TableHead>
+                    <TableHead className="w-[14%]">Scope tags</TableHead>
+                    <TableHead className="w-[8%]">Unit Type</TableHead>
                     <TableHead className="w-[10%]">Cost Price</TableHead>
                     <TableHead className="w-[10%]">Selling Price</TableHead>
-                    <TableHead className="w-[10%]">Subcontractor</TableHead>
-                    <TableHead className="w-[16%] text-right">Actions</TableHead>
+                    <TableHead className="w-[8%]">Subcontractor</TableHead>
+                    <TableHead className="w-[10%] text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -764,7 +931,7 @@ export default function WorkItemConfigurationPage() {
                                 </div>
                               </div>
                             </TableCell>
-                            <TableCell colSpan={6} className="text-muted-foreground italic text-xs py-4 text-center">
+                            <TableCell colSpan={7} className="text-muted-foreground italic text-xs py-4 text-center">
                               No work items defined under this category.
                             </TableCell>
                           </TableRow>
@@ -822,6 +989,56 @@ export default function WorkItemConfigurationPage() {
                                       <div className="flex flex-col">
                                         <span className="text-sm font-semibold">{item.workItemName}</span>
                                         <span className="text-[10px] font-mono text-muted-foreground mt-0.5">{item.workItemCode}</span>
+                                      </div>
+                                    </TableCell>
+                                    <TableCell>
+                                      <div className="flex flex-wrap items-center gap-1">
+                                        {(item.scopeTags || []).length === 0 ? null : (
+                                          item.scopeTags.map((tag) => (
+                                            <Badge key={tag.id} variant="outline" className="text-[10px] font-normal">
+                                              {tag.name}
+                                            </Badge>
+                                          ))
+                                        )}
+                                        <DropdownMenu>
+                                          <DropdownMenuTrigger asChild>
+                                            <Button
+                                              type="button"
+                                              variant="ghost"
+                                              size="icon"
+                                              className="h-6 w-6 shrink-0"
+                                              title="Add scope tags"
+                                              onClick={(e) => e.stopPropagation()}
+                                            >
+                                              <Plus className="h-3.5 w-3.5" />
+                                            </Button>
+                                          </DropdownMenuTrigger>
+                                          <DropdownMenuContent align="start" className="w-64 max-h-72" onClick={(e) => e.stopPropagation()}>
+                                            <DropdownMenuLabel>Scope tags</DropdownMenuLabel>
+                                            {scopeTags.length === 0 ? (
+                                              <p className="px-2 py-3 text-xs text-muted-foreground">
+                                                No scope tags yet. Add them under Approvals Config.
+                                              </p>
+                                            ) : (
+                                              scopeTags.map((tag) => {
+                                                const assigned = (item.scopeTags || []).some((t) => t.id === tag.id);
+                                                return (
+                                                  <DropdownMenuCheckboxItem
+                                                    key={tag.id}
+                                                    checked={assigned}
+                                                    onSelect={(e) => e.preventDefault()}
+                                                    onCheckedChange={(c) => handleToggleRowScopeTag(item, tag, !!c)}
+                                                  >
+                                                    <span className="flex flex-col">
+                                                      <span>{tag.name}</span>
+                                                      <span className="text-[10px] font-mono text-muted-foreground">{tag.code}</span>
+                                                    </span>
+                                                  </DropdownMenuCheckboxItem>
+                                                );
+                                              })
+                                            )}
+                                          </DropdownMenuContent>
+                                        </DropdownMenu>
                                       </div>
                                     </TableCell>
                                     <TableCell>
@@ -884,6 +1101,7 @@ export default function WorkItemConfigurationPage() {
                   })}
                 </TableBody>
               </Table>
+              </>
             ) : (
               <EmptyState
                 title="No Work Items mapped"
@@ -891,6 +1109,10 @@ export default function WorkItemConfigurationPage() {
                 actionLabel="Create Work Category"
                 onAction={handleOpenAddModal}
               />
+            )}
+            <div ref={sentinelRef} className="h-8" />
+            {isLoadingMore && (
+              <p className="py-3 text-center text-xs text-muted-foreground">Loading more work items…</p>
             )}
           </CardContent>
         </Card>
@@ -1167,6 +1389,36 @@ export default function WorkItemConfigurationPage() {
                       </div>
                     </div>
                   ))
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-3 p-4 border rounded-lg">
+              <Label className="text-xs uppercase font-bold tracking-wider text-muted-foreground">Scope tags</Label>
+              <p className="text-[11px] text-muted-foreground">Tag only work that can trigger an approval. Most items should stay untagged.</p>
+              <div className="max-h-[180px] overflow-y-auto border rounded-md p-2 space-y-1">
+                {scopeTags.length === 0 ? (
+                  <p className="text-xs text-muted-foreground p-2">No scope tags yet. Add them under Project Configuration → Approvals Config → Scope tags.</p>
+                ) : (
+                  scopeTags.map((tag) => {
+                    const checked = (formData.scopeTagIds || []).includes(tag.id);
+                    return (
+                      <div key={tag.id} className="flex items-start gap-2 p-2 rounded hover:bg-muted/30">
+                        <Checkbox
+                          id={`scope-${tag.id}`}
+                          checked={checked}
+                          onCheckedChange={(c) => handleScopeTagToggle(tag.id, !!c)}
+                        />
+                        <label htmlFor={`scope-${tag.id}`} className="text-xs cursor-pointer flex-1">
+                          <span className="font-medium">{tag.name}</span>
+                          <span className="font-mono text-muted-foreground ml-1">({tag.code})</span>
+                          {tag.description && (
+                            <p className="text-[11px] text-muted-foreground mt-0.5">{tag.description}</p>
+                          )}
+                        </label>
+                      </div>
+                    );
+                  })
                 )}
               </div>
             </div>

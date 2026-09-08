@@ -19,7 +19,7 @@ import { fetchAllEmployees } from "../api/employees.api";
 import { fetchCrewAssignments } from "../api/resource.api";
 import { fetchProjectTeamAssignments } from "../api/project-team.api";
 import { fetchBoqsByProject } from "../api/boq.api";
-import { ROUTES, boqViewPath, portalRoutesFromPath } from "@/shared/constants/routes";
+import { ROUTES, PROJECT_DETAIL_NAV_STATE, boqViewPath, portalRoutesFromPath } from "@/shared/constants/routes";
 import { useAuth } from "@/shared/context/auth-context";
 import { BoqStatusBadge } from "./boq/BoqApprovalTimeline";
 import BoqApprovalPipeline from "./boq/BoqApprovalPipeline";
@@ -27,6 +27,7 @@ import { formatCurrency, formatAed } from "@/shared/utils/currency";
 import { splitProjectBoqs } from "./boq/boqDataUtils";
 import ProjectRoomsSection from "./roomcollab/ProjectRoomsSection";
 import ProjectTeamAssignmentSection from "./ProjectTeamAssignmentSection";
+import ProjectApprovalsSection from "./ProjectApprovalsSection";
 import { fetchPlanningStatus } from "../api/planning.api";
 
 function InfoItem({ label, value, mono = false }) {
@@ -265,12 +266,12 @@ export default function ProjectDetailPage() {
                   </Link>
                 </Button>
                 <Button asChild size="sm" variant="outline">
-                  <Link to={subcontractorsPath}>
+                  <Link to={subcontractorsPath} state={PROJECT_DETAIL_NAV_STATE}>
                     <HardHat className="w-4 h-4 mr-1" /> Subcontractors
                   </Link>
                 </Button>
                 <Button asChild size="sm" variant="outline">
-                  <Link to={validationPath}>
+                  <Link to={validationPath} state={PROJECT_DETAIL_NAV_STATE}>
                     <ClipboardCheck className="w-4 h-4 mr-1" /> Validation
                   </Link>
                 </Button>
@@ -439,6 +440,8 @@ export default function ProjectDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      <ProjectApprovalsSection href={approvalsPath} />
 
       {!isFinance && (
         <ProjectRoomsSection projectId={projectId} projectName={project.projectName || project.name} />

@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { GanttChart, Loader2, Search } from "lucide-react";
-import { PageShell, PageTitle, Surface } from "@/components/layout/PageShell";
+import { GanttChart, Loader2 } from "lucide-react";
+import { PageShell, PageTitle, Surface, SearchInput } from "@/components/layout/PageShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { fetchAllProjects } from "../../api/projects.api";
 import { fetchPlanningStatus } from "../../api/planning.api";
 import { fetchProjectSchedule } from "../../api/schedule.api";
@@ -164,16 +163,12 @@ export default function ScheduleHubPage() {
         }
       />
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative max-w-md flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            className="pl-9"
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <SearchInput
             placeholder="Search projects…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-        </div>
         <Button asChild variant="outline">
           <Link to={routes.PROJECTS}>All projects</Link>
         </Button>

@@ -1,15 +1,14 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Building2, MoreHorizontal, Search } from "lucide-react";
+import { Building2, MoreHorizontal } from "lucide-react";
 import { ROUTES } from "@/shared/constants/routes";
 import PageHeader from "../components/shared/PageHeader";
-import { PageShell, StatTile } from "@/components/layout/PageShell";
+import { PageShell, StatTile, FilterToolbar, SearchInput } from "@/components/layout/PageShell";
 import { TenantQuickActions } from "../components/tenant-management";
 import { useTenantManagement } from "../context/tenant-management-context";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
@@ -105,21 +104,15 @@ export default function TenantsPage() {
         <StatTile label="Showing" value={filtered.length} hint="After filters" />
       </div>
 
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
+      <FilterToolbar>
+            <SearchInput
                 placeholder="Search companies..."
                 value={search}
                 onChange={(event) => {
                   setSearch(event.target.value);
                   setPage(1);
                 }}
-                className="pl-9"
-              />
-            </div>
+            />
             <div className="flex flex-wrap gap-2">
               <Select
                 value={status}
@@ -127,7 +120,7 @@ export default function TenantsPage() {
                   setStatus(value);
                   setPage(1);
                 }}>
-                <SelectTrigger className="w-[140px]">
+                <SelectTrigger className="h-8 w-[140px] rounded-lg">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -139,9 +132,7 @@ export default function TenantsPage() {
                 </SelectContent>
               </Select>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+      </FilterToolbar>
 
       <Card className="overflow-hidden">
         <div className="max-h-[calc(100vh-22rem)] overflow-auto">

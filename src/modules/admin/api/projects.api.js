@@ -18,6 +18,7 @@ export function normalizeProject(item = {}) {
     budget: item.budget ?? 0,
     startDate: item.startDate || null,
     expectedCompletionDate: item.expectedCompletionDate || null,
+    jurisdictionPackId: item.jurisdictionPackId || null,
   };
 }
 
@@ -45,6 +46,7 @@ export const createProject = (form) =>
       assignedManager: form.assignedManager,
       startDate: form.startDate || null,
       expectedCompletionDate: form.expectedCompletionDate || null,
+      jurisdictionPackId: form.jurisdictionPackId || null,
     })
     .then((r) => {
       const payload = r.data;

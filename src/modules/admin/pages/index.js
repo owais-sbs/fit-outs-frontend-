@@ -40,6 +40,7 @@ export { default as WorkItemConfigurationPage } from "./project-configuration/Wo
 export { default as MaterialConfigurationPage } from "./project-configuration/MaterialConfigurationPage";
 export { default as AppendixMastersPage } from "./project-configuration/AppendixMastersPage";
 export { default as CoverLetterBrandingPage } from "./project-configuration/CoverLetterBrandingPage";
+export { default as ApprovalsConfigurationPage } from "./project-configuration/ApprovalsConfigurationPage";
 
 export { default as StockDashboardPage } from "./procurement/StockDashboardPage";
 export { default as GoodsReceiptPage } from "./procurement/GoodsReceiptPage";

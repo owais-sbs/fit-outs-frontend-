@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { FileText, Search, Download, Eye } from "lucide-react";
+import { FileText, Download, Eye } from "lucide-react";
 import { ROUTES } from "@/shared/constants/routes";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
-import { PageShell } from "@/components/layout/PageShell";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { PageShell, SearchInput } from "@/components/layout/PageShell";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -75,21 +74,11 @@ export default function VisitReportsPage({ embedded = false }) {
         />
       )}
 
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
+      <SearchInput
                 placeholder="Search reports by client..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 bg-muted/30"
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+            />
 
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">

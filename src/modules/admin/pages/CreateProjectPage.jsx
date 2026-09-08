@@ -15,6 +15,7 @@ import { ROUTES } from "@/shared/constants/routes";
 import { fetchAllClients, createClient } from "@/modules/admin/api/clients.api";
 import { fetchAllEmployees } from "@/modules/admin/api/employees.api";
 import { createProject } from "@/modules/admin/api/projects.api";
+import { fetchJurisdictionPacks } from "@/modules/admin/api/approvals-config.api";
 import { DIRHAM_SYMBOL } from "@/shared/utils/currency";
 import { useAuth } from "@/shared/context/auth-context";
 import { ROLES } from "@/shared/constants/roles";
@@ -46,6 +47,7 @@ export default function CreateProjectPage() {
 
   const [clients, setClients] = useState([]);
   const [employees, setEmployees] = useState([]);
+  const [packs, setPacks] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [clientMode, setClientMode] = useState(CLIENT_MODE.NONE);
   const [form, setForm] = useState({
@@ -54,6 +56,7 @@ export default function CreateProjectPage() {
     clientId: "",
     projectType: "Commercial",
     location: "",
+    jurisdictionPackId: "",
     assignedManager: "",
     startDate: "",
     expectedCompletionDate: "",
@@ -73,6 +76,9 @@ export default function CreateProjectPage() {
     fetchAllEmployees()
       .then((list) => setEmployees(Array.isArray(list) ? list.filter((e) => e.isActive !== false) : []))
       .catch(() => setEmployees([]));
+    fetchJurisdictionPacks(true)
+      .then((list) => setPacks(Array.isArray(list) ? list : []))
+      .catch(() => setPacks([]));
   }, []);
 
   const managerOptions = useMemo(() => {
@@ -138,6 +144,7 @@ export default function CreateProjectPage() {
     const errs = {};
     if (!form.projectName.trim()) errs.projectName = "Project name is required";
     if (!form.location.trim()) errs.location = "Location is required";
+    if (!form.jurisdictionPackId) errs.jurisdictionPackId = "Select the community or zone";
     if (!form.assignedManager) errs.assignedManager = "Assigned manager is required";
     if (!form.startDate) errs.startDate = "Start date is required";
     if (!form.expectedCompletionDate) errs.expectedCompletionDate = "Expected completion date is required";
@@ -191,6 +198,7 @@ export default function CreateProjectPage() {
         companyId: user?.companyId || user?.companyUuid || null,
         projectType: form.projectType,
         location: form.location.trim(),
+        jurisdictionPackId: form.jurisdictionPackId,
         assignedManager: form.assignedManager,
         startDate: form.startDate,
         expectedCompletionDate: form.expectedCompletionDate,
@@ -392,6 +400,37 @@ export default function CreateProjectPage() {
                   />
                 </div>
                 {errors.location && <p className="text-[11px] text-destructive">{errors.location}</p>}
+              </div>
+
+              <div className="space-y-1.5 md:col-span-2">
+                <Label className="text-xs font-semibold">Community / zone *</Label>
+                <Select
+                  value={form.jurisdictionPackId || undefined}
+                  onValueChange={(val) => handleChange("jurisdictionPackId", val)}
+                >
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Select developer, community or free zone" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {packs.length === 0 ? (
+                      <SelectItem value="__none" disabled>
+                        No packs yet — open Approvals Config once to seed Dubai data
+                      </SelectItem>
+                    ) : (
+                      packs.map((pack) => (
+                        <SelectItem key={pack.id} value={pack.id}>
+                          {pack.name}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+                {form.jurisdictionPackId && (
+                  <p className="text-[11px] text-muted-foreground">
+                    {packs.find((p) => p.id === form.jurisdictionPackId)?.description}
+                  </p>
+                )}
+                {errors.jurisdictionPackId && <p className="text-[11px] text-destructive">{errors.jurisdictionPackId}</p>}
               </div>
             </div>
 

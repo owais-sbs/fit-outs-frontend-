@@ -1,5 +1,4 @@
-import { Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { FilterToolbar, SearchInput } from "@/components/layout/PageShell";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
@@ -27,25 +26,21 @@ export default function ReadyForConversionTable({
 }) {
   return (
     <div className="space-y-3">
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
+      <FilterToolbar>
+        <SearchInput
             placeholder="Search leads..."
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-9 h-9"
           />
-        </div>
         <Select value={typeFilter} onValueChange={onTypeChange}>
-          <SelectTrigger className="w-[130px] h-9"><SelectValue placeholder="Type" /></SelectTrigger>
+          <SelectTrigger className="h-8 w-[130px] rounded-lg"><SelectValue placeholder="Type" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All types</SelectItem>
             {PROJECT_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={managerFilter} onValueChange={onManagerChange}>
-          <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Manager" /></SelectTrigger>
+          <SelectTrigger className="h-8 w-[140px] rounded-lg"><SelectValue placeholder="Manager" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All managers</SelectItem>
             {[...new Set(leads.map((l) => l.manager))].map((m) => (
@@ -53,7 +48,7 @@ export default function ReadyForConversionTable({
             ))}
           </SelectContent>
         </Select>
-      </div>
+      </FilterToolbar>
 
       <Card className="overflow-hidden border-border/60">
         <div className="max-h-[240px] overflow-auto">

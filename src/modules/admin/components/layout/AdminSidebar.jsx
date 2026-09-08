@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Users, MapPin, ChevronRight,
   UserSquare2, CalendarRange, Briefcase,
   UserCheck, Mail, Grid, Wrench, Settings, PenTool,
-  CheckCircle, PieChart, CheckSquare, FileText, ClipboardList,
+  CheckCircle, PieChart, CheckSquare, FileText, ClipboardList, ShieldCheck,
   Package, Warehouse, ArrowDownToLine, ArrowUpFromLine, History, ImagePlus, Inbox,
   GanttChart, Stamp,
 } from "lucide-react";
@@ -50,6 +50,7 @@ const PROJECT_CONFIG_SUB_ITEMS = [
   { label: "Materials Master", href: ROUTES.ADMIN.MATERIAL_CONFIG, icon: Package },
   { label: "Appendices", href: ROUTES.ADMIN.APPENDIX_CONFIG, icon: ImagePlus },
   { label: "Cover letter", href: ROUTES.ADMIN.COVER_LETTER_CONFIG, icon: Stamp },
+  { label: "Approvals Config", href: ROUTES.ADMIN.APPROVALS_CONFIG, icon: ShieldCheck },
 ];
 
 const PROCUREMENT_SUB_ITEMS = [
@@ -97,7 +98,6 @@ const NAV_GROUPS = [
       { type: "link", label: "Schedule", href: ROUTES.ADMIN.SCHEDULE_HUB, icon: GanttChart },
       { type: "link", label: "Schedule templates", href: ROUTES.ADMIN.SCHEDULE_TEMPLATES, icon: GanttChart },
       { type: "link", label: "Approvals", href: ROUTES.ADMIN.APPROVALS_DASHBOARD, icon: Stamp },
-      { type: "link", label: "Authority library", href: ROUTES.ADMIN.AUTHORITY_LIBRARY, icon: Stamp },
       {
         type: "link",
         label: "Validation Inbox",
@@ -227,17 +227,11 @@ export default function AdminSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="border-b border-sidebar-border">
+      <SidebarHeader className="px-0">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" className="pointer-events-none">
-              <SidebarBrand
-                portal={
-                  QS_ROLES.has(role)
-                    ? "QS Panel"
-                    : "Admin Panel"
-                }
-              />
+            <SidebarMenuButton size="lg" className="h-14 rounded-none pointer-events-none">
+              <SidebarBrand portal={QS_ROLES.has(role) ? "QS Panel" : "Admin Panel"} />
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

@@ -1,4 +1,6 @@
+import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
 
 /** Soft page wrapper with enter motion. */
 export function PageShell({ className, children, ...props }) {
@@ -32,6 +34,37 @@ export function Surface({ className, children, ...props }) {
   return (
     <div className={cn("surface-panel", className)} {...props}>
       {children}
+    </div>
+  );
+}
+
+/** Compact page filter row — no padded card chrome. */
+export function FilterToolbar({ className, children, ...props }) {
+  return (
+    <div
+      className={cn(
+        "flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center",
+        className
+      )}
+      {...props}
+    >
+      {children}
+    </div>
+  );
+}
+
+/** Page search field sized to the query, not the full layout width. */
+export function SearchInput({ className, containerClassName, ...props }) {
+  return (
+    <div className={cn("relative w-full max-w-sm", containerClassName)}>
+      <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+      <Input
+        className={cn(
+          "h-8 rounded-lg border-border bg-card pl-8 shadow-sm",
+          className
+        )}
+        {...props}
+      />
     </div>
   );
 }

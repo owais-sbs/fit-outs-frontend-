@@ -1,8 +1,7 @@
 import { useNavigate } from "react-router-dom";
-import { Bell, LogOut, Search, Settings, User } from "lucide-react";
+import { Bell, LogOut, Settings, User } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -31,15 +30,7 @@ export default function SuperAdminNavbar() {
     <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-border/40 bg-background/75 px-4 backdrop-blur-xl md:px-6">
       <SidebarTrigger className="-ml-1" />
       <Separator orientation="vertical" className="mr-1 hidden h-5 md:block" />
-
-      <div className="relative hidden max-w-md flex-1 md:block">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          type="search"
-          placeholder="Search tenants, users, plans..."
-          className="h-10 rounded-xl pl-9"
-        />
-      </div>
+      <div className="flex-1" />
 
       <div className="ml-auto flex items-center gap-1">
         <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">

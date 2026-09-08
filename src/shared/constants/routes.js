@@ -61,7 +61,6 @@ export const ROUTES = {
     PROJECT_SUBCONTRACTORS: "/admin/projects/:projectId/subcontractors",
     VALIDATION_INBOX: "/admin/validation/inbox",
     QUALITY_TEMPLATES: "/admin/quality-templates",
-    AUTHORITY_LIBRARY: "/admin/approvals/library",
     APPROVALS_DASHBOARD: "/admin/approvals",
     DEPOSIT_LEDGER: "/admin/approvals/deposits",
     PROJECT_APPROVALS: "/admin/projects/:projectId/approvals",
@@ -77,6 +76,7 @@ export const ROUTES = {
     MATERIAL_CONFIG: "/admin/project-configuration/materials",
     APPENDIX_CONFIG: "/admin/project-configuration/appendices",
     COVER_LETTER_CONFIG: "/admin/project-configuration/cover-letter",
+    APPROVALS_CONFIG: "/admin/project-configuration/approvals",
     PROCUREMENT_STOCK: "/admin/procurement/stock",
     PROCUREMENT_RECEIPT: "/admin/procurement/receipt",
     PROCUREMENT_ISSUE: "/admin/procurement/issue",
@@ -121,7 +121,6 @@ export const ROUTES = {
     PROJECT_SUBCONTRACTORS: "/project-manager/projects/:projectId/subcontractors",
     VALIDATION_INBOX: "/project-manager/validation/inbox",
     QUALITY_TEMPLATES: "/project-manager/quality-templates",
-    AUTHORITY_LIBRARY: "/project-manager/approvals/library",
     APPROVALS_DASHBOARD: "/project-manager/approvals",
     DEPOSIT_LEDGER: "/project-manager/approvals/deposits",
     PROJECT_APPROVALS: "/project-manager/projects/:projectId/approvals",
@@ -242,4 +241,30 @@ export function boqInboxPath(role) {
     default:
       return ROUTES.ADMIN.BOQ_INBOX;
   }
+}
+
+export const SCHEDULE_NAV_STATE = { from: "schedule" };
+export const PROJECT_DETAIL_NAV_STATE = { from: "detail" };
+
+export function projectRoutesForPath(pathname = "") {
+  return pathname.startsWith("/project-manager") ? ROUTES.PROJECT_MANAGER : ROUTES.ADMIN;
+}
+
+export function projectSchedulePath(pathname, projectId) {
+  return projectRoutesForPath(pathname).PROJECT_SCHEDULE.replace(":projectId", projectId);
+}
+
+export function projectDetailPath(pathname, projectId) {
+  return projectRoutesForPath(pathname).PROJECT_DETAIL.replace(":projectId", projectId);
+}
+
+/** Back target for pages opened from the schedule workspace (materials, resources, validation, etc.). */
+export function projectPlanningBackPath(location, projectId) {
+  if (!projectId) {
+    return projectRoutesForPath(location?.pathname || "").DASHBOARD;
+  }
+  if (location?.state?.from === "detail") {
+    return projectDetailPath(location.pathname, projectId);
+  }
+  return projectSchedulePath(location.pathname, projectId);
 }

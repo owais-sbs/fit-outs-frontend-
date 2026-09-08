@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { Search, Calendar, Users, MapPin, CheckCircle } from "lucide-react";
+import { Calendar, Users, MapPin, CheckCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import StatCard from "@/modules/super-admin/components/StatCard";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { FilterToolbar, SearchInput } from "@/components/layout/PageShell";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -103,21 +103,15 @@ export default function QualifiedLeadsPage() {
         <StatCard title="At Proposal" value="0" icon={CheckCircle} valueColor="text-emerald-600" />
       </section>
 
-      <Card className="">
-        <CardContent className="p-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
+      <FilterToolbar>
+          <SearchInput
                 placeholder="Search by name or company..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 bg-muted/30"
               />
-            </div>
             <div className="flex flex-wrap gap-2">
               <Select value={engineerFilter} onValueChange={setEngineerFilter} disabled={loading}>
-                <SelectTrigger className="w-[180px] bg-muted/30">
+                <SelectTrigger className="h-8 w-[180px] rounded-lg">
                   <SelectValue placeholder="All Assignees" />
                 </SelectTrigger>
                 <SelectContent>
@@ -131,9 +125,7 @@ export default function QualifiedLeadsPage() {
                 </SelectContent>
               </Select>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+      </FilterToolbar>
 
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">

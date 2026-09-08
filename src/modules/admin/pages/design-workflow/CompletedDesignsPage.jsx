@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { Download, Eye, Archive, Calendar, Search } from "lucide-react";
+import { Download, Eye, Archive, Calendar } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
+import { SearchInput } from "@/components/layout/PageShell";
 import { COMPLETED_DESIGNS } from "../../data/design-workflow";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import {
   Dialog, DialogContent,
 } from "@/components/ui/dialog";
@@ -151,15 +151,11 @@ export default function CompletedDesignsPage() {
       </div>
 
       {/* Search */}
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
+      <SearchInput
           placeholder="Search projects, clients, design type..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="pl-9"
         />
-      </div>
 
       {/* Portfolio grid */}
       {filtered.length === 0 ? (

@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
-import { Mail, MoreHorizontal, Search, UserPlus } from "lucide-react";
+import { Mail, MoreHorizontal, UserPlus } from "lucide-react";
 import PageHeader from "../components/shared/PageHeader";
+import { FilterToolbar, SearchInput } from "@/components/layout/PageShell";
 import { PLATFORM_USERS, BASE_ROLES } from "../data/users";
 import { PERMISSION_MODULES, PERMISSION_ACTIONS } from "../data/permissions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -126,21 +127,16 @@ export default function UsersPage() {
         </div>
       )}
 
-      <Card className="border-border/60">
-        <CardContent className="flex flex-col gap-3 p-4 sm:flex-row">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Search users..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
-          </div>
+      <FilterToolbar>
+          <SearchInput placeholder="Search users..." value={search} onChange={(e) => setSearch(e.target.value)} />
           <Select value={roleFilter} onValueChange={setRoleFilter}>
-            <SelectTrigger className="w-[180px]"><SelectValue placeholder="Role" /></SelectTrigger>
+            <SelectTrigger className="h-8 w-[180px] rounded-lg"><SelectValue placeholder="Role" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All roles</SelectItem>
               {BASE_ROLES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
             </SelectContent>
           </Select>
-        </CardContent>
-      </Card>
+      </FilterToolbar>
 
       <Card className="overflow-hidden border-border/60">
         <div className="overflow-auto">
