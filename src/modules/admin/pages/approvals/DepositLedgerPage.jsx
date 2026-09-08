@@ -115,7 +115,7 @@ export default function DepositLedgerPage() {
                 <thead className="text-left text-xs uppercase tracking-wide text-muted-foreground">
                   <tr className="border-b border-border/40">
                     <th className="px-4 py-2 font-semibold">Project</th>
-                    <th className="px-4 py-2 font-semibold">Case</th>
+                    <th className="px-4 py-2 font-semibold">Permit</th>
                     <th className="px-4 py-2 font-semibold">Held by</th>
                     <th className="px-4 py-2 font-semibold text-right">Amount</th>
                     <th className="px-4 py-2 font-semibold">Paid</th>
@@ -187,7 +187,7 @@ export default function DepositLedgerPage() {
                     <tr>
                       <td colSpan={7} className="px-4 py-10 text-center text-sm text-muted-foreground">
                         No deposits recorded. They appear here once a deposit fee is logged
-                        against an approval case.
+                        against an approval permit.
                       </td>
                     </tr>
                   )}

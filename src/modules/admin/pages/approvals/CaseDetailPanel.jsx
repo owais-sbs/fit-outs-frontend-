@@ -90,12 +90,12 @@ export default function CaseDetailPanel({ caseUuid, onChanged }) {
   if (loading) {
     return (
       <div className="flex items-center gap-2 py-10 text-sm text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" /> Loading case
+        <Loader2 className="h-4 w-4 animate-spin" /> Loading permit
       </div>
     );
   }
   if (!detail) {
-    return <p className="py-10 text-sm text-muted-foreground">Could not load this case.</p>;
+    return <p className="py-10 text-sm text-muted-foreground">Could not load this permit.</p>;
   }
 
   const h = detail.header;
@@ -130,7 +130,7 @@ export default function CaseDetailPanel({ caseUuid, onChanged }) {
       {h.blockReason && (
         <div className="flex items-start gap-2 rounded-lg bg-amber-500/10 px-4 py-3 text-sm text-amber-900">
           <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
-          <span>{h.blockReason}. This case cannot be submitted until it is resolved.</span>
+          <span>{h.blockReason}. This permit cannot be submitted until it is resolved.</span>
         </div>
       )}
 
@@ -158,7 +158,7 @@ export default function CaseDetailPanel({ caseUuid, onChanged }) {
         {transitions.includes("SUBMITTED") || transitions.includes("RESUBMITTED") ? null : null}
 
         {["ISSUED", "EXPIRED", "EXPIRING_SOON", "RENEWAL_IN_PROGRESS"].includes(h.status) && (
-          <Button size="sm" variant="outline" disabled={busy} onClick={() => run(() => renewApprovalCase(caseUuid), "Renewal case opened")}>
+          <Button size="sm" variant="outline" disabled={busy} onClick={() => run(() => renewApprovalCase(caseUuid), "Renewal permit opened")}>
             <RefreshCw className="h-4 w-4 mr-1" /> Open renewal
           </Button>
         )}
@@ -174,7 +174,7 @@ export default function CaseDetailPanel({ caseUuid, onChanged }) {
               onClick={() => {
                 const body = { status: t };
                 if (["REJECTED", "WITHDRAWN", "CLOSED"].includes(t)) {
-                  const reason = window.prompt(`Reason for marking this case ${statusLabel(t).toLowerCase()}?`);
+                  const reason = window.prompt(`Reason for marking this permit ${statusLabel(t).toLowerCase()}?`);
                   if (!reason) return;
                   body.reason = reason;
                 }
@@ -316,7 +316,7 @@ export default function CaseDetailPanel({ caseUuid, onChanged }) {
               </div>
             ))}
             {!detail.checklist.length && (
-              <p className="px-4 py-6 text-sm text-muted-foreground">No checklist items on this case.</p>
+              <p className="px-4 py-6 text-sm text-muted-foreground">No checklist items on this permit.</p>
             )}
           </div>
         </CardContent>

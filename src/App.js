@@ -120,7 +120,6 @@ import MaterialPlanPage from "./modules/admin/pages/planning/MaterialPlanPage";
 import ResourcePlanPage from "./modules/admin/pages/planning/ResourcePlanPage";
 import ValidationInboxPage from "./modules/admin/pages/validation/ValidationInboxPage";
 import QualityTemplatesPage from "./modules/admin/pages/validation/QualityTemplatesPage";
-import AuthorityLibraryPage from "./modules/admin/pages/approvals/AuthorityLibraryPage";
 import ApprovalsDashboardPage from "./modules/admin/pages/approvals/ApprovalsDashboardPage";
 import DepositLedgerPage from "./modules/admin/pages/approvals/DepositLedgerPage";
 import ProjectApprovalsPage from "./modules/admin/pages/approvals/ProjectApprovalsPage";
@@ -231,7 +230,6 @@ function App() {
               <Route path="schedule" element={<ScheduleHubPage />} />
               <Route path="schedule/templates" element={<ScheduleTemplateLibraryPage />} />
               <Route path="approvals" element={<ApprovalsDashboardPage />} />
-              <Route path="approvals/library" element={<AuthorityLibraryPage />} />
               <Route path="approvals/deposits" element={<DepositLedgerPage />} />
               <Route path="projects/:projectId/approvals" element={<ProjectApprovalsPage />} />
               <Route path="projects/:projectId/drawings" element={<LazyDrawingPage><ProjectDrawingsPage /></LazyDrawingPage>} />
@@ -314,7 +312,6 @@ function App() {
               <Route path="schedule" element={<ScheduleHubPage />} />
               <Route path="schedule/templates" element={<ScheduleTemplateLibraryPage />} />
               <Route path="approvals" element={<ApprovalsDashboardPage />} />
-              <Route path="approvals/library" element={<AuthorityLibraryPage />} />
               <Route path="approvals/deposits" element={<DepositLedgerPage />} />
               <Route path="projects/:projectId/approvals" element={<ProjectApprovalsPage />} />
               <Route path="site-visits" element={<SiteVisitsPage />} />

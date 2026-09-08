@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { 
   Search, Trash2, Copy, Filter, X, AlertCircle,
   ChevronLeft, ChevronDown, ChevronRight, Edit2, Folder, Plus
@@ -83,6 +83,23 @@ const computeAutoSelling = (cost, markup) => {
   return c * (1 + m / 100);
 };
 
+const PAGE_SIZE = 40;
+
+function isLastWorkItemPage(res, chunk, pageToLoad) {
+  if (pageToLoad > 0 && chunk.length === 0) return true;
+  const totalPages = Number(res?.totalPages ?? res?.page?.totalPages);
+  if (Number.isFinite(totalPages) && totalPages > 0) {
+    return pageToLoad >= totalPages - 1;
+  }
+  const totalElements = Number(res?.totalElements ?? res?.page?.totalElements);
+  const size = Number(res?.size ?? res?.page?.size) || chunk.length || PAGE_SIZE;
+  if (Number.isFinite(totalElements) && totalElements >= 0) {
+    return pageToLoad * size + chunk.length >= totalElements;
+  }
+  if (res?.last === true) return true;
+  return false;
+}
+
 export default function WorkItemConfigurationPage() {
   const [workItems, setWorkItems] = useState([]);
   const [workItemMasters, setWorkItemMasters] = useState([]);
@@ -90,7 +107,14 @@ export default function WorkItemConfigurationPage() {
   const [scopeTags, setScopeTags] = useState([]);
   const [materialSearch, setMaterialSearch] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const pageRef = useRef(0);
+  const loadingRef = useRef(false);
+  const hasMoreRef = useRef(true);
+  const sentinelRef = useRef(null);
+  const requestIdRef = useRef(0);
 
   // Grouped collapse state
   const [collapsedMasters, setCollapsedMasters] = useState(new Set());
@@ -111,6 +135,7 @@ export default function WorkItemConfigurationPage() {
 
   // Table Filters
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [workItemMasterIdFilter, setWorkItemMasterIdFilter] = useState("All");
 
   // Form Data (Two-Step Form)
@@ -173,24 +198,64 @@ export default function WorkItemConfigurationPage() {
     }
   };
 
-  // Load Work Items
-  const loadData = async () => {
-    setIsLoading(true);
+  const loadData = useCallback(async (append = false) => {
+    if (append && (loadingRef.current || !hasMoreRef.current)) return;
+    const requestId = append ? requestIdRef.current : ++requestIdRef.current;
+    loadingRef.current = true;
+    const pageToLoad = append ? pageRef.current + 1 : 0;
+    if (!append) {
+      hasMoreRef.current = true;
+      pageRef.current = 0;
+    }
+    if (append) setIsLoadingMore(true);
+    else setIsLoading(true);
     try {
       const filterBody = {
-        search: searchTerm.trim() !== "" ? searchTerm : null,
+        search: debouncedSearch !== "" ? debouncedSearch : null,
         workItemMasterId: workItemMasterIdFilter === "All" ? null : workItemMasterIdFilter
       };
 
-      const res = await fetchWorkItems(filterBody, 0, 1000);
-      setWorkItems(res.content || []);
+      const res = await fetchWorkItems(filterBody, pageToLoad, PAGE_SIZE);
+      if (requestId !== requestIdRef.current) return;
+      const chunk = Array.isArray(res?.content)
+        ? res.content
+        : Array.isArray(res)
+          ? res
+          : [];
+      const last = isLastWorkItemPage(res, chunk, pageToLoad);
+      pageRef.current = pageToLoad;
+      hasMoreRef.current = !last;
+      setHasMore(!last);
+      setWorkItems((prev) => {
+        if (!append) return chunk;
+        if (!chunk.length) return prev;
+        const seen = new Set(prev.map((w) => w.id));
+        const extra = chunk.filter((w) => !seen.has(w.id));
+        return extra.length ? [...prev, ...extra] : prev;
+      });
+      if (append && chunk.length === 0) {
+        hasMoreRef.current = false;
+        setHasMore(false);
+      }
     } catch (e) {
+      if (requestId !== requestIdRef.current) return;
       console.error("Error fetching work items", e);
-      triggerToast("error", "Fetch Failed", "Could not retrieve work items catalog.");
+      hasMoreRef.current = false;
+      setHasMore(false);
+      setToast({ type: "error", title: "Fetch Failed", message: "Could not retrieve work items catalog." });
     } finally {
-      setIsLoading(false);
+      if (requestId === requestIdRef.current) {
+        loadingRef.current = false;
+        setIsLoading(false);
+        setIsLoadingMore(false);
+      }
     }
-  };
+  }, [debouncedSearch, workItemMasterIdFilter]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchTerm.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   useEffect(() => {
     loadWorkItemMasters();
@@ -200,9 +265,26 @@ export default function WorkItemConfigurationPage() {
   }, []);
 
   useEffect(() => {
-    loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm, workItemMasterIdFilter]);
+    pageRef.current = 0;
+    hasMoreRef.current = true;
+    loadData(false);
+  }, [loadData]);
+
+  useEffect(() => {
+    if (!hasMore || (isLoading && workItems.length === 0)) return undefined;
+    const el = sentinelRef.current;
+    if (!el) return undefined;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0]?.isIntersecting) return;
+        if (!hasMoreRef.current || loadingRef.current) return;
+        loadData(true);
+      },
+      { root: null, rootMargin: "0px 0px 180% 0px", threshold: 0 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasMore, loadData, isLoading, workItems.length]);
 
   // Toast auto-dismissal
   useEffect(() => {
@@ -244,7 +326,10 @@ export default function WorkItemConfigurationPage() {
       groups[mId].items.push(w);
     });
 
-    return Object.values(groups);
+    return Object.values(groups).filter((g) => {
+      if (g.items.length > 0) return true;
+      return workItemMasterIdFilter !== "All" && g.masterId === workItemMasterIdFilter;
+    });
   };
 
   const toggleCollapseMaster = (masterId) => {
@@ -789,13 +874,14 @@ export default function WorkItemConfigurationPage() {
         {/* Grouped Master Table */}
         <Card>
           <CardContent className="p-0 overflow-x-auto">
-            {isLoading ? (
+            {isLoading && workItems.length === 0 ? (
               <div className="p-6 space-y-4">
                 {[1, 2, 3].map(i => (
                   <Skeleton key={i} className="h-12 w-full" />
                 ))}
               </div>
             ) : groupedData.length > 0 ? (
+              <>
               <Table className="min-w-[1180px]">
                 <TableHeader className="bg-muted/30">
                   <TableRow>
@@ -1015,6 +1101,7 @@ export default function WorkItemConfigurationPage() {
                   })}
                 </TableBody>
               </Table>
+              </>
             ) : (
               <EmptyState
                 title="No Work Items mapped"
@@ -1022,6 +1109,10 @@ export default function WorkItemConfigurationPage() {
                 actionLabel="Create Work Category"
                 onAction={handleOpenAddModal}
               />
+            )}
+            <div ref={sentinelRef} className="h-8" />
+            {isLoadingMore && (
+              <p className="py-3 text-center text-xs text-muted-foreground">Loading more work items…</p>
             )}
           </CardContent>
         </Card>

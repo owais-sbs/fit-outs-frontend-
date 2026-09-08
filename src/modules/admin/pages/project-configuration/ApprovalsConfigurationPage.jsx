@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -132,9 +133,9 @@ export default function ApprovalsConfigurationPage() {
     setFormMode("create");
     setEditing(null);
     if (tab === "authorities") setForm({ code: "", name: "", type: "Regulator", emirate: "Dubai", jurisdictionAreas: "", permitsIssued: "", submissionChannel: "", notes: "", active: true });
-    if (tab === "permits") setForm({ permitCode: "", name: "", issuingBody: "", typicalTrigger: "", prerequisiteCases: "", slaWorkingDays: "", typicalValidity: "", deposit: "No", renewable: "Yes", blocksActivities: "", active: true });
+    if (tab === "permits") setForm({ permitCode: "", name: "", issuingBody: "", typicalTrigger: "", prerequisiteCases: "", slaWorkingDays: "", typicalValidity: "", deposit: "No", renewable: "Yes", blocksActivities: "", active: true, scopeTagIds: [] });
     if (tab === "documents") setForm({ docCode: "", name: "", category: "Company", typicallyRequiredFor: "", expiryTracked: false, sourceOwner: "Contractor", active: true });
-    if (tab === "scopeTags") setForm({ code: "", name: "", description: "", active: true });
+    if (tab === "scopeTags") setForm({ code: "", name: "", description: "", active: true, permitTypeIds: [] });
     if (tab === "packs") {
       setForm({
         code: "",
@@ -163,6 +164,16 @@ export default function ApprovalsConfigurationPage() {
         selectable: row.selectable !== false,
         active: row.active !== false,
       });
+    } else if (tab === "permits") {
+      setForm({
+        ...row,
+        scopeTagIds: Array.isArray(row.scopeTagIds) ? row.scopeTagIds : (row.scopeTags || []).map((t) => t.id),
+      });
+    } else if (tab === "scopeTags") {
+      setForm({
+        ...row,
+        permitTypeIds: Array.isArray(row.permitTypeIds) ? row.permitTypeIds : (row.triggeredPermits || []).map((p) => p.id),
+      });
     } else {
       setForm({ ...row });
     }
@@ -170,6 +181,16 @@ export default function ApprovalsConfigurationPage() {
   };
 
   const setField = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+
+  const toggleId = (key, id, checked) => {
+    setForm((prev) => {
+      const current = Array.isArray(prev[key]) ? prev[key] : [];
+      return {
+        ...prev,
+        [key]: checked ? [...current.filter((x) => x !== id), id] : current.filter((x) => x !== id),
+      };
+    });
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -179,14 +200,22 @@ export default function ApprovalsConfigurationPage() {
         if (formMode === "create") await createAuthority(payload);
         else await updateAuthority(editing.id, payload);
       } else if (tab === "permits") {
-        if (formMode === "create") await createPermitType(form);
-        else await updatePermitType(editing.id, form);
+        const payload = {
+          ...form,
+          scopeTagIds: form.scopeTagIds || [],
+        };
+        if (formMode === "create") await createPermitType(payload);
+        else await updatePermitType(editing.id, payload);
       } else if (tab === "documents") {
         if (formMode === "create") await createDocumentType(form);
         else await updateDocumentType(editing.id, form);
       } else if (tab === "scopeTags") {
-        if (formMode === "create") await createScopeTag(form);
-        else await updateScopeTag(editing.id, form);
+        const payload = {
+          ...form,
+          permitTypeIds: form.permitTypeIds || [],
+        };
+        if (formMode === "create") await createScopeTag(payload);
+        else await updateScopeTag(editing.id, payload);
       } else if (tab === "packs") {
         if (formMode === "create") {
           await createJurisdictionPack({
@@ -328,6 +357,7 @@ export default function ApprovalsConfigurationPage() {
                   <TableHead>Code</TableHead>
                   <TableHead>Case type</TableHead>
                   <TableHead>Issuer</TableHead>
+                  <TableHead>Triggered by</TableHead>
                   <TableHead>SLA (wd)</TableHead>
                   <TableHead>Blocks</TableHead>
                   <TableHead />
@@ -342,6 +372,9 @@ export default function ApprovalsConfigurationPage() {
                       {row.typicalTrigger && <p className="text-xs text-muted-foreground line-clamp-2">{row.typicalTrigger}</p>}
                     </TableCell>
                     <TableCell className="text-xs">{row.issuingBody}</TableCell>
+                    <TableCell>
+                      <TagList items={(row.scopeTags || []).map((t) => t.name)} empty="—" />
+                    </TableCell>
                     <TableCell>{row.slaWorkingDays}</TableCell>
                     <TableCell className="text-xs max-w-xs">{row.blocksActivities}</TableCell>
                     <TableCell className="text-right space-x-1">
@@ -401,6 +434,7 @@ export default function ApprovalsConfigurationPage() {
                 <TableRow>
                   <TableHead>Code</TableHead>
                   <TableHead>Name</TableHead>
+                  <TableHead>Triggers permits</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead />
                 </TableRow>
@@ -410,6 +444,9 @@ export default function ApprovalsConfigurationPage() {
                   <TableRow key={row.id}>
                     <TableCell className="font-mono text-xs">{row.code}</TableCell>
                     <TableCell className="font-medium">{row.name}</TableCell>
+                    <TableCell>
+                      <TagList items={(row.triggeredPermits || []).map((p) => p.permitCode)} empty="None" />
+                    </TableCell>
                     <TableCell className="text-xs text-muted-foreground max-w-md">{row.description}</TableCell>
                     <TableCell className="text-right space-x-1">
                       <Button size="icon" variant="ghost" onClick={() => openEdit(row)}><Pencil className="h-4 w-4" /></Button>
@@ -510,6 +547,22 @@ export default function ApprovalsConfigurationPage() {
                 <Field label="Renewable" value={form.renewable} onChange={(v) => setField("renewable", v)} />
               </div>
               <Area label="Typical trigger" value={form.typicalTrigger} onChange={(v) => setField("typicalTrigger", v)} />
+              <CheckList
+                label="Triggered by scope tags"
+                hint="If a project's work items carry any of these tags, this permit applies. Leave empty for community, property-type, or chain-only permits."
+                items={scopeTags}
+                selectedIds={form.scopeTagIds || []}
+                idKey="id"
+                primary={(t) => t.name}
+                secondary={(t) => t.code}
+                description={(t) => {
+                  const link = (form.scopeTags || []).find((s) => s.id === t.id);
+                  if (!link?.createdByName) return t.description;
+                  return `${t.description || ""} Set by ${link.createdByName}.`.trim();
+                }}
+                onToggle={(id, checked) => toggleId("scopeTagIds", id, checked)}
+                empty="No scope tags yet. Add them under the Scope tags tab first."
+              />
               <Area label="Prerequisites" value={form.prerequisiteCases} onChange={(v) => setField("prerequisiteCases", v)} />
               <Area label="Blocks activities" value={form.blocksActivities} onChange={(v) => setField("blocksActivities", v)} />
             </>
@@ -532,6 +585,22 @@ export default function ApprovalsConfigurationPage() {
               <Field label="Code" value={form.code} onChange={(v) => setField("code", v)} />
               <Field label="Name" value={form.name} onChange={(v) => setField("name", v)} />
               <Area label="Description" value={form.description} onChange={(v) => setField("description", v)} />
+              <CheckList
+                label="Triggers these permits"
+                hint="Permits that apply when work items carry this tag. Editing here updates the same mapping as the permit catalogue."
+                items={permits}
+                selectedIds={form.permitTypeIds || []}
+                idKey="id"
+                primary={(p) => p.name}
+                secondary={(p) => p.permitCode}
+                description={(p) => {
+                  const link = (form.triggeredPermits || []).find((x) => x.id === p.id);
+                  if (!link?.createdByName) return p.typicalTrigger;
+                  return `${p.typicalTrigger || ""} Set by ${link.createdByName}.`.trim();
+                }}
+                onToggle={(id, checked) => toggleId("permitTypeIds", id, checked)}
+                empty="No permit types yet."
+              />
             </>
           )}
           {tab === "packs" && (
@@ -572,6 +641,56 @@ export default function ApprovalsConfigurationPage() {
         description="It will be hidden from the catalog. Existing project cases are not deleted."
       />
     </ConfigurationLayout>
+  );
+}
+
+function TagList({ items, empty }) {
+  if (!items?.length) {
+    return <span className="text-xs text-muted-foreground">{empty}</span>;
+  }
+  return (
+    <div className="flex flex-wrap gap-1">
+      {items.map((item) => (
+        <Badge key={item} variant="outline" className="text-[10px] font-normal">{item}</Badge>
+      ))}
+    </div>
+  );
+}
+
+function CheckList({ label, hint, items, selectedIds, idKey, primary, secondary, description, onToggle, empty }) {
+  return (
+    <div className="space-y-2 p-3 border rounded-lg">
+      <Label className="text-xs uppercase font-bold tracking-wider text-muted-foreground">{label}</Label>
+      {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
+      <div className="max-h-[180px] overflow-y-auto border rounded-md p-2 space-y-1">
+        {items.length === 0 ? (
+          <p className="text-xs text-muted-foreground p-2">{empty}</p>
+        ) : (
+          items.map((item) => {
+            const id = item[idKey];
+            const checked = (selectedIds || []).includes(id);
+            return (
+              <div key={id} className="flex items-start gap-2 p-2 rounded hover:bg-muted/30">
+                <Checkbox
+                  id={`check-${label}-${id}`}
+                  checked={checked}
+                  onCheckedChange={(c) => onToggle(id, !!c)}
+                />
+                <label htmlFor={`check-${label}-${id}`} className="text-xs cursor-pointer flex-1">
+                  <span className="font-medium">{primary(item)}</span>
+                  {secondary && (
+                    <span className="font-mono text-muted-foreground ml-1">({secondary(item)})</span>
+                  )}
+                  {description?.(item) && (
+                    <p className="text-[11px] text-muted-foreground mt-0.5">{description(item)}</p>
+                  )}
+                </label>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
   );
 }
 

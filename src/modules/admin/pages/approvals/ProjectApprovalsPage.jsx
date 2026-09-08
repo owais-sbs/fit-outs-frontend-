@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import { AlertTriangle, ChevronRight, Loader2, Sparkles, Wand2 } from "lucide-react";
+import { Link, useLocation, useParams } from "react-router-dom";
+import { AlertTriangle, ArrowLeft, ChevronRight, Loader2, Sparkles, Wand2 } from "lucide-react";
 import { PageShell, PageTitle } from "@/components/layout/PageShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+import { projectDetailPath } from "@/shared/constants/routes";
 import {
   fetchProjectApprovals,
   generateProjectApprovals,
@@ -16,23 +16,10 @@ import {
 import CaseDetailPanel from "./CaseDetailPanel";
 import { daysLabel, statusLabel, statusTone, urgencyTone } from "./approvalStatus";
 
-const SCOPE_FIELDS = [
-  { key: "demolition", label: "Demolition or strip-out" },
-  { key: "structuralChange", label: "Structural change" },
-  { key: "mepLoadChange", label: "MEP load change" },
-  { key: "fireSystem", label: "Fire system" },
-  { key: "facadeChange", label: "Facade change" },
-  { key: "commercialKitchen", label: "Commercial kitchen" },
-  { key: "signage", label: "External signage" },
-  { key: "securitySystem", label: "CCTV or access control" },
-  { key: "nightWork", label: "Out-of-hours working" },
-  { key: "hoardingOnRoad", label: "Hoarding on public road" },
-  { key: "swimmingPool", label: "Swimming pool" },
-  { key: "landscape", label: "Landscape" },
-];
-
 export default function ProjectApprovalsPage() {
   const { projectId } = useParams();
+  const route = useLocation();
+  const detailPath = projectDetailPath(route.pathname, projectId);
 
   const [cases, setCases] = useState([]);
   const [preview, setPreview] = useState(null);
@@ -42,13 +29,32 @@ export default function ProjectApprovalsPage() {
   const [message, setMessage] = useState("");
 
   const [location, setLocation] = useState({ emirate: "Dubai", communityName: "", buildingName: "", plotZone: "" });
-  const [scope, setScope] = useState({ demolition: true, mepLoadChange: true });
+  const [derivedTags, setDerivedTags] = useState([]);
+  const [scopeNote, setScopeNote] = useState("");
+  const [hasApprovedBoq, setHasApprovedBoq] = useState(false);
+
+  const applyScopeFromResolve = (resolved) => {
+    if (!resolved) return;
+    setDerivedTags(Array.isArray(resolved.derivedScopeTags) ? resolved.derivedScopeTags : []);
+    setScopeNote(resolved.scopeNote || "");
+    setHasApprovedBoq(!!resolved.hasApprovedBoq);
+    setLocation((prev) => ({
+      emirate: resolved.emirate || prev.emirate || "Dubai",
+      communityName: resolved.communityName ?? prev.communityName,
+      buildingName: resolved.buildingName ?? prev.buildingName,
+      plotZone: resolved.plotZone ?? prev.plotZone,
+    }));
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const list = await fetchProjectApprovals(projectId);
+      const [list, resolved] = await Promise.all([
+        fetchProjectApprovals(projectId),
+        resolveProjectApprovals(projectId, {}),
+      ]);
       setCases(Array.isArray(list) ? list : []);
+      applyScopeFromResolve(resolved);
     } catch {
       setCases([]);
     } finally {
@@ -64,7 +70,9 @@ export default function ProjectApprovalsPage() {
     setBusy(true);
     setMessage("");
     try {
-      setPreview(await resolveProjectApprovals(projectId, { ...location, scope }));
+      const resolved = await resolveProjectApprovals(projectId, { ...location });
+      setPreview(resolved);
+      applyScopeFromResolve(resolved);
     } catch (e) {
       setMessage(e?.response?.data?.error || "Could not resolve the authority set");
     } finally {
@@ -76,12 +84,17 @@ export default function ProjectApprovalsPage() {
     setBusy(true);
     setMessage("");
     try {
-      const list = await generateProjectApprovals(projectId, { ...location, scope });
+      const list = await generateProjectApprovals(projectId, { ...location });
       setCases(Array.isArray(list) ? list : []);
       setPreview(null);
-      setMessage("Approval cases generated.");
+      setMessage("Approval permits generated.");
+      try {
+        applyScopeFromResolve(await resolveProjectApprovals(projectId, { ...location }));
+      } catch {
+        /* chips stay as they were */
+      }
     } catch (e) {
-      setMessage(e?.response?.data?.error || "Could not generate cases");
+      setMessage(e?.response?.data?.error || "Could not generate permits");
     } finally {
       setBusy(false);
     }
@@ -91,10 +104,17 @@ export default function ProjectApprovalsPage() {
 
   return (
     <PageShell>
-      <PageTitle
-        title="Approvals"
-        subtitle="Authority, community and building cases for this project."
-      />
+      <div className="flex items-start gap-2">
+        <Button asChild variant="ghost" size="icon" className="mt-0.5 h-8 w-8 shrink-0 text-muted-foreground" title="Back to project">
+          <Link to={detailPath}>
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
+        </Button>
+        <PageTitle
+          title="Approvals"
+          subtitle="Authority, community and building permits for this project."
+        />
+      </div>
 
       {message && (
         <div className="rounded-lg bg-secondary px-4 py-3 text-sm text-foreground">{message}</div>
@@ -128,25 +148,33 @@ export default function ProjectApprovalsPage() {
             </div>
           </div>
 
-          <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-4">
-            {SCOPE_FIELDS.map((f) => (
-              <label key={f.key} className="flex items-center gap-2 text-sm">
-                <Switch
-                  checked={!!scope[f.key]}
-                  onCheckedChange={(v) => setScope({ ...scope, [f.key]: v })}
-                />
-                <span>{f.label}</span>
-              </label>
-            ))}
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground">From BOQ work-item tags</p>
+            {derivedTags.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {derivedTags.map((tag) => (
+                  <Badge key={tag.code} className="bg-secondary text-muted-foreground">
+                    {tag.name || tag.code}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                {scopeNote
+                  || (hasApprovedBoq
+                    ? "Approved BOQ work items have no scope tags. Only community, access and completion permits apply until work items are tagged."
+                    : "No approved BOQ yet. Only community, access and completion permits apply until tagged work items are on an approved BOQ.")}
+              </p>
+            )}
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
             <Button size="sm" variant="outline" disabled={busy} onClick={runPreview}>
               {busy ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Wand2 className="h-4 w-4 mr-1" />}
-              Preview case set
+              Preview permit set
             </Button>
             <Button size="sm" disabled={busy} onClick={runGenerate}>
-              <Sparkles className="h-4 w-4 mr-1" /> Generate cases
+              <Sparkles className="h-4 w-4 mr-1" /> Generate permits
             </Button>
           </div>
         </CardContent>
@@ -156,7 +184,7 @@ export default function ProjectApprovalsPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold">
-              {preview.cases.length} cases apply · {newCaseCount} would be created
+              {preview.cases.length} permits apply · {newCaseCount} would be created
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -204,13 +232,13 @@ export default function ProjectApprovalsPage() {
 
       {loading ? (
         <div className="flex items-center gap-2 py-10 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" /> Loading cases
+          <Loader2 className="h-4 w-4 animate-spin" /> Loading permits
         </div>
       ) : (
         <div className="grid gap-4 lg:grid-cols-[minmax(320px,380px)_1fr]">
           <Card className="self-start">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold">{cases.length} cases</CardTitle>
+              <CardTitle className="text-sm font-semibold">{cases.length} Permits Required</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <div className="divide-y divide-border/40">
@@ -244,7 +272,7 @@ export default function ProjectApprovalsPage() {
                 ))}
                 {!cases.length && (
                   <p className="px-4 py-8 text-sm text-muted-foreground">
-                    No cases yet. Set the location and scope above, then generate the case set.
+                    No permits yet. Set the location, then preview or generate from the approved BOQ tags.
                   </p>
                 )}
               </div>
@@ -256,7 +284,7 @@ export default function ProjectApprovalsPage() {
               <CaseDetailPanel caseUuid={selected} onChanged={load} />
             ) : (
               <p className="py-10 text-sm text-muted-foreground">
-                Select a case to see its checklist, submissions and fees.
+                Select a permit to see its checklist, submissions and fees.
               </p>
             )}
           </div>

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { AlertTriangle, BookOpen, Coins, Loader2, Search } from "lucide-react";
+import { AlertTriangle, Coins, Loader2, Search } from "lucide-react";
 import { PageShell, PageTitle, StatTile } from "@/components/layout/PageShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -67,7 +67,7 @@ export default function ApprovalsDashboardPage() {
     <PageShell>
       <PageTitle
         title="Approvals"
-        subtitle="Every live authority case across every project."
+        subtitle="Every live authority permit across every project."
         actions={
           <>
             <Button asChild size="sm" variant="outline">
@@ -75,17 +75,12 @@ export default function ApprovalsDashboardPage() {
                 <Coins className="h-4 w-4 mr-1" /> Deposit ledger
               </Link>
             </Button>
-            <Button asChild size="sm" variant="outline">
-              <Link to={routes.AUTHORITY_LIBRARY}>
-                <BookOpen className="h-4 w-4 mr-1" /> Authority library
-              </Link>
-            </Button>
           </>
         }
       />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile label="Live cases" value={cases.length} />
+        <StatTile label="Live permits" value={cases.length} />
         <StatTile label="Awaiting authority" value={awaitingAuthority} />
         <StatTile
           label="Need attention"
@@ -106,7 +101,7 @@ export default function ApprovalsDashboardPage() {
           <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             className="pl-8 w-72"
-            placeholder="Search case, permit, authority or project"
+            placeholder="Search permit, authority or project"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -125,12 +120,12 @@ export default function ApprovalsDashboardPage() {
 
       {loading ? (
         <div className="flex items-center gap-2 py-12 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" /> Loading cases
+          <Loader2 className="h-4 w-4 animate-spin" /> Loading permits
         </div>
       ) : (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold">{visible.length} cases</CardTitle>
+            <CardTitle className="text-sm font-semibold">{visible.length} permits</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
@@ -138,7 +133,7 @@ export default function ApprovalsDashboardPage() {
                 <thead className="text-left text-xs uppercase tracking-wide text-muted-foreground">
                   <tr className="border-b border-border/40">
                     <th className="px-4 py-2 font-semibold">Project</th>
-                    <th className="px-4 py-2 font-semibold">Case</th>
+                    <th className="px-4 py-2 font-semibold">Permit</th>
                     <th className="px-4 py-2 font-semibold">Authority</th>
                     <th className="px-4 py-2 font-semibold">Status</th>
                     <th className="px-4 py-2 font-semibold">Owner</th>
@@ -180,7 +175,7 @@ export default function ApprovalsDashboardPage() {
                   {!visible.length && (
                     <tr>
                       <td colSpan={7} className="px-4 py-10 text-center text-sm text-muted-foreground">
-                        No cases yet. Open a project&rsquo;s Approvals tab and generate its case set.
+                        No permits yet. Open a project&rsquo;s Approvals tab and generate its permit set.
                       </td>
                     </tr>
                   )}

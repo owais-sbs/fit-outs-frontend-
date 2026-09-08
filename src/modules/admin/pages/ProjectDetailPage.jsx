@@ -441,7 +441,7 @@ export default function ProjectDetailPage() {
         </CardContent>
       </Card>
 
-      <ProjectApprovalsSection projectId={projectId} />
+      <ProjectApprovalsSection href={approvalsPath} />
 
       {!isFinance && (
         <ProjectRoomsSection projectId={projectId} projectName={project.projectName || project.name} />

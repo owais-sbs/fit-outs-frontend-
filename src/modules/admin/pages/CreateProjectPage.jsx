@@ -16,7 +16,6 @@ import { fetchAllClients, createClient } from "@/modules/admin/api/clients.api";
 import { fetchAllEmployees } from "@/modules/admin/api/employees.api";
 import { createProject } from "@/modules/admin/api/projects.api";
 import { fetchJurisdictionPacks } from "@/modules/admin/api/approvals-config.api";
-import { Checkbox } from "@/components/ui/checkbox";
 import { DIRHAM_SYMBOL } from "@/shared/utils/currency";
 import { useAuth } from "@/shared/context/auth-context";
 import { ROLES } from "@/shared/constants/roles";
@@ -58,11 +57,6 @@ export default function CreateProjectPage() {
     projectType: "Commercial",
     location: "",
     jurisdictionPackId: "",
-    approvalScopeKitchen: false,
-    approvalScopeCctv: false,
-    approvalScopeRta: false,
-    approvalScopeDemo: false,
-    approvalScopeLoad: false,
     assignedManager: "",
     startDate: "",
     expectedCompletionDate: "",
@@ -205,11 +199,6 @@ export default function CreateProjectPage() {
         projectType: form.projectType,
         location: form.location.trim(),
         jurisdictionPackId: form.jurisdictionPackId,
-        approvalScopeKitchen: form.approvalScopeKitchen,
-        approvalScopeCctv: form.approvalScopeCctv,
-        approvalScopeRta: form.approvalScopeRta,
-        approvalScopeDemo: form.approvalScopeDemo,
-        approvalScopeLoad: form.approvalScopeLoad,
         assignedManager: form.assignedManager,
         startDate: form.startDate,
         expectedCompletionDate: form.expectedCompletionDate,
@@ -442,27 +431,6 @@ export default function CreateProjectPage() {
                   </p>
                 )}
                 {errors.jurisdictionPackId && <p className="text-[11px] text-destructive">{errors.jurisdictionPackId}</p>}
-              </div>
-
-              <div className="space-y-2 md:col-span-2">
-                <Label className="text-xs font-semibold">Scope that triggers extra permits</Label>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {[
-                    ["approvalScopeKitchen", "Commercial kitchen (DM Food Safety)"],
-                    ["approvalScopeCctv", "CCTV / access control (SIRA)"],
-                    ["approvalScopeRta", "Hoarding, skip or crane on public road (RTA)"],
-                    ["approvalScopeDemo", "Structural / strip-out demolition"],
-                    ["approvalScopeLoad", "Electrical load increase / meter upgrade"],
-                  ].map(([key, label]) => (
-                    <label key={key} className="flex items-start gap-2 rounded-lg border px-3 py-2 text-sm">
-                      <Checkbox
-                        checked={!!form[key]}
-                        onCheckedChange={(checked) => handleChange(key, checked === true)}
-                      />
-                      <span>{label}</span>
-                    </label>
-                  ))}
-                </div>
               </div>
             </div>
 
