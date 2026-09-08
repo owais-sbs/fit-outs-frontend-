@@ -51,6 +51,7 @@ import {
   MaterialConfigurationPage,
   AppendixMastersPage,
   CoverLetterBrandingPage,
+  ApprovalsConfigurationPage,
   StockDashboardPage,
   GoodsReceiptPage,
   StockIssuePage,
@@ -236,6 +237,7 @@ function App() {
               <Route path="project-configuration/materials" element={<MaterialConfigurationPage />} />
               <Route path="project-configuration/appendices" element={<AppendixMastersPage />} />
               <Route path="project-configuration/cover-letter" element={<CoverLetterBrandingPage />} />
+              <Route path="project-configuration/approvals" element={<ApprovalsConfigurationPage />} />
               <Route path="procurement/stock" element={<StockDashboardPage />} />
               <Route path="procurement/receipt" element={<GoodsReceiptPage />} />
               <Route path="procurement/issue" element={<StockIssuePage />} />

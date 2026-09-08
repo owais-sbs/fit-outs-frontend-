@@ -18,6 +18,12 @@ export function normalizeProject(item = {}) {
     budget: item.budget ?? 0,
     startDate: item.startDate || null,
     expectedCompletionDate: item.expectedCompletionDate || null,
+    jurisdictionPackId: item.jurisdictionPackId || null,
+    approvalScopeKitchen: !!item.approvalScopeKitchen,
+    approvalScopeCctv: !!item.approvalScopeCctv,
+    approvalScopeRta: !!item.approvalScopeRta,
+    approvalScopeDemo: !!item.approvalScopeDemo,
+    approvalScopeLoad: !!item.approvalScopeLoad,
   };
 }
 
@@ -45,6 +51,12 @@ export const createProject = (form) =>
       assignedManager: form.assignedManager,
       startDate: form.startDate || null,
       expectedCompletionDate: form.expectedCompletionDate || null,
+      jurisdictionPackId: form.jurisdictionPackId || null,
+      approvalScopeKitchen: !!form.approvalScopeKitchen,
+      approvalScopeCctv: !!form.approvalScopeCctv,
+      approvalScopeRta: !!form.approvalScopeRta,
+      approvalScopeDemo: !!form.approvalScopeDemo,
+      approvalScopeLoad: !!form.approvalScopeLoad,
     })
     .then((r) => {
       const payload = r.data;

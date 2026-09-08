@@ -27,6 +27,7 @@ import { formatCurrency, formatAed } from "@/shared/utils/currency";
 import { splitProjectBoqs } from "./boq/boqDataUtils";
 import ProjectRoomsSection from "./roomcollab/ProjectRoomsSection";
 import ProjectTeamAssignmentSection from "./ProjectTeamAssignmentSection";
+import ProjectApprovalsSection from "./ProjectApprovalsSection";
 import { fetchPlanningStatus } from "../api/planning.api";
 
 function InfoItem({ label, value, mono = false }) {
@@ -414,6 +415,8 @@ export default function ProjectDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      <ProjectApprovalsSection projectId={projectId} />
 
       <ProjectRoomsSection projectId={projectId} projectName={project.projectName || project.name} />
 

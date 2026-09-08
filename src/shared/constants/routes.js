@@ -72,6 +72,7 @@ export const ROUTES = {
     MATERIAL_CONFIG: "/admin/project-configuration/materials",
     APPENDIX_CONFIG: "/admin/project-configuration/appendices",
     COVER_LETTER_CONFIG: "/admin/project-configuration/cover-letter",
+    APPROVALS_CONFIG: "/admin/project-configuration/approvals",
     PROCUREMENT_STOCK: "/admin/procurement/stock",
     PROCUREMENT_RECEIPT: "/admin/procurement/receipt",
     PROCUREMENT_ISSUE: "/admin/procurement/issue",

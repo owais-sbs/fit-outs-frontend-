@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Users, MapPin, ChevronRight,
   UserSquare2, CalendarRange, Briefcase,
   UserCheck, Mail, Grid, Wrench, Settings, PenTool,
-  CheckCircle, PieChart, CheckSquare, FileText, ClipboardList,
+  CheckCircle, PieChart, CheckSquare, FileText, ClipboardList, ShieldCheck,
   Package, Warehouse, ArrowDownToLine, ArrowUpFromLine, History, ImagePlus, Inbox,
   GanttChart, Stamp,
 } from "lucide-react";
@@ -50,6 +50,7 @@ const PROJECT_CONFIG_SUB_ITEMS = [
   { label: "Materials Master", href: ROUTES.ADMIN.MATERIAL_CONFIG, icon: Package },
   { label: "Appendices", href: ROUTES.ADMIN.APPENDIX_CONFIG, icon: ImagePlus },
   { label: "Cover letter", href: ROUTES.ADMIN.COVER_LETTER_CONFIG, icon: Stamp },
+  { label: "Approvals Config", href: ROUTES.ADMIN.APPROVALS_CONFIG, icon: ShieldCheck },
 ];
 
 const PROCUREMENT_SUB_ITEMS = [
