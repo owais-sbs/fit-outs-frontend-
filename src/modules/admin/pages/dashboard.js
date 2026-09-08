@@ -84,7 +84,9 @@ function exportCsv(analytics) {
   URL.revokeObjectURL(url);
 }
 
-export default function AdminDashboard() {
+export default AdminCrmDashboard;
+
+function AdminCrmDashboard() {
   const initial = defaultDateRange("30d");
   const [period, setPeriod] = useState("30d");
   const [assignee, setAssignee] = useState("all");

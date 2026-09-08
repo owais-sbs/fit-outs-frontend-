@@ -96,6 +96,9 @@ const NAV_GROUPS = [
     items: [
       { type: "link", label: "Projects", href: ROUTES.ADMIN.PROJECTS, icon: Briefcase },
       { type: "link", label: "Schedule", href: ROUTES.ADMIN.SCHEDULE_HUB, icon: GanttChart },
+      { type: "link", label: "Schedule templates", href: ROUTES.ADMIN.SCHEDULE_TEMPLATES, icon: GanttChart },
+      { type: "link", label: "Approvals", href: ROUTES.ADMIN.APPROVALS_DASHBOARD, icon: Stamp },
+      { type: "link", label: "Authority library", href: ROUTES.ADMIN.AUTHORITY_LIBRARY, icon: Stamp },
       {
         type: "link",
         label: "Validation Inbox",

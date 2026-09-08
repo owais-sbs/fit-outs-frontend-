@@ -1,7 +1,15 @@
 import axiosInstance from "@/lib/axiosInstance";
 import { multipartConfig } from "@/lib/multipart";
 
-const unwrap = (r) => r.data?.data ?? r.data;
+const unwrap = (r) => {
+  const body = r.data;
+  if (body && body.isSuccess === false) {
+    const err = new Error(body.error || body.message || "Request failed");
+    err.response = r;
+    throw err;
+  }
+  return body?.data ?? body;
+};
 
 export const fetchProjectSchedule = (projectId) =>
   axiosInstance.get(`/projects/${projectId}/schedule`).then(unwrap);
@@ -56,6 +64,35 @@ export const fetchScheduleCalendarEvents = ({ startDate, endDate, projectId, ass
       },
     })
     .then(unwrap);
+
+// --- Module 43: template engine, CPM preview/apply, procurement deadlines ---
+
+export const fetchScheduleTemplates = () =>
+  axiosInstance.get("/schedule/templates").then(unwrap);
+
+export const fetchScheduleTemplate = (templateUuid) =>
+  axiosInstance.get(`/schedule/templates/${templateUuid}`).then(unwrap);
+
+export const fetchWorkCalendars = () =>
+  axiosInstance.get("/schedule/work-calendars").then(unwrap);
+
+/** Solves the template against these parameters. Writes nothing. */
+export const previewSchedule = (projectId, payload) =>
+  axiosInstance.post(`/projects/${projectId}/schedule/preview`, payload).then(unwrap);
+
+/** Writes the programme and cascades to packages, billing, holds and approvals. */
+export const applySchedule = (projectId, payload) =>
+  axiosInstance.post(`/projects/${projectId}/schedule/apply`, payload).then(unwrap);
+
+export const fetchOrderByDates = (projectId) =>
+  axiosInstance.get(`/projects/${projectId}/schedule/order-by-dates`).then(unwrap);
+
+/**
+ * Re-runs CPM on the server. The client never computes successor dates itself, because a
+ * local date edit would silently desynchronise the rest of the network.
+ */
+export const rescheduleProject = (projectId, payload) =>
+  axiosInstance.post(`/projects/${projectId}/schedule/reschedule`, payload || {}).then(unwrap);
 
 export const uploadProgressAttachment = (progressUuid, file) => {
   const fd = new FormData();

@@ -135,9 +135,16 @@ export default function DirectorProjectsPage() {
                         {formatAed(variance)}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button asChild size="sm" variant="ghost">
-                          <Link to={ROUTES.ADMIN.PROJECT_DETAIL.replace(":projectId", p.id)}>Open</Link>
-                        </Button>
+                        <div className="flex justify-end gap-1">
+                          <Button asChild size="sm" variant="ghost">
+                            <Link to={ROUTES.BUSINESS_OWNER.PROJECT_BILLING.replace(":projectId", p.id)}>
+                              Billing
+                            </Link>
+                          </Button>
+                          <Button asChild size="sm" variant="ghost">
+                            <Link to={ROUTES.ADMIN.PROJECT_DETAIL.replace(":projectId", p.id)}>Open</Link>
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );

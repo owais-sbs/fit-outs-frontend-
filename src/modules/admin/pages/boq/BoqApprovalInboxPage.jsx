@@ -40,6 +40,8 @@ export default function BoqApprovalInboxPage() {
       ? ROUTES.BUSINESS_OWNER.COMMERCIAL
       : role === ROLES.PROJECT_MANAGER
         ? ROUTES.PROJECT_MANAGER.PROJECTS
+        : role === ROLES.FINANCE
+          ? ROUTES.FINANCE.PROJECTS
         : role === ROLES.CLIENT
           ? ROUTES.CLIENT.BOQ_APPROVALS
           : ROUTES.ADMIN.QAS;

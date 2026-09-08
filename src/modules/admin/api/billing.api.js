@@ -14,6 +14,11 @@ export const updateBillingMilestone = (projectId, uuid, payload) =>
 export const deleteBillingMilestone = (projectId, uuid) =>
   axiosInstance.delete(`/projects/${projectId}/billing-milestones/${uuid}`).then(unwrap);
 
+export const submitMilestoneForApproval = (projectId, uuid, payload) =>
+  axiosInstance
+    .post(`/projects/${projectId}/billing-milestones/${uuid}/submit-for-approval`, payload || {})
+    .then(unwrap);
+
 export const requestMilestonePayment = (projectId, uuid, payload) =>
   axiosInstance
     .post(`/projects/${projectId}/billing-milestones/${uuid}/request-payment`, payload || {})
@@ -22,11 +27,16 @@ export const requestMilestonePayment = (projectId, uuid, payload) =>
 export const submitPaymentRequest = (uuid) =>
   axiosInstance.post(`/billing/payment-requests/${uuid}/submit`).then(unwrap);
 
-export const approvePaymentRequest = (uuid) =>
-  axiosInstance.post(`/billing/payment-requests/${uuid}/approve`).then(unwrap);
+export const approvePaymentRequest = (uuid, comments) =>
+  axiosInstance
+    .post(`/billing/payment-requests/${uuid}/approve`, comments ? { comments } : {})
+    .then(unwrap);
 
 export const rejectPaymentRequest = (uuid, reason) =>
   axiosInstance.post(`/billing/payment-requests/${uuid}/reject`, reason ? { reason } : {}).then(unwrap);
+
+export const fetchBillingMilestoneInbox = () =>
+  axiosInstance.get("/billing/payment-requests/inbox").then(unwrap);
 
 export const markPaymentRequestPaid = (uuid) =>
   axiosInstance.post(`/billing/payment-requests/${uuid}/mark-paid`).then(unwrap);

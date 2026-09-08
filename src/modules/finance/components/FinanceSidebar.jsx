@@ -1,15 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import {
-  LayoutDashboard,
-  Inbox,
-  Briefcase,
-  MapPin,
-  Mail,
-  ClipboardCheck,
-  GanttChart,
-  ClipboardList,
-  Stamp,
-} from "lucide-react";
+import { LayoutDashboard, Briefcase, Inbox } from "lucide-react";
 import { SidebarBrand } from "@/components/brand/BrandMark";
 import {
   Sidebar,
@@ -31,57 +21,43 @@ const GROUPS = [
   {
     label: "Overview",
     items: [
-      { label: "Dashboard", href: ROUTES.PROJECT_MANAGER.DASHBOARD, icon: LayoutDashboard },
+      { label: "Dashboard", href: ROUTES.FINANCE.DASHBOARD, icon: LayoutDashboard },
     ],
   },
   {
-    label: "Delivery",
+    label: "Billing",
     items: [
-      { label: "Projects", href: ROUTES.PROJECT_MANAGER.PROJECTS, icon: Briefcase },
-      { label: "Schedule", href: ROUTES.PROJECT_MANAGER.SCHEDULE_HUB, icon: GanttChart },
-      { label: "Schedule templates", href: ROUTES.PROJECT_MANAGER.SCHEDULE_TEMPLATES, icon: GanttChart },
-      { label: "Approvals", href: ROUTES.PROJECT_MANAGER.APPROVALS_DASHBOARD, icon: Stamp },
-      { label: "Authority library", href: ROUTES.PROJECT_MANAGER.AUTHORITY_LIBRARY, icon: Stamp },
-      { label: "Validation Inbox", href: ROUTES.PROJECT_MANAGER.VALIDATION_INBOX, icon: ClipboardCheck },
-      { label: "Quality templates", href: ROUTES.PROJECT_MANAGER.QUALITY_TEMPLATES, icon: ClipboardList },
-      { label: "Communications", href: ROUTES.PROJECT_MANAGER.COMMUNICATIONS, icon: Mail },
+      { label: "Projects", href: ROUTES.FINANCE.PROJECTS, icon: Briefcase },
     ],
   },
   {
     label: "Commercial",
     items: [
-      { label: "BOQ Inbox", href: ROUTES.PROJECT_MANAGER.BOQ_INBOX, icon: Inbox },
-      { label: "BOQ milestone approval", href: ROUTES.PROJECT_MANAGER.BILLING_MILESTONE_INBOX, icon: Stamp },
-    ],
-  },
-  {
-    label: "Field",
-    items: [
-      { label: "Site Visits", href: ROUTES.PROJECT_MANAGER.SITE_VISITS, icon: MapPin },
+      { label: "BOQ Inbox", href: ROUTES.FINANCE.BOQ_INBOX, icon: Inbox },
     ],
   },
 ];
 
 function isActivePath(pathname, href) {
   if (pathname === href) return true;
-  if (href === ROUTES.PROJECT_MANAGER.DASHBOARD) return false;
-  if (href === ROUTES.PROJECT_MANAGER.SCHEDULE_HUB) {
-    return pathname === href || /\/projects\/[^/]+\/schedule\/?$/.test(pathname);
+  if (href === ROUTES.FINANCE.DASHBOARD) return false;
+  if (href === ROUTES.FINANCE.PROJECTS) {
+    return pathname.startsWith(`${href}/`) || pathname === href;
   }
   return pathname.startsWith(`${href}/`);
 }
 
-export default function PmSidebar() {
+export default function FinanceSidebar() {
   const location = useLocation();
   const { user } = useAuth();
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader>
+      <SidebarHeader className="border-b border-sidebar-border">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" className="pointer-events-none">
-              <SidebarBrand portal="PM Panel" />
+              <SidebarBrand portal="Finance Panel" />
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
@@ -117,18 +93,15 @@ export default function PmSidebar() {
 
       <SidebarFooter className="border-t border-sidebar-border p-4">
         <div className="flex items-center gap-3 rounded-xl bg-secondary/70 p-2 ring-1 ring-border/50 group-data-[collapsible=icon]:hidden">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-background shadow-sm">
-            <span className="text-xs font-semibold">
-              {user?.name?.substring(0, 2).toUpperCase() || "PM"}
-            </span>
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
+            {(user?.name || "F").slice(0, 1).toUpperCase()}
           </div>
-          <div className="flex flex-col overflow-hidden">
-            <span className="truncate text-xs font-medium">{user?.name || "Project Manager"}</span>
-            <span className="truncate text-[10px] text-muted-foreground">Project Manager</span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs font-semibold">{user?.name || "Finance User"}</p>
+            <p className="truncate text-[10px] text-muted-foreground">{user?.email || ""}</p>
           </div>
         </div>
       </SidebarFooter>
-
       <SidebarRail />
     </Sidebar>
   );
