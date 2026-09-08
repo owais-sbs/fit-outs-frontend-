@@ -15,11 +15,13 @@ const PENDING_INDEX = {
   PENDING_CLIENT: 3,
 };
 
-export function pipelineStepState(status, index) {
+export function pipelineStepState(status, index, options = {}) {
   const s = String(status || "").toUpperCase().replace(/-/g, "_");
+  const pendingIndex = options.pendingIndex || PENDING_INDEX;
+  const doneStatuses = options.doneStatuses || ["APPROVED", "FINAL"];
   if (s === "OBSOLETE") return "obsolete";
-  if (s === "APPROVED" || s === "FINAL") return "done";
-  const current = PENDING_INDEX[s];
+  if (doneStatuses.includes(s)) return "done";
+  const current = pendingIndex[s];
   if (current == null) return "upcoming";
   if (index < current) return "done";
   if (index === current) return "current";
@@ -56,16 +58,24 @@ function StepDot({ state, compact }) {
   );
 }
 
-export default function BoqApprovalPipeline({ status, compact = false, className = "" }) {
+export default function BoqApprovalPipeline({
+  status,
+  compact = false,
+  className = "",
+  steps = BOQ_PIPELINE_STEPS,
+  pendingIndex = PENDING_INDEX,
+  doneStatuses = ["APPROVED", "FINAL"],
+  ariaLabel = "BOQ approval checkpoints",
+}) {
   const s = String(status || "").toUpperCase();
   const obsolete = s === "OBSOLETE";
 
   return (
-    <div className={cn("print:hidden", className)} aria-label="BOQ approval checkpoints">
+    <div className={cn("print:hidden", className)} aria-label={ariaLabel}>
       <ol className="flex items-start">
-        {BOQ_PIPELINE_STEPS.map((step, index) => {
-          const state = pipelineStepState(status, index);
-          const last = index === BOQ_PIPELINE_STEPS.length - 1;
+        {steps.map((step, index) => {
+          const state = pipelineStepState(status, index, { pendingIndex, doneStatuses });
+          const last = index === steps.length - 1;
           return (
             <li key={step.key} className="flex min-w-0 flex-1 items-start">
               <div className="flex min-w-0 flex-1 flex-col items-center text-center">

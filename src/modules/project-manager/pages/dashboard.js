@@ -14,7 +14,7 @@ export default function ProjectManagerDashboard() {
       icon: Inbox,
     },
     {
-      title: "BOQ milestone approval",
+      title: "Billing milestone approval",
       description: "Approve billing milestones sent by Finance",
       href: ROUTES.PROJECT_MANAGER.BILLING_MILESTONE_INBOX,
       icon: Stamp,

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
-  ArrowLeft, Save, Briefcase, MapPin, Calendar, Loader2, UserPlus,
+  ArrowLeft, Save, Briefcase, MapPin, Calendar, Loader2, UserPlus, CheckCircle2, AlertCircle,
 } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -68,6 +68,8 @@ export default function CreateProjectPage() {
   });
 
   const [errors, setErrors] = useState({});
+  const [successMessage, setSuccessMessage] = useState("");
+  const [inviteWarning, setInviteWarning] = useState(false);
 
   useEffect(() => {
     fetchAllClients()
@@ -165,8 +167,8 @@ export default function CreateProjectPage() {
   };
 
   const resolveClientId = async () => {
-    if (clientMode === CLIENT_MODE.NONE) return null;
-    if (clientMode === CLIENT_MODE.EXISTING) return form.clientId || null;
+    if (clientMode === CLIENT_MODE.NONE) return { clientId: null };
+    if (clientMode === CLIENT_MODE.EXISTING) return { clientId: form.clientId || null };
 
     const created = await createClient({
       fullName: form.newClientName.trim(),
@@ -176,7 +178,7 @@ export default function CreateProjectPage() {
       companyUuid: user?.companyId || user?.companyUuid || null,
       companyName: user?.companyName || null,
     });
-    return created.id;
+    return { clientId: created.id, inviteEmailSent: created.inviteEmailSent };
   };
 
   const handleSubmit = async (e) => {
@@ -188,8 +190,10 @@ export default function CreateProjectPage() {
     }
 
     setSubmitting(true);
+    setSuccessMessage("");
+    setInviteWarning(false);
     try {
-      const clientId = await resolveClientId();
+      const { clientId, inviteEmailSent } = await resolveClientId();
 
       await createProject({
         name: form.projectName.trim(),
@@ -212,7 +216,18 @@ export default function CreateProjectPage() {
         projectStore.updateRequestStatus(state.fromRequestId, "Approved");
       }
 
-      navigate(projectsListRoute);
+      if (clientMode === CLIENT_MODE.NEW) {
+        const sent = inviteEmailSent !== false;
+        setInviteWarning(!sent);
+        setSuccessMessage(
+          sent
+            ? `Project created. A login invite was emailed to ${form.newClientEmail.trim()} so the client can set their password, sign in to the portal, and approve the final BOQ.`
+            : "Project created, but the client invite email could not be sent. Resend the invite from the Clients list."
+        );
+        setTimeout(() => navigate(projectsListRoute), 1800);
+      } else {
+        navigate(projectsListRoute);
+      }
     } catch (err) {
       setErrors({
         submit:
@@ -250,6 +265,23 @@ export default function CreateProjectPage() {
           <p className="rounded-xl bg-destructive/10 px-3 py-2 text-sm text-destructive ring-1 ring-destructive/20">
             {errors.submit}
           </p>
+        )}
+
+        {successMessage && (
+          <div
+            className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm ring-1 ${
+              inviteWarning
+                ? "bg-amber-50 text-amber-800 ring-amber-200"
+                : "bg-emerald-50 text-emerald-700 ring-emerald-200"
+            }`}
+          >
+            {inviteWarning ? (
+              <AlertCircle className="h-4 w-4 shrink-0" />
+            ) : (
+              <CheckCircle2 className="h-4 w-4 shrink-0" />
+            )}
+            {successMessage}
+          </div>
         )}
 
         <Card className="bg-card/65 backdrop-blur-sm">
@@ -347,6 +379,13 @@ export default function CreateProjectPage() {
 
               {clientMode === CLIENT_MODE.NEW && (
                 <>
+                  <div className="md:col-span-2 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-foreground">
+                    <p>
+                      When you choose <strong>Create new client</strong>, a fresh login invite is sent to that
+                      email address. The client sets their password, signs in to the client portal, and can approve
+                      the final BOQ when it is ready for sign-off.
+                    </p>
+                  </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="newClientName" className="text-xs font-semibold">New client name *</Label>
                     <Input
@@ -380,9 +419,6 @@ export default function CreateProjectPage() {
                       value={form.newClientPhone}
                       onChange={(e) => handleChange("newClientPhone", e.target.value)}
                     />
-                    <p className="text-[11px] text-muted-foreground">
-                      Creates a CLIENT portal account and links it to this project. They can set a password later via invite/resend.
-                    </p>
                   </div>
                 </>
               )}

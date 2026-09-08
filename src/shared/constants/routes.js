@@ -149,6 +149,7 @@ export const ROUTES = {
     PROJECTS: "/finance/projects",
     PROJECT_DETAIL: "/finance/projects/:projectId",
     PROJECT_BILLING: "/finance/projects/:projectId/billing",
+    BILLING_MILESTONE_INBOX: "/finance/billing/inbox",
     BOQ_INBOX: "/finance/boq/inbox",
     BOQ_VIEW: "/finance/boq/:boqId",
   },

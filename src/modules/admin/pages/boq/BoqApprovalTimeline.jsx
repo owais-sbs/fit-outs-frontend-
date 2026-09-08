@@ -39,7 +39,11 @@ export function BoqStatusBadge({ status, className = "" }) {
   );
 }
 
-export default function BoqApprovalTimeline({ history, loading }) {
+export default function BoqApprovalTimeline({
+  history,
+  loading,
+  emptyMessage = "No approval actions yet. Submit the BOQ to start the workflow.",
+}) {
   if (loading) {
     return <p className="text-sm text-muted-foreground py-4">Loading approval history…</p>;
   }
@@ -50,7 +54,7 @@ export default function BoqApprovalTimeline({ history, loading }) {
   if (log.length === 0 && versions.length === 0) {
     return (
       <p className="text-sm text-muted-foreground py-2">
-        No approval actions yet. Submit the BOQ to start the workflow.
+        {emptyMessage}
       </p>
     );
   }

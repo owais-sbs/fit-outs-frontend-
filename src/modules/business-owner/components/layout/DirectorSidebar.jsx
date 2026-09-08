@@ -23,7 +23,7 @@ import { fetchBoqInbox } from "@/modules/admin/api/boq.api";
 const COMMAND_CENTER = [
   { label: "Dashboard", href: ROUTES.BUSINESS_OWNER.DASHBOARD, icon: LayoutDashboard },
   { label: "BOQ Inbox", href: ROUTES.BUSINESS_OWNER.BOQ_INBOX, icon: Inbox, badge: true },
-  { label: "BOQ milestone approval", href: ROUTES.BUSINESS_OWNER.BILLING_MILESTONE_INBOX, icon: FileText },
+  { label: "Billing milestone approval", href: ROUTES.BUSINESS_OWNER.BILLING_MILESTONE_INBOX, icon: FileText },
 ];
 
 const PORTFOLIO = [

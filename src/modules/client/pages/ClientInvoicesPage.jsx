@@ -9,6 +9,7 @@ import { fetchClientInvoices } from "@/modules/admin/api/billing.api";
 import { fetchAllProjects } from "@/modules/admin/api/projects.api";
 import { resolveFileUrl } from "@/modules/admin/api/documents.api";
 import { formatAed } from "@/shared/utils/currency";
+import { BillingApprovalPipeline } from "@/modules/admin/pages/billing/BillingApprovalPipeline";
 
 const STATUS_VARIANT = {
   Paid: "success",
@@ -198,6 +199,7 @@ export default function ClientInvoicesPage() {
                     <p className="mt-0.5 truncate text-xs text-muted-foreground">
                       {inv.description || inv.name || inv.notes || "Payment request"}
                     </p>
+                    <BillingApprovalPipeline status={status} compact className="mt-2 max-w-[240px]" />
                   </div>
                   <div className="hidden shrink-0 text-right sm:block">
                     <p className="text-sm font-bold">{formatAed(inv.amount)}</p>

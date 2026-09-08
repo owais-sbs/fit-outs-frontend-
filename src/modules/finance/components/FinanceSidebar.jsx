@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, Briefcase, Inbox } from "lucide-react";
+import { LayoutDashboard, Briefcase, Inbox, Stamp } from "lucide-react";
 import { SidebarBrand } from "@/components/brand/BrandMark";
 import {
   Sidebar,
@@ -28,6 +28,7 @@ const GROUPS = [
     label: "Billing",
     items: [
       { label: "Projects", href: ROUTES.FINANCE.PROJECTS, icon: Briefcase },
+      { label: "Billing milestone approval", href: ROUTES.FINANCE.BILLING_MILESTONE_INBOX, icon: Stamp },
     ],
   },
   {

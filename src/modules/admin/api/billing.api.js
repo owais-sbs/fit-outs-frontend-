@@ -36,7 +36,7 @@ export const rejectPaymentRequest = (uuid, reason) =>
   axiosInstance.post(`/billing/payment-requests/${uuid}/reject`, reason ? { reason } : {}).then(unwrap);
 
 export const fetchBillingMilestoneInbox = () =>
-  axiosInstance.get("/billing/payment-requests/inbox").then(unwrap);
+  axiosInstance.get("/billing/payment-requests/inbox", { timeout: 60000 }).then(unwrap);
 
 export const markPaymentRequestPaid = (uuid) =>
   axiosInstance.post(`/billing/payment-requests/${uuid}/mark-paid`).then(unwrap);

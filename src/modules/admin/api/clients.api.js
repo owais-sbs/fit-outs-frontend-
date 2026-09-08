@@ -10,6 +10,7 @@ export function normalizeClient(item = {}) {
     companyUuid: item.companyUuid || null,
     active: item.active ?? true,
     roles: item.roles || [],
+    inviteEmailSent: item.inviteEmailSent,
   };
 }
 

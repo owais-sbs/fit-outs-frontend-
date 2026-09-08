@@ -31,11 +31,18 @@ module.exports = {
   },
   devServer: {
     proxy: {
-      "/api": {
+      "/api/ws": {
         target: "http://localhost:8080",
         changeOrigin: true,
         secure: false,
         ws: true,
+      },
+      "/api": {
+        target: "http://localhost:8080",
+        changeOrigin: true,
+        secure: false,
+        timeout: 60000,
+        proxyTimeout: 60000,
         cookieDomainRewrite: "",
         cookiePathRewrite: "/",
         onProxyRes(proxyRes) {

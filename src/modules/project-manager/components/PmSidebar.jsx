@@ -50,7 +50,7 @@ const GROUPS = [
     label: "Commercial",
     items: [
       { label: "BOQ Inbox", href: ROUTES.PROJECT_MANAGER.BOQ_INBOX, icon: Inbox },
-      { label: "BOQ milestone approval", href: ROUTES.PROJECT_MANAGER.BILLING_MILESTONE_INBOX, icon: Stamp },
+      { label: "Billing milestone approval", href: ROUTES.PROJECT_MANAGER.BILLING_MILESTONE_INBOX, icon: Stamp },
     ],
   },
   {

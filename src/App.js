@@ -352,6 +352,7 @@ function App() {
               <Route path="projects" element={<ProjectsPage />} />
               <Route path="projects/:projectId" element={<ProjectDetailPage />} />
               <Route path="projects/:projectId/billing" element={<ProjectBillingPage />} />
+              <Route path="billing/inbox" element={<BillingMilestoneInboxPage />} />
               <Route path="boq/inbox" element={<BoqApprovalInboxPage />} />
               <Route path="boq/:boqId" element={<BoqViewPage />} />
             </Route>

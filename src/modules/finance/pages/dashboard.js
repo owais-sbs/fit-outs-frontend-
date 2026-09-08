@@ -15,6 +15,7 @@ import { fetchAllProjects } from "@/modules/admin/api/projects.api";
 import { fetchBillingMilestones } from "@/modules/admin/api/billing.api";
 import { ROUTES } from "@/shared/constants/routes";
 import { formatAed } from "@/shared/utils/currency";
+import { BillingApprovalPipeline } from "@/modules/admin/pages/billing/BillingApprovalPipeline";
 
 const PAID_STATUSES = new Set(["PAID", "PART_PAID"]);
 
@@ -208,9 +209,10 @@ export default function FinanceDashboard() {
                             <p className="text-xs text-muted-foreground">{row.projectName}</p>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="secondary" className="text-[10px]">
+                            <Badge variant="secondary" className="mb-2 text-[10px]">
                               {paymentStatus(row)}
                             </Badge>
+                            <BillingApprovalPipeline status={paymentStatus(row)} compact className="max-w-[200px]" />
                           </TableCell>
                           <TableCell className="pr-6 text-right font-medium">
                             {formatAed(row.amount || 0)}
