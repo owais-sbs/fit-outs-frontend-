@@ -75,9 +75,10 @@ import DirectorCommercialPage from "./modules/business-owner/pages/DirectorComme
 import DirectorCrmPage from "./modules/business-owner/pages/DirectorCrmPage";
 import ProjectManagerDashboard from "./modules/project-manager/pages/dashboard";
 import PmLayout from "./modules/project-manager/layouts/PmLayout";
+import FinanceLayout from "./modules/finance/layouts/FinanceLayout";
+import FinanceDashboard from "./modules/finance/pages/dashboard";
 import DesignerDashboard from "./modules/designer/pages/dashboard";
 import QASDashboard from "./modules/qas/pages/dashboard";
-import FinanceDashboard from "./modules/finance/pages/dashboard";
 import SubcontractorDashboard from "./modules/subcontractor/pages/dashboard";
 import SubcontractorLayout from "./modules/subcontractor/layouts/SubcontractorLayout";
 import SubcontractorPackagesPage from "./modules/subcontractor/pages/SubcontractorPackagesPage";
@@ -113,14 +114,20 @@ import EmployeeSiteVisitsPage from "./modules/employee/pages/EmployeeSiteVisitsP
 import EmployeeMyActivitiesPage from "./modules/employee/pages/EmployeeMyActivitiesPage";
 import ProjectSchedulePage from "./modules/admin/pages/schedule/ProjectSchedulePage";
 import ScheduleHubPage from "./modules/admin/pages/schedule/ScheduleHubPage";
+import ScheduleTemplateLibraryPage from "./modules/admin/pages/schedule/ScheduleTemplateLibraryPage";
 import MaterialPlanPage from "./modules/admin/pages/planning/MaterialPlanPage";
 import ResourcePlanPage from "./modules/admin/pages/planning/ResourcePlanPage";
 import ValidationInboxPage from "./modules/admin/pages/validation/ValidationInboxPage";
 import QualityTemplatesPage from "./modules/admin/pages/validation/QualityTemplatesPage";
+import AuthorityLibraryPage from "./modules/admin/pages/approvals/AuthorityLibraryPage";
+import ApprovalsDashboardPage from "./modules/admin/pages/approvals/ApprovalsDashboardPage";
+import DepositLedgerPage from "./modules/admin/pages/approvals/DepositLedgerPage";
+import ProjectApprovalsPage from "./modules/admin/pages/approvals/ProjectApprovalsPage";
 import ProjectSnagsPage from "./modules/admin/pages/snags/ProjectSnagsPage";
 import ProjectDocumentsPage from "./modules/admin/pages/documents/ProjectDocumentsPage";
 import ProjectReportingPage from "./modules/admin/pages/reporting/ProjectReportingPage";
 import ProjectBillingPage from "./modules/admin/pages/billing/ProjectBillingPage";
+import BillingMilestoneInboxPage from "./modules/admin/pages/billing/BillingMilestoneInboxPage";
 import ProjectSubcontractorPage from "./modules/admin/pages/subcontractor/ProjectSubcontractorPage";
 import AdminSettingsPage from "./modules/admin/pages/SettingsPage";
 import ClientSnagsPage from "./modules/client/pages/ClientSnagsPage";
@@ -221,6 +228,11 @@ function App() {
               <Route path="validation/inbox" element={<ValidationInboxPage />} />
               <Route path="quality-templates" element={<QualityTemplatesPage />} />
               <Route path="schedule" element={<ScheduleHubPage />} />
+              <Route path="schedule/templates" element={<ScheduleTemplateLibraryPage />} />
+              <Route path="approvals" element={<ApprovalsDashboardPage />} />
+              <Route path="approvals/library" element={<AuthorityLibraryPage />} />
+              <Route path="approvals/deposits" element={<DepositLedgerPage />} />
+              <Route path="projects/:projectId/approvals" element={<ProjectApprovalsPage />} />
               <Route path="projects/:projectId/drawings" element={<LazyDrawingPage><ProjectDrawingsPage /></LazyDrawingPage>} />
               <Route path="projects/:projectId/drawings/:drawingId/qto" element={<LazyDrawingPage><QtoWorkspacePage /></LazyDrawingPage>} />
               <Route path="projects/:projectId/room-tasks/:taskId" element={<RoomTaskDetailPage />} />
@@ -261,8 +273,10 @@ function App() {
               <Route index element={<DirectorDashboard />} />
               <Route path="boq/inbox" element={<BoqApprovalInboxPage />} />
               <Route path="boq/:boqId" element={<BoqViewPage />} />
+              <Route path="billing/inbox" element={<BillingMilestoneInboxPage />} />
               <Route path="procurement" element={<DirectorProcurementPage />} />
               <Route path="projects" element={<DirectorProjectsPage />} />
+              <Route path="projects/:projectId/billing" element={<ProjectBillingPage />} />
               <Route path="commercial" element={<DirectorCommercialPage />} />
               <Route path="crm" element={<DirectorCrmPage />} />
             </Route>
@@ -280,6 +294,7 @@ function App() {
               <Route index element={<ProjectManagerDashboard />} />
               <Route path="boq/inbox" element={<BoqApprovalInboxPage />} />
               <Route path="boq/:boqId" element={<BoqViewPage />} />
+              <Route path="billing/inbox" element={<BillingMilestoneInboxPage />} />
               <Route path="projects" element={<ProjectsPage />} />
               <Route path="projects/new" element={<CreateProjectPage />} />
               <Route path="projects/:projectId" element={<ProjectDetailPage />} />
@@ -295,6 +310,11 @@ function App() {
               <Route path="validation/inbox" element={<ValidationInboxPage />} />
               <Route path="quality-templates" element={<QualityTemplatesPage />} />
               <Route path="schedule" element={<ScheduleHubPage />} />
+              <Route path="schedule/templates" element={<ScheduleTemplateLibraryPage />} />
+              <Route path="approvals" element={<ApprovalsDashboardPage />} />
+              <Route path="approvals/library" element={<AuthorityLibraryPage />} />
+              <Route path="approvals/deposits" element={<DepositLedgerPage />} />
+              <Route path="projects/:projectId/approvals" element={<ProjectApprovalsPage />} />
               <Route path="site-visits" element={<SiteVisitsPage />} />
               <Route path="site-visits/:visitId/report" element={<SiteVisitReportPage />} />
               <Route path="communications" element={<CommunicationsPage />} />
@@ -320,15 +340,22 @@ function App() {
               }
             />
             <Route
-              path={ROUTES.FINANCE.DASHBOARD}
+              path="/finance"
               element={
                 <ProtectedRoute>
                   <RoleRoute allowedRoles={[ROLES.FINANCE]}>
-                    <FinanceDashboard />
+                    <FinanceLayout />
                   </RoleRoute>
                 </ProtectedRoute>
               }
-            />
+            >
+              <Route index element={<FinanceDashboard />} />
+              <Route path="projects" element={<ProjectsPage />} />
+              <Route path="projects/:projectId" element={<ProjectDetailPage />} />
+              <Route path="projects/:projectId/billing" element={<ProjectBillingPage />} />
+              <Route path="boq/inbox" element={<BoqApprovalInboxPage />} />
+              <Route path="boq/:boqId" element={<BoqViewPage />} />
+            </Route>
             <Route
               path="/subcontractor"
               element={

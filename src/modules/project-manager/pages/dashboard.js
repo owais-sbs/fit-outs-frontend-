@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ROUTES } from "@/shared/constants/routes";
-import { Inbox, Briefcase, MapPin, Mail } from "lucide-react";
+import { Inbox, Briefcase, MapPin, Mail, Stamp } from "lucide-react";
 import { PageShell, PageTitle } from "@/components/layout/PageShell";
 
 export default function ProjectManagerDashboard() {
@@ -12,6 +12,12 @@ export default function ProjectManagerDashboard() {
       description: "Review and approve BOQs pending PM sign-off",
       href: ROUTES.PROJECT_MANAGER.BOQ_INBOX,
       icon: Inbox,
+    },
+    {
+      title: "BOQ milestone approval",
+      description: "Approve billing milestones sent by Finance",
+      href: ROUTES.PROJECT_MANAGER.BILLING_MILESTONE_INBOX,
+      icon: Stamp,
     },
     {
       title: "Projects",

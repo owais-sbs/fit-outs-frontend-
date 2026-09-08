@@ -29,7 +29,7 @@ import {
   rejectBoq,
 } from "../../api/boq.api";
 
-const QAS_EDIT_ROLES = new Set([ROLES.QS, ROLES.SENIOR_QS, ROLES.ADMIN, ROLES.SUPER_ADMIN]);
+const QAS_EDIT_ROLES = new Set([ROLES.QS, ROLES.SENIOR_QS, ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.FINANCE]);
 
 function projectBackPath(role, projectId) {
   if (!projectId) return null;
@@ -41,6 +41,9 @@ function projectBackPath(role, projectId) {
   }
   if (role === ROLES.BUSINESS_OWNER) {
     return ROUTES.BUSINESS_OWNER.COMMERCIAL;
+  }
+  if (role === ROLES.FINANCE) {
+    return ROUTES.FINANCE.PROJECT_DETAIL.replace(":projectId", projectId);
   }
   return ROUTES.ADMIN.PROJECT_DETAIL.replace(":projectId", projectId);
 }

@@ -67,6 +67,13 @@ const PORTAL_CONFIG = {
     description: "Executive command center with full operations access and BOQ sign-off.",
     route: ROUTES.BUSINESS_OWNER.DASHBOARD,
   },
+  [ROLES.FINANCE]: {
+    id: "finance",
+    label: "Finance / Accounts",
+    icon: Briefcase,
+    description: "Billing, milestones, and commercial workflows.",
+    route: ROUTES.FINANCE.DASHBOARD,
+  },
 };
 
 export default function RolesManagement() {

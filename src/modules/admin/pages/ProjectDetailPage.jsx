@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link, useLocation } from "react-router-dom";
 import {
   ArrowLeft, DollarSign, CalendarDays, Clock,
   TrendingUp, Building2, Briefcase, MapPin, FileImage, FileText, GanttChart,
-  AlertTriangle, BarChart3, CreditCard, HardHat, ClipboardCheck,
+  AlertTriangle, BarChart3, CreditCard, HardHat, ClipboardCheck, Stamp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,7 +19,7 @@ import { fetchAllEmployees } from "../api/employees.api";
 import { fetchCrewAssignments } from "../api/resource.api";
 import { fetchProjectTeamAssignments } from "../api/project-team.api";
 import { fetchBoqsByProject } from "../api/boq.api";
-import { ROUTES, boqViewPath } from "@/shared/constants/routes";
+import { ROUTES, boqViewPath, portalRoutesFromPath } from "@/shared/constants/routes";
 import { useAuth } from "@/shared/context/auth-context";
 import { BoqStatusBadge } from "./boq/BoqApprovalTimeline";
 import BoqApprovalPipeline from "./boq/BoqApprovalPipeline";
@@ -65,20 +65,27 @@ function resolveManagerDisplay(project, teamAssignments = [], employees = []) {
   return match?.employeeName || assignedManager;
 }
 
+function projectSubPath(routes, key, projectId) {
+  const template = routes?.[key];
+  return template ? template.replace(":projectId", projectId) : null;
+}
+
 export default function ProjectDetailPage() {
   const { projectId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const { role } = useAuth();
   const isPm = location.pathname.startsWith("/project-manager");
-  const routes = isPm ? ROUTES.PROJECT_MANAGER : ROUTES.ADMIN;
-  const schedulePath = routes.PROJECT_SCHEDULE.replace(":projectId", projectId);
-  const snagsPath = routes.PROJECT_SNAGS.replace(":projectId", projectId);
-  const documentsPath = routes.PROJECT_DOCUMENTS.replace(":projectId", projectId);
-  const reportingPath = routes.PROJECT_REPORTING.replace(":projectId", projectId);
-  const billingPath = routes.PROJECT_BILLING.replace(":projectId", projectId);
-  const subcontractorsPath = routes.PROJECT_SUBCONTRACTORS.replace(":projectId", projectId);
-  const validationPath = routes.PROJECT_VALIDATION.replace(":projectId", projectId);
+  const isFinance = location.pathname.startsWith("/finance");
+  const routes = portalRoutesFromPath(location.pathname);
+  const schedulePath = projectSubPath(routes, "PROJECT_SCHEDULE", projectId);
+  const approvalsPath = projectSubPath(routes, "PROJECT_APPROVALS", projectId);
+  const snagsPath = projectSubPath(routes, "PROJECT_SNAGS", projectId);
+  const documentsPath = projectSubPath(routes, "PROJECT_DOCUMENTS", projectId);
+  const reportingPath = projectSubPath(routes, "PROJECT_REPORTING", projectId);
+  const billingPath = projectSubPath(routes, "PROJECT_BILLING", projectId);
+  const subcontractorsPath = projectSubPath(routes, "PROJECT_SUBCONTRACTORS", projectId);
+  const validationPath = projectSubPath(routes, "PROJECT_VALIDATION", projectId);
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -208,10 +215,15 @@ export default function ProjectDetailPage() {
   return (
     <PageShell className="max-w-6xl mx-auto">
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => navigate(-1)}>
+        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => navigate(isFinance ? ROUTES.FINANCE.PROJECTS : -1)}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <span className="text-sm text-muted-foreground font-medium">Back to projects</span>
+        <Link
+          to={isFinance ? ROUTES.FINANCE.PROJECTS : routes.PROJECTS}
+          className="text-sm text-muted-foreground font-medium hover:text-foreground"
+        >
+          Back to projects
+        </Link>
       </div>
 
       <PageTitle
@@ -220,54 +232,65 @@ export default function ProjectDetailPage() {
         actions={
           <div className="flex items-center gap-2 flex-wrap">
             <StatusBadge status={project.status} />
-            <Button asChild size="sm" variant="outline">
-              <Link to={ROUTES.ADMIN.PROJECT_DRAWINGS.replace(":projectId", projectId)}>
-                <FileImage className="w-4 h-4 mr-1" /> Drawings
-              </Link>
-            </Button>
-            <Button asChild size="sm" variant="outline">
-              <Link to={schedulePath}>
-                <GanttChart className="w-4 h-4 mr-1" /> Schedule
-              </Link>
-            </Button>
-            <Button asChild size="sm" variant="outline">
-              <Link to={snagsPath}>
-                <AlertTriangle className="w-4 h-4 mr-1" /> Snags
-              </Link>
-            </Button>
-            <Button asChild size="sm" variant="outline">
-              <Link to={documentsPath}>
-                <FileText className="w-4 h-4 mr-1" /> Documents
-              </Link>
-            </Button>
-            <Button asChild size="sm" variant="outline">
-              <Link to={reportingPath}>
-                <BarChart3 className="w-4 h-4 mr-1" /> Reporting
-              </Link>
-            </Button>
-            <Button asChild size="sm" variant="outline">
-              <Link to={billingPath}>
+            {!isFinance && (
+              <>
+                <Button asChild size="sm" variant="outline">
+                  <Link to={ROUTES.ADMIN.PROJECT_DRAWINGS.replace(":projectId", projectId)}>
+                    <FileImage className="w-4 h-4 mr-1" /> Drawings
+                  </Link>
+                </Button>
+                <Button asChild size="sm" variant="outline">
+                  <Link to={schedulePath}>
+                    <GanttChart className="w-4 h-4 mr-1" /> Schedule
+                  </Link>
+                </Button>
+                <Button asChild size="sm" variant="outline">
+                  <Link to={approvalsPath}>
+                    <Stamp className="w-4 h-4 mr-1" /> Approvals
+                  </Link>
+                </Button>
+                <Button asChild size="sm" variant="outline">
+                  <Link to={snagsPath}>
+                    <AlertTriangle className="w-4 h-4 mr-1" /> Snags
+                  </Link>
+                </Button>
+                <Button asChild size="sm" variant="outline">
+                  <Link to={documentsPath}>
+                    <FileText className="w-4 h-4 mr-1" /> Documents
+                  </Link>
+                </Button>
+                <Button asChild size="sm" variant="outline">
+                  <Link to={reportingPath}>
+                    <BarChart3 className="w-4 h-4 mr-1" /> Reporting
+                  </Link>
+                </Button>
+                <Button asChild size="sm" variant="outline">
+                  <Link to={subcontractorsPath}>
+                    <HardHat className="w-4 h-4 mr-1" /> Subcontractors
+                  </Link>
+                </Button>
+                <Button asChild size="sm" variant="outline">
+                  <Link to={validationPath}>
+                    <ClipboardCheck className="w-4 h-4 mr-1" /> Validation
+                  </Link>
+                </Button>
+              </>
+            )}
+            <Button asChild size="sm" variant={isFinance ? "default" : "outline"}>
+              <Link to={billingPath || ROUTES.FINANCE.PROJECT_BILLING.replace(":projectId", projectId)}>
                 <CreditCard className="w-4 h-4 mr-1" /> Billing
               </Link>
             </Button>
-            <Button asChild size="sm" variant="outline">
-              <Link to={subcontractorsPath}>
-                <HardHat className="w-4 h-4 mr-1" /> Subcontractors
-              </Link>
-            </Button>
-            <Button asChild size="sm" variant="outline">
-              <Link to={validationPath}>
-                <ClipboardCheck className="w-4 h-4 mr-1" /> Validation
-              </Link>
-            </Button>
-            <Select value={project.status} onValueChange={handleStatusChange} disabled={saving}>
-              <SelectTrigger className="w-[135px] h-8 text-xs"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {["Planning","In Progress","On Hold","Completed","Cancelled"].map((s) => (
-                  <SelectItem key={s} value={s}>{s}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {!isFinance && (
+              <Select value={project.status} onValueChange={handleStatusChange} disabled={saving}>
+                <SelectTrigger className="w-[135px] h-8 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {["Planning","In Progress","On Hold","Completed","Cancelled"].map((s) => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
         }
       />
@@ -317,6 +340,7 @@ export default function ProjectDetailPage() {
         </CardContent>
       </Card>
 
+      {!isFinance && (
       <div className="flex flex-col gap-3 rounded-2xl bg-secondary/50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm font-semibold">Schedule workspace</p>
@@ -332,6 +356,7 @@ export default function ProjectDetailPage() {
           </Link>
         </Button>
       </div>
+      )}
 
       {/* BOQ documents */}
       <Card>
@@ -340,7 +365,7 @@ export default function ProjectDetailPage() {
             <FileText className="h-4 w-4 text-primary" />
             BOQ
           </CardTitle>
-          {!isPm && !boqFrozen && (
+          {!isPm && !isFinance && !boqFrozen && (
             <Button asChild size="sm" variant="outline">
               <Link to={`${ROUTES.ADMIN.QAS}?projectId=${projectId}`}>New survey BOQ</Link>
             </Button>
@@ -415,7 +440,9 @@ export default function ProjectDetailPage() {
         </CardContent>
       </Card>
 
-      <ProjectRoomsSection projectId={projectId} projectName={project.projectName || project.name} />
+      {!isFinance && (
+        <ProjectRoomsSection projectId={projectId} projectName={project.projectName || project.name} />
+      )}
 
       {/* Main grid */}
       <div className="grid gap-6 lg:grid-cols-3">
@@ -436,13 +463,15 @@ export default function ProjectDetailPage() {
                 {project.leadReferenceNo ? (
                   <div className="flex items-start gap-3 py-2 border-b border-border/40 last:border-0">
                     <span className="w-36 shrink-0 text-xs text-muted-foreground">Lead Ref</span>
-                    {project.leadId ? (
+                    {project.leadId && !isFinance ? (
                       <Link
                         to={ROUTES.ADMIN.LEAD_DETAIL.replace(":leadId", project.leadId)}
                         className="text-sm font-medium font-mono text-xs text-primary hover:underline"
                       >
                         {project.leadReferenceNo}
                       </Link>
+                    ) : project.leadId ? (
+                      <span className="text-sm font-medium font-mono text-xs">{project.leadReferenceNo}</span>
                     ) : (
                       <span className="text-sm font-medium font-mono text-xs">{project.leadReferenceNo}</span>
                     )}
@@ -540,7 +569,9 @@ export default function ProjectDetailPage() {
         </div>
       </div>
 
-      <ProjectTeamAssignmentSection projectId={projectId} onSaved={handleTeamSaved} />
+      {!isFinance && (
+        <ProjectTeamAssignmentSection projectId={projectId} onSaved={handleTeamSaved} />
+      )}
 
       {labourCrews.length > 0 && (
         <Card>

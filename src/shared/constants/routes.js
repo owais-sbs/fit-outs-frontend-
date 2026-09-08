@@ -43,6 +43,7 @@ export const ROUTES = {
     CALENDAR: "/admin/calendar",
     PROJECTS: "/admin/projects",
     SCHEDULE_HUB: "/admin/schedule",
+    SCHEDULE_TEMPLATES: "/admin/schedule/templates",
     PROJECT_CREATE: "/admin/projects/new",
     PROJECT_DETAIL: "/admin/projects/:projectId",
     PROJECT_DRAWINGS: "/admin/projects/:projectId/drawings",
@@ -60,6 +61,10 @@ export const ROUTES = {
     PROJECT_SUBCONTRACTORS: "/admin/projects/:projectId/subcontractors",
     VALIDATION_INBOX: "/admin/validation/inbox",
     QUALITY_TEMPLATES: "/admin/quality-templates",
+    AUTHORITY_LIBRARY: "/admin/approvals/library",
+    APPROVALS_DASHBOARD: "/admin/approvals",
+    DEPOSIT_LEDGER: "/admin/approvals/deposits",
+    PROJECT_APPROVALS: "/admin/projects/:projectId/approvals",
     PROJECT_REQUESTS: "/admin/leads/project-requests",
     CLIENTS: "/admin/clients",
     CLIENT_DETAIL: "/admin/clients/:clientId",
@@ -86,7 +91,9 @@ export const ROUTES = {
     DASHBOARD: "/business-owner",
     BOQ_INBOX: "/business-owner/boq/inbox",
     BOQ_VIEW: "/business-owner/boq/:boqId",
+    BILLING_MILESTONE_INBOX: "/business-owner/billing/inbox",
     PROJECTS: "/business-owner/projects",
+    PROJECT_BILLING: "/business-owner/projects/:projectId/billing",
     PROCUREMENT: "/business-owner/procurement",
     COMMERCIAL: "/business-owner/commercial",
     CRM: "/business-owner/crm",
@@ -98,8 +105,10 @@ export const ROUTES = {
     DASHBOARD: "/project-manager",
     BOQ_INBOX: "/project-manager/boq/inbox",
     BOQ_VIEW: "/project-manager/boq/:boqId",
+    BILLING_MILESTONE_INBOX: "/project-manager/billing/inbox",
     PROJECTS: "/project-manager/projects",
     SCHEDULE_HUB: "/project-manager/schedule",
+    SCHEDULE_TEMPLATES: "/project-manager/schedule/templates",
     PROJECT_DETAIL: "/project-manager/projects/:projectId",
     PROJECT_SCHEDULE: "/project-manager/projects/:projectId/schedule",
     PROJECT_MATERIAL_PLAN: "/project-manager/projects/:projectId/material-plan",
@@ -112,6 +121,10 @@ export const ROUTES = {
     PROJECT_SUBCONTRACTORS: "/project-manager/projects/:projectId/subcontractors",
     VALIDATION_INBOX: "/project-manager/validation/inbox",
     QUALITY_TEMPLATES: "/project-manager/quality-templates",
+    AUTHORITY_LIBRARY: "/project-manager/approvals/library",
+    APPROVALS_DASHBOARD: "/project-manager/approvals",
+    DEPOSIT_LEDGER: "/project-manager/approvals/deposits",
+    PROJECT_APPROVALS: "/project-manager/projects/:projectId/approvals",
     SITE_VISITS: "/project-manager/site-visits",
     SITE_VISIT_REPORT: "/project-manager/site-visits/:visitId/report",
     COMMUNICATIONS: "/project-manager/communications",
@@ -134,10 +147,11 @@ export const ROUTES = {
   },
   FINANCE: {
     DASHBOARD: "/finance",
-    INVOICES: "/finance/invoices",
-    PAYMENTS: "/finance/payments",
-    BUDGETS: "/finance/budgets",
-    REPORTS: "/finance/reports",
+    PROJECTS: "/finance/projects",
+    PROJECT_DETAIL: "/finance/projects/:projectId",
+    PROJECT_BILLING: "/finance/projects/:projectId/billing",
+    BOQ_INBOX: "/finance/boq/inbox",
+    BOQ_VIEW: "/finance/boq/:boqId",
   },
   SUBCONTRACTOR: {
     DASHBOARD: "/subcontractor",
@@ -190,6 +204,13 @@ export const ROUTES = {
   },
 };
 
+/** Resolve admin / PM / finance route set from the current URL. */
+export function portalRoutesFromPath(pathname = "") {
+  if (pathname.startsWith("/project-manager")) return ROUTES.PROJECT_MANAGER;
+  if (pathname.startsWith("/finance")) return ROUTES.FINANCE;
+  return ROUTES.ADMIN;
+}
+
 /** Read-only BOQ document in the portal the current role can actually open. */
 export function boqViewPath(role, boqId, projectId) {
   if (!boqId) return ROUTES.ADMIN.BOQ;
@@ -201,6 +222,8 @@ export function boqViewPath(role, boqId, projectId) {
       return `/business-owner/boq/${boqId}${query}`;
     case ROLES.CLIENT:
       return `/client/boq/${boqId}${query}`;
+    case ROLES.FINANCE:
+      return `/finance/boq/${boqId}${query}`;
     default:
       return `/admin/boq/${boqId}${query}`;
   }
@@ -214,6 +237,8 @@ export function boqInboxPath(role) {
       return ROUTES.BUSINESS_OWNER.BOQ_INBOX;
     case ROLES.CLIENT:
       return ROUTES.CLIENT.BOQ_APPROVALS;
+    case ROLES.FINANCE:
+      return ROUTES.FINANCE.BOQ_INBOX;
     default:
       return ROUTES.ADMIN.BOQ_INBOX;
   }

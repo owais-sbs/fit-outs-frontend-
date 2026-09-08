@@ -9,14 +9,15 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { fetchAllProjects } from "../api/projects.api";
 import { fetchAllClients } from "../api/clients.api";
-import { ROUTES } from "@/shared/constants/routes";
+import { ROUTES, portalRoutesFromPath } from "@/shared/constants/routes";
 
 export default function ProjectsPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const isPm = location.pathname.startsWith("/project-manager");
-  const detailRoute = isPm ? ROUTES.PROJECT_MANAGER.PROJECT_DETAIL : ROUTES.ADMIN.PROJECT_DETAIL;
-  const createRoute = isPm
+  const portalRoutes = portalRoutesFromPath(location.pathname);
+  const isFinance = location.pathname.startsWith("/finance");
+  const detailRoute = portalRoutes.PROJECT_DETAIL;
+  const createRoute = location.pathname.startsWith("/project-manager")
     ? `${ROUTES.PROJECT_MANAGER.PROJECTS}/new`
     : ROUTES.ADMIN.PROJECT_CREATE;
   const [projects, setProjects] = useState([]);
@@ -63,10 +64,12 @@ export default function ProjectsPage() {
         title="Projects"
         description="All projects in your company."
         actions={
-          <Button size="sm" className="gap-2" onClick={() => navigate(createRoute)}>
-            <Plus className="h-4 w-4" />
-            Add new project
-          </Button>
+          !isFinance ? (
+            <Button size="sm" className="gap-2" onClick={() => navigate(createRoute)}>
+              <Plus className="h-4 w-4" />
+              Add new project
+            </Button>
+          ) : null
         }
       />
 
