@@ -61,6 +61,33 @@ export const updateScopeTag = (id, payload) =>
 export const deleteScopeTag = (id) =>
   axiosInstance.delete(`/scope-tags/${id}`).then(dataOf);
 
+export const createPropertyType = (payload) =>
+  axiosInstance.post("/property-types", payload).then(dataOf);
+
+export const updatePropertyType = (id, payload) =>
+  axiosInstance.put(`/property-types/${id}`, payload).then(dataOf);
+
+export const deletePropertyType = (id) =>
+  axiosInstance.delete(`/property-types/${id}`).then(dataOf);
+
+export const createProjectNature = (payload) =>
+  axiosInstance.post("/project-natures", payload).then(dataOf);
+
+export const updateProjectNature = (id, payload) =>
+  axiosInstance.put(`/project-natures/${id}`, payload).then(dataOf);
+
+export const deleteProjectNature = (id) =>
+  axiosInstance.delete(`/project-natures/${id}`).then(dataOf);
+
+export const createCompanyRegistration = (payload) =>
+  axiosInstance.post("/company-registrations", payload).then(dataOf);
+
+export const updateCompanyRegistration = (id, payload) =>
+  axiosInstance.put(`/company-registrations/${id}`, payload).then(dataOf);
+
+export const deleteCompanyRegistration = (id) =>
+  axiosInstance.delete(`/company-registrations/${id}`).then(dataOf);
+
 export const fetchJurisdictionPacks = (selectableOnly = false) =>
   axiosInstance
     .get("/jurisdiction-packs", { ...catalogTimeout, params: { selectableOnly } })
