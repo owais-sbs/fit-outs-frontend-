@@ -89,6 +89,13 @@ import SubcontractorProjectDetailPage from "./modules/subcontractor/pages/Subcon
 import SubcontractorLocationsPage from "./modules/subcontractor/pages/SubcontractorLocationsPage";
 import SubcontractorProgressLogsPage from "./modules/subcontractor/pages/SubcontractorProgressLogsPage";
 import SubcontractorDocumentsPage from "./modules/subcontractor/pages/SubcontractorDocumentsPage";
+import SubcontractorRegistrationPage from "./modules/auth/pages/subcontractor-register";
+import SubcontractorOnboardingStatusPage from "./modules/subcontractor/pages/SubcontractorOnboardingStatusPage";
+import SubcontractorCompanyProfilePage from "./modules/subcontractor/pages/SubcontractorCompanyProfilePage";
+import SubcontractorComplianceDocumentsPage from "./modules/subcontractor/pages/SubcontractorComplianceDocumentsPage";
+import SubcontractorTeamPage from "./modules/subcontractor/pages/SubcontractorTeamPage";
+import JctAdminSubcontractorApplicationsPage from "./modules/admin/pages/subcontractor/JctAdminSubcontractorApplicationsPage";
+import JctAdminSubcontractorApplicationDetailPage from "./modules/admin/pages/subcontractor/JctAdminSubcontractorApplicationDetailPage";
 import {
   ClientLayout,
   ClientDashboard,
@@ -151,6 +158,7 @@ function App() {
           <Routes>
             {/* Public routes */}
             <Route path={ROUTES.AUTH.LOGIN} element={<Login />} />
+            <Route path={ROUTES.AUTH.REGISTER_SUBCONTRACTOR} element={<SubcontractorRegistrationPage />} />
             <Route path={ROUTES.AUTH.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
             <Route path={ROUTES.AUTH.SET_PASSWORD} element={<SetPasswordPage />} />
             <Route path="/roles" element={<RolesManagement />} />
@@ -225,6 +233,8 @@ function App() {
               <Route path="projects/:projectId/reporting" element={<ProjectReportingPage />} />
               <Route path="projects/:projectId/billing" element={<ProjectBillingPage />} />
               <Route path="projects/:projectId/subcontractors" element={<ProjectSubcontractorPage />} />
+              <Route path="subcontractors/applications" element={<JctAdminSubcontractorApplicationsPage />} />
+              <Route path="subcontractors/applications/:id" element={<JctAdminSubcontractorApplicationDetailPage />} />
               <Route path="validation/inbox" element={<ValidationInboxPage />} />
               <Route path="quality-templates" element={<QualityTemplatesPage />} />
               <Route path="schedule" element={<ScheduleHubPage />} />
@@ -367,6 +377,10 @@ function App() {
               }
             >
               <Route index element={<SubcontractorDashboard />} />
+              <Route path="onboarding-status" element={<SubcontractorOnboardingStatusPage />} />
+              <Route path="company-profile" element={<SubcontractorCompanyProfilePage />} />
+              <Route path="compliance-documents" element={<SubcontractorComplianceDocumentsPage />} />
+              <Route path="team" element={<SubcontractorTeamPage />} />
               <Route path="projects" element={<SubcontractorProjectsPage />} />
               <Route path="projects/:projectId" element={<SubcontractorProjectDetailPage />} />
               <Route path="locations" element={<SubcontractorLocationsPage />} />

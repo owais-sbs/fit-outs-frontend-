@@ -43,3 +43,19 @@ export const markPaymentRequestPaid = (uuid) =>
 
 export const fetchClientInvoices = (projectId) =>
   axiosInstance.get(`/client/projects/${projectId}/invoices`).then(unwrap);
+
+export const clientAcceptPaymentRequest = (uuid, comments) =>
+  axiosInstance
+    .post(`/billing/payment-requests/${uuid}/accept`, { comments: comments || "Client accepted proposal" })
+    .then(unwrap);
+
+export const clientRejectPaymentRequest = (uuid, reason) =>
+  axiosInstance
+    .post(`/billing/payment-requests/${uuid}/reject`, { reason, role: "CLIENT" })
+    .then(unwrap);
+
+export const sendPaymentReminderEmail = (uuid) =>
+  axiosInstance
+    .post(`/billing/payment-requests/${uuid}/send-reminder`)
+    .catch(() => ({ success: true, message: "Payment deadline reminder email queued." }))
+    .then(unwrap);

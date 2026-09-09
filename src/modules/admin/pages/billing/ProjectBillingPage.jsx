@@ -11,6 +11,7 @@ import {
   Trash2,
   X,
   Banknote,
+  Mail,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageShell, PageTitle } from "@/components/layout/PageShell";
@@ -20,6 +21,22 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import {
   fetchBillingMilestones,
   createBillingMilestone,
@@ -28,6 +45,7 @@ import {
   approvePaymentRequest,
   rejectPaymentRequest,
   markPaymentRequestPaid,
+  sendPaymentReminderEmail,
 } from "../../api/billing.api";
 import { fetchProjectById } from "../../api/projects.api";
 import { fetchBoqsByProject } from "../../api/boq.api";
@@ -43,17 +61,49 @@ import { useAuth } from "@/shared/context/auth-context";
 import { formatAed } from "@/shared/utils/currency";
 import { BillingApprovalPipeline, BillingApprovalTimeline } from "./BillingApprovalPipeline";
 
+const PAGE_SIZE = 10;
+
+function getPageNumbers(currentPage, totalPages, maxVisible = 5) {
+  if (totalPages <= maxVisible) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }
+  let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+  let end = start + maxVisible - 1;
+  if (end > totalPages) {
+    end = totalPages;
+    start = Math.max(1, end - maxVisible + 1);
+  }
+  const pages = [];
+  for (let i = start; i <= end; i++) {
+    pages.push(i);
+  }
+  return pages;
+}
+
 const STATUS_LABELS = {
   DRAFT: "Draft",
-  PENDING_PM: "Pending PM",
-  PENDING_DIRECTOR: "Pending Director",
-  ISSUED: "Sent to client",
+  PENDING_PM: "Pending Project Manager Approval",
+  PENDING_DIRECTOR: "Pending Project Director Approval",
+  ISSUED: "Awaiting Client Acceptance",
+  CLIENT_ACCEPTED: "Client Accepted Proposal",
   PAID: "Paid",
   PART_PAID: "Part paid",
 };
 
 function paymentRequestFor(milestone) {
-  return milestone?.latestPaymentRequest || milestone?.paymentRequest || null;
+  if (!milestone) return null;
+  if (milestone.latestPaymentRequest) return milestone.latestPaymentRequest;
+  if (milestone.paymentRequest) return milestone.paymentRequest;
+  if (milestone.paymentRequestUuid) return { uuid: milestone.paymentRequestUuid, status: milestone.status };
+  const status = (milestone.status || "").toUpperCase();
+  if (milestone.uuid && status && status !== "DRAFT") {
+    return {
+      uuid: milestone.paymentRequestId || milestone.uuid,
+      status: milestone.status,
+      requestedByName: milestone.requestedByName,
+    };
+  }
+  return null;
 }
 
 function pickLatestApprovedBoq(boqs = []) {
@@ -96,15 +146,28 @@ export default function ProjectBillingPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
-  const [rejectReasons, setRejectReasons] = useState({});
   const [createMode, setCreateMode] = useState("manual");
   const [showBoqLines, setShowBoqLines] = useState(false);
   const [templateRows, setTemplateRows] = useState(createFinanceTemplateRows);
+  const [page, setPage] = useState(1);
   const [form, setForm] = useState({
     name: "",
     amount: "",
     dueDate: "",
   });
+
+  const totalPages = Math.max(1, Math.ceil(milestones.length / PAGE_SIZE));
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [milestones.length, totalPages, page]);
+
+  const paginatedMilestones = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return milestones.slice(start, start + PAGE_SIZE);
+  }, [milestones, page]);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -169,13 +232,8 @@ export default function ProjectBillingPage() {
       } else if (okMsg) {
         setMessage(okMsg);
       }
-    } catch (e) {
-      setMessage(
-        e?.message
-        || e?.response?.data?.message
-        || e?.response?.data?.error
-        || "Request failed"
-      );
+    } catch (err) {
+      setMessage(err?.response?.data?.message || err.message || "Operation failed.");
     } finally {
       setBusy(false);
     }
@@ -183,21 +241,24 @@ export default function ProjectBillingPage() {
 
   const handleCreate = () =>
     run(async () => {
+      const name = form.name.trim();
+      const amount = Number(form.amount);
+      if (!name) throw new Error("Milestone name required.");
+      if (!amount || amount <= 0) throw new Error("Amount must be positive.");
       await createBillingMilestone(projectId, {
-        name: form.name.trim(),
-        amount: Number(form.amount) || 0,
-        dueDate: form.dueDate || null,
+        name,
+        amount,
+        dueDate: form.dueDate || undefined,
       });
       setForm({ name: "", amount: "", dueDate: "" });
-    }, "Milestone created");
+      return "Milestone created.";
+    });
 
   const handleCreateFromTemplate = () =>
     run(async () => {
-      const selectedRows = templateRows.filter((row) => row.selected);
-      if (selectedRows.length === 0) {
-        throw new Error("Select at least one payment slice.");
-      }
-
+      if (!approvedBoq) throw new Error("No approved BOQ for template mode.");
+      const selectedRows = templateRows.filter((r) => r.selected);
+      if (selectedRows.length === 0) throw new Error("Select at least one slice.");
       for (const row of selectedRows) {
         if (!(row.name || "").trim()) {
           throw new Error("Each selected slice needs a name.");
@@ -226,6 +287,136 @@ export default function ProjectBillingPage() {
       setTemplateRows(createFinanceTemplateRows());
       return `Created ${created} milestone${created === 1 ? "" : "s"}.`;
     });
+
+  const draftOrRejectedMilestones = useMemo(
+    () =>
+      milestones.filter((m) => {
+        const s = (paymentRequestFor(m)?.status || m.status || "DRAFT").toUpperCase();
+        return s === "DRAFT" || s === "REJECTED";
+      }),
+    [milestones]
+  );
+
+  const rejectedMilestones = useMemo(
+    () =>
+      milestones.filter((m) => {
+        const s = (paymentRequestFor(m)?.status || m.status || "").toUpperCase();
+        return s === "REJECTED";
+      }),
+    [milestones]
+  );
+
+  const handleSubmitAllForApproval = () =>
+    run(async () => {
+      if (draftOrRejectedMilestones.length === 0) {
+        throw new Error("No draft or rejected milestones to submit.");
+      }
+      for (const m of draftOrRejectedMilestones) {
+        await submitMilestoneForApproval(projectId, m.uuid, { amount: m.amount });
+      }
+      return `Submitted ${draftOrRejectedMilestones.length} milestone${
+        draftOrRejectedMilestones.length === 1 ? "" : "s"
+      } to PM for approval.`;
+    });
+
+  const pendingPmMilestones = useMemo(
+    () =>
+      milestones.filter((m) => {
+        const req = paymentRequestFor(m);
+        const s = (req?.status || m.status || "").toUpperCase();
+        return (req?.uuid || m.uuid) && s === "PENDING_PM";
+      }),
+    [milestones]
+  );
+
+  const pendingDirectorMilestones = useMemo(
+    () =>
+      milestones.filter((m) => {
+        const req = paymentRequestFor(m);
+        const s = (req?.status || m.status || "").toUpperCase();
+        return (req?.uuid || m.uuid) && s === "PENDING_DIRECTOR";
+      }),
+    [milestones]
+  );
+
+  const [pmRejectComment, setPmRejectComment] = useState("");
+  const [showPmRejectDialog, setShowPmRejectDialog] = useState(false);
+  const [directorRejectComment, setDirectorRejectComment] = useState("");
+  const [showDirectorRejectDialog, setShowDirectorRejectDialog] = useState(false);
+
+  const handlePmApproveAll = () =>
+    run(async () => {
+      if (pendingPmMilestones.length === 0) {
+        throw new Error("No milestones pending PM approval.");
+      }
+      for (const m of pendingPmMilestones) {
+        const req = paymentRequestFor(m);
+        const targetUuid = req?.uuid || m.uuid;
+        if (targetUuid) {
+          await approvePaymentRequest(targetUuid);
+        }
+      }
+      return `Approved project billing milestone package (${pendingPmMilestones.length} slices) and forwarded to Director.`;
+    });
+
+  const handlePmRejectAll = async () => {
+    if (!pmRejectComment.trim()) {
+      setMessage("Please enter a reason for returning the package to Finance.");
+      return;
+    }
+    setShowPmRejectDialog(false);
+    await run(async () => {
+      if (pendingPmMilestones.length === 0) {
+        throw new Error("No milestones pending PM approval.");
+      }
+      for (const m of pendingPmMilestones) {
+        const req = paymentRequestFor(m);
+        const targetUuid = req?.uuid || m.uuid;
+        if (targetUuid) {
+          await rejectPaymentRequest(targetUuid, pmRejectComment.trim());
+        }
+      }
+      setPmRejectComment("");
+      return `Returned project billing milestone package (${pendingPmMilestones.length} slices) back to Finance.`;
+    });
+  };
+
+  const handleDirectorApproveAll = () =>
+    run(async () => {
+      if (pendingDirectorMilestones.length === 0) {
+        throw new Error("No milestones pending Director approval.");
+      }
+      for (const m of pendingDirectorMilestones) {
+        const req = paymentRequestFor(m);
+        const targetUuid = req?.uuid || m.uuid;
+        if (targetUuid) {
+          await approvePaymentRequest(targetUuid);
+        }
+      }
+      return `Approved project billing milestone package (${pendingDirectorMilestones.length} slices). Client notified.`;
+    });
+
+  const handleDirectorRejectAll = async () => {
+    if (!directorRejectComment.trim()) {
+      setMessage("Please enter a reason for returning the package to Finance.");
+      return;
+    }
+    setShowDirectorRejectDialog(false);
+    await run(async () => {
+      if (pendingDirectorMilestones.length === 0) {
+        throw new Error("No milestones pending Director approval.");
+      }
+      for (const m of pendingDirectorMilestones) {
+        const req = paymentRequestFor(m);
+        const targetUuid = req?.uuid || m.uuid;
+        if (targetUuid) {
+          await rejectPaymentRequest(targetUuid, directorRejectComment.trim());
+        }
+      }
+      setDirectorRejectComment("");
+      return `Returned project billing milestone package (${pendingDirectorMilestones.length} slices) back to Finance.`;
+    });
+  };
 
   if (loading) {
     return (
@@ -477,9 +668,56 @@ export default function ProjectBillingPage() {
         </Card>
       )}
 
+      {rejectedMilestones.length > 0 && isFinanceUser && (
+        <Card className="border-amber-400/30 bg-amber-500/5">
+          <CardContent className="pt-4 text-xs text-amber-700 dark:text-amber-400 space-y-1">
+            <p className="font-semibold text-sm">
+              Billing milestones returned/rejected ({rejectedMilestones.length})
+            </p>
+            <p>
+              PM or Director returned this milestone package. You can re-allocate payment percentages/amounts
+              above or adjust due dates, then click <strong>Submit for approval</strong> below to re-send.
+            </p>
+          </CardContent>
+        </Card>
+      )}
       <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-semibold">Milestones ({milestones.length})</CardTitle>
+        <CardHeader className="pb-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div>
+            <CardTitle className="text-sm font-semibold">Milestones ({milestones.length})</CardTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Review and action the complete project billing schedule together.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {isFinanceUser && draftOrRejectedMilestones.length > 0 && (
+              <Button size="sm" disabled={busy} onClick={handleSubmitAllForApproval}>
+                <Send className="h-4 w-4 mr-1.5" /> Submit all for approval ({draftOrRejectedMilestones.length})
+              </Button>
+            )}
+
+            {isPmUser && pendingPmMilestones.length > 0 && (
+              <div className="flex gap-2">
+                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" disabled={busy} onClick={handlePmApproveAll}>
+                  <Check className="h-4 w-4 mr-1.5" /> Approve Package ({pendingPmMilestones.length})
+                </Button>
+                <Button size="sm" variant="outline" className="text-destructive border-destructive/30" disabled={busy} onClick={() => setShowPmRejectDialog(true)}>
+                  <X className="h-4 w-4 mr-1.5" /> Reject Package
+                </Button>
+              </div>
+            )}
+
+            {isDirectorUser && pendingDirectorMilestones.length > 0 && (
+              <div className="flex gap-2">
+                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" disabled={busy} onClick={handleDirectorApproveAll}>
+                  <Check className="h-4 w-4 mr-1.5" /> Approve & Notify Client ({pendingDirectorMilestones.length})
+                </Button>
+                <Button size="sm" variant="outline" className="text-destructive border-destructive/30" disabled={busy} onClick={() => setShowDirectorRejectDialog(true)}>
+                  <X className="h-4 w-4 mr-1.5" /> Reject Package
+                </Button>
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {milestones.length === 0 ? (
@@ -489,54 +727,39 @@ export default function ProjectBillingPage() {
                 : "No billing milestones on this project."}
             </p>
           ) : (
-            <div className="divide-y divide-border/40">
-              {milestones.map((m) => {
-                const paymentReq = paymentRequestFor(m);
-                const workflowStatus = paymentReq?.status || m.status || "DRAFT";
-                return (
-                  <div key={m.uuid} className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-sm font-medium">{m.name}</p>
-                        <Badge variant="secondary">
-                          {STATUS_LABELS[workflowStatus] || workflowStatus}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {formatAed(m.amount || 0)}
-                        {percentBasis > 0 && m.amount
-                          ? ` (${Math.round((Number(m.amount) / percentBasis) * 100)}%)`
-                          : ""}
-                        {m.dueDate ? ` · due ${m.dueDate}` : ""}
-                        {paymentReq?.requestedByName
-                          ? ` · sent by ${paymentReq.requestedByName}`
-                          : ""}
-                      </p>
-                      <BillingApprovalPipeline status={workflowStatus} compact className="mt-2 max-w-[260px]" />
-                      {paymentReq && (
-                        <div className="mt-2">
-                          <BillingApprovalTimeline item={{ ...paymentReq, status: workflowStatus }} />
+            <>
+              <div className="divide-y divide-border/40">
+                {paginatedMilestones.map((m) => {
+                  const paymentReq = paymentRequestFor(m);
+                  const workflowStatus = paymentReq?.status || m.status || "DRAFT";
+                  return (
+                    <div key={m.uuid} className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-sm font-medium">{m.name}</p>
+                          <Badge variant="secondary">
+                            {STATUS_LABELS[workflowStatus] || workflowStatus}
+                          </Badge>
                         </div>
-                      )}
-                    </div>
-                    <div className="flex flex-wrap gap-1 items-center">
-                      {isFinanceUser && workflowStatus === "DRAFT" && (
-                        <>
-                          <Button
-                            size="sm"
-                            disabled={busy}
-                            onClick={() =>
-                              run(
-                                () =>
-                                  submitMilestoneForApproval(projectId, m.uuid, {
-                                    amount: m.amount,
-                                  }),
-                                "Submitted to PM for approval"
-                              )
-                            }
-                          >
-                            <Send className="h-4 w-4 mr-1" /> Submit for approval
-                          </Button>
+                        <p className="text-xs text-muted-foreground">
+                          {formatAed(m.amount || 0)}
+                          {percentBasis > 0 && m.amount
+                            ? ` (${Math.round((Number(m.amount) / percentBasis) * 100)}%)`
+                            : ""}
+                          {m.dueDate ? ` · due ${m.dueDate}` : ""}
+                          {paymentReq?.requestedByName
+                            ? ` · sent by ${paymentReq.requestedByName}`
+                            : ""}
+                        </p>
+                        <BillingApprovalPipeline status={workflowStatus} compact className="mt-2 max-w-[260px]" />
+                        {paymentReq && (
+                          <div className="mt-2">
+                            <BillingApprovalTimeline item={{ ...paymentReq, status: workflowStatus }} />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-1 items-center">
+                        {isFinanceUser && (workflowStatus === "DRAFT" || workflowStatus === "REJECTED") && (
                           <Button
                             size="icon"
                             variant="ghost"
@@ -548,129 +771,138 @@ export default function ProjectBillingPage() {
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
-                        </>
-                      )}
-
-                      {isPmUser && paymentReq?.uuid && workflowStatus === "PENDING_PM" && (
-                        <>
-                          <Input
-                            className="h-8 w-28 text-xs"
-                            placeholder="Reject reason"
-                            value={rejectReasons[paymentReq.uuid] || ""}
-                            onChange={(e) =>
-                              setRejectReasons((map) => ({
-                                ...map,
-                                [paymentReq.uuid]: e.target.value,
-                              }))
-                            }
-                          />
-                          <Button
-                            size="sm"
-                            disabled={busy}
-                            onClick={() =>
-                              run(
-                                () => approvePaymentRequest(paymentReq.uuid),
-                                "Forwarded to Director"
-                              )
-                            }
-                          >
-                            <Check className="h-4 w-4 mr-1" /> Approve
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            disabled={busy || !(rejectReasons[paymentReq.uuid] || "").trim()}
-                            onClick={() =>
-                              run(
-                                () =>
-                                  rejectPaymentRequest(
-                                    paymentReq.uuid,
-                                    rejectReasons[paymentReq.uuid]
-                                  ),
-                                "Returned to finance"
-                              )
-                            }
-                          >
-                            <X className="h-4 w-4 mr-1" /> Reject
-                          </Button>
-                        </>
-                      )}
-
-                      {isDirectorUser && paymentReq?.uuid && workflowStatus === "PENDING_DIRECTOR" && (
-                        <>
-                          <Input
-                            className="h-8 w-28 text-xs"
-                            placeholder="Reject reason"
-                            value={rejectReasons[paymentReq.uuid] || ""}
-                            onChange={(e) =>
-                              setRejectReasons((map) => ({
-                                ...map,
-                                [paymentReq.uuid]: e.target.value,
-                              }))
-                            }
-                          />
-                          <Button
-                            size="sm"
-                            disabled={busy}
-                            onClick={() =>
-                              run(async () => {
-                                const result = await approvePaymentRequest(paymentReq.uuid);
-                                if (result?.clientEmailSent && result?.clientEmail) {
-                                  return `Approved. Payment reminder sent to ${result.clientEmail}.`;
-                                }
-                                if (result?.clientEmailSent === false && result?.clientEmail) {
-                                  return "Approved, but the client email could not be sent.";
-                                }
-                                if (result?.clientEmailSent === false) {
-                                  return "Approved. No client email on file for this project.";
-                                }
-                                return "Approved and sent to client.";
-                              })
-                            }
-                          >
-                            <Check className="h-4 w-4 mr-1" /> Approve & notify client
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            disabled={busy || !(rejectReasons[paymentReq.uuid] || "").trim()}
-                            onClick={() =>
-                              run(
-                                () =>
-                                  rejectPaymentRequest(
-                                    paymentReq.uuid,
-                                    rejectReasons[paymentReq.uuid]
-                                  ),
-                                "Returned to finance"
-                              )
-                            }
-                          >
-                            <X className="h-4 w-4 mr-1" /> Reject
-                          </Button>
-                        </>
-                      )}
-
-                      {isFinanceUser &&
-                        paymentReq?.uuid &&
-                        (workflowStatus === "ISSUED" || workflowStatus === "PART_PAID") && (
-                          <Button
-                            size="sm"
-                            disabled={busy}
-                            onClick={() =>
-                              run(() => markPaymentRequestPaid(paymentReq.uuid), "Marked paid")
-                            }
-                          >
-                            <Banknote className="h-4 w-4 mr-1" /> Mark paid
-                          </Button>
                         )}
+
+                        {isFinanceUser &&
+                          paymentReq?.uuid &&
+                          (workflowStatus === "CLIENT_ACCEPTED" || workflowStatus === "PART_PAID") && (
+                            <div className="flex gap-1.5">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={busy}
+                                onClick={() =>
+                                  run(
+                                    () => sendPaymentReminderEmail(paymentReq.uuid),
+                                    "Payment deadline reminder email queued for client"
+                                  )
+                                }
+                              >
+                                <Mail className="h-4 w-4 mr-1" /> Send Reminder
+                              </Button>
+                              <Button
+                                size="sm"
+                                disabled={busy}
+                                onClick={() =>
+                                  run(() => markPaymentRequestPaid(paymentReq.uuid), "Marked paid")
+                                }
+                              >
+                                <Banknote className="h-4 w-4 mr-1" /> Mark paid
+                              </Button>
+                            </div>
+                          )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+
+              {milestones.length > 0 && (
+                <div className="flex flex-col gap-2 border-t pt-3 mt-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-xs text-muted-foreground">
+                    Showing {(page - 1) * PAGE_SIZE + 1}–
+                    {Math.min(page * PAGE_SIZE, milestones.length)} of {milestones.length} milestone
+                    {milestones.length !== 1 ? "s" : ""}
+                  </p>
+                  {totalPages > 1 && (
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious
+                            onClick={() => setPage((p) => Math.max(1, p - 1))}
+                            className={page <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          />
+                        </PaginationItem>
+                        {getPageNumbers(page, totalPages).map((pNum) => (
+                          <PaginationItem key={pNum}>
+                            <PaginationLink
+                              isActive={page === pNum}
+                              onClick={() => setPage(pNum)}
+                              className="cursor-pointer"
+                            >
+                              {pNum}
+                            </PaginationLink>
+                          </PaginationItem>
+                        ))}
+                        <PaginationItem>
+                          <PaginationNext
+                            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                            className={
+                              page >= totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"
+                            }
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  )}
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={showPmRejectDialog} onOpenChange={setShowPmRejectDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Billing Milestone Package</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-xs text-muted-foreground">
+              Please provide a reason for returning this billing milestone package back to Finance for adjustments.
+            </p>
+            <Textarea
+              placeholder="Reason for rejection / requested changes..."
+              value={pmRejectComment}
+              onChange={(e) => setPmRejectComment(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPmRejectDialog(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handlePmRejectAll} disabled={busy || !pmRejectComment.trim()}>
+              Confirm Rejection
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showDirectorRejectDialog} onOpenChange={setShowDirectorRejectDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Billing Milestone Package</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-xs text-muted-foreground">
+              Please provide a reason for returning this billing milestone package back to Finance for adjustments.
+            </p>
+            <Textarea
+              placeholder="Reason for rejection / requested changes..."
+              value={directorRejectComment}
+              onChange={(e) => setDirectorRejectComment(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDirectorRejectDialog(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDirectorRejectAll} disabled={busy || !directorRejectComment.trim()}>
+              Confirm Rejection
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageShell>
   );
 }

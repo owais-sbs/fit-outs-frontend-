@@ -62,9 +62,9 @@ export default function PendingApprovalPage() {
         </div>
       ) : (
         <>
-          <div className="rounded-2xl bg-amber-500/5 px-4 py-3 ring-1 ring-amber-400/20">
+          <div className="rounded-2xl bg-amber-500/5 px-4 py-3 ring-1 ring-amber-400/20 flex items-center justify-between">
             <p className="text-sm text-amber-700 dark:text-amber-400">
-              <strong>{designs.length} design{designs.length > 1 ? "s" : ""}</strong> require your approval to move forward.
+              <strong>{designs.length} design{designs.length > 1 ? "s" : ""}</strong> — Waiting for your approval to accept or reject.
             </p>
           </div>
           <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">

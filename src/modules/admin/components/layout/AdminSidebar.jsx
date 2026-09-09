@@ -134,6 +134,7 @@ const NAV_GROUPS = [
     label: "Supply",
     roles: [...FULL_ACCESS],
     items: [
+      { type: "link", label: "Subcontractor Apps", href: ROUTES.ADMIN.SUBCONTRACTOR_APPLICATIONS, icon: UserCheck },
       { type: "submenu", label: "Procurement", icon: Warehouse, children: PROCUREMENT_SUB_ITEMS },
       { type: "submenu", label: "Project Configuration", icon: Settings, children: PROJECT_CONFIG_SUB_ITEMS },
     ],
