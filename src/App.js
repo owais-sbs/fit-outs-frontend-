@@ -101,7 +101,9 @@ import SubcontractorCompanyProfilePage from "./modules/subcontractor/pages/Subco
 import SubcontractorOrganizationExtrasPage from "./modules/subcontractor/pages/SubcontractorOrganizationExtrasPage";
 import SubcontractorTeamPage from "./modules/subcontractor/pages/SubcontractorTeamPage";
 import SubcontractorWorkersPage from "./modules/subcontractor/pages/SubcontractorWorkersPage";
+import SubcontractorPackageDetailPage from "./modules/subcontractor/pages/SubcontractorPackageDetailPage";
 import {
+
   SC_PLACEHOLDER_ROUTES,
   ScAwardPacksPage,
   ScBackChargesPage,
@@ -355,6 +357,8 @@ function App() {
               <Route path="approvals" element={<ApprovalsDashboardPage />} />
               <Route path="approvals/deposits" element={<DepositLedgerPage />} />
               <Route path="projects/:projectId/approvals" element={<ProjectApprovalsPage />} />
+              <Route path="projects/:projectId/drawings" element={<LazyDrawingPage><ProjectDrawingsPage /></LazyDrawingPage>} />
+              <Route path="projects/:projectId/drawings/:drawingId/qto" element={<LazyDrawingPage><QtoWorkspacePage /></LazyDrawingPage>} />
               <Route path="site-visits" element={<SiteVisitsPage />} />
               <Route path="site-visits/:visitId/report" element={<SiteVisitReportPage />} />
               <Route path="communications" element={<CommunicationsPage />} />
@@ -413,7 +417,10 @@ function App() {
               <Route path="projects/:projectId" element={gate(SC_SUPERVISOR, <SubcontractorProjectDetailPage />)} />
               <Route path="locations" element={gate(SC_SUPERVISOR, <SubcontractorLocationsPage />)} />
               <Route path="progress-logs" element={gate(SC_SUPERVISOR, <SubcontractorProgressLogsPage />)} />
-              <Route path="packages" element={gate(SC_ADMIN, <SubcontractorPackagesPage />)} />
+              <Route path="packages" element={gate([SC_ROLES.ADMIN, SC_ROLES.SUPERVISOR], <SubcontractorPackagesPage />)} />
+              <Route path="packages/:packageUuid" element={gate([SC_ROLES.ADMIN, SC_ROLES.SUPERVISOR], <SubcontractorPackageDetailPage />)} />
+
+
               <Route path="claims" element={gate(SC_QS, <SubcontractorClaimsPage />)} />
               <Route path="documents" element={gate(SC_SUPERVISOR, <SubcontractorDocumentsPage />)} />
               <Route path="tasks" element={gate(SC_SUPERVISOR, <SubcontractorTasksPage />)} />

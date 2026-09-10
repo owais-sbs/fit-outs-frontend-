@@ -154,10 +154,17 @@ export default function SubcontractorPackagesPage() {
                   <p className="font-semibold tabular-nums">{pkg.remainingQty ?? 0}</p>
                 </div>
               </div>
+              <div className="mt-4 pt-3 border-t flex items-center justify-between gap-2">
+                <Button asChild size="sm" variant="outline" className="w-full text-xs">
+                  <Link to={`/subcontractor/packages/${pkg.uuid}`}>
+                    View Package Details & Contract
+                  </Link>
+                </Button>
+              </div>
               {pkg.status === "APPOINTED" && (
                 <Button
                   size="sm"
-                  className="mt-3 w-full"
+                  className="mt-2 w-full text-xs"
                   disabled={acceptingUuid === pkg.uuid}
                   onClick={() => handleAccept(pkg)}
                 >
@@ -171,6 +178,7 @@ export default function SubcontractorPackagesPage() {
             </Surface>
           ))}
         </div>
+
       )}
     </PageShell>
   );

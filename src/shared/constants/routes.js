@@ -111,6 +111,8 @@ export const ROUTES = {
     SCHEDULE_HUB: "/project-manager/schedule",
     SCHEDULE_TEMPLATES: "/project-manager/schedule/templates",
     PROJECT_DETAIL: "/project-manager/projects/:projectId",
+    PROJECT_DRAWINGS: "/project-manager/projects/:projectId/drawings",
+    PROJECT_QTO: "/project-manager/projects/:projectId/drawings/:drawingId/qto",
     PROJECT_SCHEDULE: "/project-manager/projects/:projectId/schedule",
     PROJECT_MATERIAL_PLAN: "/project-manager/projects/:projectId/material-plan",
     PROJECT_RESOURCE_PLAN: "/project-manager/projects/:projectId/resource-plan",

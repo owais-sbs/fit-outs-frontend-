@@ -79,6 +79,7 @@ export default function ProjectDetailPage() {
   const isPm = location.pathname.startsWith("/project-manager");
   const isFinance = location.pathname.startsWith("/finance");
   const routes = portalRoutesFromPath(location.pathname);
+  const drawingsPath = projectSubPath(routes, "PROJECT_DRAWINGS", projectId);
   const schedulePath = projectSubPath(routes, "PROJECT_SCHEDULE", projectId);
   const approvalsPath = projectSubPath(routes, "PROJECT_APPROVALS", projectId);
   const snagsPath = projectSubPath(routes, "PROJECT_SNAGS", projectId);
@@ -236,7 +237,7 @@ export default function ProjectDetailPage() {
             {!isFinance && (
               <>
                 <Button asChild size="sm" variant="outline">
-                  <Link to={ROUTES.ADMIN.PROJECT_DRAWINGS.replace(":projectId", projectId)}>
+                  <Link to={drawingsPath}>
                     <FileImage className="w-4 h-4 mr-1" /> Drawings
                   </Link>
                 </Button>

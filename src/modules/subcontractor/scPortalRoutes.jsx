@@ -24,7 +24,8 @@ const D = SC_ROLES.DOC_CONTROLLER;
 export const SC_ROUTE_ROLES = {
   projects: [A, S],
   locations: [A, S],
-  packages: [A],
+  packages: [A, S],
+
   tasks: [A, S],
   "progress-logs": [A, S],
   documents: [A, S],

@@ -441,3 +441,97 @@ export const fetchScNotificationPrefs = () =>
 
 export const updateScNotificationPrefs = (payload) =>
   axiosInstance.put("/subcontractor/notification-prefs", payload).then(unwrap);
+
+// ── Contract & E-Signature ───────────────────────────────────────────────────
+
+export const fetchPackageContract = (packageUuid) =>
+  axiosInstance.get(`/subcontractor/packages/${packageUuid}/contract`).then(unwrap);
+
+export const signPackageContract = (packageUuid, payload) =>
+  axiosInstance.post(`/subcontractor/packages/${packageUuid}/sign-contract`, payload).then(unwrap);
+
+/** Main Contractor / staff signs first. Body: ScAdminSignContractRequest `{ signatureName, signerTitle }`. */
+export const adminSignPackageContract = (projectId, packageUuid, payload = {}) =>
+  axiosInstance
+    .post(`/projects/${projectId}/sc-packages/${packageUuid}/admin-sign-contract`, payload ?? {})
+    .then(unwrap);
+
+export const fetchSubcontractorSignature = () =>
+  axiosInstance.get("/subcontractor/signature").then(unwrap);
+
+export const uploadSubcontractorSignature = (file) => {
+  const fd = new FormData();
+  fd.append("file", file);
+  return axiosInstance
+    .post("/subcontractor/signature", fd, multipartConfig({ timeout: 120000 }))
+    .then(unwrap);
+};
+
+/** Prefer backend `error` (exception message) over the generic controller wrapper `message`. */
+export function scApiError(err, fallback = "Request failed") {
+  const data = err?.response?.data;
+  return data?.error || data?.message || err?.message || fallback;
+}
+
+/** Map staff award-pack DTO onto the contract fields the UI reads. */
+export function mapAwardPackToContract(pack) {
+  if (!pack) return null;
+  const adminSigned = Boolean(pack.adminSignedAt ?? pack.adminSigned);
+  const signed = Boolean(pack.signedAt ?? pack.signed);
+  const contractStatus =
+    pack.contractStatus ||
+    (signed
+      ? "SIGNED_AND_EXECUTED"
+      : adminSigned
+        ? "WAITING_FOR_CONTRACTOR_SIGNATURE"
+        : "WAITING_FOR_ADMIN_SIGNATURE");
+  return {
+    awardUuid: pack.uuid ?? pack.awardUuid,
+    packageUuid: pack.packageUuid,
+    packageName: pack.packageName,
+    organizationUuid: pack.organizationUuid,
+    organizationName: pack.organizationName,
+    awardedValue: pack.awardedValue,
+    awardedAt: pack.awardedAt,
+    contractStatus,
+    contractFilePath: pack.contractFilePath,
+    contractAvailable: pack.contractAvailable ?? true,
+    adminSigned,
+    adminSignedAt: pack.adminSignedAt,
+    adminSignerName: pack.adminSignerName,
+    adminSignerTitle: pack.adminSignerTitle,
+    adminSignatureAuditJson: pack.adminSignatureAuditJson,
+    subcontractorSignatureUploaded: Boolean(pack.subcontractorSignatureUploaded),
+    subcontractorSignatureUrl: pack.subcontractorSignatureUrl,
+    signed,
+    signedAt: pack.signedAt,
+    subcontractorSignerName: pack.subcontractorSignerName,
+    subcontractorSignerTitle: pack.subcontractorSignerTitle,
+    signatureAuditJson: pack.signatureAuditJson,
+  };
+}
+
+
+// ── Inspection Requests ──────────────────────────────────────────────────────
+
+export const fetchPackageInspections = (packageUuid) =>
+  axiosInstance.get(`/subcontractor/packages/${packageUuid}/inspections`).then(unwrap);
+
+export const createPackageInspection = (packageUuid, payload) => {
+  const isFormData = typeof FormData !== "undefined" && payload instanceof FormData;
+  return axiosInstance
+    .post(
+      `/subcontractor/packages/${packageUuid}/inspections`,
+      payload,
+      isFormData ? multipartConfig({ timeout: 120000 }) : {}
+    )
+    .then(unwrap);
+};
+
+
+export const fetchProjectScInspections = (projectId) =>
+  axiosInstance.get(`/projects/${projectId}/sc-inspections`).then(unwrap);
+
+export const reviewScInspection = (projectId, inspectionUuid, payload) =>
+  axiosInstance.post(`/projects/${projectId}/sc-inspections/${inspectionUuid}/review`, payload).then(unwrap);
+

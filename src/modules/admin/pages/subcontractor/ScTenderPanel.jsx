@@ -16,6 +16,7 @@ import {
   fetchScTenderComparison,
   issueScRfq,
 } from "../../api/subcontractor.api";
+import ContractSection from "@/modules/subcontractor/components/ContractSection";
 import { formatScStatus } from "@/modules/subcontractor/utils/subcontractor.utils";
 
 function formatMoney(n) {
@@ -435,6 +436,13 @@ export default function ScTenderPanel({ projectId, packages, busy: parentBusy, o
                 </div>
               )}
             </div>
+
+            {packageUuid && (
+              <div className="space-y-2 rounded-lg border border-border/50 p-4">
+                <p className="text-xs font-medium text-muted-foreground">Subcontract agreement</p>
+                <ContractSection packageUuid={packageUuid} projectId={projectId} />
+              </div>
+            )}
 
             <div className="space-y-3 rounded-lg border border-border/50 p-4">
               <p className="text-xs font-medium text-muted-foreground">

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import {
-  ArrowLeft, ArrowRight, Check, ChevronLeft, ChevronRight, Loader2, Plus, RefreshCw, X,
+  ArrowLeft, ArrowRight, Check, ChevronLeft, ChevronRight, Loader2, Plus, RefreshCw, X, FileImage,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageShell, PageTitle } from "@/components/layout/PageShell";
@@ -24,8 +24,10 @@ import {
   certifyScClaim,
   markScClaimPaid,
 } from "../../api/subcontractor.api";
-import { projectPlanningBackPath } from "@/shared/constants/routes";
+import { ROUTES, projectPlanningBackPath } from "@/shared/constants/routes";
 import ScTenderPanel from "./ScTenderPanel";
+import ScInspectionReviewPanel from "./ScInspectionReviewPanel";
+
 import {
   findApprovedBoq,
   findPackageForBoqLine,
@@ -335,7 +337,18 @@ export default function ProjectSubcontractorPage() {
           <Link to={backPath}><ArrowLeft className="h-4 w-4" /></Link>
         </Button>
         <span className="text-sm text-muted-foreground hidden sm:inline">Back to {backLabel}</span>
-        <PageTitle title="Subcontractors" subtitle={`Project #${projectId}`} />
+        <PageTitle
+          title="Subcontractors"
+          subtitle={`Project #${projectId}`}
+          className="flex-1"
+          actions={
+            <Button asChild size="sm" variant="outline">
+              <Link to={ROUTES.ADMIN.PROJECT_DRAWINGS.replace(":projectId", projectId)}>
+                <FileImage className="w-4 h-4 mr-1" /> Drawings
+              </Link>
+            </Button>
+          }
+        />
       </div>
 
       {message && <p className="text-sm text-muted-foreground">{message}</p>}
@@ -504,7 +517,10 @@ export default function ProjectSubcontractorPage() {
         onRefresh={load}
       />
 
+      <ScInspectionReviewPanel projectId={projectId} />
+
       <Card>
+
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold">New package (manual)</CardTitle>
         </CardHeader>
