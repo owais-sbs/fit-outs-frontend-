@@ -9,6 +9,7 @@ import {
   GanttChart,
   ClipboardList,
   Stamp,
+  HardHat,
 } from "lucide-react";
 import { SidebarBrand } from "@/components/brand/BrandMark";
 import {
@@ -44,6 +45,7 @@ const GROUPS = [
       { label: "Validation Inbox", href: ROUTES.PROJECT_MANAGER.VALIDATION_INBOX, icon: ClipboardCheck },
       { label: "Quality templates", href: ROUTES.PROJECT_MANAGER.QUALITY_TEMPLATES, icon: ClipboardList },
       { label: "Communications", href: ROUTES.PROJECT_MANAGER.COMMUNICATIONS, icon: Mail },
+      { label: "SC vendors", href: ROUTES.PROJECT_MANAGER.VENDORS, icon: HardHat },
     ],
   },
   {

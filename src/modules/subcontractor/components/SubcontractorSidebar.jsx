@@ -7,7 +7,9 @@ import {
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/shared/context/auth-context";
 import { ROUTES } from "@/shared/constants/routes";
-import { SC_NAV_GROUPS } from "../utils/subcontractor.utils";
+import { SC_NAV_GROUPS, filterScNavGroups } from "../utils/subcontractor.utils";
+import { useSubcontractorPortal } from "../context/SubcontractorPortalContext";
+import { roleLabel } from "../utils/scPortalRoles";
 
 function isNavActive(pathname, href) {
   if (href === ROUTES.SUBCONTRACTOR.DASHBOARD) {
@@ -19,6 +21,8 @@ function isNavActive(pathname, href) {
 export default function SubcontractorSidebar() {
   const location = useLocation();
   const { user } = useAuth();
+  const portal = useSubcontractorPortal();
+  const navGroups = filterScNavGroups(SC_NAV_GROUPS, portal);
 
   return (
     <Sidebar collapsible="icon">
@@ -33,7 +37,7 @@ export default function SubcontractorSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        {SC_NAV_GROUPS.map((group) => (
+        {navGroups.map((group) => (
           <SidebarGroup key={group.label}>
             <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/60">
               {group.label}
@@ -72,7 +76,7 @@ export default function SubcontractorSidebar() {
               {user?.fullName || user?.name || "Subcontractor"}
             </span>
             <span className="truncate text-[10px] text-muted-foreground">
-              {user?.companyName || user?.email || "Subcontractor Portal"}
+              {roleLabel(portal.portalRole) || user?.companyName || user?.email || "Subcontractor Portal"}
             </span>
           </div>
         </div>

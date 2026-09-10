@@ -90,14 +90,14 @@ export default function SubcontractorLocationsPage() {
                   </p>
                 </div>
                 <Badge className={`${SC_STATUS_BADGE[project.status] || "bg-muted border-none"} shrink-0 text-[10px]`}>
-                  {project.status || "Active"}
+                  {project.status || "Assigned"}
                 </Badge>
               </div>
 
               <div className="mb-4 flex flex-1 items-start gap-2 rounded-xl bg-secondary/40 p-3">
                 <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                <p className="text-sm leading-relaxed">
-                  {project.location || "No address on file for this project"}
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  {project.location || "No site address recorded for this project yet."}
                 </p>
               </div>
 

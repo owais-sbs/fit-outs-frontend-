@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { fetchMyScPackages } from "@/modules/admin/api/subcontractor.api";
+import { acceptScPackage, fetchMyScPackages } from "@/modules/admin/api/subcontractor.api";
 import { ROUTES } from "@/shared/constants/routes";
 import { SC_STATUS_BADGE, formatScStatus, groupPackagesByProject } from "../utils/subcontractor.utils";
 
@@ -17,6 +17,7 @@ export default function SubcontractorPackagesPage() {
   const [message, setMessage] = useState("");
   const [search, setSearch] = useState("");
   const [projectFilter, setProjectFilter] = useState("all");
+  const [acceptingUuid, setAcceptingUuid] = useState(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -47,6 +48,19 @@ export default function SubcontractorPackagesPage() {
       return matchProject && matchQ;
     });
   }, [packages, search, projectFilter]);
+
+  const handleAccept = async (pkg) => {
+    setAcceptingUuid(pkg.uuid);
+    setMessage("");
+    try {
+      await acceptScPackage(pkg.uuid);
+      load();
+    } catch (e) {
+      setMessage(e?.response?.data?.error || e?.response?.data?.message || "Could not accept package");
+    } finally {
+      setAcceptingUuid(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -115,12 +129,16 @@ export default function SubcontractorPackagesPage() {
               <p className="mb-1 text-xs font-medium text-foreground/80">
                 {pkg.projectName || `Project #${pkg.projectId}`}
               </p>
-              <p className="mb-4 flex items-center gap-1 text-xs text-muted-foreground">
-                <MapPin className="h-3 w-3 shrink-0" />
-                {pkg.projectLocation || "Location not set"}
-              </p>
-              {pkg.boqSectionCode && (
-                <p className="mb-3 text-xs text-muted-foreground">Section: {pkg.boqSectionCode}</p>
+              {pkg.projectLocation && (
+                <p className="mb-4 flex items-center gap-1 text-xs text-muted-foreground">
+                  <MapPin className="h-3 w-3 shrink-0" />
+                  {pkg.projectLocation}
+                </p>
+              )}
+              {(pkg.boqLineDescription || pkg.boqSectionCode) && (
+                <p className="mb-3 text-xs text-muted-foreground">
+                  {pkg.boqLineDescription || `Section: ${pkg.boqSectionCode}`}
+                </p>
               )}
               <div className="mt-auto grid grid-cols-3 gap-2 text-center text-[11px]">
                 <div className="rounded-lg bg-secondary/60 px-2 py-1.5">
@@ -136,6 +154,20 @@ export default function SubcontractorPackagesPage() {
                   <p className="font-semibold tabular-nums">{pkg.remainingQty ?? 0}</p>
                 </div>
               </div>
+              {pkg.status === "APPOINTED" && (
+                <Button
+                  size="sm"
+                  className="mt-3 w-full"
+                  disabled={acceptingUuid === pkg.uuid}
+                  onClick={() => handleAccept(pkg)}
+                >
+                  {acceptingUuid === pkg.uuid ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Accept assignment"
+                  )}
+                </Button>
+              )}
             </Surface>
           ))}
         </div>
