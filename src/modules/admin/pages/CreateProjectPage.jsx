@@ -15,7 +15,7 @@ import { ROUTES } from "@/shared/constants/routes";
 import { fetchAllClients, createClient } from "@/modules/admin/api/clients.api";
 import { fetchAllEmployees } from "@/modules/admin/api/employees.api";
 import { createProject } from "@/modules/admin/api/projects.api";
-import { fetchJurisdictionPacks } from "@/modules/admin/api/approvals-config.api";
+import { fetchJurisdictionPacks, fetchApprovalsCatalog } from "@/modules/admin/api/approvals-config.api";
 import { DIRHAM_SYMBOL } from "@/shared/utils/currency";
 import { useAuth } from "@/shared/context/auth-context";
 import { ROLES } from "@/shared/constants/roles";
@@ -48,6 +48,8 @@ export default function CreateProjectPage() {
   const [clients, setClients] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [packs, setPacks] = useState([]);
+  const [propertyTypes, setPropertyTypes] = useState([]);
+  const [projectNatures, setProjectNatures] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [clientMode, setClientMode] = useState(CLIENT_MODE.NONE);
   const [form, setForm] = useState({
@@ -57,6 +59,8 @@ export default function CreateProjectPage() {
     projectType: "Commercial",
     location: "",
     jurisdictionPackId: "",
+    approvalPropertyTypeId: "",
+    approvalProjectNatureId: "",
     assignedManager: "",
     startDate: "",
     expectedCompletionDate: "",
@@ -81,6 +85,15 @@ export default function CreateProjectPage() {
     fetchJurisdictionPacks(true)
       .then((list) => setPacks(Array.isArray(list) ? list : []))
       .catch(() => setPacks([]));
+    fetchApprovalsCatalog()
+      .then((catalog) => {
+        setPropertyTypes(Array.isArray(catalog?.propertyTypes) ? catalog.propertyTypes : []);
+        setProjectNatures(Array.isArray(catalog?.projectNatures) ? catalog.projectNatures : []);
+      })
+      .catch(() => {
+        setPropertyTypes([]);
+        setProjectNatures([]);
+      });
   }, []);
 
   const managerOptions = useMemo(() => {
@@ -203,6 +216,8 @@ export default function CreateProjectPage() {
         projectType: form.projectType,
         location: form.location.trim(),
         jurisdictionPackId: form.jurisdictionPackId,
+        approvalPropertyTypeId: form.approvalPropertyTypeId || null,
+        approvalProjectNatureId: form.approvalProjectNatureId || null,
         assignedManager: form.assignedManager,
         startDate: form.startDate,
         expectedCompletionDate: form.expectedCompletionDate,
@@ -467,6 +482,44 @@ export default function CreateProjectPage() {
                   </p>
                 )}
                 {errors.jurisdictionPackId && <p className="text-[11px] text-destructive">{errors.jurisdictionPackId}</p>}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Property type</Label>
+                <Select
+                  value={form.approvalPropertyTypeId || "__none__"}
+                  onValueChange={(val) => handleChange("approvalPropertyTypeId", val === "__none__" ? "" : val)}
+                >
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Optional" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Not set</SelectItem>
+                    {propertyTypes.filter((item) => item.active !== false).map((item) => (
+                      <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground">Used to resolve property-type permits (villa, apartment, office).</p>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Project nature</Label>
+                <Select
+                  value={form.approvalProjectNatureId || "__none__"}
+                  onValueChange={(val) => handleChange("approvalProjectNatureId", val === "__none__" ? "" : val)}
+                >
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Optional" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Not set</SelectItem>
+                    {projectNatures.filter((item) => item.active !== false).map((item) => (
+                      <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground">Used to resolve new-build / refurbishment / fit-out permits.</p>
               </div>
             </div>
 

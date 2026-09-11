@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -13,18 +13,23 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   assemblePack,
   attachChecklistItem,
+  bindApprovalCaseAuthority,
   createCaseComment,
   createCaseFee,
   createCaseSubmission,
   fetchApprovalCase,
+  fetchAuthorities,
   patchApprovalCase,
   renewApprovalCase,
   waiveChecklistItem,
 } from "../../api/approvals.api";
 import { daysLabel, money, statusLabel, statusTone, urgencyTone } from "./approvalStatus";
+
+const EDITABLE_AUTHORITY_STATUSES = new Set(["NOT_STARTED", "PACK_IN_PREPARATION", "READY_TO_SUBMIT"]);
 
 const CHECKLIST_TONES = {
   ATTACHED: "bg-emerald-500/15 text-emerald-800",
@@ -39,7 +44,7 @@ const CHECKLIST_TONES = {
  * Every action goes through the API, which re-runs the compliance gates, so a blocked
  * transition comes back as a message rather than being prevented only in the UI.
  */
-export default function CaseDetailPanel({ caseUuid, onChanged }) {
+export default function CaseDetailPanel({ caseUuid, summary, onChanged }) {
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -50,10 +55,11 @@ export default function CaseDetailPanel({ caseUuid, onChanged }) {
   const [fee, setFee] = useState({ type: "FEE", amount: "", paidDate: "", paymentRef: "" });
   const [comment, setComment] = useState({ commentText: "", reasonCode: "" });
   const [issue, setIssue] = useState({ permitNumber: "", issueDate: "", expiryDate: "" });
+  const [authorities, setAuthorities] = useState([]);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async ({ silent } = {}) => {
     if (!caseUuid) return;
-    setLoading(true);
+    if (!silent) setLoading(true);
     try {
       setDetail(await fetchApprovalCase(caseUuid));
     } catch {
@@ -66,8 +72,23 @@ export default function CaseDetailPanel({ caseUuid, onChanged }) {
   useEffect(() => {
     setPack(null);
     setMessage("");
+    setDetail(null);
     load();
   }, [load]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchAuthorities()
+      .then((rows) => {
+        if (!cancelled) setAuthorities(Array.isArray(rows) ? rows : []);
+      })
+      .catch(() => {
+        if (!cancelled) setAuthorities([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const run = async (fn, successMessage) => {
     setBusy(true);
@@ -76,7 +97,7 @@ export default function CaseDetailPanel({ caseUuid, onChanged }) {
       const result = await fn();
       if (successMessage) setMessage(successMessage);
       if (result && result.header) setDetail(result);
-      else await load();
+      else await load({ silent: true });
       onChanged?.();
       return result;
     } catch (e) {
@@ -87,10 +108,69 @@ export default function CaseDetailPanel({ caseUuid, onChanged }) {
     }
   };
 
+  const header = detail?.header;
+  const authorityOptions = useMemo(() => {
+    const list = (Array.isArray(authorities) ? authorities : []).filter((row) => row?.code);
+    const byCode = new Map(list.map((row) => [String(row.code).toUpperCase(), row]));
+    const candidates = (header?.candidateAuthorityCodes || [])
+      .map((code) => byCode.get(String(code).toUpperCase()))
+      .filter(Boolean);
+    const candidateCodes = new Set(candidates.map((row) => String(row.code).toUpperCase()));
+    const rest = list.filter((row) => !candidateCodes.has(String(row.code).toUpperCase()));
+    if (header?.authorityCode && !byCode.has(String(header.authorityCode).toUpperCase())) {
+      rest.unshift({
+        code: header.authorityCode,
+        name: header.authorityName || header.authorityCode,
+      });
+    }
+    return { candidates, rest };
+  }, [authorities, header]);
+
   if (loading) {
+    const docHint = summary?.blockingChecklistCount
+      ? `${summary.blockingChecklistCount} required document${summary.blockingChecklistCount === 1 ? "" : "s"}`
+      : "required documents";
+    const rowCount = Math.max(summary?.blockingChecklistCount || 6, 4);
     return (
-      <div className="flex items-center gap-2 py-10 text-sm text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" /> Loading permit
+      <div className="space-y-4" aria-busy="true" aria-live="polite">
+        <div className="flex flex-wrap items-start gap-3">
+          <div className="min-w-0">
+            <div className="font-mono text-xs text-muted-foreground">
+              {summary?.caseNumber || <span className="inline-block h-3 w-32 animate-pulse rounded bg-secondary" />}
+            </div>
+            <h3 className="text-lg font-semibold">
+              {summary?.permitTypeName || "Loading permit"}
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {summary?.authorityName || "Fetching authority and document checklist…"}
+            </p>
+          </div>
+          {summary?.status && (
+            <Badge className={`ml-auto ${statusTone(summary.status)}`}>{statusLabel(summary.status)}</Badge>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-secondary/50 px-4 py-3 text-sm">
+          <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+          <span>Loading {docHint}…</span>
+        </div>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold">Required documents</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="divide-y divide-border/40">
+              {Array.from({ length: Math.min(rowCount, 10) }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3 px-4 py-3">
+                  <div className="h-3 w-12 animate-pulse rounded bg-secondary" />
+                  <div className="h-3 flex-1 animate-pulse rounded bg-secondary" />
+                  <div className="h-5 w-16 animate-pulse rounded-lg bg-secondary" />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -107,10 +187,59 @@ export default function CaseDetailPanel({ caseUuid, onChanged }) {
         <div className="min-w-0">
           <div className="font-mono text-xs text-muted-foreground">{h.caseNumber}</div>
           <h3 className="text-lg font-semibold">{h.permitTypeName}</h3>
-          <p className="text-sm text-muted-foreground">
-            {h.authorityName || h.authorityCode || "Authority not resolved"}
-            {h.authorityReference ? ` · ref ${h.authorityReference}` : ""}
-          </p>
+          <div className="mt-2 max-w-md space-y-1">
+            <Label className="text-xs">Authority</Label>
+            <Select
+              value={h.authorityCode || undefined}
+              disabled={busy || !EDITABLE_AUTHORITY_STATUSES.has(h.status)}
+              onValueChange={(code) => {
+                if (!code || code === h.authorityCode) return;
+                run(() => bindApprovalCaseAuthority(caseUuid, { authorityCode: code }), "Authority saved");
+              }}
+            >
+              <SelectTrigger className="h-9">
+                <SelectValue placeholder="Select authority" />
+              </SelectTrigger>
+              <SelectContent>
+                {authorityOptions.candidates.length > 0 && (
+                  <SelectGroup>
+                    <SelectLabel className="text-xs text-muted-foreground">Suggested</SelectLabel>
+                    {authorityOptions.candidates.map((row) => (
+                      <SelectItem key={`c-${row.code}`} value={row.code}>
+                        {row.code} · {row.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                )}
+                {authorityOptions.rest.length > 0 && (
+                  <SelectGroup>
+                    {authorityOptions.candidates.length > 0 && (
+                      <SelectLabel className="text-xs text-muted-foreground">All authorities</SelectLabel>
+                    )}
+                    {authorityOptions.rest.map((row) => (
+                      <SelectItem key={row.code} value={row.code}>
+                        {row.code} · {row.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                )}
+              </SelectContent>
+            </Select>
+            {h.authorityReference ? (
+              <p className="text-xs text-muted-foreground">ref {h.authorityReference}</p>
+            ) : null}
+            {h.authorityManuallySet ? (
+              <p className="text-[11px] text-muted-foreground">Set by you. Generate will keep this issuer.</p>
+            ) : null}
+          </div>
+          {(!h.authorityName && !h.authorityCode) && (
+            <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-900">
+              Authority not resolved. Select an issuer above.
+              {Array.isArray(h.candidateAuthorityCodes) && h.candidateAuthorityCodes.length > 0
+                ? ` Candidates: ${h.candidateAuthorityCodes.join(", ")}.`
+                : ""}
+            </div>
+          )}
         </div>
         <div className="ml-auto flex flex-wrap items-center gap-2">
           <Badge className={statusTone(h.status)}>{statusLabel(h.status)}</Badge>
@@ -147,7 +276,7 @@ export default function CaseDetailPanel({ caseUuid, onChanged }) {
             run(async () => {
               const result = await assemblePack(caseUuid);
               setPack(result);
-              await load();
+              await load({ silent: true });
               return null;
             })
           }
@@ -173,7 +302,7 @@ export default function CaseDetailPanel({ caseUuid, onChanged }) {
               disabled={busy}
               onClick={() => {
                 const body = { status: t };
-                if (["REJECTED", "WITHDRAWN", "CLOSED"].includes(t)) {
+                if (["REJECTED", "CLOSED"].includes(t)) {
                   const reason = window.prompt(`Reason for marking this permit ${statusLabel(t).toLowerCase()}?`);
                   if (!reason) return;
                   body.reason = reason;

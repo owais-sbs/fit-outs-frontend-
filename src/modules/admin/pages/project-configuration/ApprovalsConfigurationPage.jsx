@@ -65,6 +65,30 @@ const TRIGGER_TYPES = [
 
 const TRIGGER_LABEL = Object.fromEntries(TRIGGER_TYPES.map((t) => [t.value, t.label]));
 
+const RESOLUTION_MECHANISMS = [
+  { value: "__unset", label: "Not set (incomplete)" },
+  { value: "FIXED", label: "Fixed authority" },
+  { value: "JURISDICTION_MASTER_DEVELOPER", label: "Jurisdiction — master developer" },
+  { value: "JURISDICTION_BUILDING_MANAGEMENT", label: "Jurisdiction — building management" },
+  { value: "JURISDICTION_REGULATOR", label: "Jurisdiction — regulator" },
+  { value: "EMIRATE_UTILITY", label: "Emirate utility" },
+  { value: "INHERIT_FROM_PERMIT", label: "Inherit from another permit" },
+  { value: "MULTI_AUTHORITY", label: "Multiple authorities" },
+];
+
+const RESOLUTION_LABEL = Object.fromEntries(RESOLUTION_MECHANISMS.map((t) => [t.value, t.label]));
+
+const RESOLUTION_MODES = [
+  { value: "ANY_ONE_APPLIES", label: "Any one applies" },
+  { value: "ALL_REQUIRED", label: "All required" },
+];
+
+const AUTHORITY_ROLES = [
+  { value: "MASTER_DEVELOPER", label: "Master Developer" },
+  { value: "BUILDING_MANAGEMENT", label: "Building Management" },
+  { value: "REGULATOR", label: "Regulator (jurisdiction)" },
+];
+
 const REGISTRATION_STATUSES = ["Active", "Pending", "Expired", "Inactive"];
 
 const INCLUSION_LABEL = {
@@ -174,8 +198,8 @@ export default function ApprovalsConfigurationPage() {
   const openCreate = () => {
     setFormMode("create");
     setEditing(null);
-    if (tab === "authorities") setForm({ code: "", name: "", type: "Regulator", emirate: "Dubai", jurisdictionAreas: "", permitsIssued: "", submissionChannel: "", notes: "", requiresCompanyRegistration: false, active: true });
-    if (tab === "permits") setForm({ permitCode: "", name: "", issuingBody: "", triggerType: "SCOPE_TAG", typicalTrigger: "", prerequisiteCases: "", slaWorkingDays: "", typicalValidity: "", deposit: "No", renewable: "Yes", blocksActivities: "", active: true, scopeTagIds: [], propertyTypeIds: [], projectNatureIds: [] });
+    if (tab === "authorities") setForm({ code: "", name: "", type: "Regulator", emirate: "Dubai", jurisdictionAreas: "", permitsIssued: "", submissionChannel: "", notes: "", requiresCompanyRegistration: false, appliesEmirateWide: false, active: true });
+    if (tab === "permits") setForm({ permitCode: "", name: "", issuingBody: "", triggerType: "SCOPE_TAG", typicalTrigger: "", prerequisiteCases: "", slaWorkingDays: "", typicalValidity: "", deposit: "No", renewable: "Yes", blocksActivities: "", active: true, scopeTagIds: [], propertyTypeIds: [], projectNatureIds: [], authorityResolutionMechanism: "", fixedAuthorityId: "", inheritAuthorityFromPermitCode: "", resolutionMode: "ANY_ONE_APPLIES", confirmResolutionMode: false, candidateAuthorityRoles: [], allowInternalHseSignoff: false });
     if (tab === "documents") setForm({ docCode: "", name: "", category: "Company", typicallyRequiredFor: "", expiryTracked: false, sourceOwner: "Contractor", active: true });
     if (tab === "scopeTags") setForm({ code: "", name: "", description: "", active: true, permitTypeIds: [] });
     if (tab === "propertyTypes") setForm({ code: "", name: "", description: "", active: true, permitTypeIds: [] });
@@ -216,6 +240,13 @@ export default function ApprovalsConfigurationPage() {
         scopeTagIds: Array.isArray(row.scopeTagIds) ? row.scopeTagIds : (row.scopeTags || []).map((t) => t.id),
         propertyTypeIds: Array.isArray(row.propertyTypeIds) ? row.propertyTypeIds : (row.propertyTypes || []).map((t) => t.id),
         projectNatureIds: Array.isArray(row.projectNatureIds) ? row.projectNatureIds : (row.projectNatures || []).map((t) => t.id),
+        authorityResolutionMechanism: row.authorityResolutionMechanism || "",
+        fixedAuthorityId: row.fixedAuthorityId || "",
+        inheritAuthorityFromPermitCode: row.inheritAuthorityFromPermitCode || "",
+        resolutionMode: row.resolutionMode || "ANY_ONE_APPLIES",
+        confirmResolutionMode: false,
+        candidateAuthorityRoles: Array.isArray(row.candidateAuthorityRoles) ? row.candidateAuthorityRoles : [],
+        allowInternalHseSignoff: !!row.allowInternalHseSignoff,
       });
     } else if (tab === "scopeTags" || tab === "propertyTypes" || tab === "projectNatures") {
       setForm({
@@ -257,12 +288,24 @@ export default function ApprovalsConfigurationPage() {
         else await updateAuthority(editing.id, payload);
       } else if (tab === "permits") {
         const triggerType = form.triggerType || "SCOPE_TAG";
+        const mechanism = form.authorityResolutionMechanism || "";
         const payload = {
           ...form,
           triggerType,
           scopeTagIds: triggerType === "SCOPE_TAG" ? (form.scopeTagIds || []) : [],
           propertyTypeIds: triggerType === "PROPERTY_PROJECT" ? (form.propertyTypeIds || []) : [],
           projectNatureIds: triggerType === "PROPERTY_PROJECT" ? (form.projectNatureIds || []) : [],
+          authorityResolutionMechanism: mechanism || null,
+          fixedAuthorityId: mechanism === "FIXED" ? (form.fixedAuthorityId || null) : null,
+          inheritAuthorityFromPermitCode: mechanism === "INHERIT_FROM_PERMIT" ? (form.inheritAuthorityFromPermitCode || null) : null,
+          resolutionMode: form.resolutionMode || "ANY_ONE_APPLIES",
+          confirmResolutionMode: mechanism === "MULTI_AUTHORITY" && (
+            formMode === "create"
+            || !!form.confirmResolutionMode
+            || (editing && form.resolutionMode && form.resolutionMode !== editing.resolutionMode)
+          ),
+          candidateAuthorityRoles: mechanism === "MULTI_AUTHORITY" ? (form.candidateAuthorityRoles || []) : [],
+          allowInternalHseSignoff: !!form.allowInternalHseSignoff,
         };
         if (formMode === "create") await createPermitType(payload);
         else await updatePermitType(editing.id, payload);
@@ -404,6 +447,7 @@ export default function ApprovalsConfigurationPage() {
                   <TableHead>Authority</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Emirate</TableHead>
+                  <TableHead>Emirate-wide</TableHead>
                   <TableHead>Registration</TableHead>
                   <TableHead>Channel</TableHead>
                   <TableHead>Company reg.</TableHead>
@@ -420,6 +464,7 @@ export default function ApprovalsConfigurationPage() {
                     </TableCell>
                     <TableCell><Badge variant="outline">{row.type}</Badge></TableCell>
                     <TableCell>{row.emirate}</TableCell>
+                    <TableCell className="text-xs">{row.appliesEmirateWide ? "Yes" : "—"}</TableCell>
                     <TableCell className="text-xs">{row.requiresCompanyRegistration ? "Required" : "—"}</TableCell>
                     <TableCell className="text-xs">{row.submissionChannel}</TableCell>
                     <TableCell className="text-xs">{row.requiresCompanyRegistration ? "Required" : "—"}</TableCell>
@@ -444,6 +489,7 @@ export default function ApprovalsConfigurationPage() {
                   <TableHead>Code</TableHead>
                   <TableHead>Case type</TableHead>
                   <TableHead>Issuer</TableHead>
+                  <TableHead>Authority resolution</TableHead>
                   <TableHead>Triggered by</TableHead>
                   <TableHead>SLA (wd)</TableHead>
                   <TableHead>Blocks</TableHead>
@@ -458,7 +504,39 @@ export default function ApprovalsConfigurationPage() {
                       <div className="font-medium">{row.name}</div>
                       {row.typicalTrigger && <p className="text-xs text-muted-foreground line-clamp-2">{row.typicalTrigger}</p>}
                     </TableCell>
-                    <TableCell className="text-xs">{row.issuingBody}</TableCell>
+                    <TableCell className="text-xs">
+                      <div>{row.issuingBody || "—"}</div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        {row.authorityResolutionIncomplete ? (
+                          <p className="text-[11px] text-amber-700">Resolution not set</p>
+                        ) : (
+                          <Badge variant="outline">
+                            {RESOLUTION_LABEL[row.authorityResolutionMechanism] || row.authorityResolutionMechanism}
+                          </Badge>
+                        )}
+                        {row.authorityResolutionMechanism === "FIXED" && row.fixedAuthorityCode && (
+                          <p className="text-[11px] text-muted-foreground">{row.fixedAuthorityCode} · {row.fixedAuthorityName}</p>
+                        )}
+                        {row.authorityResolutionMechanism === "INHERIT_FROM_PERMIT" && row.inheritAuthorityFromPermitCode && (
+                          <p className="text-[11px] text-muted-foreground">From {row.inheritAuthorityFromPermitCode}</p>
+                        )}
+                        {row.authorityResolutionMechanism === "MULTI_AUTHORITY" && (row.candidateAuthorityRoles || []).length > 0 && (
+                          <p className="text-[11px] text-muted-foreground">
+                            {(row.candidateAuthorityRoles || []).map((role) => (
+                              AUTHORITY_ROLES.find((r) => r.value === role)?.label || role
+                            )).join(" · ")}
+                          </p>
+                        )}
+                        {row.resolutionModeNeedsReview && (
+                          <p className="text-[11px] text-amber-700">Needs review — default “any one applies” is not confirmed</p>
+                        )}
+                        {row.allowInternalHseSignoff && (
+                          <p className="text-[11px] text-muted-foreground">Internal HSE sign-off allowed</p>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <div className="space-y-1">
                         <Badge variant="outline">{TRIGGER_LABEL[row.triggerType] || row.triggerType || "Scope tag"}</Badge>
@@ -744,6 +822,13 @@ export default function ApprovalsConfigurationPage() {
               <Area label="Notes" value={form.notes} onChange={(v) => setField("notes", v)} />
               <div className="flex items-center justify-between rounded-lg border px-3 py-2">
                 <div>
+                  <Label>Applies emirate-wide</Label>
+                  <p className="text-[11px] text-muted-foreground">Civil Defence, utilities, RTA-type bodies that apply regardless of community.</p>
+                </div>
+                <Switch checked={!!form.appliesEmirateWide} onCheckedChange={(v) => setField("appliesEmirateWide", v)} />
+              </div>
+              <div className="flex items-center justify-between rounded-lg border px-3 py-2">
+                <div>
                   <Label>Requires company-level registration</Label>
                   <p className="text-[11px] text-muted-foreground">Contractor must be registered with this authority once, not per project.</p>
                 </div>
@@ -755,7 +840,98 @@ export default function ApprovalsConfigurationPage() {
             <>
               <Field label="Permit code" value={form.permitCode} onChange={(v) => setField("permitCode", v)} />
               <Field label="Name" value={form.name} onChange={(v) => setField("name", v)} />
-              <Field label="Issuing body" value={form.issuingBody} onChange={(v) => setField("issuingBody", v)} />
+              <SelectField
+                label="Authority resolution"
+                value={form.authorityResolutionMechanism || "__unset"}
+                onChange={(v) => {
+                  const mechanism = v === "__unset" ? "" : v;
+                  setForm((prev) => ({
+                    ...prev,
+                    authorityResolutionMechanism: mechanism,
+                    confirmResolutionMode: false,
+                    resolutionMode: prev.resolutionMode || "ANY_ONE_APPLIES",
+                    candidateAuthorityRoles: mechanism === "MULTI_AUTHORITY" ? (prev.candidateAuthorityRoles || []) : [],
+                    fixedAuthorityId: mechanism === "FIXED" ? (prev.fixedAuthorityId || "") : "",
+                    inheritAuthorityFromPermitCode: mechanism === "INHERIT_FROM_PERMIT" ? (prev.inheritAuthorityFromPermitCode || "") : "",
+                  }));
+                }}
+                options={RESOLUTION_MECHANISMS}
+              />
+              {form.authorityResolutionMechanism === "FIXED" && (
+                <SelectField
+                  label="Fixed authority"
+                  value={form.fixedAuthorityId || "__none"}
+                  onChange={(v) => setField("fixedAuthorityId", v === "__none" ? "" : v)}
+                  options={[{ value: "__none", label: "Select authority" }, ...authorities.map((a) => ({ value: a.id, label: `${a.code} — ${a.name}` }))]}
+                />
+              )}
+              {form.authorityResolutionMechanism === "INHERIT_FROM_PERMIT" && (
+                <SelectField
+                  label="Inherit authority from permit"
+                  value={form.inheritAuthorityFromPermitCode || "__none"}
+                  onChange={(v) => setField("inheritAuthorityFromPermitCode", v === "__none" ? "" : v)}
+                  options={[{ value: "__none", label: "Select permit" }, ...permits
+                    .filter((p) => p.permitCode && p.permitCode !== form.permitCode)
+                    .map((p) => ({ value: p.permitCode, label: `${p.permitCode} — ${p.name}` }))]}
+                />
+              )}
+              {form.authorityResolutionMechanism === "MULTI_AUTHORITY" && (
+                <>
+                  <CheckList
+                    label="Candidate authority roles"
+                    hint="Jurisdiction-level roles this permit may be issued by. Not named Authority rows."
+                    items={AUTHORITY_ROLES}
+                    selectedIds={form.candidateAuthorityRoles || []}
+                    idKey="value"
+                    primary={(t) => t.label}
+                    secondary={(t) => t.value}
+                    onToggle={(id, checked) => toggleId("candidateAuthorityRoles", id, checked)}
+                    empty="No roles defined."
+                  />
+                  <SelectField
+                    label="Resolution mode"
+                    value={form.resolutionMode || "ANY_ONE_APPLIES"}
+                    onChange={(v) => setForm((prev) => ({ ...prev, resolutionMode: v, confirmResolutionMode: true }))}
+                    options={RESOLUTION_MODES}
+                  />
+                  {editing?.resolutionModeNeedsReview && !form.confirmResolutionMode && (
+                    <p className="text-[11px] text-amber-800 bg-amber-50 rounded-lg border border-amber-200 px-3 py-2">
+                      This permit is still on the unconfirmed default. Confirm the resolution mode so it does not look like an admin-reviewed choice.
+                    </p>
+                  )}
+                  <div className="flex items-center justify-between rounded-lg border px-3 py-2">
+                    <div>
+                      <Label>Confirm resolution mode</Label>
+                      <p className="text-[11px] text-muted-foreground">
+                        Stamps who confirmed this choice. Required before the resolver will apply Any one / All required.
+                      </p>
+                    </div>
+                    <Switch checked={!!form.confirmResolutionMode} onCheckedChange={(v) => setField("confirmResolutionMode", v)} />
+                  </div>
+                </>
+              )}
+              {form.authorityResolutionMechanism === "FIXED" && (
+                <p className="text-[11px] text-muted-foreground rounded-lg border px-3 py-2">
+                  FIXED always uses this named body. Seeded rows are Dubai-specific; another emirate needs a new permit type, not a dynamic lookup.
+                </p>
+              )}
+              <div className="flex items-center justify-between rounded-lg border px-3 py-2">
+                <div>
+                  <Label>Allow internal HSE sign-off</Label>
+                  <p className="text-[11px] text-muted-foreground">
+                    When true, this permit can alternatively be closed via an internal HSE sign-off instead of an external authority case.
+                  </p>
+                  <p className="text-[11px] text-amber-800 mt-1">
+                    TODO: internal HSE sign-off workflow is not built yet. This flag is stored only.
+                  </p>
+                </div>
+                <Switch checked={!!form.allowInternalHseSignoff} onCheckedChange={(v) => setField("allowInternalHseSignoff", v)} />
+              </div>
+              <Field
+                label="Issuing body (reference note — not used by the resolver)"
+                value={form.issuingBody}
+                onChange={(v) => setField("issuingBody", v)}
+              />
               <SelectField
                 label="Trigger type"
                 value={form.triggerType || "SCOPE_TAG"}

@@ -70,11 +70,20 @@ export const generateProjectApprovals = (projectId, payload) =>
 export const fetchProjectApprovals = (projectId) =>
   axiosInstance.get(`/projects/${projectId}/approvals`).then(unwrap);
 
+export const addProjectApprovalCase = (projectId, payload) =>
+  axiosInstance.post(`/projects/${projectId}/approvals/cases`, payload).then(unwrap);
+
+export const deleteApprovalCase = (caseUuid) =>
+  axiosInstance.delete(`/approval-cases/${caseUuid}`).then(unwrap);
+
 export const fetchApprovalCase = (caseUuid) =>
   axiosInstance.get(`/approval-cases/${caseUuid}`).then(unwrap);
 
 export const patchApprovalCase = (caseUuid, payload) =>
   axiosInstance.patch(`/approval-cases/${caseUuid}`, payload).then(unwrap);
+
+export const bindApprovalCaseAuthority = (caseUuid, payload) =>
+  axiosInstance.post(`/approval-cases/${caseUuid}/authority`, payload).then(unwrap);
 
 export const attachChecklistItem = (caseUuid, itemUuid, payload) =>
   axiosInstance.post(`/approval-cases/${caseUuid}/checklist/${itemUuid}/attach`, payload).then(unwrap);

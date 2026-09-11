@@ -19,6 +19,8 @@ export function normalizeProject(item = {}) {
     startDate: item.startDate || null,
     expectedCompletionDate: item.expectedCompletionDate || null,
     jurisdictionPackId: item.jurisdictionPackId || null,
+    approvalPropertyTypeId: item.approvalPropertyTypeId || null,
+    approvalProjectNatureId: item.approvalProjectNatureId || null,
   };
 }
 
@@ -47,6 +49,8 @@ export const createProject = (form) =>
       startDate: form.startDate || null,
       expectedCompletionDate: form.expectedCompletionDate || null,
       jurisdictionPackId: form.jurisdictionPackId || null,
+      approvalPropertyTypeId: form.approvalPropertyTypeId || null,
+      approvalProjectNatureId: form.approvalProjectNatureId || null,
     })
     .then((r) => {
       const payload = r.data;
@@ -72,6 +76,9 @@ export const updateProject = (id, payload) =>
       assignedManager: payload.assignedManager,
       startDate: payload.startDate || null,
       expectedCompletionDate: payload.expectedCompletionDate || null,
+      jurisdictionPackId: payload.jurisdictionPackId || undefined,
+      approvalPropertyTypeId: payload.approvalPropertyTypeId || undefined,
+      approvalProjectNatureId: payload.approvalProjectNatureId || undefined,
       active: payload.isActive ?? payload.active,
     })
     .then((r) => normalizeProject(r.data?.data ?? r.data));
