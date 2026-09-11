@@ -10,12 +10,18 @@ import {
   fetchMyScheduleActivities,
   postActivityProgress,
 } from "@/modules/admin/api/schedule.api";
+import { fetchMaterialPlan } from "@/modules/admin/api/material-plan.api";
+import ProgressMaterialIssuesFields, {
+  toMaterialIssuesPayload,
+} from "@/modules/admin/components/progress/ProgressMaterialIssuesFields";
 
 export default function EmployeeMyActivitiesPage() {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [form, setForm] = useState({ percentComplete: 0, notes: "", labourHours: "" });
+  const [materialRows, setMaterialRows] = useState([]);
+  const [planLines, setPlanLines] = useState([]);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -34,7 +40,15 @@ export default function EmployeeMyActivitiesPage() {
   const open = (a) => {
     setSelected(a);
     setForm({ percentComplete: a.percentComplete || 0, notes: "", labourHours: "" });
+    setMaterialRows([]);
     setMessage("");
+    if (a?.projectId) {
+      fetchMaterialPlan(a.projectId)
+        .then((plan) => setPlanLines(Array.isArray(plan?.lines) ? plan.lines : []))
+        .catch(() => setPlanLines([]));
+    } else {
+      setPlanLines([]);
+    }
   };
 
   const submit = async () => {
@@ -42,12 +56,15 @@ export default function EmployeeMyActivitiesPage() {
     setBusy(true);
     setMessage("");
     try {
+      const materialIssues = toMaterialIssuesPayload(materialRows);
       await postActivityProgress(selected.uuid, {
         percentComplete: Number(form.percentComplete) || 0,
         notes: form.notes || null,
         labourHours: form.labourHours !== "" ? Number(form.labourHours) : null,
+        ...(materialIssues.length ? { materialIssues } : {}),
       });
       setMessage("Submitted for PM validation — awaiting approval.");
+      setMaterialRows([]);
       load();
     } catch (e) {
       setMessage(e?.response?.data?.error || e?.response?.data?.message || "Failed to post progress");
@@ -119,9 +136,14 @@ export default function EmployeeMyActivitiesPage() {
               <Textarea rows={3} value={form.notes}
                 onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} />
             </div>
+            <ProgressMaterialIssuesFields
+              planLines={planLines}
+              rows={materialRows}
+              onChange={setMaterialRows}
+            />
             <Button size="sm" disabled={busy} onClick={submit}>Submit for validation</Button>
             <p className="text-[11px] text-muted-foreground">
-              Your update applies to the schedule after PM approval.
+              Your update applies to the schedule after PM approval. Materials debit stock only after approve.
             </p>
             {message && <p className="text-sm text-muted-foreground">{message}</p>}
           </div>

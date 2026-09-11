@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, Briefcase, Inbox, Stamp } from "lucide-react";
+import { LayoutDashboard, Briefcase, Inbox, Stamp, ScrollText } from "lucide-react";
 import { SidebarBrand } from "@/components/brand/BrandMark";
 import {
   Sidebar,
@@ -35,6 +35,7 @@ const GROUPS = [
     label: "Commercial",
     items: [
       { label: "BOQ Inbox", href: ROUTES.FINANCE.BOQ_INBOX, icon: Inbox },
+      { label: "Terms & Conditions", href: ROUTES.FINANCE.TERMS, icon: ScrollText },
     ],
   },
 ];

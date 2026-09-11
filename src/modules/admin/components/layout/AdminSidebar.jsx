@@ -153,6 +153,7 @@ const NAV_GROUPS = [
     items: [
       { type: "link", label: "Employees", href: ROUTES.ADMIN.EMPLOYEES, icon: UserSquare2 },
       { type: "link", label: "Settings", href: ROUTES.ADMIN.SETTINGS, icon: Settings },
+      { type: "link", label: "Terms & Conditions", href: ROUTES.ADMIN.TERMS, icon: FileText },
     ],
   },
 ];

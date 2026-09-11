@@ -153,6 +153,36 @@ export default function ProjectReportingPage() {
             </Card>
           )}
 
+          {Array.isArray(report.materialVariance) && report.materialVariance.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold">Material plan vs issued</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="divide-y divide-border/40">
+                  {report.materialVariance.map((row) => (
+                    <div
+                      key={row.materialId || row.materialName}
+                      className="flex items-center justify-between gap-3 py-2 text-sm"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-medium truncate">{row.materialName || row.materialId}</p>
+                        {row.unit && (
+                          <p className="text-xs text-muted-foreground">{row.unit}</p>
+                        )}
+                      </div>
+                      <div className="text-xs text-muted-foreground tabular-nums text-right whitespace-nowrap">
+                        <div>Planned {Number(row.plannedQty ?? 0)}</div>
+                        <div>Issued {Number(row.issuedQty ?? 0)}</div>
+                        <div>Remaining {Number(row.remainingQty ?? 0)}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold">Activities</CardTitle>

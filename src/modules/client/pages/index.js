@@ -11,4 +11,5 @@ export { default as ClientSettingsPage }   from "./ClientSettingsPage";
 export { default as MyProjectsPage }        from "./MyProjectsPage";
 export { default as NewProjectRequestPage }  from "./NewProjectRequestPage";
 export { default as ClientProjectDetailPage } from "./ClientProjectDetailPage";
+export { default as ClientProjectSchedulePage } from "./ClientProjectSchedulePage";
 

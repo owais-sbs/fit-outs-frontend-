@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, Briefcase, CalendarRange, MapPin, Mail, ListChecks } from "lucide-react";
+import { LayoutDashboard, Briefcase, CalendarRange, MapPin, Mail, ListChecks, ScrollText } from "lucide-react";
 import { SidebarBrand } from "@/components/brand/BrandMark";
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup,
@@ -17,6 +17,7 @@ const NAV = [
   { label: "My Activities", href: ROUTES.EMPLOYEE.ACTIVITIES, icon: ListChecks },
   { label: "My Calendar", href: ROUTES.EMPLOYEE.CALENDAR, icon: CalendarRange },
   { label: "Communications", href: ROUTES.EMPLOYEE.COMMUNICATIONS, icon: Mail },
+  { label: "Terms & Conditions", href: ROUTES.EMPLOYEE.TERMS, icon: ScrollText },
 ];
 
 export default function EmployeeSidebar() {

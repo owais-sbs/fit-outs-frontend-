@@ -470,7 +470,37 @@ export const uploadSubcontractorSignature = (file) => {
 /** Prefer backend `error` (exception message) over the generic controller wrapper `message`. */
 export function scApiError(err, fallback = "Request failed") {
   const data = err?.response?.data;
-  return data?.error || data?.message || err?.message || fallback;
+  return data?.error || data?.message || data?.detail || data?.title || err?.message || fallback;
+}
+
+/** True when award-pack/contract is missing because the package has not been awarded yet. */
+export function isScAwardPackMissingError(err) {
+  const status = err?.response?.status;
+  const data = err?.response?.data || {};
+  const url = String(err?.config?.url || "");
+  const text = [
+    scApiError(err, ""),
+    data.path,
+    data.detail,
+    url,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  if (/no award|award recorded|not awarded|no subcontract award/i.test(text)) return true;
+
+  // Staff agreement panel always hits award-pack; failures usually mean "not awarded yet".
+  if (/award-pack/i.test(url) && (status === 400 || status === 404 || status === 500)) {
+    return true;
+  }
+
+  if (/award-pack|award pack/i.test(text) && (/no static resource|not found|failed to load|internal server error/i.test(text))) {
+    return true;
+  }
+
+  if (status === 404 && /\/contract/i.test(url)) return true;
+  return false;
 }
 
 /** Map staff award-pack DTO onto the contract fields the UI reads. */

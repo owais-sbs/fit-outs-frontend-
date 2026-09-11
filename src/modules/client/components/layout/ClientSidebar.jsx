@@ -18,7 +18,6 @@ import { useAuth } from "@/shared/context/auth-context";
 // ─── Design Center sub-items ──────────────────────────────────────────────────
 const DESIGN_SUB_ITEMS = [
   { label: "My Designs",        href: ROUTES.CLIENT.DESIGNS,          icon: Palette },
-  { label: "BOQ Approvals",     href: ROUTES.CLIENT.BOQ_APPROVALS,    icon: FileText },
   { label: "Pending Approval",  href: ROUTES.CLIENT.DESIGNS_PENDING,  icon: Inbox },
   { label: "Revision History",  href: ROUTES.CLIENT.DESIGNS_REVISIONS,icon: RotateCcw },
   { label: "Approved Designs",  href: ROUTES.CLIENT.DESIGNS_APPROVED, icon: Award },
@@ -30,6 +29,7 @@ const NAV_GROUPS = [
     label: "Overview",
     items: [
       { label: "Dashboard", href: ROUTES.CLIENT.DASHBOARD, icon: LayoutDashboard, end: true },
+      { label: "BOQ Approvals", href: ROUTES.CLIENT.BOQ_APPROVALS, icon: FileText },
     ],
   },
   {
@@ -53,6 +53,7 @@ const NAV_GROUPS = [
       { label: "Invoices",      href: ROUTES.CLIENT.INVOICES,        icon: CreditCard },
       { label: "Communications",href: ROUTES.CLIENT.COMMUNICATIONS,  icon: MessageSquare },
       { label: "Settings",      href: ROUTES.CLIENT.SETTINGS,        icon: Settings },
+      { label: "Terms & Conditions", href: ROUTES.CLIENT.TERMS,      icon: FileText },
     ],
   },
 ];

@@ -21,6 +21,9 @@ import {
   fetchWorkCalendars,
   previewSchedule,
 } from "../../api/schedule.api";
+import { fetchBoq, fetchBoqsByProject } from "../../api/boq.api";
+import { isBoqApproved } from "../boq/boqDataUtils";
+import ApplyCascadeOverlay from "./ApplyCascadeOverlay";
 
 const STEPS = ["Template", "Duration", "Parameters", "Preview"];
 
@@ -40,6 +43,63 @@ const FAST_TRACK_PREMIUM = {
   drivers: "Additional manpower, expedited procurement, premium freight and out-of-hours rates.",
 };
 
+/** Optional packages that should start off unless the PM turns them on. */
+const SCOPE_OFF_BY_DEFAULT = new Set([
+  "STRUCTURAL_MODIFICATION",
+  "FACADE_CHANGE",
+  "EXTERNAL_WORKS",
+  "LANDSCAPE",
+  "SWIMMING_POOL",
+]);
+
+/** Best-effort map of BOQ lines into DurationScaler quantity drivers. */
+function quantitiesFromBoq(boq) {
+  const lines = Array.isArray(boq?.lines) ? boq.lines : [];
+  if (!lines.length) return {};
+
+  const sums = {};
+  const add = (key, qty) => {
+    const n = Number(qty);
+    if (!Number.isFinite(n) || n <= 0) return;
+    sums[key] = (sums[key] || 0) + n;
+  };
+
+  for (const line of lines) {
+    const qty = Number(line.quantity) || 0;
+    if (qty <= 0) continue;
+    const unit = String(line.unit || "").toLowerCase();
+    const cat = String(line.categoryCode || "").toUpperCase();
+    const desc = String(line.description || line.categoryName || "").toLowerCase();
+    const room = String(line.roomLabel || "").toLowerCase();
+
+    const isArea =
+      unit.includes("m2") ||
+      unit.includes("sqm") ||
+      unit.includes("sq.m") ||
+      unit.includes("sqft") ||
+      unit.includes("sq ft") ||
+      unit === "sf" ||
+      unit === "m²";
+
+    if (isArea || cat === "E" || cat === "D" || cat === "F" || cat === "G") {
+      // Convert sqm → approx sqft when unit looks metric; DurationScaler uses AREA as generic measure.
+      const areaQty =
+        unit.includes("m2") || unit.includes("sqm") || unit.includes("m²")
+          ? qty * 10.7639
+          : qty;
+      add("AREA", areaQty);
+    }
+
+    if (desc.includes("bathroom") || room.includes("bath")) add("BATHROOMS", qty);
+    if (desc.includes("bedroom") || room.includes("bed")) add("BEDROOMS", qty);
+    if (desc.includes("kitchen") || room.includes("kitchen")) add("KITCHENS", qty);
+    if (cat === "H" || desc.includes("sanitary") || desc.includes("fixture")) add("POINTS", qty);
+    if (cat === "K" || desc.includes("door") || desc.includes("joinery")) add("DOORS", qty);
+  }
+
+  return sums;
+}
+
 export default function ScheduleApplyWizard({ projectId, onApplied, onPreviewChange, onClose }) {
   const [step, setStep] = useState(0);
   const [templates, setTemplates] = useState([]);
@@ -50,6 +110,9 @@ export default function ScheduleApplyWizard({ projectId, onApplied, onPreviewCha
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [acks, setAcks] = useState({});
+  /** null | "confirm" | "result" */
+  const [applyPhase, setApplyPhase] = useState(null);
+  const [applyResult, setApplyResult] = useState(null);
 
   // Parent passes an inline handler; keep it in a ref so preview sync does not loop renders.
   const previewChangeRef = useRef(onPreviewChange);
@@ -60,12 +123,16 @@ export default function ScheduleApplyWizard({ projectId, onApplied, onPreviewCha
     areaSqft: "",
     roomCount: "",
     floorCount: "",
+    bedrooms: "",
+    bathrooms: "",
+    kitchens: "",
     finishLevel: "STANDARD",
     crewCount: "",
     occupiedBuilding: false,
     workCalendarUuid: "",
   });
   const [toggles, setToggles] = useState({});
+  const [quantities, setQuantities] = useState({});
 
   useEffect(() => {
     Promise.allSettled([fetchScheduleTemplates(), fetchWorkCalendars()])
@@ -75,6 +142,27 @@ export default function ScheduleApplyWizard({ projectId, onApplied, onPreviewCha
       })
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (!projectId) return;
+    fetchBoqsByProject(projectId)
+      .then(async (list) => {
+        const approved = (Array.isArray(list) ? list : [])
+          .filter((b) => isBoqApproved(b.status))
+          .sort((a, b) => {
+            const aDate = new Date(a.approvedAt || a.updatedAt || a.createdAt || 0).getTime();
+            const bDate = new Date(b.approvedAt || b.updatedAt || b.createdAt || 0).getTime();
+            return bDate - aDate;
+          })[0];
+        if (!approved?.id && !approved?.uuid) {
+          setQuantities({});
+          return;
+        }
+        const detail = await fetchBoq(approved.id || approved.uuid).catch(() => approved);
+        setQuantities(quantitiesFromBoq(detail));
+      })
+      .catch(() => setQuantities({}));
+  }, [projectId]);
 
   const chooseTemplate = (template) => {
     setSelectedTemplate(template);
@@ -86,11 +174,19 @@ export default function ScheduleApplyWizard({ projectId, onApplied, onPreviewCha
       areaSqft: base.areaSqft ?? "",
       roomCount: base.roomCount ?? "",
       floorCount: base.floorCount ?? "",
+      bedrooms: base.bedrooms ?? "",
+      bathrooms: base.bathrooms ?? "",
+      kitchens: base.kitchens ?? "",
       finishLevel: base.finishLevel || "STANDARD",
       crewCount: base.crewCount ?? "",
     }));
     setToggles(
-      Object.fromEntries((template.scopeToggleCodes || []).map((code) => [code, true]))
+      Object.fromEntries(
+        (template.scopeToggleCodes || []).map((code) => [
+          code,
+          !SCOPE_OFF_BY_DEFAULT.has(code),
+        ])
+      )
     );
   };
 
@@ -101,14 +197,18 @@ export default function ScheduleApplyWizard({ projectId, onApplied, onPreviewCha
       areaSqft: params.areaSqft === "" ? undefined : Number(params.areaSqft),
       roomCount: params.roomCount === "" ? undefined : Number(params.roomCount),
       floorCount: params.floorCount === "" ? undefined : Number(params.floorCount),
+      bedrooms: params.bedrooms === "" ? undefined : Number(params.bedrooms),
+      bathrooms: params.bathrooms === "" ? undefined : Number(params.bathrooms),
+      kitchens: params.kitchens === "" ? undefined : Number(params.kitchens),
       finishLevel: params.finishLevel || undefined,
       crewCount: params.crewCount === "" ? undefined : Number(params.crewCount),
       occupiedBuilding: params.occupiedBuilding,
       workCalendarUuid: params.workCalendarUuid || undefined,
       scopeToggles: toggles,
+      quantities: Object.keys(quantities).length ? quantities : undefined,
       fastTrackAcknowledgements: acks,
     }),
-    [selectedTemplate, params, toggles, acks]
+    [selectedTemplate, params, toggles, quantities, acks]
   );
 
   const runPreview = useCallback(async () => {
@@ -125,7 +225,19 @@ export default function ScheduleApplyWizard({ projectId, onApplied, onPreviewCha
     }
   }, [projectId, payload, selectedTemplate]);
 
-  const runApply = async () => {
+  const openApplyConfirm = () => {
+    setError("");
+    setApplyResult(null);
+    setApplyPhase("confirm");
+  };
+
+  const cancelApplyDialog = () => {
+    if (busy) return;
+    setApplyPhase(null);
+    setApplyResult(null);
+  };
+
+  const finalizeApply = async () => {
     setBusy(true);
     setError("");
     try {
@@ -135,12 +247,21 @@ export default function ScheduleApplyWizard({ projectId, onApplied, onPreviewCha
           "No activities were written. Import the schedule seed, then try again."
         );
       }
-      onApplied?.(result);
+      setApplyResult(result);
+      setApplyPhase("result");
     } catch (e) {
       setError(e?.response?.data?.error || e?.message || "Could not apply the programme");
+      setApplyPhase(null);
     } finally {
       setBusy(false);
     }
+  };
+
+  const dismissApplyResult = () => {
+    const result = applyResult;
+    setApplyPhase(null);
+    setApplyResult(null);
+    onApplied?.(result);
   };
 
   useEffect(() => {
@@ -169,6 +290,7 @@ export default function ScheduleApplyWizard({ projectId, onApplied, onPreviewCha
   const fastTrackAlternative = templates.find((t) => t.fastTrack && t.uuid !== selectedTemplate?.uuid);
 
   return (
+    <>
     <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -340,6 +462,30 @@ export default function ScheduleApplyWizard({ projectId, onApplied, onPreviewCha
                 />
               </div>
               <div>
+                <Label className="text-xs">Bedrooms</Label>
+                <Input
+                  type="number"
+                  value={params.bedrooms}
+                  onChange={(e) => setParams({ ...params, bedrooms: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Bathrooms</Label>
+                <Input
+                  type="number"
+                  value={params.bathrooms}
+                  onChange={(e) => setParams({ ...params, bathrooms: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Kitchens</Label>
+                <Input
+                  type="number"
+                  value={params.kitchens}
+                  onChange={(e) => setParams({ ...params, kitchens: e.target.value })}
+                />
+              </div>
+              <div>
                 <Label className="text-xs">Floors</Label>
                 <Input
                   type="number"
@@ -405,9 +551,19 @@ export default function ScheduleApplyWizard({ projectId, onApplied, onPreviewCha
                 </div>
                 <p className="mt-2 text-[11px] text-muted-foreground">
                   Turning a scope off removes those activities and their logic links, then
-                  recomputes the critical path.
+                  recomputes the critical path. Structural, facade and external works start off.
                 </p>
               </div>
+            )}
+
+            {!!Object.keys(quantities).length && (
+              <p className="text-[11px] text-muted-foreground">
+                BOQ quantities will drive QUANTITY scaling where productivity norms match
+                ({Object.entries(quantities)
+                  .map(([k, v]) => `${k}: ${Math.round(v)}`)
+                  .join(", ")}
+                ).
+              </p>
             )}
           </div>
         )}
@@ -444,7 +600,7 @@ export default function ScheduleApplyWizard({ projectId, onApplied, onPreviewCha
                 <Button size="sm" variant="outline" disabled={busy} onClick={runPreview}>
                   Recompute
                 </Button>
-                <Button size="sm" disabled={busy || !preview?.canPublish} onClick={runApply}>
+                <Button size="sm" disabled={busy || !preview?.canPublish} onClick={openApplyConfirm}>
                   {busy ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Sparkles className="h-4 w-4 mr-1" />}
                   Apply and publish
                 </Button>
@@ -454,6 +610,18 @@ export default function ScheduleApplyWizard({ projectId, onApplied, onPreviewCha
         </div>
       </CardContent>
     </Card>
+    {applyPhase && (
+      <ApplyCascadeOverlay
+        phase={applyPhase}
+        preview={preview}
+        result={applyResult}
+        busy={busy}
+        onCancel={cancelApplyDialog}
+        onFinalize={finalizeApply}
+        onDone={dismissApplyResult}
+      />
+    )}
+    </>
   );
 }
 
@@ -488,6 +656,10 @@ function PreviewPanel({ preview, acks, setAcks }) {
         <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-4">
           <p className="text-sm font-semibold text-amber-900">
             This programme cannot publish until every condition below is acknowledged.
+          </p>
+          <p className="mt-1 text-xs text-amber-900/80">
+            Commercial note: the 60-day programme typically carries a {FAST_TRACK_PREMIUM.range}{" "}
+            cost premium over the 90-day programme. {FAST_TRACK_PREMIUM.drivers}
           </p>
           <div className="mt-2 space-y-1.5">
             {(preview.fastTrackConditions || []).map((c) => (

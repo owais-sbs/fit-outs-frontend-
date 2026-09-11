@@ -16,7 +16,11 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { fetchMaterialPlan } from "@/modules/admin/api/material-plan.api";
 import { AttachmentList, AttachmentUploadField } from "@/components/shared/AttachmentField";
+import ProgressMaterialIssuesFields, {
+  toMaterialIssuesPayload,
+} from "@/modules/admin/components/progress/ProgressMaterialIssuesFields";
 import { ROUTES } from "@/shared/constants/routes";
 
 const DELAY_CODES = [
@@ -35,6 +39,8 @@ export default function SubcontractorProgressLogsPage() {
   const [history, setHistory] = useState([]);
   const [form, setForm] = useState({ percentComplete: 0, notes: "", labourHours: "", delayReason: "" });
   const [pendingFiles, setPendingFiles] = useState([]);
+  const [materialRows, setMaterialRows] = useState([]);
+  const [planLines, setPlanLines] = useState([]);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -54,10 +60,18 @@ export default function SubcontractorProgressLogsPage() {
     setSelected(activity);
     setForm({ percentComplete: activity.percentComplete || 0, notes: "", labourHours: "", delayReason: "" });
     setPendingFiles([]);
+    setMaterialRows([]);
     setMessage("");
     fetchActivityProgress(activity.uuid)
       .then((list) => setHistory(Array.isArray(list) ? list : []))
       .catch(() => setHistory([]));
+    if (activity?.projectId) {
+      fetchMaterialPlan(activity.projectId)
+        .then((plan) => setPlanLines(Array.isArray(plan?.lines) ? plan.lines : []))
+        .catch(() => setPlanLines([]));
+    } else {
+      setPlanLines([]);
+    }
   };
 
   const submit = async () => {
@@ -65,11 +79,13 @@ export default function SubcontractorProgressLogsPage() {
     setBusy(true);
     setMessage("");
     try {
+      const materialIssues = toMaterialIssuesPayload(materialRows);
       const created = await postActivityProgress(selected.uuid, {
         percentComplete: Number(form.percentComplete) || 0,
         notes: form.notes || null,
         labourHours: form.labourHours !== "" ? Number(form.labourHours) : null,
         delayReason: form.delayReason || null,
+        ...(materialIssues.length ? { materialIssues } : {}),
       });
       if (created?.uuid && pendingFiles.length > 0) {
         for (const file of pendingFiles) {
@@ -78,6 +94,7 @@ export default function SubcontractorProgressLogsPage() {
       }
       setMessage("Progress log submitted with attachments — awaiting PM validation.");
       setPendingFiles([]);
+      setMaterialRows([]);
       setForm({ percentComplete: form.percentComplete, notes: "", labourHours: "", delayReason: "" });
       loadActivities();
       const list = await fetchActivityProgress(selected.uuid);
@@ -192,6 +209,11 @@ export default function SubcontractorProgressLogsPage() {
                       placeholder="Describe work completed on site..."
                     />
                   </div>
+                  <ProgressMaterialIssuesFields
+                    planLines={planLines}
+                    rows={materialRows}
+                    onChange={setMaterialRows}
+                  />
                   <AttachmentUploadField
                     files={pendingFiles}
                     onFilesChange={setPendingFiles}
@@ -231,6 +253,17 @@ export default function SubcontractorProgressLogsPage() {
                         )}
                         {log.delayReason && (
                           <p className="mt-1 text-xs text-amber-700">Delay: {log.delayReason}</p>
+                        )}
+                        {Array.isArray(log.materialIssues) && log.materialIssues.length > 0 && (
+                          <div className="mt-2 space-y-1">
+                            {log.materialIssues.map((m) => (
+                              <p key={m.uuid || `${m.materialId}-${m.qty}`} className="text-[11px] text-muted-foreground">
+                                {m.materialName || m.materialId}: {m.qty}
+                                {m.plannedQty != null ? ` (planned ${m.plannedQty})` : ""}
+                                {m.status ? ` · ${m.status}` : ""}
+                              </p>
+                            ))}
+                          </div>
                         )}
                         <AttachmentList paths={log.photoPaths} className="mt-2" />
                       </div>

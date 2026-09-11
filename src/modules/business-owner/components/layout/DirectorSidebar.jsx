@@ -181,6 +181,10 @@ export default function DirectorSidebar() {
                 { label: "Design Options", href: "/admin/design-qas/options", icon: Grid },
                 { label: "Approvals", href: "/admin/design-qas/approvals", icon: ClipboardList },
               ]} />
+              <NavItem
+                item={{ label: "Terms & Conditions", href: ROUTES.BUSINESS_OWNER.TERMS, icon: FileText }}
+                pendingCount={0}
+              />
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

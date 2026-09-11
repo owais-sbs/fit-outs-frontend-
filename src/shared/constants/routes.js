@@ -21,6 +21,7 @@ export const ROUTES = {
     SITE_VISIT_SCHEDULE: "/super-admin/site-visits/schedule",
     SITE_VISIT_REPORT: "/super-admin/site-visits/:visitId/report",
     SETTINGS: "/super-admin/settings",
+    TERMS: "/super-admin/terms",
     AUDIT_LOG: "/super-admin/audit-log",
     ORGANIZATIONS: "/super-admin/organizations",
   },
@@ -87,6 +88,7 @@ export const ROUTES = {
     BOQ_INBOX: "/admin/boq/inbox",
     QAS: "/admin/qas",
     SETTINGS: "/admin/settings",
+    TERMS: "/admin/terms",
   },
   BUSINESS_OWNER: {
     DASHBOARD: "/business-owner",
@@ -101,6 +103,7 @@ export const ROUTES = {
     FINANCE: "/business-owner/finance",
     REPORTS: "/business-owner/reports",
     SETTINGS: "/business-owner/settings",
+    TERMS: "/business-owner/terms",
   },
   PROJECT_MANAGER: {
     DASHBOARD: "/project-manager",
@@ -134,6 +137,7 @@ export const ROUTES = {
     TASKS: "/project-manager/tasks",
     TEAM: "/project-manager/team",
     REPORTS: "/project-manager/reports",
+    TERMS: "/project-manager/terms",
   },
   DESIGNER: {
     DASHBOARD: "/designer",
@@ -156,6 +160,7 @@ export const ROUTES = {
     BILLING_MILESTONE_INBOX: "/finance/billing/inbox",
     BOQ_INBOX: "/finance/boq/inbox",
     BOQ_VIEW: "/finance/boq/:boqId",
+    TERMS: "/finance/terms",
   },
   SUBCONTRACTOR: {
     DASHBOARD: "/subcontractor",
@@ -201,6 +206,7 @@ export const ROUTES = {
     PROJECTS_MY: "/client/projects/my",
     PROJECTS_REQUEST: "/client/projects/request",
     PROJECT_DETAIL: "/client/projects/:projectId",
+    PROJECT_SCHEDULE: "/client/projects/:projectId/schedule",
     PROJECT_ROOM_TASK: "/client/projects/:projectId/room-tasks/:taskId",
     PROJECT_ROOM_CHAT: "/client/projects/:projectId/rooms/:roomId/chat",
     DOCUMENTS: "/client/documents",
@@ -215,6 +221,7 @@ export const ROUTES = {
     BOQ_APPROVALS: "/client/boq-approvals",
     BOQ_VIEW: "/client/boq/:boqId",
     SETTINGS: "/client/settings",
+    TERMS: "/client/terms",
   },
   SALES: {
     DASHBOARD: "/sales",
@@ -231,6 +238,7 @@ export const ROUTES = {
     SITE_VISITS: "/employee/site-visits",
     SITE_VISIT_REPORT: "/employee/site-visits/:visitId/report",
     COMMUNICATIONS: "/employee/communications",
+    TERMS: "/employee/terms",
   },
 };
 

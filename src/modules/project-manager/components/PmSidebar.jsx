@@ -59,6 +59,7 @@ const GROUPS = [
     label: "Field",
     items: [
       { label: "Site Visits", href: ROUTES.PROJECT_MANAGER.SITE_VISITS, icon: MapPin },
+      { label: "Terms & Conditions", href: ROUTES.PROJECT_MANAGER.TERMS, icon: ClipboardList },
     ],
   },
 ];

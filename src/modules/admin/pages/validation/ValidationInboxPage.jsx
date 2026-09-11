@@ -259,6 +259,22 @@ export default function ValidationInboxPage() {
                       {item.progressNotes && (
                         <p className="text-xs text-muted-foreground mt-1">{item.progressNotes}</p>
                       )}
+                      {Array.isArray(item.materialIssues) && item.materialIssues.length > 0 && (
+                        <div className="mt-2 rounded-md border border-border/40 bg-muted/20 p-2 space-y-1">
+                          <p className="text-[11px] font-medium">Materials declared vs plan</p>
+                          {item.materialIssues.map((m) => (
+                            <div
+                              key={m.uuid || `${m.materialId}-${m.qty}`}
+                              className="flex justify-between gap-2 text-[11px] text-muted-foreground"
+                            >
+                              <span className="truncate">{m.materialName || m.materialId}</span>
+                              <span className="tabular-nums whitespace-nowrap">
+                                used {Number(m.qty ?? 0)} / planned {Number(m.plannedQty ?? 0)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                       <AttachmentList paths={item.photoPaths} className="mt-2" />
                       {item.reason && (
                         <p className="text-xs text-destructive mt-1">Reason: {item.reason}</p>

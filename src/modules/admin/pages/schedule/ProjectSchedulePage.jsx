@@ -23,11 +23,17 @@ import {
   fetchScheduleBaseline,
   postActivityProgress,
   fetchActivityProgress,
+  fetchActivityMaterialSummary,
   fetchOrderByDates,
   rescheduleProject,
+  saveScheduleAsTemplate,
 } from "../../api/schedule.api";
+import { fetchMaterialPlan } from "../../api/material-plan.api";
 import { fetchProjectRooms, fetchProjectRoomTasks } from "../../api/room-collab.api";
 import { fetchAllEmployees } from "../../api/employees.api";
+import ProgressMaterialIssuesFields, {
+  toMaterialIssuesPayload,
+} from "../../components/progress/ProgressMaterialIssuesFields";
 import ScheduleReadinessStrip from "./ScheduleReadinessStrip";
 import ScheduleActivityList from "./ScheduleActivityList";
 import BaselineVarianceTable from "./BaselineVarianceTable";
@@ -113,7 +119,12 @@ export default function ProjectSchedulePage() {
   });
   const [depPred, setDepPred] = useState("");
   const [depSucc, setDepSucc] = useState("");
+  const [depType, setDepType] = useState("FS");
+  const [depLag, setDepLag] = useState(0);
   const [progressForm, setProgressForm] = useState({ percentComplete: 0, notes: "", labourHours: "" });
+  const [materialRows, setMaterialRows] = useState([]);
+  const [planLines, setPlanLines] = useState([]);
+  const [materialSummary, setMaterialSummary] = useState([]);
   const [publishAllowed, setPublishAllowed] = useState(false);
   const [showBaseline, setShowBaseline] = useState(false);
   const [selectedBaselineUuid, setSelectedBaselineUuid] = useState("");
@@ -153,7 +164,7 @@ export default function ProjectSchedulePage() {
           return;
         }
       } catch {
-        /* network â€” fall through to ghost dates */
+        /* network — fall through to ghost dates */
       }
       // Fallback: latest baseline snapshot fields on activities (reporting-style)
       const ghost = (scheduleData?.activities || [])
@@ -219,6 +230,8 @@ export default function ProjectSchedulePage() {
   useEffect(() => {
     if (!selected?.uuid) {
       setProgressHistory([]);
+      setMaterialSummary([]);
+      setMaterialRows([]);
       return;
     }
     setProgressForm({
@@ -226,12 +239,22 @@ export default function ProjectSchedulePage() {
       notes: "",
       labourHours: "",
     });
+    setMaterialRows([]);
     fetchActivityProgress(selected.uuid)
       .then((list) => setProgressHistory(Array.isArray(list) ? list : []))
       .catch(() => setProgressHistory([]));
+    fetchActivityMaterialSummary(selected.uuid)
+      .then((list) => setMaterialSummary(Array.isArray(list) ? list : []))
+      .catch(() => setMaterialSummary([]));
     // Reset progress form when switching activity only (uuid), not on every field tick
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected?.uuid]);
+
+  useEffect(() => {
+    fetchMaterialPlan(projectId)
+      .then((plan) => setPlanLines(Array.isArray(plan?.lines) ? plan.lines : []))
+      .catch(() => setPlanLines([]));
+  }, [projectId]);
 
   const run = async (fn, okMsg) => {
     setBusy(true);
@@ -313,16 +336,33 @@ export default function ProjectSchedulePage() {
 
   const handleAddDep = () =>
     run(
-      () =>
-        addScheduleDependency(projectId, {
+      async () => {
+        await addScheduleDependency(projectId, {
           predecessorUuid: depPred,
           successorUuid: depSucc,
-        }),
-      "FS dependency added"
+          dependencyType: depType || "FS",
+          lagWorkingDays: Number(depLag) || 0,
+        });
+        setDepPred("");
+        setDepSucc("");
+        setDepType("FS");
+        setDepLag(0);
+      },
+      `${depType || "FS"} dependency added`
     );
 
   const handleDeleteDep = (dependencyUuid) =>
     run(() => deleteScheduleDependency(dependencyUuid), "Dependency removed");
+
+  const handleSaveAsTemplate = () => {
+    const name = window.prompt("Template name", `Project ${projectId} schedule`);
+    if (!name) return;
+    const code = window.prompt("Template code (optional)", "");
+    run(
+      () => saveScheduleAsTemplate(projectId, { name, code: code || undefined }),
+      "Saved as template — available in the template library"
+    );
+  };
 
   const handlePublish = () => run(() => publishSchedule(projectId), "Schedule published");
 
@@ -374,13 +414,18 @@ export default function ProjectSchedulePage() {
   const handleProgress = () => {
     if (!selected) return;
     run(async () => {
+      const materialIssues = toMaterialIssuesPayload(materialRows);
       await postActivityProgress(selected.uuid, {
         percentComplete: Number(progressForm.percentComplete) || 0,
         notes: progressForm.notes || null,
         labourHours: progressForm.labourHours !== "" ? Number(progressForm.labourHours) : null,
+        ...(materialIssues.length ? { materialIssues } : {}),
       });
+      setMaterialRows([]);
       const list = await fetchActivityProgress(selected.uuid);
       setProgressHistory(Array.isArray(list) ? list : []);
+      const summary = await fetchActivityMaterialSummary(selected.uuid).catch(() => []);
+      setMaterialSummary(Array.isArray(summary) ? summary : []);
     }, "Submitted for PM validation");
   };
 
@@ -425,6 +470,14 @@ export default function ProjectSchedulePage() {
             </Button>
             <Button size="sm" variant="outline" disabled={busy} onClick={handleBaseline}>
               <Save className="h-4 w-4 mr-1" /> Baseline
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={busy || !(schedule?.activities || []).length}
+              onClick={handleSaveAsTemplate}
+            >
+              <Save className="h-4 w-4 mr-1" /> Save as template
             </Button>
             <Button size="sm" disabled={busy || !(publishAllowed || schedule?.ganttPublishAllowed)} onClick={handlePublish}>
               <Upload className="h-4 w-4 mr-1" /> Publish
@@ -506,6 +559,28 @@ export default function ProjectSchedulePage() {
         }
       />
 
+      {!!(schedule?.criticalPaths || []).length && !usingPreview && (
+        <div className="rounded-lg border border-border/40 bg-secondary/20 p-3">
+          <p className="mb-2 text-sm font-semibold">Longest paths</p>
+          <div className="space-y-1.5">
+            {(schedule.criticalPaths || []).slice(0, 3).map((path, index) => {
+              const labels = (path || []).map((uuid) => {
+                const a = activities.find((x) => String(x.uuid) === String(uuid));
+                return a?.activityCode || a?.name || String(uuid).slice(0, 8);
+              });
+              return (
+                <div key={`live-path-${index}-${labels.join(">")}`} className="flex items-start gap-2 text-xs">
+                  <Badge className={index === 0 ? "bg-amber-500/15 text-amber-800" : "bg-secondary text-muted-foreground"}>
+                    {index === 0 ? "Critical" : `Path ${index + 1}`}
+                  </Badge>
+                  <span className="font-mono text-muted-foreground">{labels.join(" → ")}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {!!orderByRows.length && (
         <Card>
           <CardHeader className="pb-2 flex flex-row items-center justify-between gap-2">
@@ -567,7 +642,7 @@ export default function ProjectSchedulePage() {
         </div>
       )}
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm">Add activity</CardTitle>
@@ -582,7 +657,7 @@ export default function ProjectSchedulePage() {
                     value={fromRoomTaskId}
                     onChange={(e) => setFromRoomTaskId(e.target.value)}
                   >
-                    <option value="">Select room taskâ€¦</option>
+                    <option value="">Select room task...</option>
                     {roomTasks.map((t) => (
                       <option key={t.uuid} value={t.uuid}>
                         {t.roomName ? `${t.roomName} Â· ` : ""}{t.title}
@@ -681,14 +756,14 @@ export default function ProjectSchedulePage() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">FS dependency</CardTitle>
+            <CardTitle className="text-sm">Dependency</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div>
               <Label className="text-xs">Predecessor</Label>
               <select className="w-full h-9 rounded-md border bg-background px-2 text-sm"
                 value={depPred} onChange={(e) => setDepPred(e.target.value)}>
-                <option value="">Selectâ€¦</option>
+                <option value="">Select...</option>
                 {activities.map((a) => <option key={a.uuid} value={a.uuid}>{a.name}</option>)}
               </select>
             </div>
@@ -696,21 +771,49 @@ export default function ProjectSchedulePage() {
               <Label className="text-xs">Successor</Label>
               <select className="w-full h-9 rounded-md border bg-background px-2 text-sm"
                 value={depSucc} onChange={(e) => setDepSucc(e.target.value)}>
-                <option value="">Selectâ€¦</option>
+                <option value="">Select...</option>
                 {activities.map((a) => <option key={a.uuid} value={a.uuid}>{a.name}</option>)}
               </select>
             </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs">Type</Label>
+                <select
+                  className="w-full h-9 rounded-md border bg-background px-2 text-sm"
+                  value={depType}
+                  onChange={(e) => setDepType(e.target.value)}
+                >
+                  <option value="FS">FS — Finish to Start</option>
+                  <option value="SS">SS — Start to Start</option>
+                  <option value="FF">FF — Finish to Finish</option>
+                  <option value="SF">SF — Start to Finish</option>
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs">Lag (working days)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={depLag}
+                  onChange={(e) => setDepLag(e.target.value)}
+                />
+              </div>
+            </div>
             <Button size="sm" variant="outline" disabled={busy || !depPred || !depSucc} onClick={handleAddDep}>
-              Link FS
+              Link
             </Button>
             {deps.length > 0 && (
               <ul className="text-xs text-muted-foreground space-y-1 pt-2">
                 {deps.map((d) => {
                   const p = activities.find((a) => a.uuid === d.predecessorUuid)?.name || d.predecessorUuid;
                   const s = activities.find((a) => a.uuid === d.successorUuid)?.name || d.successorUuid;
+                  const type = d.dependencyType || d.type || "FS";
+                  const lag = d.lagWorkingDays || d.lagDays || 0;
                   return (
                     <li key={d.uuid} className="flex items-center justify-between gap-2">
-                      <span>{p} â†’ {s} (FS)</span>
+                      <span>
+                        {p} → {s} ({type}){lag ? ` +${lag}d` : ""}
+                      </span>
                       <Button
                         type="button"
                         size="sm"
@@ -733,12 +836,12 @@ export default function ProjectSchedulePage() {
       {selected && (
         <Card>
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
-            <CardTitle className="text-sm">Activity drawer â€” {selected.name}</CardTitle>
+            <CardTitle className="text-sm">Activity drawer — {selected.name}</CardTitle>
             <Button size="sm" variant="destructive" disabled={busy} onClick={handleDeleteSelected}>
               <Trash2 className="h-4 w-4 mr-1" /> Delete
             </Button>
           </CardHeader>
-          <CardContent className="grid gap-4 lg:grid-cols-2">
+          <CardContent className="grid gap-4">
             <div className="space-y-3">
               <div>
                 <Label className="text-xs">Name</Label>
@@ -864,18 +967,43 @@ export default function ProjectSchedulePage() {
                 <Textarea rows={2} value={progressForm.notes}
                   onChange={(e) => setProgressForm((f) => ({ ...f, notes: e.target.value }))} />
               </div>
+              <ProgressMaterialIssuesFields
+                planLines={planLines}
+                rows={materialRows}
+                onChange={setMaterialRows}
+              />
               <Button size="sm" disabled={busy} onClick={handleProgress}>Submit for validation</Button>
+              {materialSummary.length > 0 && (
+                <div className="rounded-md border border-border/50 p-2 space-y-1">
+                  <p className="text-xs font-medium">Plan vs issued</p>
+                  {materialSummary.map((row) => (
+                    <div key={row.materialId} className="flex justify-between gap-2 text-[11px] text-muted-foreground">
+                      <span className="truncate">{row.materialName || row.materialId}</span>
+                      <span className="tabular-nums whitespace-nowrap">
+                        plan {Number(row.plannedQty ?? 0)} · issued {Number(row.issuedQty ?? 0)}
+                        {Number(row.declaredQty ?? 0) > 0 ? ` · pending ${Number(row.declaredQty)}` : ""}
+                        {" · rem "}{Number(row.remainingQty ?? 0)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
               {progressHistory.length > 0 && (
                 <ul className="text-xs text-muted-foreground space-y-1 max-h-32 overflow-auto">
                   {progressHistory.map((u) => (
                     <li key={u.uuid} className="flex flex-wrap items-center gap-1.5">
-                      <span>{u.percentComplete}% Â· {u.notes || "â€”"}</span>
+                      <span>{u.percentComplete}% · {u.notes || "—"}</span>
                       {u.validationStatus && (
                         <Badge variant="secondary" className="text-[10px] h-5">
                           {u.validationStatus}
                         </Badge>
                       )}
-                      <span>Â· {u.reportedAt ? new Date(u.reportedAt).toLocaleString() : ""}</span>
+                      <span>· {u.reportedAt ? new Date(u.reportedAt).toLocaleString() : ""}</span>
+                      {Array.isArray(u.materialIssues) && u.materialIssues.length > 0 && (
+                        <span className="w-full text-[10px]">
+                          Materials: {u.materialIssues.map((m) => `${m.materialName || m.materialId}×${m.qty}`).join(", ")}
+                        </span>
+                      )}
                     </li>
                   ))}
                 </ul>

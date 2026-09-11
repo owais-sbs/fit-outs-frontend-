@@ -33,6 +33,7 @@ import {
   fetchScAwardPack,
   mapAwardPackToContract,
   scApiError,
+  isScAwardPackMissingError,
 } from "@/modules/admin/api/subcontractor.api";
 
 const STATUS = {
@@ -159,7 +160,12 @@ export default function ContractSection({ packageUuid, projectId }) {
       }
     } catch (err) {
       setContract(null);
-      setError(scApiError(err, "Failed to load contract details"));
+      // Unawarded packages should show an empty state, not a red server error.
+      if (isScAwardPackMissingError(err)) {
+        setError("");
+      } else {
+        setError(scApiError(err, "Failed to load contract details"));
+      }
     } finally {
       setLoading(false);
     }
@@ -296,13 +302,15 @@ export default function ContractSection({ packageUuid, projectId }) {
   }
 
   if (error) {
-    const noAward = /no (subcontract )?award/i.test(error);
+    const noAward = /no (subcontract )?award|award recorded|not awarded/i.test(error);
     if (noAward) {
       return (
         <Surface className="p-6 text-center">
           <FileText className="mx-auto h-8 w-8 text-muted-foreground/40 mb-2" />
-          <p className="text-sm font-medium">No subcontract award yet</p>
-          <p className="text-xs text-muted-foreground mt-1">{error}</p>
+          <p className="text-sm font-medium">No award yet</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Award this package first. A digital subcontract is created when the package is awarded.
+          </p>
         </Surface>
       );
     }
@@ -326,7 +334,7 @@ export default function ContractSection({ packageUuid, projectId }) {
     return (
       <Surface className="p-8 text-center">
         <FileText className="mx-auto h-10 w-10 text-muted-foreground/40 mb-3" />
-        <p className="text-sm font-medium">Digital Subcontract Not Issued</p>
+        <p className="text-sm font-medium">No award yet</p>
         <p className="text-xs text-muted-foreground mt-1">
           Award this package first. A digital subcontract is created when the package is awarded.
         </p>

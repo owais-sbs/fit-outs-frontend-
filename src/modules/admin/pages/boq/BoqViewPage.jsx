@@ -68,7 +68,11 @@ export default function BoqViewPage() {
     if (!boqId) return;
     setLoading(true);
     setError("");
-    Promise.all([fetchBoq(boqId), fetchBoqApprovalHistory(boqId).catch(() => null)])
+    const historyPromise =
+      role === ROLES.CLIENT
+        ? Promise.resolve(null)
+        : fetchBoqApprovalHistory(boqId).catch(() => null);
+    Promise.all([fetchBoq(boqId), historyPromise])
       .then(([boq, hist]) => {
         setApiBoq(boq);
         setHistory(hist);
@@ -78,7 +82,7 @@ export default function BoqViewPage() {
         setError(e.response?.data?.message || e.response?.data?.error || "Unable to load BOQ.");
       })
       .finally(() => setLoading(false));
-  }, [boqId]);
+  }, [boqId, role]);
 
   useEffect(() => {
     load();
@@ -234,10 +238,12 @@ export default function BoqViewPage() {
 
       <BoqInvoiceTemplate boq={doc} floors={[]} rooms={[]} />
 
-      <div className="rounded-lg border p-4 print:hidden">
-        <h3 className="text-sm font-semibold mb-3">Approval history</h3>
-        <BoqApprovalTimeline history={history} />
-      </div>
+      {role !== ROLES.CLIENT && (
+        <div className="rounded-lg border p-4 print:hidden">
+          <h3 className="text-sm font-semibold mb-3">Approval history</h3>
+          <BoqApprovalTimeline history={history} />
+        </div>
+      )}
 
       <Dialog open={!!actionType} onOpenChange={(open) => !open && setActionType(null)}>
         <DialogContent>

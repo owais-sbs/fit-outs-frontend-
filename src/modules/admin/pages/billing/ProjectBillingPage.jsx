@@ -40,6 +40,7 @@ import {
 import {
   fetchBillingMilestones,
   createBillingMilestone,
+  updateBillingMilestone,
   deleteBillingMilestone,
   submitMilestoneForApproval,
   approvePaymentRequest,
@@ -194,6 +195,12 @@ export default function ProjectBillingPage() {
     }
   }, [approvedBoq?.id]);
 
+  const scheduleMilestones = useMemo(
+    () =>
+      milestones.filter((m) => (m.setupSource || "").toUpperCase() === "SCHEDULE_APPLY"),
+    [milestones]
+  );
+
   const boqGrandTotal = resolveBoqGrandTotal(approvedBoq);
   const percentBasis = boqGrandTotal > 0 ? boqGrandTotal : projectBudget;
 
@@ -249,6 +256,7 @@ export default function ProjectBillingPage() {
         name,
         amount,
         dueDate: form.dueDate || undefined,
+        setupSource: "MANUAL",
       });
       setForm({ name: "", amount: "", dueDate: "" });
       return "Milestone created.";
@@ -276,6 +284,7 @@ export default function ProjectBillingPage() {
           name: row.name.trim(),
           amount,
           dueDate: row.dueDate,
+          setupSource: "BOQ_TEMPLATE",
         });
         created += 1;
       }
@@ -286,6 +295,21 @@ export default function ProjectBillingPage() {
 
       setTemplateRows(createFinanceTemplateRows());
       return `Created ${created} milestone${created === 1 ? "" : "s"}.`;
+    });
+
+  const handleScheduleDraftUpdate = (milestone, patch) =>
+    run(async () => {
+      if ((milestone.status || "DRAFT").toUpperCase() !== "DRAFT") {
+        throw new Error("Only draft schedule milestones can be edited.");
+      }
+      await updateBillingMilestone(projectId, milestone.uuid, patch);
+      return "Schedule milestone updated.";
+    });
+
+  const handleDeleteScheduleDraft = (milestone) =>
+    run(async () => {
+      await deleteBillingMilestone(projectId, milestone.uuid);
+      return "Schedule milestone removed. Re-apply the programme to seed it again.";
     });
 
   const draftOrRejectedMilestones = useMemo(
@@ -551,14 +575,20 @@ export default function ProjectBillingPage() {
             <Tabs value={createMode} onValueChange={setCreateMode}>
               <TabsList>
                 <TabsTrigger value="template" disabled={!approvedBoq}>
-                  From template
+                  From BOQ
                 </TabsTrigger>
-                <TabsTrigger value="manual">Enter manually</TabsTrigger>
+                <TabsTrigger value="schedule">From schedule</TabsTrigger>
+                <TabsTrigger value="manual">Manual</TabsTrigger>
               </TabsList>
 
+              <p className="mt-3 text-xs text-muted-foreground">
+                Schedule payment gates are created when a programme is applied. From BOQ and Manual
+                create Finance-owned drafts. Use Submit for approval below when ready.
+              </p>
+
               {!approvedBoq && (
-                <p className="mt-3 text-xs text-muted-foreground">
-                  No approved BOQ on this project. Template mode is unavailable until a BOQ is approved.
+                <p className="mt-2 text-xs text-muted-foreground">
+                  No approved BOQ on this project. From BOQ is unavailable until a BOQ is approved.
                 </p>
               )}
 
@@ -624,6 +654,94 @@ export default function ProjectBillingPage() {
                 >
                   <Plus className="h-4 w-4 mr-1" /> Create selected milestones
                 </Button>
+              </TabsContent>
+
+              <TabsContent value="schedule" className="space-y-3">
+                {scheduleMilestones.length === 0 ? (
+                  <p className="text-xs text-amber-700 dark:text-amber-400">
+                    Apply a programme first — billing gates are created when the schedule is
+                    published. Re-apply if drafts were deleted.
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-xs text-muted-foreground">
+                      These DRAFT / live gates were cascaded from schedule Apply (CPM payment
+                      template). Edit drafts, delete if needed, then submit for approval with the
+                      rest of the package.
+                    </p>
+                    <div className="space-y-2">
+                      {scheduleMilestones.map((m) => {
+                        const status = (m.status || "DRAFT").toUpperCase();
+                        const isDraft = status === "DRAFT";
+                        return (
+                          <div
+                            key={m.uuid}
+                            className="grid gap-2 rounded-md border border-border/50 p-2 sm:grid-cols-[1fr_auto_auto_auto] sm:items-center"
+                          >
+                            <div className="min-w-0 space-y-0.5">
+                              <Input
+                                value={m.name || ""}
+                                disabled={!isDraft || busy}
+                                onChange={(e) =>
+                                  setMilestones((list) =>
+                                    list.map((row) =>
+                                      row.uuid === m.uuid ? { ...row, name: e.target.value } : row
+                                    )
+                                  )
+                                }
+                                onBlur={(e) => {
+                                  if (!isDraft) return;
+                                  const next = e.target.value.trim();
+                                  if (!next) return;
+                                  handleScheduleDraftUpdate(m, { name: next });
+                                }}
+                                className="h-8 text-xs"
+                              />
+                              <p className="text-[10px] text-muted-foreground">
+                                {status}
+                                {m.linkedActivityUuid ? " · linked to schedule activity" : ""}
+                              </p>
+                            </div>
+                            <span className="text-xs font-medium tabular-nums sm:text-right">
+                              {formatAed(Number(m.amount) || 0)}
+                            </span>
+                            <Input
+                              type="date"
+                              value={m.dueDate ? String(m.dueDate).slice(0, 10) : ""}
+                              disabled={!isDraft || busy}
+                              onChange={(e) => {
+                                const dueDate = e.target.value;
+                                setMilestones((list) =>
+                                  list.map((row) =>
+                                    row.uuid === m.uuid ? { ...row, dueDate } : row
+                                  )
+                                );
+                              }}
+                              onBlur={(e) => {
+                                if (!isDraft) return;
+                                const dueDate = e.target.value;
+                                if (!dueDate) return;
+                                handleScheduleDraftUpdate(m, { dueDate });
+                              }}
+                              className="h-8 text-xs"
+                            />
+                            {isDraft && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-destructive"
+                                disabled={busy}
+                                onClick={() => handleDeleteScheduleDraft(m)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
               </TabsContent>
 
               <TabsContent value="manual" className="space-y-3">
@@ -740,6 +858,15 @@ export default function ProjectBillingPage() {
                           <Badge variant="secondary">
                             {STATUS_LABELS[workflowStatus] || workflowStatus}
                           </Badge>
+                          {m.setupSource && (
+                            <Badge variant="outline" className="text-[10px] font-normal">
+                              {(m.setupSource || "").toUpperCase() === "SCHEDULE_APPLY"
+                                ? "From schedule"
+                                : (m.setupSource || "").toUpperCase() === "BOQ_TEMPLATE"
+                                ? "From BOQ"
+                                : "Manual"}
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-xs text-muted-foreground">
                           {formatAed(m.amount || 0)}

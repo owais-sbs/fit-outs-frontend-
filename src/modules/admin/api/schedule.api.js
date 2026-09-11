@@ -14,6 +14,10 @@ const unwrap = (r) => {
 export const fetchProjectSchedule = (projectId) =>
   axiosInstance.get(`/projects/${projectId}/schedule`).then(unwrap);
 
+/** Published activities only — for client portal Gantt. */
+export const fetchPublishedProjectSchedule = (projectId) =>
+  axiosInstance.get(`/projects/${projectId}/schedule/published`).then(unwrap);
+
 export const createScheduleActivity = (projectId, payload) =>
   axiosInstance.post(`/projects/${projectId}/schedule/activities`, payload).then(unwrap);
 
@@ -49,6 +53,9 @@ export const postActivityProgress = (activityUuid, payload) =>
 
 export const fetchActivityProgress = (activityUuid) =>
   axiosInstance.get(`/schedule/activities/${activityUuid}/progress`).then(unwrap);
+
+export const fetchActivityMaterialSummary = (activityUuid) =>
+  axiosInstance.get(`/schedule/activities/${activityUuid}/material-summary`).then(unwrap);
 
 export const fetchMyScheduleActivities = () =>
   axiosInstance.get(`/schedule/my-activities`).then(unwrap);
@@ -93,6 +100,10 @@ export const fetchOrderByDates = (projectId) =>
  */
 export const rescheduleProject = (projectId, payload) =>
   axiosInstance.post(`/projects/${projectId}/schedule/reschedule`, payload || {}).then(unwrap);
+
+/** Copy live programme into a new tenant template. */
+export const saveScheduleAsTemplate = (projectId, payload) =>
+  axiosInstance.post(`/projects/${projectId}/schedule/save-as-template`, payload || {}).then(unwrap);
 
 export const uploadProgressAttachment = (progressUuid, file) => {
   const fd = new FormData();

@@ -2,7 +2,7 @@ import {
   LayoutDashboard, Briefcase, Package, FileText, MapPin, ClipboardList, FolderOpen,
   ListTodo, GitBranch, AlertTriangle, CreditCard, Table2, Building2, Users, UserCog,
   Layers, Inbox, MessageCircle, Stamp, FileCheck, Truck, Shield, HardHat, Search,
-  Receipt, Scale, Award, Bell, FileStack, PenLine, Ruler,
+  Receipt, Scale, Award, Bell, FileStack, PenLine, Ruler, ScrollText,
 } from "lucide-react";
 
 import { ROUTES } from "@/shared/constants/routes";
@@ -156,6 +156,12 @@ export const SC_NAV_GROUPS = [
       { label: "Consultant review", href: ROUTES.SUBCONTRACTOR.REVIEW_STATUS, icon: FileCheck, roles: [SC_ROLES.ADMIN, SC_ROLES.DOC_CONTROLLER] },
       { label: "As-builts", href: ROUTES.SUBCONTRACTOR.AS_BUILTS, icon: Ruler, roles: [SC_ROLES.ADMIN, SC_ROLES.DOC_CONTROLLER] },
       { label: "Drawing register", href: ROUTES.SUBCONTRACTOR.DRAWING_REGISTER, icon: FolderOpen, roles: [SC_ROLES.ADMIN, SC_ROLES.DOC_CONTROLLER] },
+    ],
+  },
+  {
+    label: "Legal",
+    items: [
+      { label: "Terms & Conditions", href: ROUTES.SUBCONTRACTOR.TERMS, icon: ScrollText },
     ],
   },
 ];

@@ -324,14 +324,14 @@ export default function ScTenderPanel({ projectId, packages, busy: parentBusy, o
             <div className="space-y-3 rounded-lg border border-border/50 bg-muted/20 p-4">
               <p className="text-xs font-medium">{rfqIssued ? "Update / re-issue RFQ" : "Issue RFQ"}</p>
               <div className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-1">
-                  <Label className="text-xs">Deadline</Label>
-                  <Input
-                    type="datetime-local"
-                    value={issueForm.tenderDeadline}
-                    onChange={(e) => setIssueForm((f) => ({ ...f, tenderDeadline: e.target.value }))}
-                  />
-                </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Deadline <span className="text-destructive">*</span></Label>
+                <Input
+                  type="datetime-local"
+                  value={issueForm.tenderDeadline}
+                  onChange={(e) => setIssueForm((f) => ({ ...f, tenderDeadline: e.target.value }))}
+                />
+              </div>
                 <div className="space-y-1">
                   <Label className="text-xs">Site visit</Label>
                   <Input
@@ -375,6 +375,20 @@ export default function ScTenderPanel({ projectId, packages, busy: parentBusy, o
               <Button size="sm" disabled={isBusy || !issueForm.tenderDeadline || bidders.length === 0} onClick={issueRfq}>
                 <Send className="h-4 w-4 mr-1" /> {rfqIssued ? "Update RFQ deadline" : "Issue RFQ"}
               </Button>
+              {(bidders.length === 0 || !issueForm.tenderDeadline) && (
+                <p className="text-xs text-amber-700">
+                  {bidders.length === 0 && !issueForm.tenderDeadline
+                    ? "Invite at least one bidder and set a deadline before issuing the RFQ."
+                    : bidders.length === 0
+                      ? "Invite at least one bidder first (Add bidders → Invite selected). Description is optional."
+                      : "Set a tender deadline before issuing the RFQ."}
+                </p>
+              )}
+              {bidders.length === 0 && notInvited.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  No eligible SC vendors for this package. Add/approve vendors under SC vendors, then refresh this page.
+                </p>
+              )}
             </div>
 
             <div className="space-y-3 rounded-lg border border-border/50 p-4">

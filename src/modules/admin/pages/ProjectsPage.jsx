@@ -1,14 +1,31 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Briefcase, Plus } from "lucide-react";
+import { ArrowUpDown, Briefcase, Plus } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
-import { PageShell, StatTile, SearchInput } from "@/components/layout/PageShell";
+import { PageShell, StatTile, SearchInput, FilterToolbar } from "@/components/layout/PageShell";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { fetchAllProjects } from "../api/projects.api";
 import { fetchAllClients } from "../api/clients.api";
 import { ROUTES, portalRoutesFromPath } from "@/shared/constants/routes";
+
+const SORT_ID = "id";
+const SORT_NEW_FIRST = "new-first";
+const SORT_OLD_FIRST = "old-first";
+
+function projectCreatedMs(p) {
+  if (!p?.createdAt) return 0;
+  const ms = new Date(p.createdAt).getTime();
+  return Number.isFinite(ms) ? ms : 0;
+}
 
 export default function ProjectsPage() {
   const navigate = useNavigate();
@@ -22,6 +39,7 @@ export default function ProjectsPage() {
   const [projects, setProjects] = useState([]);
   const [clientMap, setClientMap] = useState(new Map());
   const [search, setSearch] = useState("");
+  const [sort, setSort] = useState(SORT_ID);
   const [loading, setLoading] = useState(true);
 
   const loadData = useCallback(() => {
@@ -45,7 +63,7 @@ export default function ProjectsPage() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return projects.filter((p) => {
+    const matched = projects.filter((p) => {
       if (!q) return true;
       const clientName = clientMap.get(String(p.clientId))?.fullName || "";
       return (
@@ -55,7 +73,19 @@ export default function ProjectsPage() {
         clientName.toLowerCase().includes(q)
       );
     });
-  }, [projects, search, clientMap]);
+
+    return [...matched].sort((a, b) => {
+      if (sort === SORT_NEW_FIRST) {
+        const byDate = projectCreatedMs(b) - projectCreatedMs(a);
+        return byDate !== 0 ? byDate : Number(b.id) - Number(a.id);
+      }
+      if (sort === SORT_OLD_FIRST) {
+        const byDate = projectCreatedMs(a) - projectCreatedMs(b);
+        return byDate !== 0 ? byDate : Number(a.id) - Number(b.id);
+      }
+      return Number(a.id) - Number(b.id);
+    });
+  }, [projects, search, clientMap, sort]);
 
   return (
     <PageShell>
@@ -78,11 +108,24 @@ export default function ProjectsPage() {
         <StatTile label="Inactive" value={stats.inactive} />
       </div>
 
-      <SearchInput
-              placeholder="Search project ID, lead ref, name, client..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+      <FilterToolbar>
+        <SearchInput
+          placeholder="Search project ID, lead ref, name, client..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <Select value={sort} onValueChange={setSort}>
+          <SelectTrigger className="h-8 w-[160px] rounded-lg gap-2" aria-label="Sort projects">
+            <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <SelectValue placeholder="Sort" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={SORT_ID}>By ID</SelectItem>
+            <SelectItem value={SORT_NEW_FIRST}>New first</SelectItem>
+            <SelectItem value={SORT_OLD_FIRST}>Old first</SelectItem>
+          </SelectContent>
+        </Select>
+      </FilterToolbar>
 
       <Card className="overflow-hidden">
         <div className="overflow-auto">

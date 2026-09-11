@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft, Briefcase, Building2, CalendarDays,
-  Clock, DollarSign, TrendingUp, Users,
+  Clock, DollarSign, GanttChart, TrendingUp, Users,
 } from "lucide-react";
 import { PageShell, PageTitle, StatTile, Surface } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
@@ -111,7 +111,21 @@ export default function ClientProjectDetailPage() {
       <PageTitle
         title={project.projectName}
         subtitle={`${project.id} · ${project.clientName} · ${project.location}`}
-        actions={<StatusBadge status={project.status} />}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusBadge status={project.status} />
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() =>
+                navigate(ROUTES.CLIENT.PROJECT_SCHEDULE.replace(":projectId", projectId))
+              }
+            >
+              <GanttChart className="mr-1.5 h-4 w-4" />
+              View programme
+            </Button>
+          </div>
+        }
       />
 
       <ClientProjectRoomsSection projectId={projectId} projectName={project.projectName} />

@@ -135,6 +135,7 @@ import {
   MyProjectsPage,
   NewProjectRequestPage,
   ClientProjectDetailPage,
+  ClientProjectSchedulePage,
   ClientBoqApprovalsPage,
 } from "./modules/client";
 import ClientRoomTaskPage from "./modules/client/pages/ClientRoomTaskPage";
@@ -164,6 +165,7 @@ import ProjectSubcontractorPage from "./modules/admin/pages/subcontractor/Projec
 import VendorListPage from "./modules/admin/pages/subcontractor/VendorListPage";
 import AdminSettingsPage from "./modules/admin/pages/SettingsPage";
 import ClientSnagsPage from "./modules/client/pages/ClientSnagsPage";
+import TermsAndConditionsPage from "./shared/pages/TermsAndConditionsPage";
 
 const ProjectDrawingsPage = lazy(() => import("./modules/admin/pages/drawings/ProjectDrawingsPage"));
 const QtoWorkspacePage = lazy(() => import("./modules/admin/pages/drawings/QtoWorkspacePage"));
@@ -216,6 +218,7 @@ function App() {
               <Route path="site-visits/schedule" element={<SiteVisitSchedulePage />} />
               <Route path="site-visits/:visitId/report" element={<SiteVisitReportPage />} />
               <Route path="settings" element={<SettingsPage />} />
+              <Route path="terms" element={<TermsAndConditionsPage />} />
             </Route>
 
             {/* ADMIN — leads & site visits only */}
@@ -299,6 +302,7 @@ function App() {
               <Route path="boq/:boqId" element={<BoqViewPage />} />
               <Route path="boq" element={<BoqFlowPage />} />
               <Route path="settings" element={<AdminSettingsPage />} />
+              <Route path="terms" element={<TermsAndConditionsPage />} />
 
             </Route>
 
@@ -321,6 +325,7 @@ function App() {
               <Route path="projects/:projectId/billing" element={<ProjectBillingPage />} />
               <Route path="commercial" element={<DirectorCommercialPage />} />
               <Route path="crm" element={<DirectorCrmPage />} />
+              <Route path="terms" element={<TermsAndConditionsPage />} />
             </Route>
 
             <Route
@@ -362,6 +367,7 @@ function App() {
               <Route path="site-visits" element={<SiteVisitsPage />} />
               <Route path="site-visits/:visitId/report" element={<SiteVisitReportPage />} />
               <Route path="communications" element={<CommunicationsPage />} />
+              <Route path="terms" element={<TermsAndConditionsPage />} />
             </Route>
             <Route
               path={ROUTES.DESIGNER.DASHBOARD}
@@ -400,6 +406,7 @@ function App() {
               <Route path="billing/inbox" element={<BillingMilestoneInboxPage />} />
               <Route path="boq/inbox" element={<BoqApprovalInboxPage />} />
               <Route path="boq/:boqId" element={<BoqViewPage />} />
+              <Route path="terms" element={<TermsAndConditionsPage />} />
             </Route>
             <Route
               path="/subcontractor"
@@ -452,8 +459,7 @@ function App() {
                   element={placeholderElement(r)}
                 />
               ))}
-            </Route>
-            <Route
+            </Route>            <Route
               path={ROUTES.CLIENT.DASHBOARD}
               element={
                 <ProtectedRoute>
@@ -476,9 +482,11 @@ function App() {
               <Route path="invoices" element={<ClientInvoicesPage />} />
               <Route path="communications" element={<CommunicationsPage clientMode />} />
               <Route path="settings" element={<ClientSettingsPage />} />
+              <Route path="terms" element={<TermsAndConditionsPage />} />
               <Route path="projects/my" element={<MyProjectsPage />} />
               <Route path="projects/request" element={<NewProjectRequestPage />} />
               <Route path="projects/:projectId" element={<ClientProjectDetailPage />} />
+              <Route path="projects/:projectId/schedule" element={<ClientProjectSchedulePage />} />
               <Route path="projects/:projectId/room-tasks/:taskId" element={<ClientRoomTaskPage />} />
               <Route path="projects/:projectId/rooms/:roomId/chat" element={<RoomChatPage clientMode />} />
             </Route>
@@ -511,6 +519,7 @@ function App() {
               <Route path="site-visits" element={<EmployeeSiteVisitsPage />} />
               <Route path="site-visits/:visitId/report" element={<SiteVisitReportPage />} />
               <Route path="communications" element={<CommunicationsPage />} />
+              <Route path="terms" element={<TermsAndConditionsPage />} />
             </Route>
 
             {/* Fallback routes */}
