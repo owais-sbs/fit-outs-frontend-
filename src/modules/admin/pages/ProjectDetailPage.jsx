@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useParams, useNavigate, Link, useLocation } from "react-router-dom";
+import { useParams, Link, useLocation } from "react-router-dom";
 import {
-  ArrowLeft, DollarSign, CalendarDays, Clock,
+  ArrowLeft, DollarSign, CalendarDays, Clock, Calendar, Pencil,
   TrendingUp, Building2, Briefcase, MapPin, FileImage, FileText, GanttChart,
   AlertTriangle, BarChart3, CreditCard, HardHat, ClipboardCheck, Stamp,
 } from "lucide-react";
@@ -12,7 +12,16 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { PageShell, PageTitle, StatTile } from "@/components/layout/PageShell";
+import { cn } from "@/lib/utils";
 import { fetchProjectById, updateProject } from "../api/projects.api";
 import { fetchAllClients } from "../api/clients.api";
 import { fetchAllEmployees } from "../api/employees.api";
@@ -28,7 +37,20 @@ import { splitProjectBoqs } from "./boq/boqDataUtils";
 import ProjectRoomsSection from "./roomcollab/ProjectRoomsSection";
 import ProjectTeamAssignmentSection from "./ProjectTeamAssignmentSection";
 import ProjectApprovalsSection from "./ProjectApprovalsSection";
+import ProjectDeveloperInfo from "./ProjectDeveloperInfo";
 import { fetchPlanningStatus } from "../api/planning.api";
+import { fetchJurisdictionPacks, fetchApprovalsCatalog } from "../api/approvals-config.api";
+import { PROJECT_TYPES } from "../constants/project.constants";
+import { ROLES } from "@/shared/constants/roles";
+
+const NATURE_NONE = "__none__";
+const PM_ASSIGNABLE_ROLES = [ROLES.PROJECT_MANAGER, ROLES.BUSINESS_OWNER, ROLES.ADMIN];
+
+function toDateInput(value) {
+  if (!value) return "";
+  const text = String(value);
+  return text.length >= 10 ? text.slice(0, 10) : text;
+}
 
 function InfoItem({ label, value, mono = false }) {
   return (
@@ -39,15 +61,44 @@ function InfoItem({ label, value, mono = false }) {
   );
 }
 
+const STATUS_OPTIONS = ["Planning", "In Progress", "On Hold", "Completed", "Cancelled"];
+
+const STATUS_COLORS = {
+  "In Progress": "bg-blue-500/15 text-blue-700 dark:text-blue-400",
+  Completed: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
+  Planning: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
+  "On Hold": "bg-orange-500/15 text-orange-700 dark:text-orange-400",
+  Cancelled: "bg-red-500/15 text-red-700 dark:text-red-400",
+};
+
 function StatusBadge({ status }) {
-  const map = {
-    "In Progress": "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-none font-medium",
-    "Completed":   "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-none font-medium",
-    "Planning":    "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-none font-medium",
-    "On Hold":     "bg-orange-500/15 text-orange-700 dark:text-orange-400 border-none font-medium",
-    "Cancelled":   "destructive",
-  };
-  return <Badge className={map[status] || ""}>{status}</Badge>;
+  return (
+    <Badge className={cn("border-none font-medium", STATUS_COLORS[status])}>{status}</Badge>
+  );
+}
+
+function StatusSelect({ value, onValueChange, disabled }) {
+  return (
+    <Select value={value} onValueChange={onValueChange} disabled={disabled}>
+      <SelectTrigger
+        className={cn(
+          "h-8 w-auto min-w-[8.5rem] gap-1 rounded-full border-none px-3 text-xs font-medium shadow-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring/30",
+          STATUS_COLORS[value] || "bg-secondary text-foreground"
+        )}
+      >
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {STATUS_OPTIONS.map((status) => (
+          <SelectItem key={status} value={status}>
+            <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", STATUS_COLORS[status])}>
+              {status}
+            </span>
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
 }
 
 function resolveManagerDisplay(project, teamAssignments = [], employees = []) {
@@ -73,12 +124,12 @@ function projectSubPath(routes, key, projectId) {
 
 export default function ProjectDetailPage() {
   const { projectId } = useParams();
-  const navigate = useNavigate();
   const location = useLocation();
   const { role } = useAuth();
   const isPm = location.pathname.startsWith("/project-manager");
   const isFinance = location.pathname.startsWith("/finance");
   const routes = portalRoutesFromPath(location.pathname);
+  const projectsListPath = isFinance ? ROUTES.FINANCE.PROJECTS : routes.PROJECTS;
   const drawingsPath = projectSubPath(routes, "PROJECT_DRAWINGS", projectId);
   const schedulePath = projectSubPath(routes, "PROJECT_SCHEDULE", projectId);
   const approvalsPath = projectSubPath(routes, "PROJECT_APPROVALS", projectId);
@@ -100,6 +151,19 @@ export default function ProjectDetailPage() {
   const [employees, setEmployees] = useState([]);
   const [crewAssignments, setCrewAssignments] = useState([]);
   const [teamAssignments, setTeamAssignments] = useState([]);
+  const [jurisdictionPacks, setJurisdictionPacks] = useState([]);
+  const [projectNatures, setProjectNatures] = useState([]);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [detailsSaving, setDetailsSaving] = useState(false);
+  const [detailsForm, setDetailsForm] = useState({
+    projectType: "",
+    approvalProjectNatureId: "",
+    jurisdictionPackId: "",
+    startDate: "",
+    expectedCompletionDate: "",
+    assignedManager: "",
+    clientId: "",
+  });
 
   const load = useCallback(() => {
     setLoading(true);
@@ -135,12 +199,42 @@ export default function ProjectDetailPage() {
     fetchProjectTeamAssignments(projectId)
       .then(setTeamAssignments)
       .catch(() => setTeamAssignments([]));
+    fetchJurisdictionPacks(true)
+      .then((list) => setJurisdictionPacks(Array.isArray(list) ? list : []))
+      .catch(() => setJurisdictionPacks([]));
+    fetchApprovalsCatalog()
+      .then((catalog) => {
+        setProjectNatures(Array.isArray(catalog?.projectNatures) ? catalog.projectNatures : []);
+      })
+      .catch(() => setProjectNatures([]));
   }, [load, loadBoqs, projectId]);
 
   const managerDisplay = useMemo(
     () => resolveManagerDisplay(project, teamAssignments, employees),
     [project, teamAssignments, employees]
   );
+
+  const managerOptions = useMemo(() => {
+    const managers = employees.filter(
+      (emp) => !emp.role || PM_ASSIGNABLE_ROLES.includes(emp.role) || emp.role === ROLES.PROJECT_MANAGER
+    );
+    return managers.length > 0 ? managers : employees;
+  }, [employees]);
+
+  const projectTypeOptions = useMemo(() => {
+    const types = [...PROJECT_TYPES];
+    if (project?.projectType && !types.includes(project.projectType) && project.projectType !== "—") {
+      types.unshift(project.projectType);
+    }
+    return types;
+  }, [project?.projectType]);
+
+  const natureName = useMemo(() => {
+    const id = project?.approvalProjectNatureId;
+    if (!id) return "Not set";
+    const match = projectNatures.find((item) => String(item.id) === String(id));
+    return match?.name || "Not set";
+  }, [project?.approvalProjectNatureId, projectNatures]);
 
   const labourCrews = useMemo(() => {
     const seen = new Set();
@@ -187,13 +281,61 @@ export default function ProjectDetailPage() {
     setSaveMessage("");
     try {
       const updated = await updateProject(projectId, { clientId: Number(clientId) });
-      setProject(updated);
+      const client = clients.find((c) => String(c.id) === String(clientId));
+      setProject({ ...updated, clientName: client?.fullName || updated.clientName });
       setSaveMessage("Client assigned.");
     } catch {
       setSaveMessage("Failed to assign client.");
       load();
     } finally {
       setClientSaving(false);
+    }
+  };
+
+  const openDetailsEdit = () => {
+    setDetailsForm({
+      projectType: project.projectType && project.projectType !== "—" ? project.projectType : PROJECT_TYPES[0],
+      approvalProjectNatureId: project.approvalProjectNatureId ? String(project.approvalProjectNatureId) : "",
+      jurisdictionPackId: project.jurisdictionPackId ? String(project.jurisdictionPackId) : "",
+      startDate: toDateInput(project.startDate),
+      expectedCompletionDate: toDateInput(project.expectedCompletionDate),
+      assignedManager:
+        project.assignedManager && project.assignedManager !== "Unassigned" ? project.assignedManager : "",
+      clientId: project.clientId ? String(project.clientId) : "",
+    });
+    setDetailsOpen(true);
+  };
+
+  const setDetailsField = (field, value) => {
+    setDetailsForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSaveDetails = async () => {
+    setDetailsSaving(true);
+    setSaveMessage("");
+    try {
+      const updated = await updateProject(projectId, {
+        projectType: detailsForm.projectType,
+        approvalProjectNatureId: detailsForm.approvalProjectNatureId || undefined,
+        jurisdictionPackId: detailsForm.jurisdictionPackId || undefined,
+        startDate: detailsForm.startDate || null,
+        expectedCompletionDate: detailsForm.expectedCompletionDate || null,
+        assignedManager: detailsForm.assignedManager || undefined,
+        clientId: detailsForm.clientId ? Number(detailsForm.clientId) : undefined,
+      });
+      const client = clients.find((c) => String(c.id) === String(detailsForm.clientId));
+      setProject({
+        ...updated,
+        clientName: client?.fullName || updated.clientName,
+        approvalProjectNatureId: detailsForm.approvalProjectNatureId || updated.approvalProjectNatureId,
+        jurisdictionPackId: detailsForm.jurisdictionPackId || updated.jurisdictionPackId,
+      });
+      setDetailsOpen(false);
+      setSaveMessage("Project details saved.");
+    } catch {
+      setSaveMessage("Failed to save project details.");
+    } finally {
+      setDetailsSaving(false);
     }
   };
 
@@ -209,93 +351,90 @@ export default function ProjectDetailPage() {
     return (
       <div className="page-enter py-16 text-center text-muted-foreground">
         <p className="font-semibold text-lg">Project not found</p>
-        <Button onClick={() => navigate(-1)} className="mt-4" size="sm">Go Back</Button>
+        <Button asChild className="mt-4" size="sm">
+          <Link to={projectsListPath}>Back to projects</Link>
+        </Button>
       </div>
     );
   }
 
   return (
     <PageShell className="max-w-6xl mx-auto">
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => navigate(isFinance ? ROUTES.FINANCE.PROJECTS : -1)}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <Link
-          to={isFinance ? ROUTES.FINANCE.PROJECTS : routes.PROJECTS}
-          className="text-sm text-muted-foreground font-medium hover:text-foreground"
-        >
-          Back to projects
-        </Link>
-      </div>
+      <Link
+        to={projectsListPath}
+        className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Back to projects
+      </Link>
 
       <PageTitle
         title={project.projectName}
         subtitle={`${project.id} · ${project.clientName} · ${project.location}`}
         actions={
-          <div className="flex items-center gap-2 flex-wrap">
+          isFinance ? (
             <StatusBadge status={project.status} />
-            {!isFinance && (
-              <>
-                <Button asChild size="sm" variant="outline">
-                  <Link to={drawingsPath}>
-                    <FileImage className="w-4 h-4 mr-1" /> Drawings
-                  </Link>
-                </Button>
-                <Button asChild size="sm" variant="outline">
-                  <Link to={schedulePath}>
-                    <GanttChart className="w-4 h-4 mr-1" /> Schedule
-                  </Link>
-                </Button>
-                <Button asChild size="sm" variant="outline">
-                  <Link to={approvalsPath}>
-                    <Stamp className="w-4 h-4 mr-1" /> Approvals
-                  </Link>
-                </Button>
-                <Button asChild size="sm" variant="outline">
-                  <Link to={snagsPath}>
-                    <AlertTriangle className="w-4 h-4 mr-1" /> Snags
-                  </Link>
-                </Button>
-                <Button asChild size="sm" variant="outline">
-                  <Link to={documentsPath}>
-                    <FileText className="w-4 h-4 mr-1" /> Documents
-                  </Link>
-                </Button>
-                <Button asChild size="sm" variant="outline">
-                  <Link to={reportingPath}>
-                    <BarChart3 className="w-4 h-4 mr-1" /> Reporting
-                  </Link>
-                </Button>
-                <Button asChild size="sm" variant="outline">
-                  <Link to={subcontractorsPath} state={PROJECT_DETAIL_NAV_STATE}>
-                    <HardHat className="w-4 h-4 mr-1" /> Subcontractors
-                  </Link>
-                </Button>
-                <Button asChild size="sm" variant="outline">
-                  <Link to={validationPath} state={PROJECT_DETAIL_NAV_STATE}>
-                    <ClipboardCheck className="w-4 h-4 mr-1" /> Validation
-                  </Link>
-                </Button>
-              </>
-            )}
-            <Button asChild size="sm" variant={isFinance ? "default" : "outline"}>
-              <Link to={billingPath || ROUTES.FINANCE.PROJECT_BILLING.replace(":projectId", projectId)}>
-                <CreditCard className="w-4 h-4 mr-1" /> Billing
-              </Link>
-            </Button>
-            {!isFinance && (
-              <Select value={project.status} onValueChange={handleStatusChange} disabled={saving}>
-                <SelectTrigger className="w-[135px] h-8 text-xs"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {["Planning","In Progress","On Hold","Completed","Cancelled"].map((s) => (
-                    <SelectItem key={s} value={s}>{s}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
+          ) : (
+            <StatusSelect
+              value={project.status}
+              onValueChange={handleStatusChange}
+              disabled={saving}
+            />
+          )
         }
       />
+
+      <div className="flex flex-wrap items-center gap-2">
+        {!isFinance && (
+          <>
+            <Button asChild size="sm" variant="outline">
+              <Link to={drawingsPath}>
+                <FileImage className="w-4 h-4 mr-1" /> Drawings
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link to={schedulePath}>
+                <GanttChart className="w-4 h-4 mr-1" /> Schedule
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link to={approvalsPath}>
+                <Stamp className="w-4 h-4 mr-1" /> Approvals
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link to={snagsPath}>
+                <AlertTriangle className="w-4 h-4 mr-1" /> Snags
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link to={documentsPath}>
+                <FileText className="w-4 h-4 mr-1" /> Documents
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link to={reportingPath}>
+                <BarChart3 className="w-4 h-4 mr-1" /> Reporting
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link to={subcontractorsPath} state={PROJECT_DETAIL_NAV_STATE}>
+                <HardHat className="w-4 h-4 mr-1" /> Subcontractors
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link to={validationPath} state={PROJECT_DETAIL_NAV_STATE}>
+                <ClipboardCheck className="w-4 h-4 mr-1" /> Validation
+              </Link>
+            </Button>
+          </>
+        )}
+        <Button asChild size="sm" variant={isFinance ? "default" : "outline"}>
+          <Link to={billingPath || ROUTES.FINANCE.PROJECT_BILLING.replace(":projectId", projectId)}>
+            <CreditCard className="w-4 h-4 mr-1" /> Billing
+          </Link>
+        </Button>
+      </div>
 
       {saveMessage && (
         <p className="text-sm text-muted-foreground">{saveMessage}</p>
@@ -325,7 +464,7 @@ export default function ProjectDetailPage() {
       </div>
 
       <Card>
-        <CardContent className="p-5">
+        <CardContent className="p-5 pt-5 md:p-6 md:pt-6">
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm font-semibold">Execution Progress</p>
             <span className="text-sm font-bold text-primary">{project.progress}%</span>
@@ -442,7 +581,7 @@ export default function ProjectDetailPage() {
         </CardContent>
       </Card>
 
-      <ProjectApprovalsSection href={approvalsPath} />
+      <ProjectApprovalsSection href={approvalsPath} projectId={projectId} />
 
       {!isFinance && (
         <ProjectRoomsSection projectId={projectId} projectName={project.projectName || project.name} />
@@ -452,11 +591,16 @@ export default function ProjectDetailPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Project scope */}
         <Card className="lg:col-span-2">
-          <CardHeader className="pb-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-semibold">
               <Briefcase className="h-4 w-4 text-primary" />
-              Project Scope
+              Project Details
             </CardTitle>
+            {!isFinance && (
+              <Button size="sm" variant="outline" onClick={openDetailsEdit}>
+                <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
+              </Button>
+            )}
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground leading-relaxed">{project.description}</p>
@@ -484,7 +628,9 @@ export default function ProjectDetailPage() {
                   <InfoItem label="Lead Ref" value="—" mono />
                 )}
                 <InfoItem label="Project Type"   value={project.projectType} />
+                <InfoItem label="Project nature" value={natureName} />
                 <InfoItem label="Location"       value={project.location} />
+                <ProjectDeveloperInfo jurisdictionPackId={project.jurisdictionPackId} variant="infoItem" />
                 <InfoItem label="Start Date"     value={project.startDate} />
                 <InfoItem label="Target Date"    value={project.expectedCompletionDate} />
               </div>
@@ -627,6 +773,146 @@ export default function ProjectDetailPage() {
           <p className="text-center text-sm text-muted-foreground py-4">No site visits scheduled yet.</p>
         </CardContent>
       </Card>
+
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit project details</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Project type</Label>
+              <Select
+                value={detailsForm.projectType || undefined}
+                onValueChange={(value) => setDetailsField("projectType", value)}
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {projectTypeOptions.map((type) => (
+                    <SelectItem key={type} value={type}>{type}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Project nature</Label>
+              <Select
+                value={detailsForm.approvalProjectNatureId || NATURE_NONE}
+                onValueChange={(value) => setDetailsField("approvalProjectNatureId", value === NATURE_NONE ? "" : value)}
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Not set" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NATURE_NONE}>Not set</SelectItem>
+                  {projectNatures.filter((item) => item.active !== false).map((item) => (
+                    <SelectItem key={item.id} value={String(item.id)}>{item.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label className="text-xs font-semibold">Developer</Label>
+              <Select
+                value={detailsForm.jurisdictionPackId || undefined}
+                onValueChange={(value) => setDetailsField("jurisdictionPackId", value)}
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Select developer, community or zone" />
+                </SelectTrigger>
+                <SelectContent>
+                  {jurisdictionPacks.length === 0 ? (
+                    <SelectItem value="__none" disabled>No packs available</SelectItem>
+                  ) : (
+                    jurisdictionPacks.map((pack) => (
+                      <SelectItem key={pack.id} value={String(pack.id)}>{pack.name}</SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Start date</Label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground/75" />
+                <Input
+                  type="date"
+                  className="h-9 pl-9"
+                  value={detailsForm.startDate}
+                  onChange={(e) => setDetailsField("startDate", e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Target date</Label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground/75" />
+                <Input
+                  type="date"
+                  className="h-9 pl-9"
+                  value={detailsForm.expectedCompletionDate}
+                  onChange={(e) => setDetailsField("expectedCompletionDate", e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Manager</Label>
+              <Select
+                value={detailsForm.assignedManager || undefined}
+                onValueChange={(value) => setDetailsField("assignedManager", value)}
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Select project manager" />
+                </SelectTrigger>
+                <SelectContent>
+                  {managerOptions.length === 0 ? (
+                    <SelectItem value="__none__" disabled>No employees available</SelectItem>
+                  ) : (
+                    managerOptions.map((emp) => (
+                      <SelectItem key={emp.id} value={emp.employeeName}>
+                        {emp.employeeName}
+                        {emp.designation ? ` · ${emp.designation}` : ""}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Client</Label>
+              <Select
+                value={detailsForm.clientId || undefined}
+                onValueChange={(value) => setDetailsField("clientId", value)}
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Select client" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clients.length === 0 ? (
+                    <SelectItem value="__none" disabled>No clients found</SelectItem>
+                  ) : (
+                    clients.map((client) => (
+                      <SelectItem key={client.id} value={String(client.id)}>
+                        {client.fullName} ({client.email})
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setDetailsOpen(false)} disabled={detailsSaving}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={handleSaveDetails} disabled={detailsSaving}>
+              {detailsSaving ? "Saving…" : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageShell>
   );
 }

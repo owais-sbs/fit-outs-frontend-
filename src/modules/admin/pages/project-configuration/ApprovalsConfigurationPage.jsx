@@ -33,6 +33,15 @@ import {
   updatePermitType,
   updateScopeTag,
   createScopeTag,
+  createPropertyType,
+  createProjectNature,
+  createCompanyRegistration,
+  deletePropertyType,
+  deleteProjectNature,
+  deleteCompanyRegistration,
+  updatePropertyType,
+  updateProjectNature,
+  updateCompanyRegistration,
 } from "../../api/approvals-config.api";
 
 const TABS = [
@@ -40,8 +49,47 @@ const TABS = [
   { id: "permits", label: "Permit types" },
   { id: "documents", label: "Documents" },
   { id: "scopeTags", label: "Scope tags" },
+  { id: "propertyTypes", label: "Property types" },
+  { id: "projectNatures", label: "Project nature" },
+  { id: "registrations", label: "Company registrations" },
   { id: "packs", label: "Jurisdiction packs" },
 ];
+
+const TRIGGER_TYPES = [
+  { value: "SCOPE_TAG", label: "Scope tag" },
+  { value: "LOCATION", label: "Location only" },
+  { value: "PROPERTY_PROJECT", label: "Property or project type" },
+  { value: "PREREQUISITE", label: "Follows a prerequisite" },
+  { value: "COMPANY", label: "Company-level" },
+];
+
+const TRIGGER_LABEL = Object.fromEntries(TRIGGER_TYPES.map((t) => [t.value, t.label]));
+
+const RESOLUTION_MECHANISMS = [
+  { value: "__unset", label: "Not set (incomplete)" },
+  { value: "FIXED", label: "Fixed authority" },
+  { value: "JURISDICTION_MASTER_DEVELOPER", label: "Jurisdiction — master developer" },
+  { value: "JURISDICTION_BUILDING_MANAGEMENT", label: "Jurisdiction — building management" },
+  { value: "JURISDICTION_REGULATOR", label: "Jurisdiction — regulator" },
+  { value: "EMIRATE_UTILITY", label: "Emirate utility" },
+  { value: "INHERIT_FROM_PERMIT", label: "Inherit from another permit" },
+  { value: "MULTI_AUTHORITY", label: "Multiple authorities" },
+];
+
+const RESOLUTION_LABEL = Object.fromEntries(RESOLUTION_MECHANISMS.map((t) => [t.value, t.label]));
+
+const RESOLUTION_MODES = [
+  { value: "ANY_ONE_APPLIES", label: "Any one applies" },
+  { value: "ALL_REQUIRED", label: "All required" },
+];
+
+const AUTHORITY_ROLES = [
+  { value: "MASTER_DEVELOPER", label: "Master Developer" },
+  { value: "BUILDING_MANAGEMENT", label: "Building Management" },
+  { value: "REGULATOR", label: "Regulator (jurisdiction)" },
+];
+
+const REGISTRATION_STATUSES = ["Active", "Pending", "Expired", "Inactive"];
 
 const INCLUSION_LABEL = {
   ALWAYS: "Always",
@@ -68,6 +116,9 @@ export default function ApprovalsConfigurationPage() {
   const [permits, setPermits] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [scopeTags, setScopeTags] = useState([]);
+  const [propertyTypes, setPropertyTypes] = useState([]);
+  const [projectNatures, setProjectNatures] = useState([]);
+  const [registrations, setRegistrations] = useState([]);
   const [packs, setPacks] = useState([]);
   const [expandedPacks, setExpandedPacks] = useState(new Set());
 
@@ -91,6 +142,9 @@ export default function ApprovalsConfigurationPage() {
       setPermits(Array.isArray(catalog?.permitTypes) ? catalog.permitTypes : []);
       setDocuments(Array.isArray(catalog?.documentTypes) ? catalog.documentTypes : []);
       setScopeTags(Array.isArray(catalog?.scopeTags) ? catalog.scopeTags : []);
+      setPropertyTypes(Array.isArray(catalog?.propertyTypes) ? catalog.propertyTypes : []);
+      setProjectNatures(Array.isArray(catalog?.projectNatures) ? catalog.projectNatures : []);
+      setRegistrations(Array.isArray(catalog?.companyRegistrations) ? catalog.companyRegistrations : []);
       setPacks(Array.isArray(catalog?.packs) ? catalog.packs : []);
     } catch (err) {
       const detail =
@@ -124,6 +178,18 @@ export default function ApprovalsConfigurationPage() {
     () => scopeTags.filter((item) => matches(search, item.code, item.name, item.description)),
     [scopeTags, search]
   );
+  const filteredPropertyTypes = useMemo(
+    () => propertyTypes.filter((item) => matches(search, item.code, item.name, item.description)),
+    [propertyTypes, search]
+  );
+  const filteredProjectNatures = useMemo(
+    () => projectNatures.filter((item) => matches(search, item.code, item.name, item.description)),
+    [projectNatures, search]
+  );
+  const filteredRegistrations = useMemo(
+    () => registrations.filter((item) => matches(search, item.authorityCode, item.authorityName, item.referenceNo, item.status)),
+    [registrations, search]
+  );
   const filteredPacks = useMemo(
     () => packs.filter((item) => matches(search, item.code, item.name, item.primaryAuthorityName, item.communityAuthorityName)),
     [packs, search]
@@ -132,10 +198,13 @@ export default function ApprovalsConfigurationPage() {
   const openCreate = () => {
     setFormMode("create");
     setEditing(null);
-    if (tab === "authorities") setForm({ code: "", name: "", type: "Regulator", emirate: "Dubai", jurisdictionAreas: "", permitsIssued: "", submissionChannel: "", notes: "", active: true });
-    if (tab === "permits") setForm({ permitCode: "", name: "", issuingBody: "", typicalTrigger: "", prerequisiteCases: "", slaWorkingDays: "", typicalValidity: "", deposit: "No", renewable: "Yes", blocksActivities: "", active: true, scopeTagIds: [] });
+    if (tab === "authorities") setForm({ code: "", name: "", type: "Regulator", emirate: "Dubai", jurisdictionAreas: "", permitsIssued: "", submissionChannel: "", notes: "", requiresCompanyRegistration: false, appliesEmirateWide: false, active: true });
+    if (tab === "permits") setForm({ permitCode: "", name: "", issuingBody: "", triggerType: "SCOPE_TAG", typicalTrigger: "", prerequisiteCases: "", slaWorkingDays: "", typicalValidity: "", deposit: "No", renewable: "Yes", blocksActivities: "", active: true, scopeTagIds: [], propertyTypeIds: [], projectNatureIds: [], authorityResolutionMechanism: "", fixedAuthorityId: "", inheritAuthorityFromPermitCode: "", resolutionMode: "ANY_ONE_APPLIES", confirmResolutionMode: false, candidateAuthorityRoles: [], allowInternalHseSignoff: false });
     if (tab === "documents") setForm({ docCode: "", name: "", category: "Company", typicallyRequiredFor: "", expiryTracked: false, sourceOwner: "Contractor", active: true });
     if (tab === "scopeTags") setForm({ code: "", name: "", description: "", active: true, permitTypeIds: [] });
+    if (tab === "propertyTypes") setForm({ code: "", name: "", description: "", active: true, permitTypeIds: [] });
+    if (tab === "projectNatures") setForm({ code: "", name: "", description: "", active: true, permitTypeIds: [] });
+    if (tab === "registrations") setForm({ authorityId: "", referenceNo: "", registrationDate: "", renewalDate: "", status: "Active", notes: "", active: true });
     if (tab === "packs") {
       setForm({
         code: "",
@@ -167,12 +236,30 @@ export default function ApprovalsConfigurationPage() {
     } else if (tab === "permits") {
       setForm({
         ...row,
+        triggerType: row.triggerType || "SCOPE_TAG",
         scopeTagIds: Array.isArray(row.scopeTagIds) ? row.scopeTagIds : (row.scopeTags || []).map((t) => t.id),
+        propertyTypeIds: Array.isArray(row.propertyTypeIds) ? row.propertyTypeIds : (row.propertyTypes || []).map((t) => t.id),
+        projectNatureIds: Array.isArray(row.projectNatureIds) ? row.projectNatureIds : (row.projectNatures || []).map((t) => t.id),
+        authorityResolutionMechanism: row.authorityResolutionMechanism || "",
+        fixedAuthorityId: row.fixedAuthorityId || "",
+        inheritAuthorityFromPermitCode: row.inheritAuthorityFromPermitCode || "",
+        resolutionMode: row.resolutionMode || "ANY_ONE_APPLIES",
+        confirmResolutionMode: false,
+        candidateAuthorityRoles: Array.isArray(row.candidateAuthorityRoles) ? row.candidateAuthorityRoles : [],
+        allowInternalHseSignoff: !!row.allowInternalHseSignoff,
       });
-    } else if (tab === "scopeTags") {
+    } else if (tab === "scopeTags" || tab === "propertyTypes" || tab === "projectNatures") {
       setForm({
         ...row,
         permitTypeIds: Array.isArray(row.permitTypeIds) ? row.permitTypeIds : (row.triggeredPermits || []).map((p) => p.id),
+      });
+    } else if (tab === "registrations") {
+      setForm({
+        ...row,
+        authorityId: row.authorityId || "",
+        registrationDate: row.registrationDate || "",
+        renewalDate: row.renewalDate || "",
+        status: row.status || "Active",
       });
     } else {
       setForm({ ...row });
@@ -200,9 +287,25 @@ export default function ApprovalsConfigurationPage() {
         if (formMode === "create") await createAuthority(payload);
         else await updateAuthority(editing.id, payload);
       } else if (tab === "permits") {
+        const triggerType = form.triggerType || "SCOPE_TAG";
+        const mechanism = form.authorityResolutionMechanism || "";
         const payload = {
           ...form,
-          scopeTagIds: form.scopeTagIds || [],
+          triggerType,
+          scopeTagIds: triggerType === "SCOPE_TAG" ? (form.scopeTagIds || []) : [],
+          propertyTypeIds: triggerType === "PROPERTY_PROJECT" ? (form.propertyTypeIds || []) : [],
+          projectNatureIds: triggerType === "PROPERTY_PROJECT" ? (form.projectNatureIds || []) : [],
+          authorityResolutionMechanism: mechanism || null,
+          fixedAuthorityId: mechanism === "FIXED" ? (form.fixedAuthorityId || null) : null,
+          inheritAuthorityFromPermitCode: mechanism === "INHERIT_FROM_PERMIT" ? (form.inheritAuthorityFromPermitCode || null) : null,
+          resolutionMode: form.resolutionMode || "ANY_ONE_APPLIES",
+          confirmResolutionMode: mechanism === "MULTI_AUTHORITY" && (
+            formMode === "create"
+            || !!form.confirmResolutionMode
+            || (editing && form.resolutionMode && form.resolutionMode !== editing.resolutionMode)
+          ),
+          candidateAuthorityRoles: mechanism === "MULTI_AUTHORITY" ? (form.candidateAuthorityRoles || []) : [],
+          allowInternalHseSignoff: !!form.allowInternalHseSignoff,
         };
         if (formMode === "create") await createPermitType(payload);
         else await updatePermitType(editing.id, payload);
@@ -216,6 +319,23 @@ export default function ApprovalsConfigurationPage() {
         };
         if (formMode === "create") await createScopeTag(payload);
         else await updateScopeTag(editing.id, payload);
+      } else if (tab === "propertyTypes") {
+        const payload = { ...form, permitTypeIds: form.permitTypeIds || [] };
+        if (formMode === "create") await createPropertyType(payload);
+        else await updatePropertyType(editing.id, payload);
+      } else if (tab === "projectNatures") {
+        const payload = { ...form, permitTypeIds: form.permitTypeIds || [] };
+        if (formMode === "create") await createProjectNature(payload);
+        else await updateProjectNature(editing.id, payload);
+      } else if (tab === "registrations") {
+        const payload = {
+          ...form,
+          authorityId: form.authorityId || null,
+          registrationDate: form.registrationDate || null,
+          renewalDate: form.renewalDate || null,
+        };
+        if (formMode === "create") await createCompanyRegistration(payload);
+        else await updateCompanyRegistration(editing.id, payload);
       } else if (tab === "packs") {
         if (formMode === "create") {
           await createJurisdictionPack({
@@ -257,6 +377,9 @@ export default function ApprovalsConfigurationPage() {
       if (tab === "permits") await deletePermitType(deleteTarget.id);
       if (tab === "documents") await deleteDocumentType(deleteTarget.id);
       if (tab === "scopeTags") await deleteScopeTag(deleteTarget.id);
+      if (tab === "propertyTypes") await deletePropertyType(deleteTarget.id);
+      if (tab === "projectNatures") await deleteProjectNature(deleteTarget.id);
+      if (tab === "registrations") await deleteCompanyRegistration(deleteTarget.id);
       if (tab === "packs") await deleteJurisdictionPack(deleteTarget.id);
       setDeleteTarget(null);
       showToast("success", "Deleted", "Record removed.");
@@ -280,6 +403,9 @@ export default function ApprovalsConfigurationPage() {
     permits: "Add permit type",
     documents: "Add document",
     scopeTags: "Add scope tag",
+    propertyTypes: "Add property type",
+    projectNatures: "Add project nature",
+    registrations: "Add registration",
     packs: "Add jurisdiction pack",
   }[tab];
 
@@ -292,14 +418,14 @@ export default function ApprovalsConfigurationPage() {
       )}
       <PageHeader
         title="Approvals Config"
-        description="Dubai authority catalog, permit types, submission documents, scope tags, and jurisdiction packs used when creating a project."
+        description="Authority, permit, document, classifier and company-registration libraries used when generating approval cases."
         actionLabel={actionLabel}
         onAction={openCreate}
       />
 
       <Tabs value={tab} onValueChange={(value) => { setTab(value); setSearch(""); }}>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <TabsList>
+          <TabsList className="flex-wrap h-auto">
             {TABS.map((item) => (
               <TabsTrigger key={item.id} value={item.id}>{item.label}</TabsTrigger>
             ))}
@@ -321,7 +447,10 @@ export default function ApprovalsConfigurationPage() {
                   <TableHead>Authority</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Emirate</TableHead>
+                  <TableHead>Emirate-wide</TableHead>
+                  <TableHead>Registration</TableHead>
                   <TableHead>Channel</TableHead>
+                  <TableHead>Company reg.</TableHead>
                   <TableHead />
                 </TableRow>
               </TableHeader>
@@ -335,7 +464,10 @@ export default function ApprovalsConfigurationPage() {
                     </TableCell>
                     <TableCell><Badge variant="outline">{row.type}</Badge></TableCell>
                     <TableCell>{row.emirate}</TableCell>
+                    <TableCell className="text-xs">{row.appliesEmirateWide ? "Yes" : "—"}</TableCell>
+                    <TableCell className="text-xs">{row.requiresCompanyRegistration ? "Required" : "—"}</TableCell>
                     <TableCell className="text-xs">{row.submissionChannel}</TableCell>
+                    <TableCell className="text-xs">{row.requiresCompanyRegistration ? "Required" : "—"}</TableCell>
                     <TableCell className="text-right space-x-1">
                       <Button size="icon" variant="ghost" onClick={() => openEdit(row)}><Pencil className="h-4 w-4" /></Button>
                       <Button size="icon" variant="ghost" onClick={() => setDeleteTarget(row)}><Trash2 className="h-4 w-4" /></Button>
@@ -357,6 +489,7 @@ export default function ApprovalsConfigurationPage() {
                   <TableHead>Code</TableHead>
                   <TableHead>Case type</TableHead>
                   <TableHead>Issuer</TableHead>
+                  <TableHead>Authority resolution</TableHead>
                   <TableHead>Triggered by</TableHead>
                   <TableHead>SLA (wd)</TableHead>
                   <TableHead>Blocks</TableHead>
@@ -371,9 +504,58 @@ export default function ApprovalsConfigurationPage() {
                       <div className="font-medium">{row.name}</div>
                       {row.typicalTrigger && <p className="text-xs text-muted-foreground line-clamp-2">{row.typicalTrigger}</p>}
                     </TableCell>
-                    <TableCell className="text-xs">{row.issuingBody}</TableCell>
+                    <TableCell className="text-xs">
+                      <div>{row.issuingBody || "—"}</div>
+                    </TableCell>
                     <TableCell>
-                      <TagList items={(row.scopeTags || []).map((t) => t.name)} empty="—" />
+                      <div className="space-y-1">
+                        {row.authorityResolutionIncomplete ? (
+                          <p className="text-[11px] text-amber-700">Resolution not set</p>
+                        ) : (
+                          <Badge variant="outline">
+                            {RESOLUTION_LABEL[row.authorityResolutionMechanism] || row.authorityResolutionMechanism}
+                          </Badge>
+                        )}
+                        {row.authorityResolutionMechanism === "FIXED" && row.fixedAuthorityCode && (
+                          <p className="text-[11px] text-muted-foreground">{row.fixedAuthorityCode} · {row.fixedAuthorityName}</p>
+                        )}
+                        {row.authorityResolutionMechanism === "INHERIT_FROM_PERMIT" && row.inheritAuthorityFromPermitCode && (
+                          <p className="text-[11px] text-muted-foreground">From {row.inheritAuthorityFromPermitCode}</p>
+                        )}
+                        {row.authorityResolutionMechanism === "MULTI_AUTHORITY" && (row.candidateAuthorityRoles || []).length > 0 && (
+                          <p className="text-[11px] text-muted-foreground">
+                            {(row.candidateAuthorityRoles || []).map((role) => (
+                              AUTHORITY_ROLES.find((r) => r.value === role)?.label || role
+                            )).join(" · ")}
+                          </p>
+                        )}
+                        {row.resolutionModeNeedsReview && (
+                          <p className="text-[11px] text-amber-700">Needs review — default “any one applies” is not confirmed</p>
+                        )}
+                        {row.allowInternalHseSignoff && (
+                          <p className="text-[11px] text-muted-foreground">Internal HSE sign-off allowed</p>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <Badge variant="outline">{TRIGGER_LABEL[row.triggerType] || row.triggerType || "Scope tag"}</Badge>
+                        {row.triggerType === "SCOPE_TAG" && (
+                          <TagList items={(row.scopeTags || []).map((t) => t.name)} empty="No tags linked" />
+                        )}
+                        {row.triggerType === "PROPERTY_PROJECT" && (
+                          <TagList
+                            items={[
+                              ...(row.propertyTypes || []).map((t) => t.name),
+                              ...(row.projectNatures || []).map((t) => t.name),
+                            ]}
+                            empty="No property/nature linked"
+                          />
+                        )}
+                        {row.triggerType === "PREREQUISITE" && row.missingPrerequisite && (
+                          <p className="text-[11px] text-amber-700">No prerequisite linked</p>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>{row.slaWorkingDays}</TableCell>
                     <TableCell className="text-xs max-w-xs">{row.blocksActivities}</TableCell>
@@ -459,6 +641,111 @@ export default function ApprovalsConfigurationPage() {
           )}
         </TabsContent>
 
+        <TabsContent value="propertyTypes" className="mt-4">
+          {loading ? <Skeleton className="h-48 w-full" /> : filteredPropertyTypes.length === 0 ? (
+            <EmptyState title="No property types" description="Villa, apartment, commercial shell and similar classifiers. Independent of projects.project_type." />
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Code</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Used by permits</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredPropertyTypes.map((row) => (
+                  <TableRow key={row.id}>
+                    <TableCell className="font-mono text-xs">{row.code}</TableCell>
+                    <TableCell className="font-medium">{row.name}</TableCell>
+                    <TableCell>
+                      <TagList items={(row.triggeredPermits || []).map((p) => p.permitCode)} empty="None" />
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground max-w-md">{row.description}</TableCell>
+                    <TableCell className="text-right space-x-1">
+                      <Button size="icon" variant="ghost" onClick={() => openEdit(row)}><Pencil className="h-4 w-4" /></Button>
+                      <Button size="icon" variant="ghost" onClick={() => setDeleteTarget(row)}><Trash2 className="h-4 w-4" /></Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </TabsContent>
+
+        <TabsContent value="projectNatures" className="mt-4">
+          {loading ? <Skeleton className="h-48 w-full" /> : filteredProjectNatures.length === 0 ? (
+            <EmptyState title="No project natures" description="New build, major refurbishment, renovation, fit-out." />
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Code</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Used by permits</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredProjectNatures.map((row) => (
+                  <TableRow key={row.id}>
+                    <TableCell className="font-mono text-xs">{row.code}</TableCell>
+                    <TableCell className="font-medium">{row.name}</TableCell>
+                    <TableCell>
+                      <TagList items={(row.triggeredPermits || []).map((p) => p.permitCode)} empty="None" />
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground max-w-md">{row.description}</TableCell>
+                    <TableCell className="text-right space-x-1">
+                      <Button size="icon" variant="ghost" onClick={() => openEdit(row)}><Pencil className="h-4 w-4" /></Button>
+                      <Button size="icon" variant="ghost" onClick={() => setDeleteTarget(row)}><Trash2 className="h-4 w-4" /></Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </TabsContent>
+
+        <TabsContent value="registrations" className="mt-4">
+          {loading ? <Skeleton className="h-48 w-full" /> : filteredRegistrations.length === 0 ? (
+            <EmptyState title="No company registrations" description="One-time contractor registrations with an authority, attached to this contracting company." />
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Authority</TableHead>
+                  <TableHead>Reference</TableHead>
+                  <TableHead>Registered</TableHead>
+                  <TableHead>Renewal</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredRegistrations.map((row) => (
+                  <TableRow key={row.id}>
+                    <TableCell>
+                      <div className="font-medium">{row.authorityName}</div>
+                      <div className="font-mono text-xs text-muted-foreground">{row.authorityCode}</div>
+                    </TableCell>
+                    <TableCell className="text-xs">{row.referenceNo || "—"}</TableCell>
+                    <TableCell className="text-xs">{row.registrationDate || "—"}</TableCell>
+                    <TableCell className="text-xs">{row.renewalDate || "—"}</TableCell>
+                    <TableCell><Badge variant="outline">{row.status}</Badge></TableCell>
+                    <TableCell className="text-right space-x-1">
+                      <Button size="icon" variant="ghost" onClick={() => openEdit(row)}><Pencil className="h-4 w-4" /></Button>
+                      <Button size="icon" variant="ghost" onClick={() => setDeleteTarget(row)}><Trash2 className="h-4 w-4" /></Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </TabsContent>
+
         <TabsContent value="packs" className="mt-4 space-y-2">
           {loading ? <Skeleton className="h-48 w-full" /> : filteredPacks.length === 0 ? (
             <EmptyState title="No jurisdiction packs" description="Packs map a community or zone to the authorities and permits that apply." />
@@ -533,13 +820,139 @@ export default function ApprovalsConfigurationPage() {
               <Area label="Jurisdiction areas" value={form.jurisdictionAreas} onChange={(v) => setField("jurisdictionAreas", v)} />
               <Area label="Permits issued" value={form.permitsIssued} onChange={(v) => setField("permitsIssued", v)} />
               <Area label="Notes" value={form.notes} onChange={(v) => setField("notes", v)} />
+              <div className="flex items-center justify-between rounded-lg border px-3 py-2">
+                <div>
+                  <Label>Applies emirate-wide</Label>
+                  <p className="text-[11px] text-muted-foreground">Civil Defence, utilities, RTA-type bodies that apply regardless of community.</p>
+                </div>
+                <Switch checked={!!form.appliesEmirateWide} onCheckedChange={(v) => setField("appliesEmirateWide", v)} />
+              </div>
+              <div className="flex items-center justify-between rounded-lg border px-3 py-2">
+                <div>
+                  <Label>Requires company-level registration</Label>
+                  <p className="text-[11px] text-muted-foreground">Contractor must be registered with this authority once, not per project.</p>
+                </div>
+                <Switch checked={!!form.requiresCompanyRegistration} onCheckedChange={(v) => setField("requiresCompanyRegistration", v)} />
+              </div>
             </>
           )}
           {tab === "permits" && (
             <>
               <Field label="Permit code" value={form.permitCode} onChange={(v) => setField("permitCode", v)} />
               <Field label="Name" value={form.name} onChange={(v) => setField("name", v)} />
-              <Field label="Issuing body" value={form.issuingBody} onChange={(v) => setField("issuingBody", v)} />
+              <SelectField
+                label="Authority resolution"
+                value={form.authorityResolutionMechanism || "__unset"}
+                onChange={(v) => {
+                  const mechanism = v === "__unset" ? "" : v;
+                  setForm((prev) => ({
+                    ...prev,
+                    authorityResolutionMechanism: mechanism,
+                    confirmResolutionMode: false,
+                    resolutionMode: prev.resolutionMode || "ANY_ONE_APPLIES",
+                    candidateAuthorityRoles: mechanism === "MULTI_AUTHORITY" ? (prev.candidateAuthorityRoles || []) : [],
+                    fixedAuthorityId: mechanism === "FIXED" ? (prev.fixedAuthorityId || "") : "",
+                    inheritAuthorityFromPermitCode: mechanism === "INHERIT_FROM_PERMIT" ? (prev.inheritAuthorityFromPermitCode || "") : "",
+                  }));
+                }}
+                options={RESOLUTION_MECHANISMS}
+              />
+              {form.authorityResolutionMechanism === "FIXED" && (
+                <SelectField
+                  label="Fixed authority"
+                  value={form.fixedAuthorityId || "__none"}
+                  onChange={(v) => setField("fixedAuthorityId", v === "__none" ? "" : v)}
+                  options={[{ value: "__none", label: "Select authority" }, ...authorities.map((a) => ({ value: a.id, label: `${a.code} — ${a.name}` }))]}
+                />
+              )}
+              {form.authorityResolutionMechanism === "INHERIT_FROM_PERMIT" && (
+                <SelectField
+                  label="Inherit authority from permit"
+                  value={form.inheritAuthorityFromPermitCode || "__none"}
+                  onChange={(v) => setField("inheritAuthorityFromPermitCode", v === "__none" ? "" : v)}
+                  options={[{ value: "__none", label: "Select permit" }, ...permits
+                    .filter((p) => p.permitCode && p.permitCode !== form.permitCode)
+                    .map((p) => ({ value: p.permitCode, label: `${p.permitCode} — ${p.name}` }))]}
+                />
+              )}
+              {form.authorityResolutionMechanism === "MULTI_AUTHORITY" && (
+                <>
+                  <CheckList
+                    label="Candidate authority roles"
+                    hint="Jurisdiction-level roles this permit may be issued by. Not named Authority rows."
+                    items={AUTHORITY_ROLES}
+                    selectedIds={form.candidateAuthorityRoles || []}
+                    idKey="value"
+                    primary={(t) => t.label}
+                    secondary={(t) => t.value}
+                    onToggle={(id, checked) => toggleId("candidateAuthorityRoles", id, checked)}
+                    empty="No roles defined."
+                  />
+                  <SelectField
+                    label="Resolution mode"
+                    value={form.resolutionMode || "ANY_ONE_APPLIES"}
+                    onChange={(v) => setForm((prev) => ({ ...prev, resolutionMode: v, confirmResolutionMode: true }))}
+                    options={RESOLUTION_MODES}
+                  />
+                  {editing?.resolutionModeNeedsReview && !form.confirmResolutionMode && (
+                    <p className="text-[11px] text-amber-800 bg-amber-50 rounded-lg border border-amber-200 px-3 py-2">
+                      This permit is still on the unconfirmed default. Confirm the resolution mode so it does not look like an admin-reviewed choice.
+                    </p>
+                  )}
+                  <div className="flex items-center justify-between rounded-lg border px-3 py-2">
+                    <div>
+                      <Label>Confirm resolution mode</Label>
+                      <p className="text-[11px] text-muted-foreground">
+                        Stamps who confirmed this choice. Required before the resolver will apply Any one / All required.
+                      </p>
+                    </div>
+                    <Switch checked={!!form.confirmResolutionMode} onCheckedChange={(v) => setField("confirmResolutionMode", v)} />
+                  </div>
+                </>
+              )}
+              {form.authorityResolutionMechanism === "FIXED" && (
+                <p className="text-[11px] text-muted-foreground rounded-lg border px-3 py-2">
+                  FIXED always uses this named body. Seeded rows are Dubai-specific; another emirate needs a new permit type, not a dynamic lookup.
+                </p>
+              )}
+              <div className="flex items-center justify-between rounded-lg border px-3 py-2">
+                <div>
+                  <Label>Allow internal HSE sign-off</Label>
+                  <p className="text-[11px] text-muted-foreground">
+                    When true, this permit can alternatively be closed via an internal HSE sign-off instead of an external authority case.
+                  </p>
+                  <p className="text-[11px] text-amber-800 mt-1">
+                    TODO: internal HSE sign-off workflow is not built yet. This flag is stored only.
+                  </p>
+                </div>
+                <Switch checked={!!form.allowInternalHseSignoff} onCheckedChange={(v) => setField("allowInternalHseSignoff", v)} />
+              </div>
+              <Field
+                label="Issuing body (reference note — not used by the resolver)"
+                value={form.issuingBody}
+                onChange={(v) => setField("issuingBody", v)}
+              />
+              <SelectField
+                label="Trigger type"
+                value={form.triggerType || "SCOPE_TAG"}
+                onChange={(v) => setField("triggerType", v)}
+                options={TRIGGER_TYPES}
+              />
+              {form.triggerType === "LOCATION" && (
+                <p className="text-[11px] text-muted-foreground rounded-lg border px-3 py-2">
+                  Applies because the project sits in a jurisdiction covered by this permit's authority. No work-item or property condition is needed.
+                </p>
+              )}
+              {form.triggerType === "COMPANY" && (
+                <p className="text-[11px] text-muted-foreground rounded-lg border px-3 py-2">
+                  Company-level, not a project case. Record the contractor registration under the Company registrations tab.
+                </p>
+              )}
+              {form.triggerType === "PREREQUISITE" && !String(form.prerequisiteCases || "").trim() && (
+                <p className="text-[11px] text-amber-800 bg-amber-50 rounded-lg border border-amber-200 px-3 py-2">
+                  This trigger type needs at least one prerequisite permit linked below.
+                </p>
+              )}
               <Field label="SLA (working days)" value={form.slaWorkingDays} onChange={(v) => setField("slaWorkingDays", v)} />
               <Field label="Validity" value={form.typicalValidity} onChange={(v) => setField("typicalValidity", v)} />
               <div className="grid grid-cols-2 gap-3">
@@ -547,22 +960,48 @@ export default function ApprovalsConfigurationPage() {
                 <Field label="Renewable" value={form.renewable} onChange={(v) => setField("renewable", v)} />
               </div>
               <Area label="Typical trigger" value={form.typicalTrigger} onChange={(v) => setField("typicalTrigger", v)} />
-              <CheckList
-                label="Triggered by scope tags"
-                hint="If a project's work items carry any of these tags, this permit applies. Leave empty for community, property-type, or chain-only permits."
-                items={scopeTags}
-                selectedIds={form.scopeTagIds || []}
-                idKey="id"
-                primary={(t) => t.name}
-                secondary={(t) => t.code}
-                description={(t) => {
-                  const link = (form.scopeTags || []).find((s) => s.id === t.id);
-                  if (!link?.createdByName) return t.description;
-                  return `${t.description || ""} Set by ${link.createdByName}.`.trim();
-                }}
-                onToggle={(id, checked) => toggleId("scopeTagIds", id, checked)}
-                empty="No scope tags yet. Add them under the Scope tags tab first."
-              />
+              {(!form.triggerType || form.triggerType === "SCOPE_TAG") && (
+                <CheckList
+                  label="Triggered by scope tags"
+                  hint="If a project's work items carry any of these tags, this permit applies."
+                  items={scopeTags}
+                  selectedIds={form.scopeTagIds || []}
+                  idKey="id"
+                  primary={(t) => t.name}
+                  secondary={(t) => t.code}
+                  description={(t) => t.description}
+                  onToggle={(id, checked) => toggleId("scopeTagIds", id, checked)}
+                  empty="No scope tags yet. Add them under the Scope tags tab first."
+                />
+              )}
+              {form.triggerType === "PROPERTY_PROJECT" && (
+                <>
+                  <CheckList
+                    label="Property types"
+                    hint="If linked, the project must match one of these. Leave empty if property type does not matter."
+                    items={propertyTypes}
+                    selectedIds={form.propertyTypeIds || []}
+                    idKey="id"
+                    primary={(t) => t.name}
+                    secondary={(t) => t.code}
+                    description={(t) => t.description}
+                    onToggle={(id, checked) => toggleId("propertyTypeIds", id, checked)}
+                    empty="No property types yet."
+                  />
+                  <CheckList
+                    label="Project natures"
+                    hint="If linked, the project must match one of these. If both lists have values, the project must match one from each."
+                    items={projectNatures}
+                    selectedIds={form.projectNatureIds || []}
+                    idKey="id"
+                    primary={(t) => t.name}
+                    secondary={(t) => t.code}
+                    description={(t) => t.description}
+                    onToggle={(id, checked) => toggleId("projectNatureIds", id, checked)}
+                    empty="No project natures yet."
+                  />
+                </>
+              )}
               <Area label="Prerequisites" value={form.prerequisiteCases} onChange={(v) => setField("prerequisiteCases", v)} />
               <Area label="Blocks activities" value={form.blocksActivities} onChange={(v) => setField("blocksActivities", v)} />
             </>
@@ -601,6 +1040,42 @@ export default function ApprovalsConfigurationPage() {
                 onToggle={(id, checked) => toggleId("permitTypeIds", id, checked)}
                 empty="No permit types yet."
               />
+            </>
+          )}
+          {tab === "propertyTypes" && (
+            <>
+              <Field label="Code" value={form.code} onChange={(v) => setField("code", v)} />
+              <Field label="Name" value={form.name} onChange={(v) => setField("name", v)} />
+              <Area label="Description" value={form.description} onChange={(v) => setField("description", v)} />
+            </>
+          )}
+          {tab === "projectNatures" && (
+            <>
+              <Field label="Code" value={form.code} onChange={(v) => setField("code", v)} />
+              <Field label="Name" value={form.name} onChange={(v) => setField("name", v)} />
+              <Area label="Description" value={form.description} onChange={(v) => setField("description", v)} />
+            </>
+          )}
+          {tab === "registrations" && (
+            <>
+              <SelectField
+                label="Authority"
+                value={form.authorityId || ""}
+                onChange={(v) => setField("authorityId", v)}
+                options={authorities.map((a) => ({ value: a.id, label: `${a.code} — ${a.name}` }))}
+              />
+              <Field label="Registration / reference no." value={form.referenceNo} onChange={(v) => setField("referenceNo", v)} />
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Registration date" value={form.registrationDate} onChange={(v) => setField("registrationDate", v)} type="date" />
+                <Field label="Renewal date" value={form.renewalDate} onChange={(v) => setField("renewalDate", v)} type="date" />
+              </div>
+              <SelectField
+                label="Status"
+                value={form.status || "Active"}
+                onChange={(v) => setField("status", v)}
+                options={REGISTRATION_STATUSES}
+              />
+              <Area label="Notes" value={form.notes} onChange={(v) => setField("notes", v)} />
             </>
           )}
           {tab === "packs" && (
@@ -694,11 +1169,11 @@ function CheckList({ label, hint, items, selectedIds, idKey, primary, secondary,
   );
 }
 
-function Field({ label, value, onChange }) {
+function Field({ label, value, onChange, type = "text" }) {
   return (
     <div className="space-y-1">
       <Label className="text-xs">{label}</Label>
-      <Input className="h-9" value={value || ""} onChange={(e) => onChange(e.target.value)} />
+      <Input className="h-9" type={type} value={value || ""} onChange={(e) => onChange(e.target.value)} />
     </div>
   );
 }

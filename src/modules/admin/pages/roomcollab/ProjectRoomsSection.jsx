@@ -205,7 +205,7 @@ export default function ProjectRoomsSection({ projectId, projectName }) {
           </p>
         ) : (
           <div className="grid gap-4 lg:grid-cols-[240px_1fr]">
-            <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+            <div className="max-h-[420px] space-y-3 overflow-y-auto py-0.5 pl-1 pr-1">
               {roomsByFloor.map(([floor, floorRooms]) => (
                 <div key={floor}>
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
