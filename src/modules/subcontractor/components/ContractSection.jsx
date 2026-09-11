@@ -76,21 +76,23 @@ function PdfActions({ filePath, executed }) {
       <div className="flex items-center gap-3 min-w-0">
         <FileText className="h-5 w-5 text-primary shrink-0" />
         <div className="min-w-0">
-          <p className="text-xs font-medium">Subcontract Agreement PDF</p>
+          <p className="text-xs font-medium">
+            {executed ? "View / Download Executed Contract PDF" : "Subcontract Agreement PDF"}
+          </p>
           <p className="text-[11px] text-muted-foreground">
             {executed
-              ? "Final executed PDF with both Main Contractor and Subcontractor signatures"
-              : "Stage 1 PDF with Main Contractor signature"}
+              ? "Final executed PDF with both Admin and Subcontractor signatures"
+              : "Stage 1 PDF with Admin signature"}
           </p>
         </div>
       </div>
       <div className="flex flex-wrap gap-2">
-        <Button size="sm" variant="outline" asChild>
+        <Button size="sm" variant="outline" asChild className="text-xs">
           <a href={href} target="_blank" rel="noopener noreferrer">
             <Eye className="h-3.5 w-3.5 mr-1" /> View Contract PDF
           </a>
         </Button>
-        <Button size="sm" variant="outline" asChild>
+        <Button size="sm" variant="outline" asChild className="text-xs">
           <a href={href} download>
             <Download className="h-3.5 w-3.5 mr-1" /> Download Contract PDF
           </a>
@@ -114,6 +116,7 @@ export default function ContractSection({ packageUuid, projectId }) {
   const [sigUploadError, setSigUploadError] = useState("");
 
   const [adminSigUrl, setAdminSigUrl] = useState(null);
+  const [adminSigConfigured, setAdminSigConfigured] = useState(false);
 
   const [signModalOpen, setSignModalOpen] = useState(false);
   const [adminSignModalOpen, setAdminSignModalOpen] = useState(false);
@@ -178,9 +181,12 @@ export default function ContractSection({ packageUuid, projectId }) {
     if (!isAdminUser) return;
     try {
       const branding = await fetchCoverLetterBranding();
-      setAdminSigUrl(branding?.signatureUrl ? resolveFileUrl(branding.signatureUrl) : null);
+      const url = branding?.signatureUrl ? resolveFileUrl(branding.signatureUrl) : null;
+      setAdminSigUrl(url);
+      setAdminSigConfigured(Boolean(url));
     } catch {
       setAdminSigUrl(null);
+      setAdminSigConfigured(false);
     }
   }, [isAdminUser]);
 
@@ -246,7 +252,7 @@ export default function ContractSection({ packageUuid, projectId }) {
       applyContract(signed);
       await loadContract();
     } catch (err) {
-      setSignError(scApiError(err, "Failed to sign contract as Main Contractor"));
+      setSignError(scApiError(err, "Failed to sign contract as Admin"));
     } finally {
       setSubmitting(false);
     }
@@ -365,7 +371,7 @@ export default function ContractSection({ packageUuid, projectId }) {
               ) : isWaitingForSub ? (
                 "Waiting for Contractor to Sign"
               ) : (
-                "Waiting for Main Contractor Signature"
+                "Waiting for Admin to Sign"
               )}
             </Badge>
           </div>
@@ -400,46 +406,20 @@ export default function ContractSection({ packageUuid, projectId }) {
 
           {canViewPdf && <PdfActions filePath={contract.contractFilePath} executed={isFullyExecuted} />}
 
+          {/* Signature Summary Grid Layout: LEFT = ADMIN, RIGHT = SUBCONTRACTOR */}
           <div className="border rounded-lg p-4 space-y-4 bg-muted/10">
             <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Two-Party Execution Status
             </h4>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-              <div className={`p-3 rounded-lg border ${contract.signed ? "bg-emerald-500/10 border-emerald-500/30" : "bg-amber-500/10 border-amber-500/30"}`}>
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="font-semibold text-foreground">Subcontractor Signature</span>
-                  {contract.signed ? (
-                    <Badge className="bg-emerald-600 text-white text-[10px]">
-                      <CheckCircle2 className="h-3 w-3 mr-1" /> Signed
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-[10px] border-amber-500 text-amber-700">
-                      Pending
-                    </Badge>
-                  )}
-                </div>
-                {contract.signed ? (
-                  <div className="space-y-0.5 text-muted-foreground">
-                    {contract.subcontractorSignerName && (
-                      <p>
-                        Signed By: <strong className="text-foreground">{contract.subcontractorSignerName}</strong>
-                        {contract.subcontractorSignerTitle ? ` (${contract.subcontractorSignerTitle})` : ""}
-                      </p>
-                    )}
-                    <p>Signed At: {contract.signedAt ? new Date(contract.signedAt).toLocaleString() : "N/A"}</p>
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground">Waiting for Contractor to Sign</p>
-                )}
-              </div>
-
+              {/* LEFT COLUMN: ADMIN */}
               <div className={`p-3 rounded-lg border ${contract.adminSigned ? "bg-emerald-500/10 border-emerald-500/30" : "bg-amber-500/10 border-amber-500/30"}`}>
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="font-semibold text-foreground">Main Contractor Signature</span>
+                  <span className="font-semibold text-foreground">ADMIN</span>
                   {contract.adminSigned ? (
                     <Badge className="bg-emerald-600 text-white text-[10px]">
-                      <CheckCircle2 className="h-3 w-3 mr-1" /> Signed
+                      <CheckCircle2 className="h-3 w-3 mr-1" /> Admin Signature ✓
                     </Badge>
                   ) : (
                     <Badge variant="outline" className="text-[10px] border-amber-500 text-amber-700">
@@ -458,7 +438,36 @@ export default function ContractSection({ packageUuid, projectId }) {
                     <p>Signed At: {contract.adminSignedAt ? new Date(contract.adminSignedAt).toLocaleString() : "N/A"}</p>
                   </div>
                 ) : (
-                  <p className="text-muted-foreground">Waiting for Main Contractor Signature</p>
+                  <p className="text-muted-foreground">Waiting for Admin Signature</p>
+                )}
+              </div>
+
+              {/* RIGHT COLUMN: SUBCONTRACTOR */}
+              <div className={`p-3 rounded-lg border ${contract.signed ? "bg-emerald-500/10 border-emerald-500/30" : "bg-amber-500/10 border-amber-500/30"}`}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="font-semibold text-foreground">SUBCONTRACTOR</span>
+                  {contract.signed ? (
+                    <Badge className="bg-emerald-600 text-white text-[10px]">
+                      <CheckCircle2 className="h-3 w-3 mr-1" /> Subcontractor Signature ✓
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-[10px] border-amber-500 text-amber-700">
+                      Pending
+                    </Badge>
+                  )}
+                </div>
+                {contract.signed ? (
+                  <div className="space-y-0.5 text-muted-foreground">
+                    {contract.subcontractorSignerName && (
+                      <p>
+                        Signed By: <strong className="text-foreground">{contract.subcontractorSignerName}</strong>
+                        {contract.subcontractorSignerTitle ? ` (${contract.subcontractorSignerTitle})` : ""}
+                      </p>
+                    )}
+                    <p>Signed At: {contract.signedAt ? new Date(contract.signedAt).toLocaleString() : "N/A"}</p>
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">Waiting for Subcontractor Signature</p>
                 )}
               </div>
             </div>
@@ -478,31 +487,40 @@ export default function ContractSection({ packageUuid, projectId }) {
             </div>
           )}
 
+          {/* ADMIN ACTION BLOCK */}
           {isAdminUser && isWaitingForAdmin && (
             <div className="space-y-3 border rounded-lg p-4 bg-background">
-              <p className="text-sm font-semibold text-foreground">Waiting for Main Contractor Signature</p>
+              <p className="text-sm font-semibold text-foreground">Sign Contractor</p>
               <p className="text-xs text-muted-foreground">
                 Your configured Cover Letter digital signature will be applied to this contract.
               </p>
-              {adminSigUrl && (
-                <div className="flex items-center gap-3 bg-muted/30 p-3 rounded-lg border">
-                  <img src={adminSigUrl} alt="Configured Cover Letter signature" className="h-10 object-contain border rounded p-1 bg-white" />
-                  <span className="text-xs text-muted-foreground">Cover Letter signature on file</span>
-                </div>
-              )}
-              {signError && !adminSignModalOpen && (
+
+              {!adminSigConfigured ? (
                 <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-xs space-y-2">
                   <p className="font-semibold text-amber-800 dark:text-amber-300 flex items-center gap-1">
-                    <AlertCircle className="h-4 w-4" /> {signError}
+                    <AlertCircle className="h-4 w-4" /> Digital signature not configured
                   </p>
-                  {isCoverLetterConfigError(signError) && (
-                    <Button size="sm" variant="outline" asChild className="text-xs">
-                      <Link to={ROUTES.ADMIN.COVER_LETTER_CONFIG}>Go to Project Configuration → Cover Letter</Link>
-                    </Button>
+                  <p className="text-muted-foreground">
+                    Please configure a digital signature in Project Configuration → Cover Letter before signing.
+                  </p>
+                  <Button size="sm" variant="outline" asChild className="text-xs mt-1">
+                    <Link to={ROUTES.ADMIN.COVER_LETTER_CONFIG}>Go to Project Configuration → Cover Letter</Link>
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3 bg-muted/30 p-3 rounded-lg border">
+                  {adminSigUrl && (
+                    <img src={adminSigUrl} alt="Configured Cover Letter signature" className="h-10 object-contain border rounded p-1 bg-white" />
                   )}
+                  <span className="text-xs text-muted-foreground">Cover Letter digital signature on file</span>
                 </div>
               )}
-              <Button size="sm" onClick={() => setAdminSignModalOpen(true)}>
+
+              <Button
+                size="sm"
+                disabled={!adminSigConfigured}
+                onClick={() => setAdminSignModalOpen(true)}
+              >
                 Sign Contract
               </Button>
             </div>
@@ -514,7 +532,7 @@ export default function ContractSection({ packageUuid, projectId }) {
                 <Clock className="h-4 w-4" /> Waiting for Contractor to Sign
               </div>
               <p className="text-xs text-muted-foreground">
-                Main Contractor Signature is recorded
+                Admin Signature is recorded
                 {contract.adminSignerName ? ` (${contract.adminSignerName})` : ""}
                 {contract.adminSignedAt ? ` on ${new Date(contract.adminSignedAt).toLocaleString()}` : ""}.
                 Refresh this section after the subcontractor signs to see Signed & Executed.
@@ -522,13 +540,14 @@ export default function ContractSection({ packageUuid, projectId }) {
             </div>
           )}
 
+          {/* SUBCONTRACTOR ACTION BLOCK */}
           {!isAdminUser && isWaitingForAdmin && (
             <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg space-y-1">
               <div className="flex items-center gap-2 font-semibold text-sm text-amber-800 dark:text-amber-300">
-                <Clock className="h-4 w-4" /> Waiting for Main Contractor to Sign
+                <Clock className="h-4 w-4" /> Waiting for Admin to Sign
               </div>
               <p className="text-xs text-muted-foreground">
-                You cannot sign until the Main Contractor has applied their Cover Letter digital signature.
+                You cannot sign until the Admin has applied their Cover Letter digital signature.
               </p>
             </div>
           )}
@@ -538,7 +557,7 @@ export default function ContractSection({ packageUuid, projectId }) {
               <div>
                 <p className="text-sm font-semibold text-foreground">Contract Ready for Your Signature</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Main Contractor signature is on the Stage 1 PDF. Upload your digital signature, then sign.
+                  Admin signature is on the Stage 1 PDF. Upload your digital signature, then sign the agreement.
                 </p>
               </div>
 
@@ -559,7 +578,7 @@ export default function ContractSection({ packageUuid, projectId }) {
                 {!subSignatureUploaded ? (
                   <div className="space-y-2 text-xs">
                     <p className="text-muted-foreground">
-                      Please upload your digital signature before signing the subcontract agreement.
+                      Please upload your digital signature before signing.
                     </p>
                     <input
                       type="file"
@@ -614,12 +633,12 @@ export default function ContractSection({ packageUuid, projectId }) {
               {subSignatureUploaded ? (
                 <div className="flex justify-end pt-2">
                   <Button size="sm" onClick={() => setSignModalOpen(true)}>
-                    Sign Contract
+                    Sign Agreement
                   </Button>
                 </div>
               ) : (
                 <p className="text-xs text-amber-800 dark:text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-md p-3">
-                  Please upload your digital signature before signing the contract.
+                  Please upload your digital signature before signing.
                 </p>
               )}
             </div>
@@ -627,6 +646,7 @@ export default function ContractSection({ packageUuid, projectId }) {
         </CardContent>
       </Card>
 
+      {/* Admin Sign Confirmation Modal */}
       <Dialog open={adminSignModalOpen} onOpenChange={setAdminSignModalOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -654,7 +674,7 @@ export default function ContractSection({ packageUuid, projectId }) {
                 className="h-9 text-xs"
                 value={signatureName}
                 onChange={(e) => setSignatureName(e.target.value)}
-                placeholder={user?.name || "Main Contractor representative"}
+                placeholder={user?.name || "Admin representative"}
               />
             </div>
 
@@ -681,10 +701,11 @@ export default function ContractSection({ packageUuid, projectId }) {
         </DialogContent>
       </Dialog>
 
+      {/* Subcontractor Sign Agreement Modal */}
       <Dialog open={signModalOpen} onOpenChange={setSignModalOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Sign Contract</DialogTitle>
+            <DialogTitle>Sign Agreement</DialogTitle>
             <DialogDescription className="text-xs">
               Your uploaded digital signature will be applied to package <strong>{contract.packageName}</strong>.
             </DialogDescription>
@@ -730,6 +751,7 @@ export default function ContractSection({ packageUuid, projectId }) {
                 id="decAccepted"
                 checked={declarationAccepted}
                 onCheckedChange={(checked) => setDeclarationAccepted(Boolean(checked))}
+                required
               />
               <Label htmlFor="decAccepted" className="text-xs font-normal leading-tight text-muted-foreground">
                 I declare that I am an authorized representative of{" "}
@@ -747,7 +769,7 @@ export default function ContractSection({ packageUuid, projectId }) {
                 disabled={!signatureName.trim() || !declarationAccepted || submitting}
               >
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Sign Contract
+                Sign Agreement
               </Button>
             </DialogFooter>
           </form>
