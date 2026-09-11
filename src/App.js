@@ -89,6 +89,38 @@ import SubcontractorProjectDetailPage from "./modules/subcontractor/pages/Subcon
 import SubcontractorLocationsPage from "./modules/subcontractor/pages/SubcontractorLocationsPage";
 import SubcontractorProgressLogsPage from "./modules/subcontractor/pages/SubcontractorProgressLogsPage";
 import SubcontractorDocumentsPage from "./modules/subcontractor/pages/SubcontractorDocumentsPage";
+import SubcontractorRegistrationPage from "./modules/auth/pages/subcontractor-register";
+import JctAdminSubcontractorApplicationsPage from "./modules/admin/pages/subcontractor/JctAdminSubcontractorApplicationsPage";
+import JctAdminSubcontractorApplicationDetailPage from "./modules/admin/pages/subcontractor/JctAdminSubcontractorApplicationDetailPage";
+import SubcontractorTasksPage from "./modules/subcontractor/pages/SubcontractorTasksPage";
+import SubcontractorVariationsPage from "./modules/subcontractor/pages/SubcontractorVariationsPage";
+import SubcontractorSiteReportsPage from "./modules/subcontractor/pages/SubcontractorSiteReportsPage";
+import SubcontractorPaymentsPage from "./modules/subcontractor/pages/SubcontractorPaymentsPage";
+import SubcontractorBoqPage from "./modules/subcontractor/pages/SubcontractorBoqPage";
+import SubcontractorCompanyProfilePage from "./modules/subcontractor/pages/SubcontractorCompanyProfilePage";
+import SubcontractorOrganizationExtrasPage from "./modules/subcontractor/pages/SubcontractorOrganizationExtrasPage";
+import SubcontractorTeamPage from "./modules/subcontractor/pages/SubcontractorTeamPage";
+import SubcontractorWorkersPage from "./modules/subcontractor/pages/SubcontractorWorkersPage";
+import SubcontractorPackageDetailPage from "./modules/subcontractor/pages/SubcontractorPackageDetailPage";
+import {
+
+  SC_PLACEHOLDER_ROUTES,
+  ScAwardPacksPage,
+  ScBackChargesPage,
+  ScCertificatesPage,
+  ScDrawingRegisterPage,
+  ScMyBidsPage,
+  ScNotificationsPage,
+  ScRetentionPage,
+  ScRfqDetailPage,
+  ScRfqInboxPage,
+  ScScorecardPage,
+  ScSnagsPage,
+  ScSubmittalsPage,
+  gate,
+  placeholderElement,
+} from "./modules/subcontractor/scPortalRoutes";
+import { SC_ROLES } from "./modules/subcontractor/utils/scPortalRoles";
 import {
   ClientLayout,
   ClientDashboard,
@@ -129,11 +161,17 @@ import ProjectReportingPage from "./modules/admin/pages/reporting/ProjectReporti
 import ProjectBillingPage from "./modules/admin/pages/billing/ProjectBillingPage";
 import BillingMilestoneInboxPage from "./modules/admin/pages/billing/BillingMilestoneInboxPage";
 import ProjectSubcontractorPage from "./modules/admin/pages/subcontractor/ProjectSubcontractorPage";
+import VendorListPage from "./modules/admin/pages/subcontractor/VendorListPage";
 import AdminSettingsPage from "./modules/admin/pages/SettingsPage";
 import ClientSnagsPage from "./modules/client/pages/ClientSnagsPage";
 
 const ProjectDrawingsPage = lazy(() => import("./modules/admin/pages/drawings/ProjectDrawingsPage"));
 const QtoWorkspacePage = lazy(() => import("./modules/admin/pages/drawings/QtoWorkspacePage"));
+
+const SC_ADMIN = [SC_ROLES.ADMIN];
+const SC_ESTIMATOR = [SC_ROLES.ADMIN, SC_ROLES.ESTIMATOR];
+const SC_SUPERVISOR = [SC_ROLES.ADMIN, SC_ROLES.SUPERVISOR];
+const SC_QS = [SC_ROLES.ADMIN, SC_ROLES.QS];
 
 function LazyDrawingPage({ children }) {
   return (
@@ -151,6 +189,7 @@ function App() {
           <Routes>
             {/* Public routes */}
             <Route path={ROUTES.AUTH.LOGIN} element={<Login />} />
+            <Route path={ROUTES.AUTH.REGISTER_SUBCONTRACTOR} element={<SubcontractorRegistrationPage />} />
             <Route path={ROUTES.AUTH.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
             <Route path={ROUTES.AUTH.SET_PASSWORD} element={<SetPasswordPage />} />
             <Route path="/roles" element={<RolesManagement />} />
@@ -225,6 +264,9 @@ function App() {
               <Route path="projects/:projectId/reporting" element={<ProjectReportingPage />} />
               <Route path="projects/:projectId/billing" element={<ProjectBillingPage />} />
               <Route path="projects/:projectId/subcontractors" element={<ProjectSubcontractorPage />} />
+              <Route path="subcontractors/applications" element={<JctAdminSubcontractorApplicationsPage />} />
+              <Route path="subcontractors/applications/:id" element={<JctAdminSubcontractorApplicationDetailPage />} />
+              <Route path="subcontractors/vendors" element={<VendorListPage />} />
               <Route path="validation/inbox" element={<ValidationInboxPage />} />
               <Route path="quality-templates" element={<QualityTemplatesPage />} />
               <Route path="schedule" element={<ScheduleHubPage />} />
@@ -307,6 +349,7 @@ function App() {
               <Route path="projects/:projectId/reporting" element={<ProjectReportingPage />} />
               <Route path="projects/:projectId/billing" element={<ProjectBillingPage />} />
               <Route path="projects/:projectId/subcontractors" element={<ProjectSubcontractorPage />} />
+              <Route path="subcontractors/vendors" element={<VendorListPage />} />
               <Route path="validation/inbox" element={<ValidationInboxPage />} />
               <Route path="quality-templates" element={<QualityTemplatesPage />} />
               <Route path="schedule" element={<ScheduleHubPage />} />
@@ -314,6 +357,8 @@ function App() {
               <Route path="approvals" element={<ApprovalsDashboardPage />} />
               <Route path="approvals/deposits" element={<DepositLedgerPage />} />
               <Route path="projects/:projectId/approvals" element={<ProjectApprovalsPage />} />
+              <Route path="projects/:projectId/drawings" element={<LazyDrawingPage><ProjectDrawingsPage /></LazyDrawingPage>} />
+              <Route path="projects/:projectId/drawings/:drawingId/qto" element={<LazyDrawingPage><QtoWorkspacePage /></LazyDrawingPage>} />
               <Route path="site-visits" element={<SiteVisitsPage />} />
               <Route path="site-visits/:visitId/report" element={<SiteVisitReportPage />} />
               <Route path="communications" element={<CommunicationsPage />} />
@@ -367,13 +412,46 @@ function App() {
               }
             >
               <Route index element={<SubcontractorDashboard />} />
-              <Route path="projects" element={<SubcontractorProjectsPage />} />
-              <Route path="projects/:projectId" element={<SubcontractorProjectDetailPage />} />
-              <Route path="locations" element={<SubcontractorLocationsPage />} />
-              <Route path="progress-logs" element={<SubcontractorProgressLogsPage />} />
-              <Route path="packages" element={<SubcontractorPackagesPage />} />
-              <Route path="claims" element={<SubcontractorClaimsPage />} />
-              <Route path="documents" element={<SubcontractorDocumentsPage />} />
+              <Route path="company-profile" element={gate(SC_ADMIN, <SubcontractorCompanyProfilePage />)} />
+              <Route path="projects" element={gate(SC_SUPERVISOR, <SubcontractorProjectsPage />)} />
+              <Route path="projects/:projectId" element={gate(SC_SUPERVISOR, <SubcontractorProjectDetailPage />)} />
+              <Route path="locations" element={gate(SC_SUPERVISOR, <SubcontractorLocationsPage />)} />
+              <Route path="progress-logs" element={gate(SC_SUPERVISOR, <SubcontractorProgressLogsPage />)} />
+              <Route path="packages" element={gate([SC_ROLES.ADMIN, SC_ROLES.SUPERVISOR], <SubcontractorPackagesPage />)} />
+              <Route path="packages/:packageUuid" element={gate([SC_ROLES.ADMIN, SC_ROLES.SUPERVISOR], <SubcontractorPackageDetailPage />)} />
+
+
+              <Route path="claims" element={gate(SC_QS, <SubcontractorClaimsPage />)} />
+              <Route path="documents" element={gate(SC_SUPERVISOR, <SubcontractorDocumentsPage />)} />
+              <Route path="tasks" element={gate(SC_SUPERVISOR, <SubcontractorTasksPage />)} />
+              <Route path="variations" element={gate(SC_QS, <SubcontractorVariationsPage />)} />
+              <Route path="material-requests" element={gate(SC_SUPERVISOR, <SubcontractorSiteReportsPage />)} />
+              <Route path="site-reports" element={gate(SC_SUPERVISOR, <SubcontractorSiteReportsPage />)} />
+              <Route path="payments" element={gate(SC_QS, <SubcontractorPaymentsPage />)} />
+              <Route path="boq" element={gate(SC_ESTIMATOR, <SubcontractorBoqPage />)} />
+              <Route path="company" element={gate(SC_ADMIN, <SubcontractorCompanyProfilePage />)} />
+              <Route path="organization" element={gate(SC_ADMIN, <SubcontractorOrganizationExtrasPage />)} />
+              <Route path="team" element={gate(SC_ADMIN, <SubcontractorTeamPage />)} />
+              <Route path="workers" element={gate(SC_ADMIN, <SubcontractorWorkersPage />)} />
+              <Route path="submittals" element={<ScSubmittalsPage />} />
+              <Route path="drawing-register" element={<ScDrawingRegisterPage />} />
+              <Route path="rfq" element={<ScRfqInboxPage />} />
+              <Route path="rfq/:packageUuid" element={<ScRfqDetailPage />} />
+              <Route path="my-bids" element={<ScMyBidsPage />} />
+              <Route path="award-packs" element={<ScAwardPacksPage />} />
+              <Route path="snags" element={<ScSnagsPage />} />
+              <Route path="certificates" element={<ScCertificatesPage />} />
+              <Route path="retention" element={<ScRetentionPage />} />
+              <Route path="back-charges" element={<ScBackChargesPage />} />
+              <Route path="scorecard" element={<ScScorecardPage />} />
+              <Route path="notifications" element={<ScNotificationsPage />} />
+              {SC_PLACEHOLDER_ROUTES.map((r) => (
+                <Route
+                  key={r.path}
+                  path={r.path}
+                  element={placeholderElement(r)}
+                />
+              ))}
             </Route>
             <Route
               path={ROUTES.CLIENT.DASHBOARD}

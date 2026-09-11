@@ -14,6 +14,7 @@ import {
 import {
   fetchMyScPackages,
   fetchPackageClaims,
+  fetchScClaimTracker,
   createScClaim,
   submitScClaim,
   uploadScClaimAttachment,
@@ -22,10 +23,53 @@ import { ROUTES } from "@/shared/constants/routes";
 import { SC_STATUS_BADGE, formatScStatus } from "../utils/subcontractor.utils";
 import { AttachmentList, AttachmentUploadField } from "@/components/shared/AttachmentField";
 
+const PIPELINE_STEPS = ["SUBMITTED", "MEASURED", "CERTIFIED", "PAID"];
+
+function pipelineIndex(status) {
+  const s = String(status || "").toUpperCase();
+  if (s === "APPROVED") return 0;
+  if (s === "SUBMITTED") return 0;
+  if (s === "MEASURED") return 1;
+  if (s === "CERTIFIED") return 2;
+  if (s === "PAID") return 3;
+  return -1;
+}
+
+function ClaimPipeline({ status }) {
+  const active = pipelineIndex(status);
+  if (active < 0) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-1">
+      {PIPELINE_STEPS.map((step, idx) => (
+        <div key={step} className="flex items-center gap-1">
+          <span
+            className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+              idx <= active
+                ? "bg-primary/15 text-primary"
+                : "bg-muted text-muted-foreground"
+            }`}
+          >
+            {step.charAt(0) + step.slice(1).toLowerCase()}
+          </span>
+          {idx < PIPELINE_STEPS.length - 1 && (
+            <span className="text-muted-foreground text-[10px]">→</span>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function formatMoney(n) {
+  if (n == null || n === "") return "—";
+  return Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 export default function SubcontractorClaimsPage() {
   const [packages, setPackages] = useState([]);
   const [selectedPackage, setSelectedPackage] = useState("");
   const [claims, setClaims] = useState([]);
+  const [tracker, setTracker] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -65,6 +109,12 @@ export default function SubcontractorClaimsPage() {
       .catch(() => setClaims([]));
   }, [selectedPackage]);
 
+  const loadTracker = useCallback(() => {
+    fetchScClaimTracker()
+      .then((list) => setTracker(Array.isArray(list) ? list : []))
+      .catch(() => setTracker([]));
+  }, []);
+
   useEffect(() => {
     loadPackages();
   }, [loadPackages]);
@@ -73,6 +123,10 @@ export default function SubcontractorClaimsPage() {
     loadClaims();
   }, [loadClaims]);
 
+  useEffect(() => {
+    loadTracker();
+  }, [loadTracker]);
+
   const run = async (fn, okMsg) => {
     setBusy(true);
     setMessage("");
@@ -80,6 +134,7 @@ export default function SubcontractorClaimsPage() {
       await fn();
       await loadPackages();
       await loadClaims();
+      await loadTracker();
       if (okMsg) setMessage(okMsg);
     } catch (e) {
       setMessage(e?.response?.data?.error || e?.response?.data?.message || "Request failed");
@@ -148,6 +203,58 @@ export default function SubcontractorClaimsPage() {
         <p className="rounded-lg border border-border bg-secondary/40 px-3 py-2 text-sm text-foreground">
           {message}
         </p>
+      )}
+
+      {tracker.length > 0 && (
+        <Surface className="p-5">
+          <h2 className="mb-3 text-sm font-semibold">Claim status pipeline</h2>
+          <p className="mb-4 text-xs text-muted-foreground">
+            Track submitted claims through measurement, certification and payment.
+          </p>
+          <div className="space-y-3">
+            {tracker.map((t) => (
+              <div
+                key={t.claimUuid}
+                className="rounded-xl border border-border/40 bg-card/50 p-4"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-medium">{t.packageName}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Project #{t.projectId} · Claimed qty {t.claimedQty ?? "—"}
+                    </p>
+                  </div>
+                  <Badge className={`${SC_STATUS_BADGE[t.status] || "bg-muted border-none"} text-[10px]`}>
+                    {formatScStatus(t.status)}
+                  </Badge>
+                </div>
+                <div className="mt-3">
+                  <ClaimPipeline status={t.status} />
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+                  <div className="rounded-lg bg-secondary/50 px-2 py-1.5">
+                    <p className="text-[10px] uppercase text-muted-foreground">Measured</p>
+                    <p className="font-medium tabular-nums">{t.measuredQty ?? "—"}</p>
+                  </div>
+                  <div className="rounded-lg bg-secondary/50 px-2 py-1.5">
+                    <p className="text-[10px] uppercase text-muted-foreground">Measured value</p>
+                    <p className="font-medium tabular-nums">{formatMoney(t.measuredValue)}</p>
+                  </div>
+                  <div className="rounded-lg bg-secondary/50 px-2 py-1.5">
+                    <p className="text-[10px] uppercase text-muted-foreground">Certified</p>
+                    <p className="font-medium tabular-nums">{formatMoney(t.certifiedValue)}</p>
+                  </div>
+                  <div className="rounded-lg bg-secondary/50 px-2 py-1.5">
+                    <p className="text-[10px] uppercase text-muted-foreground">Certificate</p>
+                    <p className="font-mono text-[10px]">
+                      {t.certificateUuid ? String(t.certificateUuid).slice(0, 8) : "—"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Surface>
       )}
 
       <div className="grid gap-6 xl:grid-cols-[380px_1fr]">

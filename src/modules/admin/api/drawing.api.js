@@ -10,13 +10,34 @@ export const DRAWING_CATEGORIES = [
   { value: "SHOP", label: "Shop Drawings" },
 ];
 
-export const fetchProjectDrawings = (projectId) =>
-  axiosInstance.get(`/projects/${projectId}/drawings`).then((r) => r.data?.data ?? r.data);
+export const fetchProjectDrawings = (projectId, includeSuperseded = false) =>
+  axiosInstance
+    .get(`/projects/${projectId}/drawings`, {
+      params: includeSuperseded ? { includeSuperseded: true } : {},
+    })
+    .then((r) => r.data?.data ?? r.data);
 
-export const uploadProjectDrawing = (projectId, category, file) => {
+export const fetchDrawingRevisions = (projectId, drawingNumber) =>
+  axiosInstance
+    .get(`/projects/${projectId}/drawings/revisions`, {
+      params: { drawingNumber },
+    })
+    .then((r) => r.data?.data ?? r.data);
+
+
+export const uploadProjectDrawing = (projectId, categoryOrData, fileParam) => {
   const form = new FormData();
-  form.append("category", category);
-  form.append("file", file);
+  if (typeof categoryOrData === "object" && categoryOrData !== null && !(categoryOrData instanceof File)) {
+    const { category, file, drawingNumber, revisionCode, revisionDate } = categoryOrData;
+    if (category) form.append("category", category);
+    if (drawingNumber) form.append("drawingNumber", drawingNumber);
+    if (revisionCode) form.append("revisionCode", revisionCode);
+    if (revisionDate) form.append("revisionDate", revisionDate);
+    if (file) form.append("file", file);
+  } else {
+    if (categoryOrData) form.append("category", categoryOrData);
+    if (fileParam) form.append("file", fileParam);
+  }
   return axiosInstance
     .post(`/projects/${projectId}/drawings`, form, {
       headers: { "Content-Type": "multipart/form-data" },

@@ -14,12 +14,12 @@ function normalizeStatus(status) {
 
 function isActiveStatus(status) {
   const s = normalizeStatus(status).toLowerCase();
-  return s === "in progress" || s === "active" || s === "underway";
+  return s === "in progress" || s === "in_progress" || s === "pending acceptance";
 }
 
 function isCompletedStatus(status) {
   const s = normalizeStatus(status).toLowerCase();
-  return s === "completed" || s === "complete" || s === "delivered";
+  return s === "complete" || s === "completed";
 }
 
 export default function SubcontractorProjectsPage() {
@@ -49,9 +49,10 @@ export default function SubcontractorProjectsPage() {
 
   const stats = useMemo(() => {
     const total = projects.length;
-    const active = projects.filter((p) => isActiveStatus(p.status) || (p.activePackageCount > 0 && !isCompletedStatus(p.status))).length;
+    const active = projects.filter((p) => isActiveStatus(p.status)).length;
     const completed = projects.filter((p) => isCompletedStatus(p.status)).length;
-    return { total, active, completed };
+    const pending = projects.filter((p) => normalizeStatus(p.status).toLowerCase() === "pending acceptance").length;
+    return { total, active, completed, pending };
   }, [projects]);
 
   const filteredProjects = useMemo(() => {
@@ -69,18 +70,16 @@ export default function SubcontractorProjectsPage() {
   }, [projects, search]);
 
   const getStatusBadge = (status) => {
-    const label = normalizeStatus(status) || "Active";
+    const label = normalizeStatus(status) || "Assigned";
     switch (label) {
-      case "In Progress":
-        return <Badge className="border-none bg-blue-500/15 font-medium text-blue-700 dark:text-blue-400">In Progress</Badge>;
-      case "Completed":
-        return <Badge className="border-none bg-emerald-500/15 font-medium text-emerald-700 dark:text-emerald-400">Completed</Badge>;
-      case "Planning":
-        return <Badge className="border-none bg-amber-500/15 font-medium text-amber-700 dark:text-amber-400">Planning</Badge>;
-      case "On Hold":
-        return <Badge className="border-none bg-orange-500/15 font-medium text-orange-700 dark:text-orange-400">On Hold</Badge>;
-      case "Cancelled":
-        return <Badge variant="destructive">Cancelled</Badge>;
+      case "In progress":
+        return <Badge className="border-none bg-blue-500/15 font-medium text-blue-700 dark:text-blue-400">In progress</Badge>;
+      case "Complete":
+        return <Badge className="border-none bg-emerald-500/15 font-medium text-emerald-700 dark:text-emerald-400">Complete</Badge>;
+      case "Pending acceptance":
+        return <Badge className="border-none bg-amber-500/15 font-medium text-amber-700 dark:text-amber-400">Pending acceptance</Badge>;
+      case "Assigned":
+        return <Badge variant="outline">Assigned</Badge>;
       default:
         return <Badge variant="outline">{label}</Badge>;
     }
@@ -103,10 +102,11 @@ export default function SubcontractorProjectsPage() {
         </p>
       )}
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-4">
         <StatTile label="Total Assigned Projects" value={stats.total} icon={Briefcase} hint="Total contracted" />
-        <StatTile label="Active In Execution" value={stats.active} icon={Sliders} hint="Underway" />
-        <StatTile label="Completed" value={stats.completed} icon={CheckCircle} hint="Delivered" />
+        <StatTile label="Pending acceptance" value={stats.pending} icon={Sliders} hint="Awaiting your confirmation" />
+        <StatTile label="Active in execution" value={stats.active} icon={Sliders} hint="Underway" />
+        <StatTile label="Complete" value={stats.completed} icon={CheckCircle} hint="All packages done" />
       </div>
 
       <SearchInput
@@ -183,7 +183,7 @@ export default function SubcontractorProjectsPage() {
                       <td className="px-4 py-4">
                         <div className="space-y-1">
                           <div className="flex items-center justify-between text-[11px] font-semibold text-muted-foreground">
-                            <span>{progress}% Completed</span>
+                            <span>{progress}% approved</span>
                           </div>
                           <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
                             <div

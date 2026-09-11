@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { PageShell, PageTitle, Surface } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
@@ -12,14 +13,27 @@ import {
   fetchActivityProgress,
   uploadProgressAttachment,
 } from "@/modules/admin/api/schedule.api";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { AttachmentList, AttachmentUploadField } from "@/components/shared/AttachmentField";
+import { ROUTES } from "@/shared/constants/routes";
+
+const DELAY_CODES = [
+  { value: "WEATHER", label: "Weather" },
+  { value: "MATERIAL_DELAY", label: "Material delay" },
+  { value: "DESIGN_CHANGE", label: "Design change" },
+  { value: "CLIENT_HOLD", label: "Client hold" },
+  { value: "LABOUR_SHORTAGE", label: "Labour shortage" },
+  { value: "OTHER", label: "Other" },
+];
 
 export default function SubcontractorProgressLogsPage() {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [history, setHistory] = useState([]);
-  const [form, setForm] = useState({ percentComplete: 0, notes: "", labourHours: "" });
+  const [form, setForm] = useState({ percentComplete: 0, notes: "", labourHours: "", delayReason: "" });
   const [pendingFiles, setPendingFiles] = useState([]);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -38,7 +52,7 @@ export default function SubcontractorProgressLogsPage() {
 
   const open = (activity) => {
     setSelected(activity);
-    setForm({ percentComplete: activity.percentComplete || 0, notes: "", labourHours: "" });
+    setForm({ percentComplete: activity.percentComplete || 0, notes: "", labourHours: "", delayReason: "" });
     setPendingFiles([]);
     setMessage("");
     fetchActivityProgress(activity.uuid)
@@ -55,6 +69,7 @@ export default function SubcontractorProgressLogsPage() {
         percentComplete: Number(form.percentComplete) || 0,
         notes: form.notes || null,
         labourHours: form.labourHours !== "" ? Number(form.labourHours) : null,
+        delayReason: form.delayReason || null,
       });
       if (created?.uuid && pendingFiles.length > 0) {
         for (const file of pendingFiles) {
@@ -63,7 +78,7 @@ export default function SubcontractorProgressLogsPage() {
       }
       setMessage("Progress log submitted with attachments — awaiting PM validation.");
       setPendingFiles([]);
-      setForm({ percentComplete: form.percentComplete, notes: "", labourHours: "" });
+      setForm({ percentComplete: form.percentComplete, notes: "", labourHours: "", delayReason: "" });
       loadActivities();
       const list = await fetchActivityProgress(selected.uuid);
       setHistory(Array.isArray(list) ? list : []);
@@ -88,12 +103,23 @@ export default function SubcontractorProgressLogsPage() {
     <PageShell>
       <PageTitle
         title="Progress logs"
-        subtitle="Log site progress on assigned schedule activities with photos and documents."
+        subtitle="Log % complete on programme schedule tasks. For BOQ quantity, use Claims instead."
       />
 
       {activities.length === 0 ? (
-        <Surface className="px-4 py-10 text-center text-sm text-muted-foreground">
-          No published activities assigned to your account yet.
+        <Surface className="space-y-3 px-4 py-10 text-center text-sm text-muted-foreground">
+          <p className="font-medium text-foreground">No programme tasks to log yet</p>
+          <p className="mx-auto max-w-lg">
+            Progress logs are for the <strong className="text-foreground">project schedule</strong> (Gantt activities).
+            Your PM needs to publish the schedule and link activities to your packages or assign you as the task owner.
+          </p>
+          <p className="mx-auto max-w-lg">
+            To report <strong className="text-foreground">BOQ quantities</strong> completed on site, use{" "}
+            <Link className="text-primary underline" to={ROUTES.SUBCONTRACTOR.CLAIMS}>Claims</Link> instead.
+          </p>
+          <Button asChild size="sm" variant="outline" className="mt-2">
+            <Link to={ROUTES.SUBCONTRACTOR.TASKS}>View all tasks</Link>
+          </Button>
         </Surface>
       ) : (
         <div className="grid gap-6 xl:grid-cols-[340px_1fr]">
@@ -143,6 +169,21 @@ export default function SubcontractorProgressLogsPage() {
                     />
                   </div>
                   <div>
+                    <Label className="text-xs">Delay reason (if applicable)</Label>
+                    <Select
+                      value={form.delayReason || "none"}
+                      onValueChange={(v) => setForm((f) => ({ ...f, delayReason: v === "none" ? "" : v }))}
+                    >
+                      <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        {DELAY_CODES.map((c) => (
+                          <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
                     <Label className="text-xs">Notes</Label>
                     <Textarea
                       rows={3}
@@ -187,6 +228,9 @@ export default function SubcontractorProgressLogsPage() {
                         </div>
                         {log.notes && (
                           <p className="mt-1 text-xs text-muted-foreground">{log.notes}</p>
+                        )}
+                        {log.delayReason && (
+                          <p className="mt-1 text-xs text-amber-700">Delay: {log.delayReason}</p>
                         )}
                         <AttachmentList paths={log.photoPaths} className="mt-2" />
                       </div>

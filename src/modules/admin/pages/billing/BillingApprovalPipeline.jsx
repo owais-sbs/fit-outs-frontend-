@@ -6,6 +6,7 @@ export const BILLING_PIPELINE_STEPS = [
   { key: "PM", label: "PM", short: "PM", pending: "PENDING_PM" },
   { key: "DIRECTOR", label: "Director", short: "Dir", pending: "PENDING_DIRECTOR" },
   { key: "CLIENT", label: "Client", short: "Client", pending: "ISSUED" },
+  { key: "PAID", label: "Paid", short: "Paid", pending: "CLIENT_ACCEPTED" },
 ];
 
 export const BILLING_PENDING_INDEX = {
@@ -13,7 +14,8 @@ export const BILLING_PENDING_INDEX = {
   PENDING_PM: 1,
   PENDING_DIRECTOR: 2,
   ISSUED: 3,
-  PART_PAID: 3,
+  CLIENT_ACCEPTED: 4,
+  PART_PAID: 4,
 };
 
 export const BILLING_DONE_STATUSES = ["PAID"];
@@ -55,7 +57,7 @@ function fallbackLog(item) {
       createdAt: item.createdAt,
     });
   }
-  const pastPm = ["PENDING_DIRECTOR", "ISSUED", "PAID", "PART_PAID"].includes(status);
+  const pastPm = ["PENDING_DIRECTOR", "ISSUED", "CLIENT_ACCEPTED", "PAID", "PART_PAID"].includes(status);
   if (pastPm) {
     log.push({
       id: `${item.uuid || "pr"}-pm`,
@@ -67,7 +69,7 @@ function fallbackLog(item) {
       createdAt: item.pmApprovedAt || item.updatedAt,
     });
   }
-  const pastDirector = ["ISSUED", "PAID", "PART_PAID"].includes(status);
+  const pastDirector = ["ISSUED", "CLIENT_ACCEPTED", "PAID", "PART_PAID"].includes(status);
   if (pastDirector) {
     log.push({
       id: `${item.uuid || "pr"}-director`,
@@ -79,13 +81,24 @@ function fallbackLog(item) {
       createdAt: item.directorApprovedAt || item.decidedAt || item.updatedAt,
     });
   }
-  if (status === "PAID" || status === "PART_PAID") {
+  const pastClient = ["CLIENT_ACCEPTED", "PAID", "PART_PAID"].includes(status);
+  if (pastClient) {
     log.push({
       id: `${item.uuid || "pr"}-client`,
       action: "APPROVED",
       step: "CLIENT",
-      actorName: "Client payment",
+      actorName: "Client accepted proposal",
       actorRole: "CLIENT",
+      createdAt: item.updatedAt,
+    });
+  }
+  if (status === "PAID" || status === "PART_PAID") {
+    log.push({
+      id: `${item.uuid || "pr"}-paid`,
+      action: "PAID",
+      step: "PAID",
+      actorName: "Finance marked paid",
+      actorRole: "FINANCE",
       createdAt: item.updatedAt,
     });
   }

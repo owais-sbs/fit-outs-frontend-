@@ -6,7 +6,7 @@ import {
   UserCheck, Mail, Grid, Wrench, Settings, PenTool,
   CheckCircle, PieChart, CheckSquare, FileText, ClipboardList, ShieldCheck,
   Package, Warehouse, ArrowDownToLine, ArrowUpFromLine, History, ImagePlus, Inbox,
-  GanttChart, Stamp,
+  GanttChart, Stamp, HardHat,
 } from "lucide-react";
 import {
   Sidebar,
@@ -111,6 +111,13 @@ const NAV_GROUPS = [
         icon: ClipboardList,
       },
       { type: "link", label: "Communications", href: ROUTES.ADMIN.COMMUNICATIONS, icon: Mail },
+      {
+        type: "link",
+        label: "SC vendors",
+        href: ROUTES.ADMIN.VENDORS,
+        icon: HardHat,
+        roles: [...FULL_ACCESS, ...QS_ROLES, ROLES.PROJECT_MANAGER],
+      },
     ],
   },
   {
@@ -134,6 +141,7 @@ const NAV_GROUPS = [
     label: "Supply",
     roles: [...FULL_ACCESS],
     items: [
+      { type: "link", label: "Subcontractor Apps", href: ROUTES.ADMIN.SUBCONTRACTOR_APPLICATIONS, icon: UserCheck },
       { type: "submenu", label: "Procurement", icon: Warehouse, children: PROCUREMENT_SUB_ITEMS },
       { type: "submenu", label: "Project Configuration", icon: Settings, children: PROJECT_CONFIG_SUB_ITEMS },
     ],

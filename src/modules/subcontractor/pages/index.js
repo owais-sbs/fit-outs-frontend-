@@ -5,3 +5,11 @@ export { default as SubcontractorProjectsPage } from "./SubcontractorProjectsPag
 export { default as SubcontractorProjectDetailPage } from "./SubcontractorProjectDetailPage";
 export { default as SubcontractorLocationsPage } from "./SubcontractorLocationsPage";
 export { default as SubcontractorProgressLogsPage } from "./SubcontractorProgressLogsPage";
+export { default as SubcontractorDocumentsPage } from "./SubcontractorDocumentsPage";
+export { default as SubcontractorTasksPage } from "./SubcontractorTasksPage";
+export { default as SubcontractorVariationsPage } from "./SubcontractorVariationsPage";
+export { default as SubcontractorSiteReportsPage } from "./SubcontractorSiteReportsPage";
+export { default as SubcontractorPaymentsPage } from "./SubcontractorPaymentsPage";
+export { default as SubcontractorBoqPage } from "./SubcontractorBoqPage";
+export { default as SubcontractorCompanyProfilePage } from "./SubcontractorCompanyProfilePage";
+export { default as SubcontractorWorkersPage } from "./SubcontractorWorkersPage";

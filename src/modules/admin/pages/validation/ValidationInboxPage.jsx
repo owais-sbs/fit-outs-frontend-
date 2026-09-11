@@ -13,16 +13,23 @@ import {
   fetchProjectValidations,
   approveValidation,
   rejectValidation,
-  approveScClaim,
-  rejectScClaim,
   fetchHoldPoints,
   createHoldPoint,
   clearHoldPoint,
   fetchQualityTemplate,
 } from "../../api/validation.api";
 import { projectPlanningBackPath } from "@/shared/constants/routes";
+import {
+  approveScClaim,
+  rejectScClaim,
+  approveScVariation,
+  rejectScVariation,
+  approveScInvoice,
+  rejectScInvoice,
+  markScInvoicePaid,
+} from "../../api/subcontractor.api";
 
-const TAB = { PROGRESS: "progress", CLAIMS: "claims" };
+const TAB = { PROGRESS: "progress", CLAIMS: "claims", VARIATIONS: "variations", INVOICES: "invoices" };
 
 function parseChecklist(raw) {
   if (Array.isArray(raw)) return raw.map(String).filter(Boolean);
@@ -151,7 +158,10 @@ export default function ValidationInboxPage() {
 
   const progressItems = inbox.progressItems || [];
   const claimItems = inbox.claimItems || [];
-  const totalPending = (inbox.pendingProgressCount || 0) + (inbox.pendingClaimCount || 0);
+  const variationItems = inbox.variationItems || [];
+  const invoiceItems = inbox.invoiceItems || [];
+  const totalPending = (inbox.pendingProgressCount || 0) + (inbox.pendingClaimCount || 0)
+    + (inbox.pendingVariationCount || 0) + (inbox.pendingInvoiceCount || 0);
 
   if (loading) {
     return (
@@ -198,6 +208,22 @@ export default function ValidationInboxPage() {
         >
           <HardHat className="h-4 w-4 mr-1" />
           Subcontractor claims ({inbox.pendingClaimCount || 0})
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant={activeTab === TAB.VARIATIONS ? "default" : "outline"}
+          onClick={() => setActiveTab(TAB.VARIATIONS)}
+        >
+          Variations ({inbox.pendingVariationCount || 0})
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant={activeTab === TAB.INVOICES ? "default" : "outline"}
+          onClick={() => setActiveTab(TAB.INVOICES)}
+        >
+          SC invoices ({inbox.pendingInvoiceCount || 0})
         </Button>
       </div>
 
@@ -363,6 +389,94 @@ export default function ValidationInboxPage() {
                         </div>
                       </div>
                     )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === TAB.VARIATIONS && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold">Variations ({variationItems.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {variationItems.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-10 text-center">No pending variations</p>
+            ) : (
+              <div className="divide-y divide-border/40">
+                {variationItems.map((item) => (
+                  <div key={item.uuid} className="flex flex-col sm:flex-row sm:items-start gap-3 py-3">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{item.title}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {item.projectName} · {item.packageName}
+                        {item.estimatedCost != null ? ` · est. ${item.estimatedCost}` : ""}
+                      </p>
+                      {item.description && <p className="text-xs text-muted-foreground mt-1">{item.description}</p>}
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <Input
+                        className="h-8 w-full sm:w-40 text-xs"
+                        placeholder="Reject reason"
+                        value={rejectReasons[`v-${item.uuid}`] || ""}
+                        onChange={(e) => setRejectReasons((m) => ({ ...m, [`v-${item.uuid}`]: e.target.value }))}
+                      />
+                      <Button size="sm" disabled={busy} onClick={() => run(() => approveScVariation(item.projectId, item.uuid), "Variation approved")}>
+                        <Check className="h-4 w-4 mr-1" /> Approve
+                      </Button>
+                      <Button size="sm" variant="outline" disabled={busy} onClick={() => run(() => rejectScVariation(item.projectId, item.uuid, rejectReasons[`v-${item.uuid}`]), "Variation rejected")}>
+                        <X className="h-4 w-4 mr-1" /> Reject
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === TAB.INVOICES && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold">SC invoices ({invoiceItems.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {invoiceItems.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-10 text-center">No pending invoices</p>
+            ) : (
+              <div className="divide-y divide-border/40">
+                {invoiceItems.map((item) => (
+                  <div key={item.uuid} className="flex flex-col sm:flex-row sm:items-start gap-3 py-3">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{item.invoiceNumber || item.uuid.slice(0, 8)}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {item.projectName} · {item.packageName} · {item.currency} {item.totalAmount ?? item.amount}
+                      </p>
+                      {item.notes && <p className="text-xs text-muted-foreground mt-1">{item.notes}</p>}
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <Input
+                        className="h-8 w-full sm:w-40 text-xs"
+                        placeholder="Reject reason"
+                        value={rejectReasons[`i-${item.uuid}`] || ""}
+                        onChange={(e) => setRejectReasons((m) => ({ ...m, [`i-${item.uuid}`]: e.target.value }))}
+                      />
+                      <Button size="sm" disabled={busy} onClick={() => run(() => approveScInvoice(item.projectId, item.uuid), "Invoice approved")}>
+                        <Check className="h-4 w-4 mr-1" /> Approve
+                      </Button>
+                      <Button size="sm" variant="outline" disabled={busy} onClick={() => run(() => rejectScInvoice(item.projectId, item.uuid, rejectReasons[`i-${item.uuid}`]), "Invoice rejected")}>
+                        <X className="h-4 w-4 mr-1" /> Reject
+                      </Button>
+                      {item.status === "APPROVED" && (
+                        <Button size="sm" variant="secondary" disabled={busy} onClick={() => run(() => markScInvoicePaid(item.projectId, item.uuid, "PAID"), "Marked paid")}>
+                          Mark paid
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
