@@ -6,6 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/shared/context/auth-context";
 import { ROUTES } from "@/shared/constants/routes";
+import ThemeToggle from "@/shared/theme/ThemeToggle";
 
 export default function SubcontractorNavbar() {
   const { user, logout } = useAuth();
@@ -20,6 +21,7 @@ export default function SubcontractorNavbar() {
       <Separator orientation="vertical" className="mr-1 hidden h-5 md:block" />
       <div className="flex-1" />
       <div className="ml-auto flex items-center gap-2">
+        <ThemeToggle />
         <Avatar className="h-8 w-8">
           <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
             {initials}

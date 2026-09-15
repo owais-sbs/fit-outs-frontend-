@@ -74,7 +74,7 @@ export default function SetPasswordPage() {
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(900px 520px at 12% -10%, color-mix(in oklab, var(--color-accent-copper) 18%, transparent), transparent 55%), radial-gradient(700px 480px at 92% 108%, oklch(0.92 0.01 260 / 0.7), transparent 50%)",
+            "radial-gradient(900px 520px at 12% -10%, color-mix(in oklab, var(--color-accent-blue) 18%, transparent), transparent 55%), radial-gradient(700px 480px at 92% 108%, oklch(var(--muted) / 0.85), transparent 50%)",
         }}
       />
 
@@ -90,7 +90,7 @@ export default function SetPasswordPage() {
         <div className="rounded-xl border border-border/60 bg-card/95 p-6 shadow-lg backdrop-blur-sm">
           {loading ? (
             <div className="flex flex-col items-center gap-3 py-8 text-muted-foreground">
-              <Loader2 className="h-8 w-8 animate-spin text-[var(--color-accent-copper)]" />
+              <Loader2 className="h-8 w-8 animate-spin text-[var(--color-accent-blue)]" />
               <p className="text-sm">Verifying your link…</p>
             </div>
           ) : success ? (

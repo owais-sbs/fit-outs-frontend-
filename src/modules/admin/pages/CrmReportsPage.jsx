@@ -84,11 +84,11 @@ const PROJECT_TYPE_DATA = [
   { type: "construction",count: 12 },
 ];
 const PROJECT_TYPE_CONFIG = {
-  commercial:   { label: "Commercial",   colors: { light: ["#3E7A6B", "#1F3A34"], dark: ["#3E7A6B", "#1F3A34"] } },
-  interior:     { label: "Interior",     colors: { light: ["#D9BE97", "#B8965F"], dark: ["#D9BE97", "#B8965F"] } },
-  renovation:   { label: "Renovation",   colors: { light: ["#5E9B8C", "#3A6A5E"], dark: ["#5E9B8C", "#3A6A5E"] } },
-  residential:  { label: "Residential",  colors: { light: ["#E89A66", "#C25E22"], dark: ["#E89A66", "#C25E22"] } },
-  construction: { label: "Construction", colors: { light: ["#A8946E", "#6E5F42"], dark: ["#A8946E", "#6E5F42"] } },
+  commercial:   { label: "Commercial",   colors: { light: ["#059669", "#047857"], dark: ["#34d399", "#10b981"] } },
+  interior:     { label: "Interior",     colors: { light: ["#c026d3", "#a21caf"], dark: ["#e879f9", "#d946ef"] } },
+  renovation:   { label: "Renovation",   colors: { light: ["#ea580c", "#c2410c"], dark: ["#fb923c", "#f97316"] } },
+  residential:  { label: "Residential",  colors: { light: ["#2563eb", "#1d4ed8"], dark: ["#38bdf8", "#0ea5e9"] } },
+  construction: { label: "Construction", colors: { light: ["#e11d48", "#be123c"], dark: ["#fb7185", "#f43f5e"] } },
 };
 
 // ─── Extended KPIs (6 cards) ──────────────────────────────────────────────────

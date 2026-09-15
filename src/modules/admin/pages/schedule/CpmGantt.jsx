@@ -470,7 +470,7 @@ export default function CpmGantt({
               </div>
               <div className="flex items-center gap-3 text-[11px] text-muted-foreground flex-wrap">
                 <span className="inline-flex items-center gap-1.5">
-                  <span className="h-2.5 w-5 rounded-sm bg-[#18181B]" /> Activity
+                  <span className="h-2.5 w-5 rounded-sm bg-foreground" /> Activity
                 </span>
                 <span className="inline-flex items-center gap-1.5">
                   <span className="h-2.5 w-5 rounded-sm bg-[#C4845A]" /> Progress
@@ -823,7 +823,7 @@ export default function CpmGantt({
                           >
                             <span
                               className={`block h-full w-full rotate-45 rounded-[3px] ${
-                                a.critical ? "bg-[#B45309]" : "bg-[#18181B]"
+                                a.critical ? "bg-amber-600" : "bg-foreground"
                               }`}
                             />
                           </button>
@@ -855,7 +855,9 @@ export default function CpmGantt({
                             top: meta.rowIndex * ROW_H + (ROW_H - BAR_H) / 2,
                             width: Math.max(meta.width, 24),
                             height: BAR_H,
-                            background: a.publishStatus === "PUBLISHED" ? "#18181B" : "#3f3f46",
+                            background: a.publishStatus === "PUBLISHED"
+                              ? "oklch(var(--foreground))"
+                              : "oklch(var(--muted-foreground))",
                           }}
                         >
                           <div

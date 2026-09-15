@@ -41,7 +41,7 @@ export default function ForgotPasswordPage() {
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(900px 520px at 12% -10%, color-mix(in oklab, var(--color-accent-copper) 18%, transparent), transparent 55%), radial-gradient(700px 480px at 92% 108%, oklch(0.92 0.01 260 / 0.7), transparent 50%)",
+            "radial-gradient(900px 520px at 12% -10%, color-mix(in oklab, var(--color-accent-blue) 18%, transparent), transparent 55%), radial-gradient(700px 480px at 92% 108%, oklch(var(--muted) / 0.85), transparent 50%)",
         }}
       />
 
@@ -64,7 +64,7 @@ export default function ForgotPasswordPage() {
             className="absolute inset-x-0 top-0 h-0.5"
             style={{
               background:
-                "linear-gradient(90deg, transparent, var(--color-accent-copper), var(--color-accent-gold), transparent)",
+                "linear-gradient(90deg, transparent, var(--color-accent-blue), var(--color-accent-blue), transparent)",
             }}
           />
 

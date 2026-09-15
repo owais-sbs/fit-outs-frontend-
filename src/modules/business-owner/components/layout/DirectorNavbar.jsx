@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LogOut } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -18,12 +17,13 @@ import { useAuth } from "@/shared/context/auth-context";
 import { ROUTES } from "@/shared/constants/routes";
 import { ROLE_LABELS } from "@/shared/constants/roles";
 import NotificationDropdown from "@/modules/client/components/design/NotificationDropdown";
-import { SEED_NOTIFICATIONS } from "@/shared/store/designWorkflowStore";
+import useNotifications from "@/shared/hooks/useNotifications";
+import ThemeToggle from "@/shared/theme/ThemeToggle";
 
 export default function DirectorNavbar() {
   const { user, logout, role } = useAuth();
   const navigate = useNavigate();
-  const [notifications, setNotifications] = useState(SEED_NOTIFICATIONS.admin);
+  const { notifications, markRead, clearAll } = useNotifications();
 
   const displayName = user?.name || "Director";
   const initials = displayName
@@ -33,9 +33,6 @@ export default function DirectorNavbar() {
     .slice(0, 2)
     .toUpperCase();
 
-  const markRead = (id) => setNotifications((p) => p.map((n) => (n.id === id ? { ...n, read: true } : n)));
-  const clearAll = () => setNotifications((p) => p.map((n) => ({ ...n, read: true })));
-
   return (
     <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-border/40 bg-background/75 px-4 backdrop-blur-xl md:px-6">
       <SidebarTrigger className="-ml-1" />
@@ -43,7 +40,8 @@ export default function DirectorNavbar() {
       <div className="flex-1" />
 
       <div className="ml-auto flex items-center gap-2">
-        <Badge variant="outline" className="hidden sm:inline-flex border-[var(--color-accent-copper)]/35 bg-accent text-accent-foreground">
+        <ThemeToggle />
+        <Badge variant="outline" className="hidden sm:inline-flex border-primary/35 bg-accent text-accent-foreground">
           {ROLE_LABELS[role] || "Director"}
         </Badge>
 

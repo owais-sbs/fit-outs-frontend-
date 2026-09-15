@@ -6,41 +6,42 @@
 
 @layer base {
   :root {
-    /* Light spatial SaaS — ink + copper (Linear/Attio-inspired) */
-    --background: 0.968 0.004 260;            /* #F5F6F8 cool canvas */
-    --foreground: 0.205 0.005 285;            /* #18181B ink */
-    --card: 0.995 0.001 90;                   /* near-white surface */
-    --card-foreground: 0.205 0.005 285;
-    --popover: 0.995 0.001 90;
-    --popover-foreground: 0.205 0.005 285;
-    --primary: 0.205 0.005 285;               /* ink charcoal actions */
-    --primary-foreground: 0.99 0 0;
-    --secondary: 0.955 0.004 90;              /* soft tonal fill */
-    --secondary-foreground: 0.28 0.01 285;
-    --muted: 0.95 0.005 260;
-    --muted-foreground: 0.52 0.01 260;        /* secondary text */
-    --accent: 0.94 0.012 55;                  /* warm copper wash */
-    --accent-foreground: 0.32 0.05 45;
+    /* Light cool SaaS (usable toggle target — not copper-ink) */
+    --background: 0.97 0.006 270;
+    --foreground: 0.22 0.02 280;
+    --card: 0.995 0.002 270;
+    --card-foreground: 0.22 0.02 280;
+    --popover: 0.995 0.002 270;
+    --popover-foreground: 0.22 0.02 280;
+    --primary: 0.45 0.16 255;
+    --primary-foreground: 0.99 0.01 250;
+    --secondary: 0.95 0.01 250;
+    --secondary-foreground: 0.3 0.03 255;
+    --muted: 0.94 0.01 250;
+    --muted-foreground: 0.5 0.02 250;
+    --accent: 0.94 0.03 250;
+    --accent-foreground: 0.32 0.1 255;
     --destructive: 0.55 0.2 25;
     --destructive-foreground: 0.99 0 0;
-    --border: 0.86 0.008 260;                 /* visible field/card border */
-    --input: 0.98 0.002 90;
-    --ring: 0.68 0.09 50;                     /* copper focus */
-    --chart-1: 0.205 0.005 285;               /* ink */
-    --chart-2: 0.68 0.09 50;                  /* copper */
-    --chart-3: 0.55 0.08 160;                 /* muted teal (logo echo) */
-    --chart-4: 0.75 0.06 75;                  /* soft gold */
-    --chart-5: 0.62 0.02 260;
-    --radius: 1rem;
-    /* Light elevated sidebar rail */
-    --sidebar: 0.995 0.001 90;
-    --sidebar-foreground: 0.32 0.01 285;
-    --sidebar-primary: 0.205 0.005 285;
-    --sidebar-primary-foreground: 0.99 0 0;
-    --sidebar-accent: 0.955 0.008 55;
-    --sidebar-accent-foreground: 0.205 0.005 285;
-    --sidebar-border: 0.92 0.006 260;
-    --sidebar-ring: 0.68 0.09 50;
+    --border: 0.88 0.01 250;
+    --input: 0.98 0.005 250;
+    --ring: 0.55 0.14 255;
+    --chart-1: 0.55 0.14 250;
+    --chart-2: 0.62 0.14 200;
+    --chart-3: 0.55 0.12 220;
+    --chart-4: 0.7 0.14 50;
+    --chart-5: 0.55 0.08 160;
+    --radius: 1.05rem;
+
+    --sidebar: 0.99 0.01 250;
+    --sidebar-foreground: 0.32 0.04 255;
+    --sidebar-primary: 0.48 0.16 255;
+    --sidebar-primary-foreground: 0.99 0.01 250;
+    --sidebar-accent: 0.94 0.04 250;
+    --sidebar-accent-foreground: 0.3 0.1 255;
+    --sidebar-border: 0.9 0.02 250;
+    --sidebar-ring: 0.55 0.14 255;
+    --sidebar-gradient: linear-gradient(180deg, #eef4ff 0%, #e8eefb 55%, #e4e8f5 100%);
     --sidebar-width: 16rem;
     --sidebar-width-icon: 3rem;
     --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
@@ -48,45 +49,51 @@
     --font-serif: "Source Serif 4", Georgia, serif;
     --tracking-normal: -0.015em;
 
-    --color-accent-copper: #C4845A;
-    --color-accent-gold: #C8A97E;
-    --color-accent-orange: #C4845A;
+    --color-accent-copper: #3b82f6;
+    --color-accent-gold: #60a5fa;
+    --color-accent-orange: #fb923c;
+    --color-accent-teal: #2dd4bf;
+    --color-accent-pink: #60a5fa;
+    --color-accent-blue: #3b82f6;
     --color-ink: #18181B;
   }
 
   .dark {
-    --background: 0.16 0.01 285;
-    --foreground: 0.97 0.005 260;
-    --card: 0.2 0.012 285;
-    --card-foreground: 0.97 0.005 260;
-    --popover: 0.2 0.012 285;
-    --popover-foreground: 0.97 0.005 260;
-    --primary: 0.92 0.01 90;
-    --primary-foreground: 0.18 0.01 285;
-    --secondary: 0.24 0.012 285;
-    --secondary-foreground: 0.95 0.005 260;
-    --muted: 0.24 0.012 285;
-    --muted-foreground: 0.68 0.02 260;
-    --accent: 0.28 0.04 50;
-    --accent-foreground: 0.95 0.02 55;
-    --destructive: 0.6 0.2 25;
+    /* DurXen-inspired charcoal canvas */
+    --background: 0.14 0.01 280;
+    --foreground: 0.96 0.01 270;
+    --card: 0.19 0.015 280;
+    --card-foreground: 0.96 0.01 270;
+    --popover: 0.19 0.015 280;
+    --popover-foreground: 0.96 0.01 270;
+    --primary: 0.72 0.14 255;
+    --primary-foreground: 0.16 0.04 255;
+    --secondary: 0.23 0.02 280;
+    --secondary-foreground: 0.94 0.01 270;
+    --muted: 0.22 0.015 280;
+    --muted-foreground: 0.7 0.02 270;
+    --accent: 0.28 0.06 255;
+    --accent-foreground: 0.92 0.04 250;
+    --destructive: 0.62 0.2 25;
     --destructive-foreground: 0.99 0 0;
-    --border: 0.28 0.015 285;
-    --input: 0.26 0.012 285;
-    --ring: 0.72 0.09 50;
-    --chart-1: 0.9 0.01 90;
-    --chart-2: 0.72 0.09 50;
-    --chart-3: 0.6 0.08 160;
-    --chart-4: 0.75 0.06 75;
-    --chart-5: 0.65 0.02 260;
-    --sidebar: 0.18 0.012 285;
-    --sidebar-foreground: 0.92 0.01 90;
-    --sidebar-primary: 0.72 0.09 50;
-    --sidebar-primary-foreground: 0.15 0.01 285;
-    --sidebar-accent: 0.24 0.02 50;
-    --sidebar-accent-foreground: 0.95 0.02 55;
-    --sidebar-border: 0.26 0.015 285;
-    --sidebar-ring: 0.72 0.09 50;
+    --border: 0.28 0.02 280;
+    --input: 0.22 0.015 280;
+    --ring: 0.7 0.12 255;
+    --chart-1: 0.72 0.14 250;
+    --chart-2: 0.75 0.14 185;
+    --chart-3: 0.7 0.14 285;
+    --chart-4: 0.78 0.14 75;
+    --chart-5: 0.72 0.16 25;
+    --sidebar: 0.24 0.03 170;
+    --sidebar-foreground: 0.96 0.01 160;
+    --sidebar-primary: 0.78 0.08 160;
+    --sidebar-primary-foreground: 0.16 0.03 170;
+    --sidebar-accent: 0.32 0.04 170;
+    --sidebar-accent-foreground: 0.99 0.01 160;
+    --sidebar-border: 0.35 0.03 170;
+    --sidebar-ring: 0.65 0.08 160;
+    /* Dark green hatch (texture applied in .dark sidebar rule) */
+    --sidebar-gradient: #1c3834;
   }
 }
 
@@ -126,9 +133,15 @@
     font-family: var(--font-sans);
     letter-spacing: var(--tracking-normal);
     background-image:
-      radial-gradient(1200px 600px at 10% -10%, oklch(0.94 0.02 55 / 0.45), transparent 55%),
-      radial-gradient(900px 500px at 100% 0%, oklch(0.96 0.01 260 / 0.8), transparent 50%);
+      radial-gradient(1200px 600px at 10% -10%, oklch(0.7 0.12 255 / 0.08), transparent 55%),
+      radial-gradient(900px 500px at 100% 0%, oklch(0.65 0.1 250 / 0.08), transparent 50%);
     background-attachment: fixed;
+  }
+
+  html:not(.dark) body {
+    background-image:
+      radial-gradient(1200px 600px at 10% -10%, oklch(0.92 0.04 255 / 0.45), transparent 55%),
+      radial-gradient(900px 500px at 100% 0%, oklch(0.94 0.03 250 / 0.7), transparent 50%);
   }
 
   h1, .font-display {
@@ -146,6 +159,9 @@
     background-color: oklch(var(--card) / 0.92);
     color: oklch(var(--card-foreground));
     box-shadow: 0 1px 0 oklch(var(--border) / 0.8), 0 12px 40px -24px oklch(0.2 0.02 285 / 0.18);
+  }
+  .dark .surface-panel {
+    box-shadow: 0 1px 0 oklch(var(--border) / 0.5), 0 16px 48px -28px oklch(0 0 0 / 0.55);
   }
   .stat-tile {
     border-radius: 1rem;
@@ -170,6 +186,65 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+@keyframes boot-ring {
+  from {
+    transform: rotate(-90deg);
+  }
+  to {
+    transform: rotate(270deg);
+  }
+}
+
+@keyframes boot-status {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Sidebar rail (all portals via shared Sidebar) */
+[data-sidebar="sidebar"] {
+  background-image: var(--sidebar-gradient) !important;
+  background-color: transparent !important;
+  background-size: auto;
+  background-repeat: no-repeat;
+  color: oklch(var(--sidebar-foreground));
+  border-color: transparent;
+}
+
+.dark [data-sidebar="sidebar"] {
+  background-color: #1c3834 !important;
+  background-image:
+    url("./assets/textures/sidebar-dark-green.png"),
+    linear-gradient(180deg, #1c3834 0%, #1a3430 100%) !important;
+  background-size: 176px 108px, auto !important;
+  background-repeat: repeat, no-repeat !important;
+  border-right-color: oklch(0.35 0.03 170 / 0.45);
+}
+
+.dark [data-sidebar="sidebar"] [data-sidebar="menu-button"][data-active="true"],
+.dark [data-sidebar="sidebar"] [data-active="true"] {
+  background-color: oklch(1 0 0 / 0.12) !important;
+  color: oklch(0.99 0.01 160) !important;
+}
+
+.dark [data-sidebar="sidebar"] [data-sidebar="group-label"] {
+  color: oklch(0.9 0.02 160 / 0.65);
+}
+
+.dark [data-sidebar="sidebar"] [data-sidebar="menu-button"] {
+  color: oklch(0.95 0.01 160 / 0.9);
+}
+
+.dark [data-sidebar="sidebar"] [data-sidebar="menu-button"]:hover {
+  background-color: oklch(1 0 0 / 0.08) !important;
+  color: oklch(0.99 0.01 160) !important;
 }
 
 [data-sidebar="content"],

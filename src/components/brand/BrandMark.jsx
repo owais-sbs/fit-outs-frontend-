@@ -17,7 +17,7 @@ export function JctLogoTile({
   const [err, setErr] = useState(false);
   return (
     <div
-      className={`flex shrink-0 items-center justify-center overflow-hidden bg-secondary text-foreground ring-1 ring-border/60 ${className}`}
+      className={`flex shrink-0 items-center justify-center overflow-hidden bg-white text-foreground ring-1 ring-border/60 dark:bg-white dark:ring-white/40 ${className}`}
     >
       {err ? (
         <span className="text-[11px] font-bold tracking-tight">JCT</span>
@@ -38,9 +38,9 @@ export function SidebarBrand({ portal }) {
   return (
     <>
       <JctLogoTile />
-      <div className="grid flex-1 text-left text-sm leading-tight">
-        <span className="truncate font-semibold tracking-tight">{BRAND_NAME}</span>
-        <span className="truncate text-xs text-muted-foreground">{portal}</span>
+      <div className="grid min-w-0 flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
+        <span className="truncate font-semibold tracking-tight text-sidebar-foreground">{BRAND_NAME}</span>
+        <span className="truncate text-xs text-sidebar-foreground/70">{portal}</span>
       </div>
     </>
   );

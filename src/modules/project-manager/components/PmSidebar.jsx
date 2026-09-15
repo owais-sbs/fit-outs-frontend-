@@ -10,6 +10,7 @@ import {
   ClipboardList,
   Stamp,
   HardHat,
+  GitBranch,
 } from "lucide-react";
 import { SidebarBrand } from "@/components/brand/BrandMark";
 import {
@@ -43,6 +44,7 @@ const GROUPS = [
       { label: "Schedule templates", href: ROUTES.PROJECT_MANAGER.SCHEDULE_TEMPLATES, icon: GanttChart },
       { label: "Approvals", href: ROUTES.PROJECT_MANAGER.APPROVALS_DASHBOARD, icon: Stamp },
       { label: "Validation Inbox", href: ROUTES.PROJECT_MANAGER.VALIDATION_INBOX, icon: ClipboardCheck },
+      { label: "Variations inbox", href: ROUTES.PROJECT_MANAGER.VARIATIONS_INBOX, icon: GitBranch },
       { label: "Quality templates", href: ROUTES.PROJECT_MANAGER.QUALITY_TEMPLATES, icon: ClipboardList },
       { label: "Communications", href: ROUTES.PROJECT_MANAGER.COMMUNICATIONS, icon: Mail },
       { label: "SC vendors", href: ROUTES.PROJECT_MANAGER.VENDORS, icon: HardHat },

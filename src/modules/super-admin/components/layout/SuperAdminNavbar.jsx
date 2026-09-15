@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/shared/context/auth-context";
 import { ROUTES } from "@/shared/constants/routes";
+import ThemeToggle from "@/shared/theme/ThemeToggle";
 
 export default function SuperAdminNavbar() {
   const { user, logout } = useAuth();
@@ -33,6 +34,7 @@ export default function SuperAdminNavbar() {
       <div className="flex-1" />
 
       <div className="ml-auto flex items-center gap-1">
+        <ThemeToggle />
         <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">
           <Bell className="h-4 w-4" />
           <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary" />

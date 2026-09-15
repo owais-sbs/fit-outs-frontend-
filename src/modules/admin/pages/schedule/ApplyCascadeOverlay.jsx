@@ -67,15 +67,15 @@ export default function ApplyCascadeOverlay({
         role="dialog"
         aria-modal="true"
         aria-labelledby="apply-cascade-title"
-        className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white text-black shadow-2xl"
+        className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-2xl"
       >
-        <div className="shrink-0 border-b border-neutral-200 bg-neutral-50 px-5 py-4 sm:px-6">
-          <p id="apply-cascade-title" className="text-lg font-semibold text-black">
+        <div className="shrink-0 border-b border-border bg-muted/40 px-5 py-4 sm:px-6">
+          <p id="apply-cascade-title" className="text-lg font-semibold text-foreground">
             {phase === "confirm"
               ? "Confirm apply and publish"
               : "Programme published — cascade complete"}
           </p>
-          <p className="mt-1 text-sm text-black">
+          <p className="mt-1 text-sm text-muted-foreground">
             {phase === "confirm"
               ? "Review where each record will go. Nothing is saved until you click Finalize."
               : result?.note ||
@@ -83,7 +83,7 @@ export default function ApplyCascadeOverlay({
           </p>
         </div>
 
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4 text-sm text-black sm:px-6">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4 text-sm text-foreground sm:px-6">
           <CascadeDestination
             step="1"
             module="Gantt · Module 14"
@@ -120,15 +120,15 @@ export default function ApplyCascadeOverlay({
             )}
             {!!criticalPaths.length && (
               <div className="mt-3 space-y-2">
-                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-black">
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-foreground">
                   Longest paths → Gantt baseline
                 </p>
                 {criticalPaths.slice(0, 3).map((path, index) => (
                   <div key={`path-${index}-${(path || []).join(">")}`} className="space-y-1">
-                    <p className="text-[11px] font-semibold text-black">
+                    <p className="text-[11px] font-semibold text-foreground">
                       {index === 0 ? "Path 1 · Critical" : `Path ${index + 1}`}
                     </p>
-                    <p className="break-all rounded-md bg-neutral-100 px-3 py-2 font-mono text-xs text-black">
+                    <p className="break-all rounded-md bg-muted px-3 py-2 font-mono text-xs text-foreground">
                       {(path || []).join(" → ")}
                     </p>
                   </div>
@@ -146,27 +146,27 @@ export default function ApplyCascadeOverlay({
             } with planned dates spanning that trade’s activities`}
           >
             {packages.length === 0 ? (
-              <p className="text-sm text-black">No trade codes on activities — no package shells.</p>
+              <p className="text-sm text-foreground">No trade codes on activities — no package shells.</p>
             ) : (
-              <div className="overflow-x-auto rounded-lg border border-neutral-200">
-                <table className="w-full text-left text-sm text-black">
-                  <thead className="bg-neutral-100 text-xs uppercase tracking-wide">
+              <div className="overflow-x-auto rounded-lg border border-border">
+                <table className="w-full text-left text-sm text-foreground">
+                  <thead className="bg-muted text-xs uppercase tracking-wide">
                     <tr>
-                      <th className="px-3 py-2 font-semibold text-black">Package / trade</th>
-                      <th className="px-3 py-2 font-semibold text-black">Activities</th>
-                      <th className="px-3 py-2 font-semibold text-black">Planned window</th>
+                      <th className="px-3 py-2 font-semibold text-foreground">Package / trade</th>
+                      <th className="px-3 py-2 font-semibold text-foreground">Activities</th>
+                      <th className="px-3 py-2 font-semibold text-foreground">Planned window</th>
                     </tr>
                   </thead>
                   <tbody>
                     {packages.map((p) => (
-                      <tr key={p.tradePackageCode || p.name} className="border-t border-neutral-200">
-                        <td className="px-3 py-2 font-medium text-black">
+                      <tr key={p.tradePackageCode || p.name} className="border-t border-border">
+                        <td className="px-3 py-2 font-medium text-foreground">
                           {p.name || p.tradePackageCode}
                         </td>
-                        <td className="px-3 py-2 tabular-nums text-black">
+                        <td className="px-3 py-2 tabular-nums text-foreground">
                           {p.activityCount ?? "—"}
                         </td>
-                        <td className="px-3 py-2 tabular-nums text-black">
+                        <td className="px-3 py-2 tabular-nums text-foreground">
                           {p.plannedStart && p.plannedFinish
                             ? `${p.plannedStart} → ${p.plannedFinish}`
                             : "—"}
@@ -193,21 +193,21 @@ export default function ApplyCascadeOverlay({
           >
             {phase === "result" ? (
               billing?.length ? (
-                <ul className="space-y-1.5 text-sm text-black">
+                <ul className="space-y-1.5 text-sm text-foreground">
                   {billing.map((name) => (
                     <li key={name} className="flex gap-2">
-                      <span className="text-black/50">→</span>
+                      <span className="text-foreground/50">→</span>
                       <span>{name}</span>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="text-sm text-black">
+                <p className="text-sm text-foreground">
                   No drafts seeded (budget/BOQ may be zero, or non-draft rows blocked upsert).
                 </p>
               )
             ) : (
-              <ul className="list-disc space-y-1 pl-5 text-sm text-black">
+              <ul className="list-disc space-y-1 pl-5 text-sm text-foreground">
                 <li>Creates DRAFT client payment gates from the applied template presets</li>
                 <li>Amounts use project budget, else approved BOQ total</li>
                 <li>
@@ -234,34 +234,34 @@ export default function ApplyCascadeOverlay({
           >
             {phase === "result" ? (
               holds?.length ? (
-                <ul className="space-y-1.5 text-sm text-black">
+                <ul className="space-y-1.5 text-sm text-foreground">
                   {holds.slice(0, 15).map((h) => (
                     <li key={h} className="flex gap-2">
-                      <span className="text-black/50">→</span>
+                      <span className="text-foreground/50">→</span>
                       <span>{h}</span>
                     </li>
                   ))}
                   {holds.length > 15 && (
-                    <li className="text-black">…and {holds.length - 15} more</li>
+                    <li className="text-foreground">…and {holds.length - 15} more</li>
                   )}
                 </ul>
               ) : (
-                <p className="text-sm text-black">No new hold points.</p>
+                <p className="text-sm text-foreground">No new hold points.</p>
               )
             ) : holdCandidates.length ? (
-              <div className="overflow-x-auto rounded-lg border border-neutral-200">
-                <table className="w-full text-left text-sm text-black">
-                  <thead className="bg-neutral-100 text-xs uppercase tracking-wide">
+              <div className="overflow-x-auto rounded-lg border border-border">
+                <table className="w-full text-left text-sm text-foreground">
+                  <thead className="bg-muted text-xs uppercase tracking-wide">
                     <tr>
-                      <th className="px-3 py-2 font-semibold text-black">Activity</th>
-                      <th className="px-3 py-2 font-semibold text-black">Constraint</th>
+                      <th className="px-3 py-2 font-semibold text-foreground">Activity</th>
+                      <th className="px-3 py-2 font-semibold text-foreground">Constraint</th>
                     </tr>
                   </thead>
                   <tbody>
                     {holdCandidates.slice(0, 12).map((a) => (
-                      <tr key={a.activityCode} className="border-t border-neutral-200">
-                        <td className="px-3 py-2 font-mono text-xs text-black">{a.activityCode}</td>
-                        <td className="px-3 py-2 text-black">
+                      <tr key={a.activityCode} className="border-t border-border">
+                        <td className="px-3 py-2 font-mono text-xs text-foreground">{a.activityCode}</td>
+                        <td className="px-3 py-2 text-foreground">
                           {a.constraintNote || (a.lockedDuration ? "Locked duration" : "—")}
                         </td>
                       </tr>
@@ -269,13 +269,13 @@ export default function ApplyCascadeOverlay({
                   </tbody>
                 </table>
                 {holdCandidates.length > 12 && (
-                  <p className="border-t border-neutral-200 px-3 py-2 text-xs text-black">
+                  <p className="border-t border-border px-3 py-2 text-xs text-foreground">
                     …and {holdCandidates.length - 12} more candidates
                   </p>
                 )}
               </div>
             ) : (
-              <p className="text-sm text-black">No locked/constraint activities in this preview.</p>
+              <p className="text-sm text-foreground">No locked/constraint activities in this preview.</p>
             )}
           </CascadeDestination>
 
@@ -292,35 +292,35 @@ export default function ApplyCascadeOverlay({
             }
           >
             {approvals.length === 0 ? (
-              <p className="text-sm text-black">
+              <p className="text-sm text-foreground">
                 Approvals appear here when this project already has approval cases that block programme
                 activities (e.g. community NOC → mobilisation). Preview computes target submission /
                 required-by dates from the CPM plan without saving. If none exist yet, Finalize will not
                 invent new cases.
               </p>
             ) : (
-              <div className="overflow-x-auto rounded-lg border border-neutral-200">
-                <table className="w-full text-left text-sm text-black">
-                  <thead className="bg-neutral-100 text-xs uppercase tracking-wide">
+              <div className="overflow-x-auto rounded-lg border border-border">
+                <table className="w-full text-left text-sm text-foreground">
+                  <thead className="bg-muted text-xs uppercase tracking-wide">
                     <tr>
-                      <th className="px-3 py-2 font-semibold text-black">Permit</th>
-                      <th className="px-3 py-2 font-semibold text-black">Blocks</th>
-                      <th className="px-3 py-2 font-semibold text-black">Needed by</th>
+                      <th className="px-3 py-2 font-semibold text-foreground">Permit</th>
+                      <th className="px-3 py-2 font-semibold text-foreground">Blocks</th>
+                      <th className="px-3 py-2 font-semibold text-foreground">Needed by</th>
                     </tr>
                   </thead>
                   <tbody>
                     {approvals.slice(0, 12).map((a) => (
                       <tr
                         key={`${a.permitTypeCode}-${a.blocksActivityCode}`}
-                        className="border-t border-neutral-200"
+                        className="border-t border-border"
                       >
-                        <td className="px-3 py-2 text-black">
+                        <td className="px-3 py-2 text-foreground">
                           {a.permitTypeName || a.permitTypeCode}
                         </td>
-                        <td className="px-3 py-2 font-mono text-xs text-black">
+                        <td className="px-3 py-2 font-mono text-xs text-foreground">
                           {a.blocksActivityCode || "—"}
                         </td>
-                        <td className="px-3 py-2 tabular-nums text-black">
+                        <td className="px-3 py-2 tabular-nums text-foreground">
                           {a.requiredApprovalDate || "—"}
                           {a.atRisk ? " · at risk" : ""}
                         </td>
@@ -341,35 +341,35 @@ export default function ApplyCascadeOverlay({
             } (lead time back from install start)`}
           >
             {orderBy.length === 0 ? (
-              <p className="text-sm text-black">No order-by rows for this programme.</p>
+              <p className="text-sm text-foreground">No order-by rows for this programme.</p>
             ) : (
-              <div className="overflow-x-auto rounded-lg border border-neutral-200">
-                <table className="w-full text-left text-sm text-black">
-                  <thead className="bg-neutral-100 text-xs uppercase tracking-wide">
+              <div className="overflow-x-auto rounded-lg border border-border">
+                <table className="w-full text-left text-sm text-foreground">
+                  <thead className="bg-muted text-xs uppercase tracking-wide">
                     <tr>
-                      <th className="px-3 py-2 font-semibold text-black">Item</th>
-                      <th className="px-3 py-2 font-semibold text-black">Lead</th>
-                      <th className="px-3 py-2 font-semibold text-black">Install</th>
-                      <th className="px-3 py-2 font-semibold text-black">Order by</th>
+                      <th className="px-3 py-2 font-semibold text-foreground">Item</th>
+                      <th className="px-3 py-2 font-semibold text-foreground">Lead</th>
+                      <th className="px-3 py-2 font-semibold text-foreground">Install</th>
+                      <th className="px-3 py-2 font-semibold text-foreground">Order by</th>
                     </tr>
                   </thead>
                   <tbody>
                     {orderBy.map((r) => (
                       <tr
                         key={`${r.itemName}-${r.orderByDate}`}
-                        className={`border-t border-neutral-200 ${r.overdue ? "bg-red-50" : ""}`}
+                        className={`border-t border-border ${r.overdue ? "bg-red-50" : ""}`}
                       >
-                        <td className="px-3 py-2 font-medium text-black">{r.itemName}</td>
-                        <td className="px-3 py-2 tabular-nums text-black">
+                        <td className="px-3 py-2 font-medium text-foreground">{r.itemName}</td>
+                        <td className="px-3 py-2 tabular-nums text-foreground">
                           {r.leadTimeCalendarDays ?? "—"}d
                         </td>
-                        <td className="px-3 py-2 font-mono text-xs text-black">
+                        <td className="px-3 py-2 font-mono text-xs text-foreground">
                           {r.installActivityCode || "—"}
                           {r.installStartDate ? ` · ${r.installStartDate}` : ""}
                         </td>
                         <td
                           className={`px-3 py-2 tabular-nums ${
-                            r.overdue ? "font-semibold text-red-700" : "text-black"
+                            r.overdue ? "font-semibold text-red-700" : "text-foreground"
                           }`}
                         >
                           {r.orderByDate || "—"}
@@ -383,9 +383,9 @@ export default function ApplyCascadeOverlay({
             )}
           </CascadeDestination>
 
-          <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-black">
-            <p className="font-semibold text-black">What this means</p>
-            <p className="mt-1.5 leading-relaxed text-black">
+          <div className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-foreground">
+            <p className="font-semibold text-foreground">What this means</p>
+            <p className="mt-1.5 leading-relaxed text-foreground">
               {phase === "confirm"
                 ? "Finalize writes the Gantt baseline on this project, then cascades package shells (13), billing drafts (20), hold points (42), approval dates, and order-by buying deadlines in one action."
                 : "The Gantt is now the live baseline. Packages are shells not awards. Billing drafts wait for Finance. Hold points block quality sign-off until cleared. Miss an order-by date and the finish slips."}
@@ -393,13 +393,13 @@ export default function ApplyCascadeOverlay({
           </div>
         </div>
 
-        <div className="flex shrink-0 justify-end gap-2 border-t border-neutral-200 bg-neutral-50 px-5 py-3 sm:px-6">
+        <div className="flex shrink-0 justify-end gap-2 border-t border-border bg-muted/40 px-5 py-3 sm:px-6">
           {phase === "confirm" ? (
             <>
               <Button
                 size="sm"
                 variant="outline"
-                className="border-neutral-300 text-black"
+                className="border-border text-foreground"
                 onClick={onCancel}
                 disabled={busy}
               >
@@ -430,19 +430,19 @@ export default function ApplyCascadeOverlay({
 
 function CascadeDestination({ step, module, title, summary, children }) {
   return (
-    <section className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
+    <section className="rounded-xl border border-border bg-card p-4 shadow-sm">
       <div className="mb-3 flex flex-wrap items-start gap-2">
-        <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-black text-xs font-bold text-white">
+        <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
           {step}
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-base font-semibold text-black">{title}</h3>
-            <span className="rounded-full border border-neutral-300 bg-neutral-100 px-2 py-0.5 text-[11px] font-medium text-black">
+            <h3 className="text-base font-semibold text-foreground">{title}</h3>
+            <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-medium text-foreground">
               {module}
             </span>
           </div>
-          <p className="mt-1 text-sm text-black">{summary}</p>
+          <p className="mt-1 text-sm text-foreground">{summary}</p>
         </div>
       </div>
       {children}
@@ -452,10 +452,10 @@ function CascadeDestination({ step, module, title, summary, children }) {
 
 function CascadeStat({ label, value, hint }) {
   return (
-    <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-black">{label}</p>
-      <p className="text-lg font-semibold text-black">{value ?? "—"}</p>
-      {hint && <p className="text-[11px] text-black">{hint}</p>}
+    <div className="rounded-lg border border-border bg-muted/40 px-3 py-2">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-foreground">{label}</p>
+      <p className="text-lg font-semibold text-foreground">{value ?? "—"}</p>
+      {hint && <p className="text-[11px] text-foreground">{hint}</p>}
     </div>
   );
 }

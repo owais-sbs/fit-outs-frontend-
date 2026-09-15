@@ -9,7 +9,7 @@ import { ROUTES } from "@/shared/constants/routes";
 import { ALL_SC_ROLES, SC_ROLES } from "./scPortalRoles";
 
 export const SC_STATUS_BADGE = {
-  OPEN: "bg-slate-500/15 text-slate-700 border-none",
+  OPEN: "bg-slate-500/15 text-slate-700 dark:text-slate-200 border-none",
   APPOINTED: "bg-amber-500/15 text-amber-700 border-none",
   IN_PROGRESS: "bg-blue-500/15 text-blue-700 border-none",
   COMPLETE: "bg-emerald-500/15 text-emerald-700 border-none",
@@ -24,7 +24,7 @@ export const SC_STATUS_BADGE = {
   ACKNOWLEDGED: "bg-emerald-500/15 text-emerald-700 border-none",
   DISPUTED: "bg-destructive/15 text-destructive border-none",
   PENDING: "bg-amber-500/15 text-amber-700 border-none",
-  Assigned: "bg-slate-500/15 text-slate-700 border-none",
+  Assigned: "bg-slate-500/15 text-slate-700 dark:text-slate-200 border-none",
   "Pending acceptance": "bg-amber-500/15 text-amber-700 border-none",
   "In progress": "bg-blue-500/15 text-blue-700 border-none",
   Complete: "bg-emerald-500/15 text-emerald-700 border-none",

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { CheckCircle2, Eye, EyeOff, FileText, Paperclip, User, Upload, X } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Eye, EyeOff, FileText, Paperclip, User, Upload, X } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import { createClient } from "../../api/clients.api";
 import { ROUTES } from "@/shared/constants/routes";
@@ -146,6 +146,24 @@ export default function AddClientPage() {
 
   return (
     <div className="space-y-6 pb-28">
+      <div className="flex items-center gap-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => navigate(ROUTES.ADMIN.CLIENTS)}
+          className="h-8 w-8 text-muted-foreground"
+          aria-label="Back to clients"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <Link
+          to={ROUTES.ADMIN.CLIENTS}
+          className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+        >
+          Back to clients
+        </Link>
+      </div>
+
       <PageHeader title="Add Client" description="Create a new client profile and account." />
 
       {saved && (

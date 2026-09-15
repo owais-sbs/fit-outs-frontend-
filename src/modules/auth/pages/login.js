@@ -6,8 +6,9 @@ import { ROLES } from "@/shared/constants/roles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Lock, Mail, ArrowRight, AlertCircle, Loader2 } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { BRAND_NAME, JctLogoTile } from "@/components/brand/BrandMark";
+import { SessionBootLoader } from "@/components/brand/SessionBootLoader";
 
 const ROLE_ROUTES = {
   [ROLES.SUPER_ADMIN]: ROUTES.SUPER_ADMIN.DASHBOARD,
@@ -49,14 +50,7 @@ export default function Login() {
   }, [authLoading, isAuthenticated, role, navigate]);
 
   if (authLoading) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center">
-        <Loader2 className="h-10 w-10 animate-spin text-[var(--color-accent-copper)]" />
-        <span className="mt-4 animate-pulse text-sm font-medium text-muted-foreground">
-          Checking session...
-        </span>
-      </div>
-    );
+    return <SessionBootLoader />;
   }
 
   const handleSubmit = async (e) => {
@@ -99,115 +93,92 @@ export default function Login() {
   };
 
   return (
-    <div className="relative flex min-h-screen w-full items-center justify-center overflow-hidden px-4 py-10">
-      {/* Soft spatial atmosphere — ink + copper, no purple */}
+    <div className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-background px-6 py-12">
+      {/* Full-page dotted check grid — dark on light, light on dark */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
         style={{
-          background:
-            "radial-gradient(900px 520px at 12% -10%, color-mix(in oklab, var(--color-accent-copper) 18%, transparent), transparent 55%), radial-gradient(700px 480px at 92% 108%, oklch(0.92 0.01 260 / 0.7), transparent 50%), radial-gradient(600px 400px at 70% 20%, oklch(0.97 0.008 90 / 0.9), transparent 45%)",
-        }}
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-[0.35]"
-        style={{
-          backgroundImage:
-            "linear-gradient(to right, oklch(0.2 0.01 285 / 0.04) 1px, transparent 1px), linear-gradient(to bottom, oklch(0.2 0.01 285 / 0.04) 1px, transparent 1px)",
-          backgroundSize: "48px 48px",
-          maskImage: "radial-gradient(ellipse at center, black 20%, transparent 75%)",
+          backgroundImage: `
+            radial-gradient(circle, oklch(var(--foreground) / 0.28) 1px, transparent 1px)
+          `,
+          backgroundSize: "20px 20px",
         }}
       />
 
-      <div className="relative z-10 w-full max-w-[420px] page-enter">
-        <div className="mb-8 text-center">
-          <div className="mb-5 flex justify-center">
-            <JctLogoTile className="h-14 w-14 rounded-2xl" imgClassName="h-8 w-8" />
-          </div>
-          <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground md:text-[2rem]">
-            {BRAND_NAME}
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Sign in to manage commercial fit-out projects
-          </p>
+      <div className="relative z-10 w-full max-w-[468px] page-enter">
+        {/* Dotted crop-mark frame — lines extend past corners */}
+        <div aria-hidden className="pointer-events-none absolute inset-0">
+          <div className="absolute -left-10 -right-10 top-0 border-t border-dotted border-foreground/35" />
+          <div className="absolute -left-10 -right-10 bottom-0 border-t border-dotted border-foreground/35" />
+          <div className="absolute -top-10 -bottom-10 left-0 border-l border-dotted border-foreground/35" />
+          <div className="absolute -top-10 -bottom-10 right-0 border-l border-dotted border-foreground/35" />
         </div>
 
-        <div className="surface-panel relative overflow-hidden px-6 py-7 sm:px-8">
-          <div
-            aria-hidden
-            className="absolute inset-x-0 top-0 h-0.5"
-            style={{
-              background:
-                "linear-gradient(90deg, transparent, var(--color-accent-copper), var(--color-accent-gold), transparent)",
-            }}
-          />
+        {/* Plain fill inside the frame; dots remain outside */}
+        <div className="relative bg-background px-10 py-14 sm:px-12 sm:py-16">
+          <div className="mb-12 flex items-center justify-center gap-3.5">
+            <JctLogoTile className="h-[2.6rem] w-[2.6rem] rounded-xl" imgClassName="h-[1.625rem] w-[1.625rem]" />
+            <span className="text-[1.4625rem] font-semibold tracking-tight text-foreground">
+              {BRAND_NAME}
+            </span>
+          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
-              <div className="flex items-center gap-2 rounded-xl border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive animate-in fade-in slide-in-from-top-1 duration-200">
-                <AlertCircle className="h-4 w-4 shrink-0" />
+              <div className="flex items-center gap-2.5 rounded-xl border border-destructive/20 bg-destructive/10 p-3.5 text-base text-destructive animate-in fade-in slide-in-from-top-1 duration-200">
+                <AlertCircle className="h-5 w-5 shrink-0" />
                 <p>{error}</p>
               </div>
             )}
 
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Email Address
+            <div className="space-y-2.5">
+              <Label htmlFor="email" className="text-base font-medium text-foreground">
+                Email
               </Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="name@onepath.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="h-11 rounded-xl pl-10"
-                  required
-                />
-              </div>
+              <Input
+                id="email"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="h-[3.575rem] rounded-xl text-base"
+                required
+              />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <Label htmlFor="password" className="text-base font-medium text-foreground">
                   Password
                 </Label>
                 <Link
                   to={ROUTES.AUTH.FORGOT_PASSWORD}
-                  className="text-xs text-[var(--color-accent-copper)] hover:underline"
+                  className="text-sm text-muted-foreground hover:text-foreground"
                 >
                   Forgot password?
                 </Link>
               </div>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="h-11 rounded-xl pl-10"
-                  required
-                />
-              </div>
+              <Input
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="h-[3.575rem] rounded-xl text-base"
+                required
+              />
             </div>
 
             <Button
               type="submit"
-              className="mt-2 h-11 w-full gap-2 rounded-xl bg-primary text-primary-foreground hover:bg-primary/95"
+              variant="ghost"
+              className="mt-1.5 h-[3.575rem] w-full rounded-full bg-transparent px-12 text-base font-bold uppercase tracking-widest text-foreground shadow-[inset_0_0_0_2px_#616467] transition duration-200 hover:bg-[#616467] hover:text-white dark:text-neutral-200"
               disabled={isLoading}
             >
-              {isLoading ? "Signing in..." : "Sign In"}
-              {!isLoading && <ArrowRight className="h-4 w-4" />}
+              {isLoading ? "Signing in..." : "Sign in"}
             </Button>
           </form>
-
-          <p className="mt-6 text-center text-xs text-muted-foreground">
-            Authorized personnel only. {BRAND_NAME} © 2026.
-          </p>
         </div>
       </div>
     </div>

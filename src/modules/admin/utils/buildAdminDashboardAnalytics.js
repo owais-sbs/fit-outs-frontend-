@@ -24,20 +24,63 @@ const SOURCE_KEYS = {
 };
 
 const SOURCE_CONFIG = {
-  website: { label: "Website", colors: CHART_COLORS.chart1 },
-  referral: { label: "Referral", colors: CHART_COLORS.chart2 },
-  walkIn: { label: "Walk-in", colors: CHART_COLORS.chart3 },
-  social: { label: "Social", colors: CHART_COLORS.chart4 },
-  other: { label: "Other", colors: CHART_COLORS.chart5 },
+  website: {
+    label: "Website",
+    colors: { light: ["#2563eb", "#1d4ed8"], dark: ["#38bdf8", "#0ea5e9"] },
+  },
+  referral: {
+    label: "Referral",
+    colors: { light: ["#c026d3", "#a21caf"], dark: ["#e879f9", "#d946ef"] },
+  },
+  walkIn: {
+    label: "Walk-in",
+    colors: { light: ["#059669", "#047857"], dark: ["#34d399", "#10b981"] },
+  },
+  social: {
+    label: "Social",
+    colors: { light: ["#ea580c", "#c2410c"], dark: ["#fb923c", "#f97316"] },
+  },
+  other: {
+    label: "Other",
+    colors: { light: ["#64748b", "#475569"], dark: ["#94a3b8", "#64748b"] },
+  },
 };
 
 const TYPE_COLORS = [
-  CHART_COLORS.chart1,
-  CHART_COLORS.chart2,
-  CHART_COLORS.chart3,
-  CHART_COLORS.chart4,
-  CHART_COLORS.chart5,
+  { light: ["#2563eb", "#1d4ed8"], dark: ["#38bdf8", "#0ea5e9"] },
+  { light: ["#059669", "#047857"], dark: ["#34d399", "#10b981"] },
+  { light: ["#c026d3", "#a21caf"], dark: ["#e879f9", "#d946ef"] },
+  { light: ["#ea580c", "#c2410c"], dark: ["#fb923c", "#f97316"] },
+  { light: ["#e11d48", "#be123c"], dark: ["#fb7185", "#f43f5e"] },
 ];
+
+/** Distinct pie hues — easy to tell apart in dark and light mode. */
+const PROJECT_TYPE_COLORS = {
+  residential: {
+    light: ["#2563eb", "#1d4ed8"],
+    dark: ["#38bdf8", "#0ea5e9"],
+  },
+  commercial: {
+    light: ["#059669", "#047857"],
+    dark: ["#34d399", "#10b981"],
+  },
+  interior: {
+    light: ["#c026d3", "#a21caf"],
+    dark: ["#e879f9", "#d946ef"],
+  },
+  renovation: {
+    light: ["#ea580c", "#c2410c"],
+    dark: ["#fb923c", "#f97316"],
+  },
+  construction: {
+    light: ["#e11d48", "#be123c"],
+    dark: ["#fb7185", "#f43f5e"],
+  },
+  unspecified: {
+    light: ["#64748b", "#475569"],
+    dark: ["#cbd5e1", "#94a3b8"],
+  },
+};
 
 const WON_LOST_CONFIG = {
   won: { label: "Won", colors: { light: ["#18181B", "#3f3f46"], dark: ["#18181B", "#3f3f46"] } },
@@ -351,7 +394,7 @@ export function buildAdminDashboardAnalytics({
   projectTypeEntries.forEach((e, i) => {
     projectTypeConfig[e.type] = {
       label: e.label,
-      colors: TYPE_COLORS[i % TYPE_COLORS.length],
+      colors: PROJECT_TYPE_COLORS[e.type] || TYPE_COLORS[i % TYPE_COLORS.length],
     };
   });
 

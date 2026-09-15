@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LogOut, Settings, User } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -12,20 +11,16 @@ import {
 import { useAuth } from "@/shared/context/auth-context";
 import { ROUTES } from "@/shared/constants/routes";
 import NotificationDropdown from "@/modules/client/components/design/NotificationDropdown";
+import useNotifications from "@/shared/hooks/useNotifications";
+import ThemeToggle from "@/shared/theme/ThemeToggle";
 
 export default function ClientNavbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [notifications, setNotifications] = useState([]);
+  const { notifications, markRead, clearAll } = useNotifications();
 
   const displayName = user?.name || "Client";
   const initials = displayName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
-
-  const markRead = (id) =>
-    setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, read: true } : n));
-
-  const clearAll = () =>
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
 
   return (
     <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-border/40 bg-background/75 px-4 backdrop-blur-xl md:px-6">
@@ -34,6 +29,7 @@ export default function ClientNavbar() {
       <div className="flex-1" />
 
       <div className="ml-auto flex items-center gap-1">
+        <ThemeToggle />
         <NotificationDropdown
           notifications={notifications}
           onMarkRead={markRead}

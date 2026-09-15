@@ -6,10 +6,14 @@ import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/shared/context/auth-context";
 import { ROUTES } from "@/shared/constants/routes";
+import NotificationDropdown from "@/modules/client/components/design/NotificationDropdown";
+import useNotifications from "@/shared/hooks/useNotifications";
+import ThemeToggle from "@/shared/theme/ThemeToggle";
 
 export default function PmNavbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { notifications, markRead, clearAll } = useNotifications();
 
   const displayName = user?.name || "Project Manager";
   const initials = displayName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
@@ -20,6 +24,12 @@ export default function PmNavbar() {
       <Separator orientation="vertical" className="mr-1 hidden h-5 md:block" />
       <div className="flex-1" />
       <div className="ml-auto flex items-center gap-2">
+        <ThemeToggle />
+        <NotificationDropdown
+          notifications={notifications}
+          onMarkRead={markRead}
+          onClearAll={clearAll}
+        />
         <Avatar className="h-8 w-8">
           <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
             {initials}

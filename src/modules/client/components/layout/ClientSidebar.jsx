@@ -30,6 +30,7 @@ const NAV_GROUPS = [
     items: [
       { label: "Dashboard", href: ROUTES.CLIENT.DASHBOARD, icon: LayoutDashboard, end: true },
       { label: "BOQ Approvals", href: ROUTES.CLIENT.BOQ_APPROVALS, icon: FileText },
+      { label: "Variations", href: ROUTES.CLIENT.VARIATIONS, icon: ClipboardList },
     ],
   },
   {

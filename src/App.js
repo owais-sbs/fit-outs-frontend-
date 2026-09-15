@@ -157,6 +157,11 @@ import ApprovalsDashboardPage from "./modules/admin/pages/approvals/ApprovalsDas
 import DepositLedgerPage from "./modules/admin/pages/approvals/DepositLedgerPage";
 import ProjectApprovalsPage from "./modules/admin/pages/approvals/ProjectApprovalsPage";
 import ProjectSnagsPage from "./modules/admin/pages/snags/ProjectSnagsPage";
+import ProjectVariationsPage from "./modules/admin/pages/variations/ProjectVariationsPage";
+import VariationDetailPage from "./modules/admin/pages/variations/VariationDetailPage";
+import VariationsInboxPage from "./modules/admin/pages/variations/VariationsInboxPage";
+import CommercialMatricesPage from "./modules/admin/pages/variations/CommercialMatricesPage";
+import ClientVariationsPage from "./modules/client/pages/ClientVariationsPage";
 import ProjectDocumentsPage from "./modules/admin/pages/documents/ProjectDocumentsPage";
 import ProjectReportingPage from "./modules/admin/pages/reporting/ProjectReportingPage";
 import ProjectBillingPage from "./modules/admin/pages/billing/ProjectBillingPage";
@@ -263,6 +268,10 @@ function App() {
               <Route path="projects/:projectId/resource-plan" element={<ResourcePlanPage />} />
               <Route path="projects/:projectId/validation" element={<ValidationInboxPage />} />
               <Route path="projects/:projectId/snags" element={<ProjectSnagsPage />} />
+              <Route path="projects/:projectId/variations" element={<ProjectVariationsPage />} />
+              <Route path="projects/:projectId/variations/:uuid" element={<VariationDetailPage />} />
+              <Route path="variations/inbox" element={<VariationsInboxPage />} />
+              <Route path="commercial-approvals/matrices" element={<CommercialMatricesPage />} />
               <Route path="projects/:projectId/documents" element={<ProjectDocumentsPage />} />
               <Route path="projects/:projectId/reporting" element={<ProjectReportingPage />} />
               <Route path="projects/:projectId/billing" element={<ProjectBillingPage />} />
@@ -324,6 +333,8 @@ function App() {
               <Route path="projects" element={<DirectorProjectsPage />} />
               <Route path="projects/:projectId/billing" element={<ProjectBillingPage />} />
               <Route path="commercial" element={<DirectorCommercialPage />} />
+              <Route path="variations/inbox" element={<VariationsInboxPage />} />
+              <Route path="commercial-approvals/matrices" element={<CommercialMatricesPage />} />
               <Route path="crm" element={<DirectorCrmPage />} />
               <Route path="terms" element={<TermsAndConditionsPage />} />
             </Route>
@@ -350,6 +361,10 @@ function App() {
               <Route path="projects/:projectId/resource-plan" element={<ResourcePlanPage />} />
               <Route path="projects/:projectId/validation" element={<ValidationInboxPage />} />
               <Route path="projects/:projectId/snags" element={<ProjectSnagsPage />} />
+              <Route path="projects/:projectId/variations" element={<ProjectVariationsPage />} />
+              <Route path="projects/:projectId/variations/:uuid" element={<VariationDetailPage />} />
+              <Route path="variations/inbox" element={<VariationsInboxPage />} />
+              <Route path="commercial-approvals/matrices" element={<CommercialMatricesPage />} />
               <Route path="projects/:projectId/documents" element={<ProjectDocumentsPage />} />
               <Route path="projects/:projectId/reporting" element={<ProjectReportingPage />} />
               <Route path="projects/:projectId/billing" element={<ProjectBillingPage />} />
@@ -476,6 +491,7 @@ function App() {
               <Route path="designs/approved" element={<ApprovedDesignsPage />} />
               <Route path="boq-approvals" element={<ClientBoqApprovalsPage />} />
               <Route path="boq/:boqId" element={<BoqViewPage />} />
+              <Route path="variations" element={<ClientVariationsPage />} />
               <Route path="designs/:id" element={<DesignDetailPage />} />
               <Route path="documents" element={<ClientDocumentsPage />} />
               <Route path="snags" element={<ClientSnagsPage />} />

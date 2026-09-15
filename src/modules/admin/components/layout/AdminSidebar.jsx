@@ -6,7 +6,7 @@ import {
   UserCheck, Mail, Grid, Wrench, Settings, PenTool,
   CheckCircle, PieChart, CheckSquare, FileText, ClipboardList, ShieldCheck,
   Package, Warehouse, ArrowDownToLine, ArrowUpFromLine, History, ImagePlus, Inbox,
-  GanttChart, Stamp, HardHat,
+  GanttChart, Stamp, HardHat, GitBranch,
 } from "lucide-react";
 import {
   Sidebar,
@@ -51,6 +51,7 @@ const PROJECT_CONFIG_SUB_ITEMS = [
   { label: "Appendices", href: ROUTES.ADMIN.APPENDIX_CONFIG, icon: ImagePlus },
   { label: "Cover letter", href: ROUTES.ADMIN.COVER_LETTER_CONFIG, icon: Stamp },
   { label: "Approvals Config", href: ROUTES.ADMIN.APPROVALS_CONFIG, icon: ShieldCheck },
+  { label: "Commercial matrices", href: ROUTES.ADMIN.COMMERCIAL_MATRICES, icon: Stamp },
 ];
 
 const PROCUREMENT_SUB_ITEMS = [
@@ -98,12 +99,8 @@ const NAV_GROUPS = [
       { type: "link", label: "Schedule", href: ROUTES.ADMIN.SCHEDULE_HUB, icon: GanttChart },
       { type: "link", label: "Schedule templates", href: ROUTES.ADMIN.SCHEDULE_TEMPLATES, icon: GanttChart },
       { type: "link", label: "Approvals", href: ROUTES.ADMIN.APPROVALS_DASHBOARD, icon: Stamp },
-      {
-        type: "link",
-        label: "Validation Inbox",
-        href: ROUTES.ADMIN.VALIDATION_INBOX,
-        icon: CheckSquare,
-      },
+      { type: "link", label: "Validation Inbox", href: ROUTES.ADMIN.VALIDATION_INBOX, icon: CheckSquare },
+      { type: "link", label: "Variations inbox", href: ROUTES.ADMIN.VARIATIONS_INBOX, icon: GitBranch },
       {
         type: "link",
         label: "Quality templates",

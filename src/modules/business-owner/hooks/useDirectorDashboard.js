@@ -5,6 +5,7 @@ import { fetchBoqInbox, fetchBoqsByProject } from "@/modules/admin/api/boq.api";
 import { ROLES, filterBoqInboxForRole } from "@/shared/constants/roles";
 import { fetchAllLeads } from "@/modules/admin/api/leads.api";
 import { fetchAllSiteVisits } from "@/modules/admin/api/site-visits.api";
+import { fetchProjectCommercial } from "@/modules/admin/api/variations.api";
 import {
   activeProjects,
   atRiskProjects,
@@ -30,6 +31,7 @@ export default function useDirectorDashboard() {
     siteVisits: [],
     projectBoqs: {},
     allBoqs: [],
+    projectCommercials: {},
   });
 
   const load = useCallback(async () => {
@@ -49,13 +51,22 @@ export default function useDirectorDashboard() {
 
       const movements = movementsRes?.content ?? (Array.isArray(movementsRes) ? movementsRes : []);
 
-      const boqResults = await Promise.all(
-        projects.map((p) =>
-          fetchBoqsByProject(p.id)
-            .then((boqs) => ({ projectId: p.id, boqs: Array.isArray(boqs) ? boqs : [] }))
-            .catch(() => ({ projectId: p.id, boqs: [] }))
-        )
-      );
+      const [boqResults, commercialResults] = await Promise.all([
+        Promise.all(
+          projects.map((p) =>
+            fetchBoqsByProject(p.id)
+              .then((boqs) => ({ projectId: p.id, boqs: Array.isArray(boqs) ? boqs : [] }))
+              .catch(() => ({ projectId: p.id, boqs: [] }))
+          )
+        ),
+        Promise.all(
+          projects.map((p) =>
+            fetchProjectCommercial(p.id)
+              .then((comm) => ({ projectId: p.id, commercial: comm }))
+              .catch(() => ({ projectId: p.id, commercial: null }))
+          )
+        ),
+      ]);
 
       const projectBoqs = {};
       const allBoqs = [];
@@ -64,7 +75,22 @@ export default function useDirectorDashboard() {
         allBoqs.push(...boqs.map((b) => ({ ...b, projectId })));
       });
 
-      setData({ projects, stock, movements, inbox, leads, siteVisits, projectBoqs, allBoqs });
+      const projectCommercials = {};
+      commercialResults.forEach(({ projectId, commercial }) => {
+        projectCommercials[projectId] = commercial;
+      });
+
+      setData({
+        projects,
+        stock,
+        movements,
+        inbox,
+        leads,
+        siteVisits,
+        projectBoqs,
+        allBoqs,
+        projectCommercials,
+      });
     } catch (e) {
       setError(e.message || "Failed to load dashboard data");
     } finally {
@@ -76,17 +102,27 @@ export default function useDirectorDashboard() {
     load();
   }, [load]);
 
-  const { projects, stock, movements, inbox, leads, siteVisits, projectBoqs, allBoqs } = data;
+  const { projects, stock, movements, inbox, leads, siteVisits, projectBoqs, allBoqs, projectCommercials = {} } = data;
 
   const lowStock = stock.filter((s) => s.lowStock);
   const totalStockValue = stock.reduce((s, b) => s + Number(b.stockValue || 0), 0);
-  const contractValue = sumApprovedBoqTotals(projectBoqs);
   const active = activeProjects(projects);
 
-  const portfolio = projects.map((p) => ({
-    ...p,
-    boqTotal: latestApprovedBoqTotal(projectBoqs[p.id] || []),
-  }));
+  const portfolio = projects.map((p) => {
+    const commercial = projectCommercials[p.id];
+    const hasCommercial = commercial?.currentContractValue != null && Number(commercial.currentContractValue) > 0;
+    const boqTotal = latestApprovedBoqTotal(projectBoqs[p.id] || []);
+    const contractVal = hasCommercial ? Number(commercial.currentContractValue) : Number(boqTotal);
+
+    return {
+      ...p,
+      boqTotal,
+      contractValue: contractVal,
+      commercial,
+    };
+  });
+
+  const contractValue = portfolio.reduce((sum, p) => sum + (p.contractValue || 0), 0);
 
   const kpis = {
     activeProjects: active.length,

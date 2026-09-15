@@ -3,7 +3,7 @@ import { useParams, Link, useLocation } from "react-router-dom";
 import {
   ArrowLeft, DollarSign, CalendarDays, Clock, Calendar, Pencil,
   TrendingUp, Building2, Briefcase, MapPin, FileImage, FileText, GanttChart,
-  AlertTriangle, BarChart3, CreditCard, HardHat, ClipboardCheck, Stamp,
+  AlertTriangle, BarChart3, CreditCard, HardHat, ClipboardCheck, Stamp, GitBranch,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -134,6 +134,7 @@ export default function ProjectDetailPage() {
   const schedulePath = projectSubPath(routes, "PROJECT_SCHEDULE", projectId);
   const approvalsPath = projectSubPath(routes, "PROJECT_APPROVALS", projectId);
   const snagsPath = projectSubPath(routes, "PROJECT_SNAGS", projectId);
+  const variationsPath = projectSubPath(routes, "PROJECT_VARIATIONS", projectId);
   const documentsPath = projectSubPath(routes, "PROJECT_DOCUMENTS", projectId);
   const reportingPath = projectSubPath(routes, "PROJECT_REPORTING", projectId);
   const billingPath = projectSubPath(routes, "PROJECT_BILLING", projectId);
@@ -407,6 +408,13 @@ export default function ProjectDetailPage() {
                 <AlertTriangle className="w-4 h-4 mr-1" /> Snags
               </Link>
             </Button>
+            {variationsPath && (
+              <Button asChild size="sm" variant="outline">
+                <Link to={variationsPath}>
+                  <GitBranch className="w-4 h-4 mr-1" /> Variations
+                </Link>
+              </Button>
+            )}
             <Button asChild size="sm" variant="outline">
               <Link to={documentsPath}>
                 <FileText className="w-4 h-4 mr-1" /> Documents

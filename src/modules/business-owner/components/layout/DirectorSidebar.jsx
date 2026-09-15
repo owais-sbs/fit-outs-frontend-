@@ -24,6 +24,8 @@ const COMMAND_CENTER = [
   { label: "Dashboard", href: ROUTES.BUSINESS_OWNER.DASHBOARD, icon: LayoutDashboard },
   { label: "BOQ Inbox", href: ROUTES.BUSINESS_OWNER.BOQ_INBOX, icon: Inbox, badge: true },
   { label: "Billing milestone approval", href: ROUTES.BUSINESS_OWNER.BILLING_MILESTONE_INBOX, icon: FileText },
+  { label: "Variations inbox", href: ROUTES.BUSINESS_OWNER.VARIATIONS_INBOX, icon: ClipboardList },
+  { label: "Commercial matrices", href: ROUTES.BUSINESS_OWNER.COMMERCIAL_MATRICES, icon: Settings },
 ];
 
 const PORTFOLIO = [

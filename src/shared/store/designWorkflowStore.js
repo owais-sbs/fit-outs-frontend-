@@ -121,14 +121,6 @@ export const SEED_CLIENT_DESIGNS = [
 // ─── Notification seed ────────────────────────────────────────────────────────
 
 export const SEED_NOTIFICATIONS = {
-  client: [
-    { id: "n-c1", type: "upload",        message: "New design uploaded: Luxury Penthouse Fit-Out v1.2",   time: "2026-06-01T09:00:00", read: false },
-    { id: "n-c2", type: "revision_done", message: "Your revision for Corporate HQ has been addressed",    time: "2026-05-31T14:30:00", read: false },
-    { id: "n-c3", type: "approved",      message: "Boutique Hotel Lobby design approved successfully",    time: "2026-05-28T11:00:00", read: true  },
-  ],
-  admin: [
-    { id: "n-a1", type: "approved", message: "Client approved: Boutique Hotel Lobby v1.3",              time: "2026-06-01T10:00:00", read: false },
-    { id: "n-a2", type: "revision", message: "Revision requested: Corporate HQ Office Fit-Out v1.0",    time: "2026-05-30T16:00:00", read: false },
-    { id: "n-a3", type: "upload",   message: "Design uploaded: Flagship Retail Store v2.1",             time: "2026-06-03T09:30:00", read: true  },
-  ],
+  client: [],
+  admin: [],
 };

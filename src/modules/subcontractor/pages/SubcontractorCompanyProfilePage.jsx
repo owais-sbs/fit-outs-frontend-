@@ -21,7 +21,7 @@ const COMPLIANCE_STATUS_BADGE = {
   VALID: "bg-emerald-500/15 text-emerald-700 border-none",
   EXPIRING_SOON: "bg-amber-500/15 text-amber-700 border-none",
   EXPIRED: "bg-destructive/15 text-destructive border-none",
-  INCOMPLETE: "bg-slate-500/15 text-slate-700 border-none",
+  INCOMPLETE: "bg-slate-500/15 text-slate-700 dark:text-slate-200 border-none",
 };
 
 const DOC_TYPES = [
