@@ -23,11 +23,15 @@ import { generateBoqFromQto } from "../../api/boq.api";
 import { fetchWorkItems } from "../../api/work-item.api";
 import DrawingMeasureCanvas, { TOOLS } from "./DrawingMeasureCanvas";
 import { defaultUnitForType } from "./drawingQtoUtils";
+import ProjectLifecycleBanner from "../../components/projects/ProjectLifecycleBanner";
+import { useProjectLifecycle } from "../../hooks/useProjectLifecycle";
 
 export default function QtoWorkspacePage() {
   const { projectId, drawingId } = useParams();
   const navigate = useNavigate();
   const { role } = useAuth();
+  const { commercialStage, archived, commercialFrozen } = useProjectLifecycle(projectId);
+  const qtoLocked = archived || commercialFrozen;
   const [session, setSession] = useState(null);
   const [lines, setLines] = useState([]);
   const [previewUrl, setPreviewUrl] = useState("");
@@ -217,14 +221,16 @@ export default function QtoWorkspacePage() {
           />
         </div>
         <div className="flex shrink-0 gap-2">
-          <Button variant="outline" size="sm" onClick={saveLines} disabled={saving}>
+          <Button variant="outline" size="sm" onClick={saveLines} disabled={saving || qtoLocked}>
             <Save className="w-4 h-4 mr-1" /> Save
           </Button>
-          <Button size="sm" onClick={approveAndGenerateBoq} disabled={saving || lines.length === 0}>
+          <Button size="sm" onClick={approveAndGenerateBoq} disabled={saving || qtoLocked || lines.length === 0}>
             <FileText className="w-4 h-4 mr-1" /> Generate BOQ
           </Button>
         </div>
       </div>
+
+      <ProjectLifecycleBanner commercialStage={commercialStage} />
 
       {message && <p className="text-xs text-muted-foreground">{message}</p>}
 

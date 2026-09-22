@@ -18,6 +18,8 @@ import {
 } from "@/modules/admin/api/variations.api";
 import { portalRoutesFromPath, projectDetailPath } from "@/shared/constants/routes";
 import { formatCurrency } from "@/modules/admin/pages/boq/quantityCalcUtils";
+import ProjectLifecycleBanner from "@/modules/admin/components/projects/ProjectLifecycleBanner";
+import { useProjectLifecycle } from "@/modules/admin/hooks/useProjectLifecycle";
 
 const STATUS_VARIANT = {
   AWAITING_TRIAGE: "secondary",
@@ -32,6 +34,7 @@ const STATUS_VARIANT = {
 export default function ProjectVariationsPage() {
   const { projectId } = useParams();
   const routes = portalRoutesFromPath(window.location.pathname);
+  const { commercialStage, commercialFrozen } = useProjectLifecycle(projectId);
   const [items, setItems] = useState([]);
   const [commercial, setCommercial] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -119,12 +122,16 @@ export default function ProjectVariationsPage() {
             <Button variant="outline" asChild>
               <Link to={projectDetailPath(window.location.pathname, projectId)}>Back to project</Link>
             </Button>
-            <Button onClick={() => setShowForm((v) => !v)}>
-              <Plus className="h-4 w-4 mr-1" /> New variation
-            </Button>
+            {!commercialFrozen && (
+              <Button onClick={() => setShowForm((v) => !v)}>
+                <Plus className="h-4 w-4 mr-1" /> New variation
+              </Button>
+            )}
           </div>
         )}
       />
+
+      <ProjectLifecycleBanner commercialStage={commercialStage} className="mb-4" />
 
       {commercial && (
         <Surface className="mb-4 p-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
@@ -149,7 +156,7 @@ export default function ProjectVariationsPage() {
 
       {message && <p className="text-sm text-muted-foreground mb-3">{message}</p>}
 
-      {showForm && (
+      {showForm && !commercialFrozen && (
         <Surface className="mb-4 p-4 space-y-3">
           <div className="grid md:grid-cols-2 gap-3">
             <div>

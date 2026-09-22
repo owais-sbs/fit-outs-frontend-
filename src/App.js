@@ -157,6 +157,7 @@ import ApprovalsDashboardPage from "./modules/admin/pages/approvals/ApprovalsDas
 import DepositLedgerPage from "./modules/admin/pages/approvals/DepositLedgerPage";
 import ProjectApprovalsPage from "./modules/admin/pages/approvals/ProjectApprovalsPage";
 import ProjectSnagsPage from "./modules/admin/pages/snags/ProjectSnagsPage";
+import ProjectCompletionPage from "./modules/admin/pages/completion/ProjectCompletionPage";
 import ProjectVariationsPage from "./modules/admin/pages/variations/ProjectVariationsPage";
 import VariationDetailPage from "./modules/admin/pages/variations/VariationDetailPage";
 import VariationsInboxPage from "./modules/admin/pages/variations/VariationsInboxPage";
@@ -275,6 +276,7 @@ function App() {
               <Route path="projects/:projectId/documents" element={<ProjectDocumentsPage />} />
               <Route path="projects/:projectId/reporting" element={<ProjectReportingPage />} />
               <Route path="projects/:projectId/billing" element={<ProjectBillingPage />} />
+              <Route path="projects/:projectId/completion" element={<ProjectCompletionPage />} />
               <Route path="projects/:projectId/subcontractors" element={<ProjectSubcontractorPage />} />
               <Route path="subcontractors/applications" element={<JctAdminSubcontractorApplicationsPage />} />
               <Route path="subcontractors/applications/:id" element={<JctAdminSubcontractorApplicationDetailPage />} />
@@ -368,6 +370,7 @@ function App() {
               <Route path="projects/:projectId/documents" element={<ProjectDocumentsPage />} />
               <Route path="projects/:projectId/reporting" element={<ProjectReportingPage />} />
               <Route path="projects/:projectId/billing" element={<ProjectBillingPage />} />
+              <Route path="projects/:projectId/completion" element={<ProjectCompletionPage />} />
               <Route path="projects/:projectId/subcontractors" element={<ProjectSubcontractorPage />} />
               <Route path="subcontractors/vendors" element={<VendorListPage />} />
               <Route path="validation/inbox" element={<ValidationInboxPage />} />
@@ -418,6 +421,7 @@ function App() {
               <Route path="projects" element={<ProjectsPage />} />
               <Route path="projects/:projectId" element={<ProjectDetailPage />} />
               <Route path="projects/:projectId/billing" element={<ProjectBillingPage />} />
+              <Route path="projects/:projectId/completion" element={<ProjectCompletionPage />} />
               <Route path="billing/inbox" element={<BillingMilestoneInboxPage />} />
               <Route path="boq/inbox" element={<BoqApprovalInboxPage />} />
               <Route path="boq/:boqId" element={<BoqViewPage />} />

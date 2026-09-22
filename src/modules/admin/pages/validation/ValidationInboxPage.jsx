@@ -19,6 +19,8 @@ import {
   fetchQualityTemplate,
 } from "../../api/validation.api";
 import { projectPlanningBackPath } from "@/shared/constants/routes";
+import ProjectLifecycleBanner from "../../components/projects/ProjectLifecycleBanner";
+import { useProjectLifecycle } from "../../hooks/useProjectLifecycle";
 import {
   approveScClaim,
   rejectScClaim,
@@ -56,6 +58,7 @@ function formatDate(value) {
 export default function ValidationInboxPage() {
   const { projectId } = useParams();
   const location = useLocation();
+  const { commercialStage, archived } = useProjectLifecycle(projectId || null);
   const backPath = projectPlanningBackPath(location, projectId);
   const backLabel = projectId
     ? (location.state?.from === "detail" ? "Project" : "Schedule")
@@ -100,6 +103,10 @@ export default function ValidationInboxPage() {
   }, [load]);
 
   const run = async (fn, okMsg) => {
+    if (projectId && archived) {
+      setMessage("This project is archived and read-only.");
+      return;
+    }
     setBusy(true);
     setMessage("");
     try {
@@ -187,6 +194,8 @@ export default function ValidationInboxPage() {
           }
         />
       </div>
+
+      {projectId ? <ProjectLifecycleBanner commercialStage={commercialStage} /> : null}
 
       {message && <p className="text-sm text-muted-foreground">{message}</p>}
 

@@ -17,6 +17,8 @@ import {
 import { fetchAllProjects } from "@/modules/admin/api/projects.api";
 import { fetchProjectRooms } from "@/modules/admin/api/room-collab.api";
 import { fetchProjectSchedule } from "@/modules/admin/api/schedule.api";
+import ProjectLifecycleBanner from "@/modules/admin/components/projects/ProjectLifecycleBanner";
+import { useProjectLifecycle } from "@/modules/admin/hooks/useProjectLifecycle";
 
 const statusClass = {
   OPEN: "bg-amber-500/15 text-amber-700",
@@ -50,6 +52,7 @@ export default function ClientSnagsPage() {
   const [search, setSearch] = useState("");
   const [projects, setProjects] = useState([]);
   const [projectId, setProjectId] = useState("");
+  const { commercialStage, archived } = useProjectLifecycle(projectId || null);
   const [snags, setSnags] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [activities, setActivities] = useState([]);
@@ -164,6 +167,8 @@ export default function ClientSnagsPage() {
         subtitle="Raise defects and approve items ready for inspection."
       />
 
+      <ProjectLifecycleBanner commercialStage={commercialStage} />
+
       {message && (
         <p className="rounded-lg border border-border bg-secondary/40 px-3 py-2 text-sm">{message}</p>
       )}
@@ -193,7 +198,7 @@ export default function ClientSnagsPage() {
         </div>
       </div>
 
-      {projectId && (
+      {projectId && !archived && (
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold">Raise a snag</CardTitle>
@@ -339,7 +344,7 @@ export default function ClientSnagsPage() {
                   )}
                   <AttachmentList paths={s.photoPaths} className="mt-2" inlinePreview={false} />
                 </div>
-                {(s.status === "READY_FOR_INSPECTION" || s.status === "RESOLVED") && !s.clientApprovedAt && (
+                {(s.status === "READY_FOR_INSPECTION" || s.status === "RESOLVED") && !s.clientApprovedAt && !archived && (
                   <Button
                     size="sm"
                     disabled={busy}

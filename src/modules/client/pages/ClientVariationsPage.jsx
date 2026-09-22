@@ -18,10 +18,13 @@ import {
 } from "@/modules/admin/api/variations.api";
 import { fetchAllProjects } from "@/modules/admin/api/projects.api";
 import { formatCurrency } from "@/modules/admin/pages/boq/quantityCalcUtils";
+import ProjectLifecycleBanner from "@/modules/admin/components/projects/ProjectLifecycleBanner";
+import { useProjectLifecycle } from "@/modules/admin/hooks/useProjectLifecycle";
 
 export default function ClientVariationsPage() {
   const [projects, setProjects] = useState([]);
   const [projectId, setProjectId] = useState("");
+  const { commercialStage, commercialFrozen } = useProjectLifecycle(projectId || null);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -76,11 +79,15 @@ export default function ClientVariationsPage() {
         title="Variations"
         description="Raise a change request or approve issued variations"
         actions={(
+          !commercialFrozen ? (
           <Button onClick={() => setShowForm((v) => !v)}>
             <Plus className="h-4 w-4 mr-1" /> Raise request
           </Button>
+          ) : null
         )}
       />
+
+      <ProjectLifecycleBanner commercialStage={commercialStage} className="mb-4" />
 
       <div className="mb-4 max-w-sm">
         <Label>Project</Label>
@@ -96,7 +103,7 @@ export default function ClientVariationsPage() {
 
       {message && <p className="text-sm text-muted-foreground mb-3">{message}</p>}
 
-      {showForm && (
+      {showForm && !commercialFrozen && (
         <Surface className="p-4 mb-4 space-y-3 max-w-xl">
           <div>
             <Label>Title</Label>
@@ -164,7 +171,7 @@ export default function ClientVariationsPage() {
                   </TableCell>
                   <TableCell>{formatCurrency(item.sellDelta)}</TableCell>
                   <TableCell className="min-w-[200px] space-y-2">
-                    {item.status === "ISSUED_TO_CLIENT" && (
+                    {item.status === "ISSUED_TO_CLIENT" && !commercialFrozen && (
                       <>
                         <Textarea
                           placeholder="Reject comment"

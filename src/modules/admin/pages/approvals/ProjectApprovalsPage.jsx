@@ -22,6 +22,8 @@ import { fetchApprovalsCatalog } from "../../api/approvals-config.api";
 import { fetchProjectById } from "../../api/projects.api";
 import CaseDetailPanel from "./CaseDetailPanel";
 import ProjectDeveloperInfo from "../ProjectDeveloperInfo";
+import ProjectLifecycleBanner from "../../components/projects/ProjectLifecycleBanner";
+import { isProjectArchived } from "../../constants/project.constants";
 import {
   approvalWorkbenchFilters,
   daysLabel,
@@ -60,6 +62,7 @@ export default function ProjectApprovalsPage() {
   const [classifiers, setClassifiers] = useState({ propertyTypeId: "", natureId: "" });
   const [propertyTypes, setPropertyTypes] = useState([]);
   const [projectNatures, setProjectNatures] = useState([]);
+  const [commercialStage, setCommercialStage] = useState(null);
   const [derivedTags, setDerivedTags] = useState([]);
   const [scopeNote, setScopeNote] = useState("");
   const [hasApprovedBoq, setHasApprovedBoq] = useState(false);
@@ -109,6 +112,7 @@ export default function ProjectApprovalsPage() {
       setPropertyTypes(Array.isArray(config?.propertyTypes) ? config.propertyTypes : []);
       setProjectNatures(Array.isArray(config?.projectNatures) ? config.projectNatures : []);
       setJurisdictionPackId(project?.jurisdictionPackId || "");
+      setCommercialStage(project?.commercialStage || null);
     } catch {
       setCases([]);
     } finally {
@@ -129,11 +133,12 @@ export default function ProjectApprovalsPage() {
 
   useEffect(() => {
     if (!persistReady.current) return undefined;
+    if (isProjectArchived(commercialStage)) return undefined;
     const timer = setTimeout(() => {
       resolveProjectApprovals(projectId, { ...resolvePayload(), saveToProject: true }).catch(() => {});
     }, 400);
     return () => clearTimeout(timer);
-  }, [projectId, resolvePayload]);
+  }, [projectId, resolvePayload, commercialStage]);
 
   const communityOptions = useMemo(() => {
     const names = new Set();
@@ -173,6 +178,10 @@ export default function ProjectApprovalsPage() {
   }, [cases, selected, visibleCases]);
 
   const runRestore = async () => {
+    if (isProjectArchived(commercialStage)) {
+      setMessage("This project is archived and read-only.");
+      return;
+    }
     setBusy(true);
     setMessage("");
     try {
@@ -193,6 +202,10 @@ export default function ProjectApprovalsPage() {
 
   const runAdd = async () => {
     if (!addPermitCode) return;
+    if (isProjectArchived(commercialStage)) {
+      setMessage("This project is archived and read-only.");
+      return;
+    }
     setBusy(true);
     setMessage("");
     try {
@@ -208,6 +221,10 @@ export default function ProjectApprovalsPage() {
   };
 
   const runDelete = async (caseUuid, permitName) => {
+    if (isProjectArchived(commercialStage)) {
+      setMessage("This project is archived and read-only.");
+      return;
+    }
     if (!window.confirm(`Remove ${permitName || "this permit"} from the required list?`)) return;
     setBusy(true);
     setMessage("");
@@ -223,6 +240,8 @@ export default function ProjectApprovalsPage() {
     }
   };
 
+  const archived = isProjectArchived(commercialStage);
+
   return (
     <PageShell>
       <div className="flex items-start gap-2">
@@ -236,6 +255,8 @@ export default function ProjectApprovalsPage() {
           subtitle="Authority, community and building permits for this project."
         />
       </div>
+
+      <ProjectLifecycleBanner commercialStage={commercialStage} />
 
       {message && (
         <div className="rounded-lg bg-secondary px-4 py-3 text-sm text-foreground">{message}</div>
@@ -380,7 +401,7 @@ export default function ProjectApprovalsPage() {
           </div>
 
           <div className="space-y-2">
-            <Button size="sm" disabled={busy} onClick={runRestore}>
+            <Button size="sm" disabled={busy || archived} onClick={runRestore}>
               {busy ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Sparkles className="h-4 w-4 mr-1" />}
               Restore from BOQ/scope
             </Button>
@@ -447,7 +468,7 @@ export default function ProjectApprovalsPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <Button size="sm" className="h-9" disabled={busy || !addPermitCode} onClick={runAdd}>
+                <Button size="sm" className="h-9" disabled={busy || archived || !addPermitCode} onClick={runAdd}>
                   <Plus className="h-4 w-4 mr-1" /> Add
                 </Button>
               </div>
@@ -509,7 +530,7 @@ export default function ProjectApprovalsPage() {
                           size="icon"
                           className="mt-2 mr-1 h-8 w-8 shrink-0 text-muted-foreground hover:text-red-700"
                           title="Remove permit"
-                          disabled={busy}
+                          disabled={busy || archived}
                           onClick={() => runDelete(c.uuid, c.permitTypeName)}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -542,6 +563,7 @@ export default function ProjectApprovalsPage() {
                 caseUuid={selected}
                 summary={cases.find((c) => c.uuid === selected)}
                 onChanged={load}
+                readOnly={archived}
               />
             ) : (
               <div className="flex h-full min-h-[240px] flex-col items-center justify-center rounded-xl border border-dashed border-border/60 px-6 py-12 text-center">

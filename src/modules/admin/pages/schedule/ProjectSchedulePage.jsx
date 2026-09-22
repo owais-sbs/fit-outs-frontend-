@@ -41,6 +41,8 @@ import CpmGantt from "./CpmGantt";
 import ScheduleApplyWizard from "./ScheduleApplyWizard";
 import { ROUTES } from "@/shared/constants/routes";
 import { Switch } from "@/components/ui/switch";
+import ProjectLifecycleBanner from "../../components/projects/ProjectLifecycleBanner";
+import { useProjectLifecycle } from "../../hooks/useProjectLifecycle";
 
 const DAY_MS = 86400000;
 
@@ -91,6 +93,7 @@ function formatDate(d) {
 
 export default function ProjectSchedulePage() {
   const { projectId } = useParams();
+  const { commercialStage, archived } = useProjectLifecycle(projectId);
   const location = useLocation();
   const isPm = location.pathname.startsWith("/project-manager");
   const detailPath = (isPm ? ROUTES.PROJECT_MANAGER.PROJECT_DETAIL : ROUTES.ADMIN.PROJECT_DETAIL)
@@ -257,6 +260,10 @@ export default function ProjectSchedulePage() {
   }, [projectId]);
 
   const run = async (fn, okMsg) => {
+    if (archived) {
+      setMessage("This project is archived and read-only.");
+      return;
+    }
     setBusy(true);
     setMessage("");
     try {
@@ -465,26 +472,28 @@ export default function ProjectSchedulePage() {
                 Show baseline
               </Label>
             </div>
-            <Button size="sm" variant="outline" disabled={busy} onClick={() => setShowWizard((v) => !v)}>
+            <Button size="sm" variant="outline" disabled={busy || archived} onClick={() => setShowWizard((v) => !v)}>
               <Wand2 className="h-4 w-4 mr-1" /> {showWizard ? "Close wizard" : "Apply template"}
             </Button>
-            <Button size="sm" variant="outline" disabled={busy} onClick={handleBaseline}>
+            <Button size="sm" variant="outline" disabled={busy || archived} onClick={handleBaseline}>
               <Save className="h-4 w-4 mr-1" /> Baseline
             </Button>
             <Button
               size="sm"
               variant="outline"
-              disabled={busy || !(schedule?.activities || []).length}
+              disabled={busy || archived || !(schedule?.activities || []).length}
               onClick={handleSaveAsTemplate}
             >
               <Save className="h-4 w-4 mr-1" /> Save as template
             </Button>
-            <Button size="sm" disabled={busy || !(publishAllowed || schedule?.ganttPublishAllowed)} onClick={handlePublish}>
+            <Button size="sm" disabled={busy || archived || !(publishAllowed || schedule?.ganttPublishAllowed)} onClick={handlePublish}>
               <Upload className="h-4 w-4 mr-1" /> Publish
             </Button>
           </div>
         }
       />
+
+      <ProjectLifecycleBanner commercialStage={commercialStage} />
 
       <div className="flex flex-wrap items-center gap-2 -mt-2">
         <Button asChild variant="ghost" size="sm" className="-ml-2 text-muted-foreground">

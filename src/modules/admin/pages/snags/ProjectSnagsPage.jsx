@@ -22,6 +22,8 @@ import { fetchAllEmployees } from "../../api/employees.api";
 import { fetchProjectRooms } from "../../api/room-collab.api";
 import { fetchProjectSchedule } from "../../api/schedule.api";
 import { ROUTES } from "@/shared/constants/routes";
+import ProjectLifecycleBanner from "../../components/projects/ProjectLifecycleBanner";
+import { useProjectLifecycle } from "../../hooks/useProjectLifecycle";
 
 const statusClass = {
   OPEN: "bg-amber-500/15 text-amber-700",
@@ -54,6 +56,7 @@ const emptyForm = {
 export default function ProjectSnagsPage() {
   const { projectId } = useParams();
   const location = useLocation();
+  const { commercialStage, archived } = useProjectLifecycle(projectId);
   const isPm = location.pathname.startsWith("/project-manager");
   const detailPath = (isPm ? ROUTES.PROJECT_MANAGER.PROJECT_DETAIL : ROUTES.ADMIN.PROJECT_DETAIL)
     .replace(":projectId", projectId);
@@ -96,6 +99,10 @@ export default function ProjectSnagsPage() {
   }, [activities, form.projectRoomId]);
 
   const run = async (fn, okMsg) => {
+    if (archived) {
+      setMessage("This project is archived and read-only.");
+      return;
+    }
     setBusy(true);
     setMessage("");
     try {
@@ -143,10 +150,13 @@ export default function ProjectSnagsPage() {
         <PageTitle title="Snags" subtitle={`Project #${projectId}`} />
       </div>
 
+      <ProjectLifecycleBanner commercialStage={commercialStage} />
+
       {message && (
         <p className="rounded-lg border border-border bg-secondary/40 px-3 py-2 text-sm">{message}</p>
       )}
 
+      {!archived && (
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold">Raise snag</CardTitle>
@@ -268,6 +278,7 @@ export default function ProjectSnagsPage() {
           </Button>
         </CardContent>
       </Card>
+      )}
 
       <Card>
         <CardHeader className="pb-2">
@@ -320,7 +331,7 @@ export default function ProjectSnagsPage() {
                       <select
                         className="h-8 rounded-md border border-input bg-transparent px-2 text-xs"
                         value={s.status || "OPEN"}
-                        disabled={busy}
+                        disabled={busy || archived}
                         onChange={(e) =>
                           run(() => updateSnagStatus(projectId, s.uuid, e.target.value), "Status updated")
                         }
@@ -332,7 +343,7 @@ export default function ProjectSnagsPage() {
                       <select
                         className="h-8 rounded-md border border-input bg-transparent px-2 text-xs"
                         value={s.assigneeAccountId || ""}
-                        disabled={busy}
+                        disabled={busy || archived}
                         onChange={(e) =>
                           run(
                             () => updateSnag(projectId, s.uuid, {
@@ -353,7 +364,7 @@ export default function ProjectSnagsPage() {
                         <input
                           type="checkbox"
                           checked={!!s.clientVisible}
-                          disabled={busy}
+                          disabled={busy || archived}
                           onChange={(e) =>
                             run(
                               () => updateSnag(projectId, s.uuid, { clientVisible: e.target.checked }),
@@ -365,7 +376,7 @@ export default function ProjectSnagsPage() {
                       </label>
                     </div>
                   </div>
-                  {(s.status === "OPEN" || s.status === "IN_PROGRESS" || s.status === "READY_FOR_INSPECTION") && (
+                  {(s.status === "OPEN" || s.status === "IN_PROGRESS" || s.status === "READY_FOR_INSPECTION") && !archived && (
                     <AttachmentUploadField
                       label="Add photos"
                       hint="Uploads immediately to this snag."

@@ -3,11 +3,10 @@ import { useParams, Link, useLocation } from "react-router-dom";
 import {
   ArrowLeft, DollarSign, CalendarDays, Clock, Calendar, Pencil,
   TrendingUp, Building2, Briefcase, MapPin, FileImage, FileText, GanttChart,
-  AlertTriangle, BarChart3, CreditCard, HardHat, ClipboardCheck, Stamp, GitBranch,
+  AlertTriangle, BarChart3, CreditCard, HardHat, ClipboardCheck, Stamp, GitBranch, CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -31,6 +30,10 @@ import { fetchBoqsByProject } from "../api/boq.api";
 import { ROUTES, PROJECT_DETAIL_NAV_STATE, boqViewPath, portalRoutesFromPath } from "@/shared/constants/routes";
 import { useAuth } from "@/shared/context/auth-context";
 import { BoqStatusBadge } from "./boq/BoqApprovalTimeline";
+import { PROJECT_STATUS_LIST, PROJECT_STATUS_COLORS, isProjectArchived, isCommercialFrozen } from "../constants/project.constants";
+import ProjectStatusBadge from "../components/projects/ProjectStatusBadge";
+import CommercialLifecycleBadge from "../components/projects/CommercialLifecycleBadge";
+import ProjectLifecycleBanner from "../components/projects/ProjectLifecycleBanner";
 import BoqApprovalPipeline from "./boq/BoqApprovalPipeline";
 import { formatCurrency, formatAed } from "@/shared/utils/currency";
 import { splitProjectBoqs } from "./boq/boqDataUtils";
@@ -39,6 +42,7 @@ import ProjectTeamAssignmentSection from "./ProjectTeamAssignmentSection";
 import ProjectApprovalsSection from "./ProjectApprovalsSection";
 import ProjectDeveloperInfo from "./ProjectDeveloperInfo";
 import { fetchPlanningStatus } from "../api/planning.api";
+import { fetchCloseoutChecklist } from "../api/closeout.api";
 import { fetchJurisdictionPacks, fetchApprovalsCatalog } from "../api/approvals-config.api";
 import { PROJECT_TYPES } from "../constants/project.constants";
 import { ROLES } from "@/shared/constants/roles";
@@ -61,37 +65,21 @@ function InfoItem({ label, value, mono = false }) {
   );
 }
 
-const STATUS_OPTIONS = ["Planning", "In Progress", "On Hold", "Completed", "Cancelled"];
-
-const STATUS_COLORS = {
-  "In Progress": "bg-blue-500/15 text-blue-700 dark:text-blue-400",
-  Completed: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
-  Planning: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
-  "On Hold": "bg-orange-500/15 text-orange-700 dark:text-orange-400",
-  Cancelled: "bg-red-500/15 text-red-700 dark:text-red-400",
-};
-
-function StatusBadge({ status }) {
-  return (
-    <Badge className={cn("border-none font-medium", STATUS_COLORS[status])}>{status}</Badge>
-  );
-}
-
 function StatusSelect({ value, onValueChange, disabled }) {
   return (
     <Select value={value} onValueChange={onValueChange} disabled={disabled}>
       <SelectTrigger
         className={cn(
           "h-8 w-auto min-w-[8.5rem] gap-1 rounded-full border-none px-3 text-xs font-medium shadow-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring/30",
-          STATUS_COLORS[value] || "bg-secondary text-foreground"
+          PROJECT_STATUS_COLORS[value] || "bg-secondary text-foreground"
         )}
       >
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
-        {STATUS_OPTIONS.map((status) => (
+        {PROJECT_STATUS_LIST.map((status) => (
           <SelectItem key={status} value={status}>
-            <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", STATUS_COLORS[status])}>
+            <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", PROJECT_STATUS_COLORS[status])}>
               {status}
             </span>
           </SelectItem>
@@ -138,6 +126,7 @@ export default function ProjectDetailPage() {
   const documentsPath = projectSubPath(routes, "PROJECT_DOCUMENTS", projectId);
   const reportingPath = projectSubPath(routes, "PROJECT_REPORTING", projectId);
   const billingPath = projectSubPath(routes, "PROJECT_BILLING", projectId);
+  const completionPath = projectSubPath(routes, "PROJECT_COMPLETION", projectId);
   const subcontractorsPath = projectSubPath(routes, "PROJECT_SUBCONTRACTORS", projectId);
   const validationPath = projectSubPath(routes, "PROJECT_VALIDATION", projectId);
   const [project, setProject] = useState(null);
@@ -147,6 +136,7 @@ export default function ProjectDetailPage() {
   const [boqs, setBoqs] = useState([]);
   const [boqsLoading, setBoqsLoading] = useState(true);
   const [planningReady, setPlanningReady] = useState(null);
+  const [closeout, setCloseout] = useState(null);
   const [clients, setClients] = useState([]);
   const [clientSaving, setClientSaving] = useState(false);
   const [employees, setEmployees] = useState([]);
@@ -191,6 +181,9 @@ export default function ProjectDetailPage() {
     fetchPlanningStatus(projectId)
       .then((p) => setPlanningReady(!!p?.planningReady || !!p?.ganttPublishAllowed))
       .catch(() => setPlanningReady(null));
+    fetchCloseoutChecklist(projectId)
+      .then(setCloseout)
+      .catch(() => setCloseout(null));
     fetchAllEmployees()
       .then((list) => setEmployees(Array.isArray(list) ? list.filter((e) => e.isActive !== false) : []))
       .catch(() => setEmployees([]));
@@ -255,6 +248,10 @@ export default function ProjectDetailPage() {
     () => splitProjectBoqs(boqs),
     [boqs]
   );
+
+  const archived = isProjectArchived(project?.commercialStage);
+  const commercialFrozen = isCommercialFrozen(project?.commercialStage);
+  const commercialBoqLocked = boqFrozen || commercialFrozen;
 
   const handleTeamSaved = (updated) => {
     setTeamAssignments(updated);
@@ -373,17 +370,24 @@ export default function ProjectDetailPage() {
         title={project.projectName}
         subtitle={`${project.id} · ${project.clientName} · ${project.location}`}
         actions={
-          isFinance ? (
-            <StatusBadge status={project.status} />
-          ) : (
-            <StatusSelect
-              value={project.status}
-              onValueChange={handleStatusChange}
-              disabled={saving}
-            />
-          )
+          <div className="flex flex-wrap items-center gap-2">
+            {project.commercialStage ? (
+              <CommercialLifecycleBadge stage={project.commercialStage} />
+            ) : null}
+            {isFinance ? (
+              <ProjectStatusBadge status={project.status} />
+            ) : (
+              <StatusSelect
+                value={project.status}
+                onValueChange={handleStatusChange}
+                disabled={saving || archived}
+              />
+            )}
+          </div>
         }
       />
+
+      <ProjectLifecycleBanner commercialStage={project.commercialStage} />
 
       <div className="flex flex-wrap items-center gap-2">
         {!isFinance && (
@@ -442,6 +446,13 @@ export default function ProjectDetailPage() {
             <CreditCard className="w-4 h-4 mr-1" /> Billing
           </Link>
         </Button>
+        {completionPath && (
+          <Button asChild size="sm" variant="outline">
+            <Link to={completionPath} state={PROJECT_DETAIL_NAV_STATE}>
+              <CheckCircle2 className="w-4 h-4 mr-1" /> Completion
+            </Link>
+          </Button>
+        )}
       </div>
 
       {saveMessage && (
@@ -507,6 +518,30 @@ export default function ProjectDetailPage() {
       </div>
       )}
 
+      {completionPath && closeout && (
+      <div className="flex flex-col gap-3 rounded-2xl bg-secondary/50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm font-semibold flex flex-wrap items-center gap-2">
+            Commercial close-out
+            {closeout.commercialStage ? (
+              <CommercialLifecycleBadge stage={closeout.commercialStage} />
+            ) : project.commercialStage ? (
+              <CommercialLifecycleBadge stage={project.commercialStage} />
+            ) : null}
+          </p>
+          <p className="text-xs text-muted-foreground">{closeout.summary}</p>
+        </div>
+        <Button asChild size="sm" variant={closeout.allSatisfied ? "default" : "outline"}>
+          <Link
+            to={`${completionPath}${closeout.commercialStage && closeout.commercialStage !== "NOT_READY" && closeout.commercialStage !== "READY_FOR_COMMERCIAL_CLOSE" ? "?tab=post-completion" : ""}`}
+            state={PROJECT_DETAIL_NAV_STATE}
+          >
+            <CheckCircle2 className="h-4 w-4 mr-1" /> Open completion
+          </Link>
+        </Button>
+      </div>
+      )}
+
       {/* BOQ documents */}
       <Card>
         <CardHeader className="pb-2 flex flex-row items-center justify-between">
@@ -514,7 +549,7 @@ export default function ProjectDetailPage() {
             <FileText className="h-4 w-4 text-primary" />
             BOQ
           </CardTitle>
-          {!isPm && !isFinance && !boqFrozen && (
+          {!isPm && !isFinance && !commercialBoqLocked && (
             <Button asChild size="sm" variant="outline">
               <Link to={`${ROUTES.ADMIN.QAS}?projectId=${projectId}`}>New survey BOQ</Link>
             </Button>
@@ -604,7 +639,7 @@ export default function ProjectDetailPage() {
               <Briefcase className="h-4 w-4 text-primary" />
               Project Details
             </CardTitle>
-            {!isFinance && (
+            {!isFinance && !archived && (
               <Button size="sm" variant="outline" onClick={openDetailsEdit}>
                 <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
               </Button>
@@ -668,7 +703,7 @@ export default function ProjectDetailPage() {
                 <Select
                   value={project.clientId ? String(project.clientId) : ""}
                   onValueChange={handleClientChange}
-                  disabled={clientSaving}
+                  disabled={clientSaving || archived}
                 >
                   <SelectTrigger className="h-9">
                     <SelectValue placeholder="Select client for portal access" />
@@ -728,7 +763,7 @@ export default function ProjectDetailPage() {
       </div>
 
       {!isFinance && (
-        <ProjectTeamAssignmentSection projectId={projectId} onSaved={handleTeamSaved} />
+        <ProjectTeamAssignmentSection projectId={projectId} onSaved={handleTeamSaved} readOnly={archived} />
       )}
 
       {labourCrews.length > 0 && (

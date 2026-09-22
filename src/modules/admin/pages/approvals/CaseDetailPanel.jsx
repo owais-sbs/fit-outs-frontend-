@@ -44,7 +44,7 @@ const CHECKLIST_TONES = {
  * Every action goes through the API, which re-runs the compliance gates, so a blocked
  * transition comes back as a message rather than being prevented only in the UI.
  */
-export default function CaseDetailPanel({ caseUuid, summary, onChanged }) {
+export default function CaseDetailPanel({ caseUuid, summary, onChanged, readOnly = false }) {
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -91,6 +91,10 @@ export default function CaseDetailPanel({ caseUuid, summary, onChanged }) {
   }, []);
 
   const run = async (fn, successMessage) => {
+    if (readOnly) {
+      setMessage("This project is archived and read-only.");
+      return null;
+    }
     setBusy(true);
     setMessage("");
     try {

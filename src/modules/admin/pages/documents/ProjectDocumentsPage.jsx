@@ -27,6 +27,8 @@ import {
   resolveFileUrl,
 } from "../../api/documents.api";
 import { ROUTES } from "@/shared/constants/routes";
+import ProjectLifecycleBanner from "../../components/projects/ProjectLifecycleBanner";
+import { useProjectLifecycle } from "../../hooks/useProjectLifecycle";
 
 const CATEGORIES = [
   { value: "drawings", label: "Drawings" },
@@ -81,6 +83,7 @@ function groupLibrary(docs) {
 
 export default function ProjectDocumentsPage() {
   const { projectId } = useParams();
+  const { commercialStage, archived } = useProjectLifecycle(projectId);
   const location = useLocation();
   const isPm = location.pathname.startsWith("/project-manager");
   const detailPath = (isPm ? ROUTES.PROJECT_MANAGER.PROJECT_DETAIL : ROUTES.ADMIN.PROJECT_DETAIL)
@@ -119,6 +122,10 @@ export default function ProjectDocumentsPage() {
   }, [folders, activeFolder]);
 
   const run = async (fn, okMsg) => {
+    if (archived) {
+      setMessage("This project is archived and read-only.");
+      return;
+    }
     setBusy(true);
     setMessage("");
     try {
@@ -192,8 +199,11 @@ export default function ProjectDocumentsPage() {
         <PageTitle title="Documents" subtitle={`Project #${projectId}`} />
       </div>
 
+      <ProjectLifecycleBanner commercialStage={commercialStage} />
+
       {message && <p className="text-sm text-muted-foreground">{message}</p>}
 
+      {!archived && (
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold">Upload document</CardTitle>
@@ -252,8 +262,9 @@ export default function ProjectDocumentsPage() {
           </div>
         </CardContent>
       </Card>
+      )}
 
-      {versionTarget && (
+      {versionTarget && !archived && (
         <Card className="border-dashed">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold">
@@ -346,6 +357,7 @@ export default function ProjectDocumentsPage() {
                               </a>
                             </Button>
                           )}
+                          {!archived && (
                           <Button
                             size="sm"
                             variant="outline"
@@ -354,6 +366,7 @@ export default function ProjectDocumentsPage() {
                           >
                             <Upload className="h-4 w-4 mr-1" /> New version
                           </Button>
+                          )}
                           <Button
                             size="sm"
                             variant="ghost"
@@ -365,6 +378,7 @@ export default function ProjectDocumentsPage() {
                           {d.publishedToClient ? (
                             <>
                               <Badge className="border-none bg-emerald-500/15 text-emerald-700">Published</Badge>
+                              {!archived && (
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -378,8 +392,10 @@ export default function ProjectDocumentsPage() {
                               >
                                 Unpublish
                               </Button>
+                              )}
                             </>
                           ) : (
+                            !archived && (
                             <Button
                               size="sm"
                               variant="outline"
@@ -390,7 +406,9 @@ export default function ProjectDocumentsPage() {
                             >
                               <Upload className="h-4 w-4 mr-1" /> Publish
                             </Button>
+                            )
                           )}
+                          {!archived && (
                           <Button
                             size="icon"
                             variant="ghost"
@@ -402,6 +420,7 @@ export default function ProjectDocumentsPage() {
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
+                          )}
                         </div>
                       </div>
                     );

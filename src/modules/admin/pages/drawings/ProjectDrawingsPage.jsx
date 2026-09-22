@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageShell, PageTitle } from "@/components/layout/PageShell";
+import ProjectLifecycleBanner from "../../components/projects/ProjectLifecycleBanner";
+import { useProjectLifecycle } from "../../hooks/useProjectLifecycle";
 import {
   DRAWING_CATEGORIES,
   fetchProjectDrawings,
@@ -22,6 +24,7 @@ import {
 
 export default function ProjectDrawingsPage() {
   const { projectId } = useParams();
+  const { commercialStage, archived } = useProjectLifecycle(projectId);
   const navigate = useNavigate();
   const location = useLocation();
   const isPm = location.pathname.startsWith("/project-manager");
@@ -159,7 +162,10 @@ export default function ProjectDrawingsPage() {
         />
       </div>
 
+      <ProjectLifecycleBanner commercialStage={commercialStage} />
+
       {/* Upload Form Card */}
+      {!archived && (
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -241,6 +247,7 @@ export default function ProjectDrawingsPage() {
           )}
         </CardContent>
       </Card>
+      )}
 
       {/* Drawings Header & Filter Bar */}
       <div className="flex items-center justify-between pt-2">
@@ -317,7 +324,7 @@ export default function ProjectDrawingsPage() {
                         <Lock className="w-3.5 h-3.5 mr-1" /> QTO Locked
                       </Button>
                     )}
-                    {!isSuperseded && d.status === "FAILED" && d.fileName?.toLowerCase().endsWith(".dwg") && (
+                    {!isSuperseded && d.status === "FAILED" && d.fileName?.toLowerCase().endsWith(".dwg") && !archived && (
                       <Button
                         size="sm"
                         variant="outline"
@@ -327,9 +334,11 @@ export default function ProjectDrawingsPage() {
                         {reconvertingId === d.id ? "Converting…" : "Retry DWG"}
                       </Button>
                     )}
+                    {!archived && (
                     <Button size="icon" variant="ghost" onClick={() => handleDelete(d.id)}>
                       <Trash2 className="w-4 h-4 text-muted-foreground hover:text-destructive" />
                     </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>

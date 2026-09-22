@@ -15,12 +15,19 @@ export function normalizeProject(item = {}) {
     assignedManager: item.assignedManager || "Unassigned",
     progress: item.progress ?? 0,
     status: item.status || "Planning",
+    commercialStage: item.commercialStage || null,
+    archiveEligible: Boolean(item.archiveEligible),
+    dlpStartDate: item.dlpStartDate || null,
+    dlpEndDate: item.dlpEndDate || null,
+    commerciallyClosedAt: item.commerciallyClosedAt || null,
+    archivedAt: item.archivedAt || null,
     budget: item.budget ?? 0,
     startDate: item.startDate || null,
     expectedCompletionDate: item.expectedCompletionDate || null,
     jurisdictionPackId: item.jurisdictionPackId || null,
     approvalPropertyTypeId: item.approvalPropertyTypeId || null,
     approvalProjectNatureId: item.approvalProjectNatureId || null,
+    isActive: (item.active ?? item.isActive) !== false,
   };
 }
 

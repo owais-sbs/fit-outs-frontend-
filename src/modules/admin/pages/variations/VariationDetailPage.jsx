@@ -17,10 +17,13 @@ import {
 import { formatCurrency } from "@/modules/admin/pages/boq/quantityCalcUtils";
 import { useAuth } from "@/shared/context/auth-context";
 import { ROLES } from "@/shared/constants/roles";
+import ProjectLifecycleBanner from "@/modules/admin/components/projects/ProjectLifecycleBanner";
+import { useProjectLifecycle } from "@/modules/admin/hooks/useProjectLifecycle";
 
 export default function VariationDetailPage() {
   const { projectId, uuid } = useParams();
   const { role } = useAuth();
+  const { commercialStage, commercialFrozen } = useProjectLifecycle(projectId);
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -95,7 +98,7 @@ export default function VariationDetailPage() {
 
   const pendingTasks = (item.approvalRun?.tasks || []).filter((t) => t.status === "PENDING");
   const canTriage = [ROLES.PROJECT_MANAGER, ROLES.ADMIN, ROLES.SUPER_ADMIN].includes(role);
-  const editable = ["DRAFT", "REVISED"].includes(item.status);
+  const editable = ["DRAFT", "REVISED"].includes(item.status) && !commercialFrozen;
 
   return (
     <PageShell>
@@ -108,6 +111,8 @@ export default function VariationDetailPage() {
           </Button>
         )}
       />
+
+      <ProjectLifecycleBanner commercialStage={commercialStage} className="mb-4" />
 
       {message && <p className="text-sm mb-3 text-muted-foreground">{message}</p>}
 
@@ -132,7 +137,7 @@ export default function VariationDetailPage() {
         </Surface>
 
         <Surface className="p-4 space-y-3">
-          {item.status === "AWAITING_TRIAGE" && canTriage && (
+          {item.status === "AWAITING_TRIAGE" && canTriage && !commercialFrozen && (
             <>
               <Label>Triage note</Label>
               <Textarea value={comment} onChange={(e) => setComment(e.target.value)} />
@@ -197,7 +202,7 @@ export default function VariationDetailPage() {
             </>
           )}
 
-          {item.status === "INTERNAL_REVIEW" && pendingTasks.length > 0 && (
+          {item.status === "INTERNAL_REVIEW" && pendingTasks.length > 0 && !commercialFrozen && (
             <div className="space-y-2">
               <p className="text-sm font-medium">Your approval tasks</p>
               {pendingTasks.map((t) => (

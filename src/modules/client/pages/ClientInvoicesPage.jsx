@@ -14,6 +14,8 @@ import { fetchAllProjects } from "@/modules/admin/api/projects.api";
 import { resolveFileUrl } from "@/modules/admin/api/documents.api";
 import { formatAed } from "@/shared/utils/currency";
 import { BillingApprovalPipeline } from "@/modules/admin/pages/billing/BillingApprovalPipeline";
+import ProjectLifecycleBanner from "@/modules/admin/components/projects/ProjectLifecycleBanner";
+import { useProjectLifecycle } from "@/modules/admin/hooks/useProjectLifecycle";
 
 const STATUS_VARIANT = {
   Paid: "success",
@@ -78,6 +80,7 @@ export default function ClientInvoicesPage() {
   const [search, setSearch] = useState("");
   const [projects, setProjects] = useState([]);
   const [projectId, setProjectId] = useState("");
+  const { commercialStage, commercialFrozen } = useProjectLifecycle(projectId || null);
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [invLoading, setInvLoading] = useState(false);
@@ -205,6 +208,8 @@ export default function ClientInvoicesPage() {
         subtitle="Review project profiles, accept billing proposals, and manage payment schedules."
       />
 
+      <ProjectLifecycleBanner commercialStage={commercialStage} />
+
       {message && (
         <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
           {message}
@@ -239,7 +244,7 @@ export default function ClientInvoicesPage() {
                 Client: {selectedProject.clientName || selectedProject.name} · Contract Total: {formatAed(totals.total)}
               </p>
             </div>
-            {pendingIssuedInvoices.length > 0 && (
+            {pendingIssuedInvoices.length > 0 && !commercialFrozen && (
               <div className="flex gap-2">
                 <Button
                   size="sm"

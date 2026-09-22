@@ -27,6 +27,8 @@ import {
 import { ROUTES, projectPlanningBackPath } from "@/shared/constants/routes";
 import ScTenderPanel from "./ScTenderPanel";
 import ScInspectionReviewPanel from "./ScInspectionReviewPanel";
+import ProjectLifecycleBanner from "../../components/projects/ProjectLifecycleBanner";
+import { useProjectLifecycle } from "../../hooks/useProjectLifecycle";
 
 import {
   findApprovedBoq,
@@ -168,6 +170,7 @@ function AppointPanel({
 
 export default function ProjectSubcontractorPage() {
   const { projectId } = useParams();
+  const { commercialStage, archived } = useProjectLifecycle(projectId);
   const location = useLocation();
   const backPath = projectPlanningBackPath(location, projectId);
   const backLabel = location.state?.from === "detail" ? "Project" : "Schedule";
@@ -210,6 +213,10 @@ export default function ProjectSubcontractorPage() {
   }, [load]);
 
   const run = async (fn, okMsg) => {
+    if (archived) {
+      setMessage("This project is archived and read-only.");
+      return;
+    }
     setBusy(true);
     setMessage("");
     try {
@@ -351,8 +358,11 @@ export default function ProjectSubcontractorPage() {
         />
       </div>
 
+      <ProjectLifecycleBanner commercialStage={commercialStage} />
+
       {message && <p className="text-sm text-muted-foreground">{message}</p>}
 
+      {!archived && (
       <Card className="border-primary/20">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold">Assign from BOQ</CardTitle>
@@ -508,7 +518,9 @@ export default function ProjectSubcontractorPage() {
           )}
         </CardContent>
       </Card>
+      )}
 
+      {!archived && (
       <ScTenderPanel
         projectId={projectId}
         packages={packages}
@@ -516,9 +528,11 @@ export default function ProjectSubcontractorPage() {
         onMessage={setMessage}
         onRefresh={load}
       />
+      )}
 
       <ScInspectionReviewPanel projectId={projectId} />
 
+      {!archived && (
       <Card>
 
         <CardHeader className="pb-2">
@@ -548,6 +562,7 @@ export default function ProjectSubcontractorPage() {
           </Button>
         </CardContent>
       </Card>
+      )}
 
       <Card>
         <CardHeader className="pb-2">
