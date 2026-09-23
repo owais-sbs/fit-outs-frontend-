@@ -50,6 +50,23 @@ export default function SubcontractorRfqInboxPage() {
         <p className="rounded-lg border border-border bg-secondary/40 px-3 py-2 text-sm">{message}</p>
       )}
 
+      {rfqs.some((r) => String(r.bidderStatus).toUpperCase() === "REGRET") && (
+        <Surface className="p-4 border-amber-500/30 bg-amber-500/5 space-y-2 mb-4">
+          <p className="text-sm font-semibold">Regret notices</p>
+          {rfqs
+            .filter((r) => String(r.bidderStatus).toUpperCase() === "REGRET")
+            .map((r) => (
+              <div key={r.packageUuid} className="text-sm space-y-1">
+                <p className="font-medium">{r.packageName} · {r.projectName || `Project #${r.projectId}`}</p>
+                <p className="text-amber-950">
+                  {r.regretMessage
+                    || "We regret to inform you that your bid was not successful on this occasion."}
+                </p>
+              </div>
+            ))}
+        </Surface>
+      )}
+
       <Surface className="p-0 overflow-hidden">
         {rfqs.length === 0 ? (
           <p className="py-16 text-center text-sm text-muted-foreground">No open RFQs in your inbox</p>

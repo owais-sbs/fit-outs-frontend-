@@ -108,6 +108,7 @@ import {
   ScAwardPacksPage,
   ScBackChargesPage,
   ScCertificatesPage,
+  ScClarificationsPage,
   ScDrawingRegisterPage,
   ScMyBidsPage,
   ScNotificationsPage,
@@ -463,6 +464,7 @@ function App() {
               <Route path="drawing-register" element={<ScDrawingRegisterPage />} />
               <Route path="rfq" element={<ScRfqInboxPage />} />
               <Route path="rfq/:packageUuid" element={<ScRfqDetailPage />} />
+              <Route path="clarifications" element={<ScClarificationsPage />} />
               <Route path="my-bids" element={<ScMyBidsPage />} />
               <Route path="award-packs" element={<ScAwardPacksPage />} />
               <Route path="snags" element={<ScSnagsPage />} />

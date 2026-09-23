@@ -35,6 +35,7 @@ import {
   scApiError,
   isScAwardPackMissingError,
 } from "@/modules/admin/api/subcontractor.api";
+import SubcontractAgreementLetter from "./SubcontractAgreementLetter";
 
 const STATUS = {
   WAITING_FOR_ADMIN_SIGNATURE: "WAITING_FOR_ADMIN_SIGNATURE",
@@ -413,6 +414,14 @@ export default function ContractSection({ packageUuid, projectId }) {
           </div>
 
           {canViewPdf && <PdfActions filePath={contract.contractFilePath} executed={isFullyExecuted} />}
+
+          <div className="overflow-x-auto rounded-lg border bg-white">
+            <SubcontractAgreementLetter
+              contract={contract}
+              adminSignatureUrl={adminSigUrl}
+              subSignatureUrl={subSignatureUrl}
+            />
+          </div>
 
           {/* Signature Summary Grid Layout: LEFT = ADMIN, RIGHT = SUBCONTRACTOR */}
           <div className="border rounded-lg p-4 space-y-4 bg-muted/10">

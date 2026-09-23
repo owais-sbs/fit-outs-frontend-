@@ -5,6 +5,7 @@ import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import { PageShell, StatTile, SearchInput, FilterToolbar } from "@/components/layout/PageShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import ProjectStatusBadge from "../components/projects/ProjectStatusBadge";
 import CommercialLifecycleBadge from "../components/projects/CommercialLifecycleBadge";
 import {
@@ -176,6 +177,7 @@ export default function ProjectsPage() {
                 <th className="py-3 px-4">Lead Ref</th>
                 <th className="py-3 px-4">Project Name</th>
                 <th className="py-3 px-4">Client</th>
+                <th className="py-3 px-4">BOQ</th>
                 <th className="py-3 px-4">Status</th>
                 <th className="py-3 px-4">Commercial</th>
                 <th className="py-3 px-4">Created</th>
@@ -189,6 +191,7 @@ export default function ProjectsPage() {
                     <td className="py-4 px-4"><div className="h-4 w-24 bg-muted rounded" /></td>
                     <td className="py-4 px-4"><div className="h-4 w-36 bg-muted rounded" /></td>
                     <td className="py-4 px-4"><div className="h-4 w-28 bg-muted rounded" /></td>
+                    <td className="py-4 px-4"><div className="h-5 w-12 bg-muted rounded-full" /></td>
                     <td className="py-4 px-4"><div className="h-5 w-14 bg-muted rounded-full" /></td>
                     <td className="py-4 px-4"><div className="h-5 w-20 bg-muted rounded-full" /></td>
                     <td className="py-4 px-4"><div className="h-4 w-24 bg-muted rounded" /></td>
@@ -196,7 +199,7 @@ export default function ProjectsPage() {
                 ))
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={8} className="py-12 text-center text-muted-foreground">
                     <Briefcase className="h-10 w-10 mx-auto mb-3 text-muted-foreground/30" />
                     <p className="font-medium">No projects found</p>
                     <Button
@@ -213,6 +216,7 @@ export default function ProjectsPage() {
               ) : (
                 filtered.map((p) => {
                   const clientName = clientMap.get(String(p.clientId))?.fullName || "—";
+                  const hasApprovedBoq = p.hasApprovedBoq === true;
                   return (
                     <tr
                       key={p.id}
@@ -241,6 +245,15 @@ export default function ProjectsPage() {
                       </td>
                       <td className="py-4 px-4 font-medium">{p.name}</td>
                       <td className="py-4 px-4 text-muted-foreground">{clientName}</td>
+                      <td className="py-4 px-4">
+                        {hasApprovedBoq ? (
+                          <Badge className="bg-emerald-500/15 text-emerald-700 border-emerald-500/30 hover:bg-emerald-500/15">
+                            BOQ
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </td>
                       <td className="py-4 px-4">
                         <ProjectStatusBadge status={p.status || PROJECT_STATUS.PLANNING} />
                       </td>

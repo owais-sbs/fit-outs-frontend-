@@ -19,6 +19,8 @@ import { fetchJurisdictionPacks, fetchApprovalsCatalog } from "@/modules/admin/a
 import { DIRHAM_SYMBOL } from "@/shared/utils/currency";
 import { useAuth } from "@/shared/context/auth-context";
 import { ROLES } from "@/shared/constants/roles";
+import { FillDemoDataButton } from "@/components/shared/FillDemoDataButton";
+import { DEMO } from "@/shared/demo/formDemoData";
 
 const CLIENT_MODE = {
   NONE: "none",
@@ -270,10 +272,33 @@ export default function CreateProjectPage() {
         <span className="text-sm text-muted-foreground font-medium">Back to projects</span>
       </div>
 
-      <PageHeader
-        title="Create New Project"
-        description="Start a project with the details you have. Client account is optional — you can skip it or create one here."
-      />
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <PageHeader
+          title="Create New Project"
+          description="Start a project with the details you have. Client account is optional — you can skip it or create one here."
+        />
+        <FillDemoDataButton
+          onClick={() => {
+            const start = new Date();
+            const end = new Date();
+            end.setMonth(end.getMonth() + 6);
+            setClientMode(CLIENT_MODE.NEW);
+            setForm((prev) => ({
+              ...prev,
+              projectName: DEMO.createProject.name,
+              location: DEMO.createProject.location,
+              projectType: "Commercial",
+              budget: DEMO.createProject.budget,
+              description: DEMO.createProject.description,
+              startDate: start.toISOString().slice(0, 10),
+              expectedCompletionDate: end.toISOString().slice(0, 10),
+              newClientName: DEMO.createProject.clientName,
+              newClientEmail: `client.${Date.now().toString(36)}@fitouts.demo`,
+              newClientPhone: "+971504440011",
+            }));
+          }}
+        />
+      </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {errors.submit && (

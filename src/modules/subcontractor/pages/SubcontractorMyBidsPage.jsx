@@ -48,11 +48,27 @@ export default function SubcontractorMyBidsPage() {
     <PageShell>
       <PageTitle
         title="My Bids"
-        subtitle="Submitted quotes and draft bids across all tender packages"
+        subtitle="Submitted quotes and draft bids across all tender packages — including regret outcomes"
       />
 
       {message && (
         <p className="rounded-lg border border-border bg-secondary/40 px-3 py-2 text-sm">{message}</p>
+      )}
+
+      {bids.some((b) => String(b.bidderStatus).toUpperCase() === "REGRET") && (
+        <Surface className="p-4 border-amber-500/30 bg-amber-500/5 space-y-2">
+          <p className="text-sm font-semibold">Regret notices</p>
+          {bids
+            .filter((b) => String(b.bidderStatus).toUpperCase() === "REGRET")
+            .map((b) => (
+              <p key={`regret-${b.uuid}`} className="text-sm text-amber-950">
+                <span className="font-medium">{b.packageName || String(b.packageUuid).slice(0, 8)}</span>
+                {" — "}
+                {b.regretMessage
+                  || "We regret to inform you that your bid was not successful on this occasion."}
+              </p>
+            ))}
+        </Surface>
       )}
 
       <Surface className="p-0 overflow-hidden">
@@ -67,14 +83,20 @@ export default function SubcontractorMyBidsPage() {
                 <TableHead>Total</TableHead>
                 <TableHead>Lead time</TableHead>
                 <TableHead>Submitted</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>Quote</TableHead>
+                <TableHead>Outcome</TableHead>
                 <TableHead className="text-right">RFQ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {bids.map((bid) => (
                 <TableRow key={bid.uuid}>
-                  <TableCell className="font-medium font-mono text-xs">{String(bid.packageUuid).slice(0, 8)}…</TableCell>
+                  <TableCell className="font-medium text-xs">
+                    {bid.packageName || `${String(bid.packageUuid).slice(0, 8)}…`}
+                    {bid.projectName && (
+                      <p className="text-[10px] text-muted-foreground font-normal">{bid.projectName}</p>
+                    )}
+                  </TableCell>
                   <TableCell>v{bid.version}</TableCell>
                   <TableCell className="tabular-nums">{bid.ratesVisible ? formatMoney(bid.totalValue) : "Sealed"}</TableCell>
                   <TableCell>{bid.leadTimeDays != null ? `${bid.leadTimeDays}d` : "—"}</TableCell>
@@ -83,6 +105,13 @@ export default function SubcontractorMyBidsPage() {
                     <Badge className={`${SC_STATUS_BADGE[bid.status] || "bg-muted border-none"} text-[10px]`}>
                       {formatScStatus(bid.status)}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {bid.bidderStatus ? (
+                      <Badge className={`${SC_STATUS_BADGE[bid.bidderStatus] || "bg-muted border-none"} text-[10px]`}>
+                        {formatScStatus(bid.bidderStatus)}
+                      </Badge>
+                    ) : "—"}
                   </TableCell>
                   <TableCell className="text-right">
                     <Button asChild size="sm" variant="ghost">

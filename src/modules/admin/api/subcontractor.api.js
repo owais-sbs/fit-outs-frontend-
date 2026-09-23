@@ -26,6 +26,12 @@ export const fetchAllSubcontractors = () =>
 export const fetchScPackages = (projectId) =>
   axiosInstance.get(`/projects/${projectId}/sc-packages`).then(unwrap);
 
+export const fetchScTradePackages = () =>
+  axiosInstance.get("/sc/trade-packages").then(unwrap);
+
+export const fetchScPackageBoqLines = (projectId) =>
+  axiosInstance.get(`/projects/${projectId}/sc-packages/boq-lines`).then(unwrap);
+
 export const createScPackage = (projectId, payload) =>
   axiosInstance.post(`/projects/${projectId}/sc-packages`, payload).then(unwrap);
 
@@ -191,6 +197,14 @@ export const updateScWorker = (uuid, payload) =>
 export const deleteScWorker = (uuid) =>
   axiosInstance.delete(`/subcontractor/workers/${uuid}`).then(unwrap);
 
+export const uploadScWorkerDocument = (uuid, docType, file) => {
+  const form = new FormData();
+  form.append("file", file);
+  return axiosInstance
+    .post(`/subcontractor/workers/${uuid}/documents/${docType}`, form, multipartConfig())
+    .then(unwrap);
+};
+
 export const fetchScAppointmentEligibility = (accountId, packageUuid) =>
   axiosInstance
     .get(`/sc-companies/${accountId}/appointment-eligibility`, { params: { packageUuid } })
@@ -207,6 +221,20 @@ export const fetchScVendor = (organizationUuid) =>
 
 export const inviteScVendor = (payload) =>
   axiosInstance.post("/subcontractors/invite", payload).then(unwrap);
+
+export const createScPublicRegistrationLink = (regenerate = false) =>
+  axiosInstance
+    .post(`/subcontractors/public-registration-link`, null, { params: { regenerate } })
+    .then(unwrap);
+
+export const fetchPublicScRegistrationInfo = (token) =>
+  axiosInstance.get(`/public/sc-registration/${token}`).then(unwrap);
+
+export const completePublicScRegistration = (token, payload) =>
+  axiosInstance.post(`/public/sc-registration/${token}/complete`, payload).then(unwrap);
+
+export const submitScPrequalificationReview = () =>
+  axiosInstance.post("/subcontractor/company-profile/submit-for-review").then(unwrap);
 
 export const reviewScVendorPrequalification = (organizationUuid, payload) =>
   axiosInstance.put(`/subcontractors/${organizationUuid}/prequalification`, payload).then(unwrap);
@@ -299,6 +327,9 @@ export const fetchScPackageBids = (packageUuid) =>
 export const fetchScRfqClarifications = (packageUuid) =>
   axiosInstance.get(`/subcontractor/tender/rfqs/${packageUuid}/clarifications`).then(unwrap);
 
+export const fetchScAllClarifications = () =>
+  axiosInstance.get("/subcontractor/tender/clarifications").then(unwrap);
+
 export const addScRfqClarification = (packageUuid, payload) =>
   axiosInstance.post(`/subcontractor/tender/rfqs/${packageUuid}/clarifications`, payload).then(unwrap);
 
@@ -351,6 +382,21 @@ export const fetchScAwardPack = (projectId, packageUuid) =>
   axiosInstance
     .get(`/projects/${projectId}/sc-packages/${packageUuid}/tender/award-pack`)
     .then(unwrap);
+
+export const fetchMyScAwardPacks = () =>
+  axiosInstance.get("/subcontractor/tender/award-packs").then(unwrap);
+
+export const fetchMyScAwardPack = (packageUuid) =>
+  axiosInstance.get(`/subcontractor/tender/award-packs/${packageUuid}`).then(unwrap);
+
+export const fetchScPackageWorkers = (packageUuid) =>
+  axiosInstance.get(`/subcontractor/packages/${packageUuid}/workers`).then(unwrap);
+
+export const nominateScPackageWorker = (packageUuid, payload) =>
+  axiosInstance.post(`/subcontractor/packages/${packageUuid}/workers`, payload).then(unwrap);
+
+export const completeScPackage = (packageUuid) =>
+  axiosInstance.post(`/subcontractor/packages/${packageUuid}/complete`).then(unwrap);
 
 // ── Wave 7: SC commercial portal ───────────────────────────────────────────
 
@@ -519,10 +565,23 @@ export function mapAwardPackToContract(pack) {
     awardUuid: pack.uuid ?? pack.awardUuid,
     packageUuid: pack.packageUuid,
     packageName: pack.packageName,
+    projectId: pack.projectId,
+    projectName: pack.projectName,
+    projectLocation: pack.projectLocation,
     organizationUuid: pack.organizationUuid,
     organizationName: pack.organizationName,
     awardedValue: pack.awardedValue,
     awardedAt: pack.awardedAt,
+    tradePackageCode: pack.tradePackageCode,
+    tradePackageName: pack.tradePackageName,
+    tenderDescription: pack.tenderDescription,
+    paymentTerms: pack.paymentTerms,
+    retentionPct: pack.retentionPct,
+    ldTerms: pack.ldTerms,
+    plannedStart: pack.plannedStart,
+    plannedFinish: pack.plannedFinish,
+    exclusionsText: pack.exclusionsText,
+    qualificationsText: pack.qualificationsText,
     contractStatus,
     contractFilePath: pack.contractFilePath,
     contractAvailable: pack.contractAvailable ?? true,

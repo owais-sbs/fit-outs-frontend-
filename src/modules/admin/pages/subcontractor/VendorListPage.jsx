@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Building2, Plus, Search, UserPlus } from "lucide-react";
+import { Building2, Copy, Link2, Plus, Search, UserPlus } from "lucide-react";
 import { PageShell, PageTitle, StatTile } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -31,23 +30,18 @@ import {
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  createScPublicRegistrationLink,
   fetchScVendors,
   inviteScVendor,
-  reviewScVendorPrequalification,
 } from "../../api/subcontractor.api";
+import { FillDemoDataButton } from "@/components/shared/FillDemoDataButton";
+import { DEMO } from "@/shared/demo/formDemoData";
+import VendorReviewDialog from "./VendorReviewDialog";
 
 const STATUS_OPTIONS = [
   "ALL",
   "INVITED",
   "REGISTERED",
-  "UNDER_REVIEW",
-  "APPROVED",
-  "CONDITIONAL",
-  "SUSPENDED",
-  "BLACKLISTED",
-];
-
-const REVIEW_STATUS_OPTIONS = [
   "UNDER_REVIEW",
   "APPROVED",
   "CONDITIONAL",
@@ -76,10 +70,9 @@ function normalizeVendor(item = {}) {
     primaryContactEmail: item.primaryContactEmail || item.primary_contact_email || "",
     status: item.status || "INVITED",
     complianceStatus: item.complianceStatus || item.compliance_status || "—",
+    tradeCategories: item.tradeCategories || item.trade_categories || [],
     approvedTrades: item.approvedTrades || item.approved_trades || [],
     maxPackageValue: item.maxPackageValue ?? item.max_package_value ?? null,
-    prequalificationNotes: item.prequalificationNotes || item.prequalification_notes || "",
-    reviewedAt: item.reviewedAt || item.reviewed_at || null,
   };
 }
 
@@ -91,7 +84,9 @@ export default function VendorListPage() {
   const [message, setMessage] = useState("");
   const [inviteOpen, setInviteOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
-  const [selected, setSelected] = useState(null);
+  const [publicLinkOpen, setPublicLinkOpen] = useState(false);
+  const [publicLink, setPublicLink] = useState(null);
+  const [reviewOrgUuid, setReviewOrgUuid] = useState(null);
   const [saving, setSaving] = useState(false);
 
   const [inviteForm, setInviteForm] = useState({
@@ -99,13 +94,6 @@ export default function VendorListPage() {
     fullName: "",
     email: "",
     phone: "",
-  });
-
-  const [reviewForm, setReviewForm] = useState({
-    status: "APPROVED",
-    notes: "",
-    approvedTrades: "",
-    maxPackageValue: "",
   });
 
   const loadVendors = useCallback(async () => {
@@ -143,16 +131,36 @@ export default function VendorListPage() {
   }, [vendors, search]);
 
   const openReview = (vendor) => {
-    setSelected(vendor);
-    setReviewForm({
-      status: vendor.status === "INVITED" || vendor.status === "REGISTERED"
-        ? "UNDER_REVIEW"
-        : vendor.status,
-      notes: vendor.prequalificationNotes || "",
-      approvedTrades: (vendor.approvedTrades || []).join(", "),
-      maxPackageValue: vendor.maxPackageValue != null ? String(vendor.maxPackageValue) : "",
-    });
+    setReviewOrgUuid(vendor.organizationUuid);
     setReviewOpen(true);
+  };
+
+  const handlePublicLink = async (regenerate = false) => {
+    setSaving(true);
+    setMessage("");
+    try {
+      const data = await createScPublicRegistrationLink(regenerate);
+      const origin = window.location.origin;
+      setPublicLink({
+        ...data,
+        fullUrl: `${origin}${data.path || `/register/subcontractor?token=${data.token}`}`,
+      });
+      setPublicLinkOpen(true);
+    } catch (e) {
+      setMessage(e?.response?.data?.error || e?.response?.data?.message || "Failed to generate link");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const copyLink = async () => {
+    if (!publicLink?.fullUrl) return;
+    try {
+      await navigator.clipboard.writeText(publicLink.fullUrl);
+      setMessage("Public registration link copied.");
+    } catch {
+      setMessage(publicLink.fullUrl);
+    }
   };
 
   const handleInvite = async () => {
@@ -180,44 +188,22 @@ export default function VendorListPage() {
     }
   };
 
-  const handleReview = async () => {
-    if (!selected?.organizationUuid) return;
-    setSaving(true);
-    setMessage("");
-    try {
-      const approvedTrades = reviewForm.approvedTrades
-        .split(",")
-        .map((t) => t.trim())
-        .filter(Boolean);
-      await reviewScVendorPrequalification(selected.organizationUuid, {
-        status: reviewForm.status,
-        notes: reviewForm.notes.trim() || undefined,
-        approvedTrades: approvedTrades.length ? approvedTrades : undefined,
-        maxPackageValue: reviewForm.maxPackageValue
-          ? Number(reviewForm.maxPackageValue)
-          : undefined,
-      });
-      setReviewOpen(false);
-      setSelected(null);
-      setMessage("Prequalification review saved.");
-      await loadVendors();
-    } catch (e) {
-      setMessage(e?.response?.data?.error || e?.response?.data?.message || "Review failed");
-    } finally {
-      setSaving(false);
-    }
-  };
-
   return (
     <PageShell>
       <PageTitle
         title="Subcontractor vendors"
-        subtitle="Invite-only onboarding. QS and PM can review prequalification."
+        subtitle="Public self-registration or manual invite. QS reviews trades and documents."
         actions={
-          <Button size="sm" className="gap-2" onClick={() => setInviteOpen(true)}>
-            <UserPlus className="h-4 w-4" />
-            Invite vendor
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="outline" className="gap-2" disabled={saving} onClick={() => handlePublicLink(false)}>
+              <Link2 className="h-4 w-4" />
+              Public registration link
+            </Button>
+            <Button size="sm" className="gap-2" onClick={() => setInviteOpen(true)}>
+              <UserPlus className="h-4 w-4" />
+              Invite vendor
+            </Button>
+          </div>
         }
       />
 
@@ -280,7 +266,7 @@ export default function VendorListPage() {
               {!loading && filtered.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center text-muted-foreground">
-                    No vendors found. Send an invite to onboard a subcontractor.
+                    No vendors found. Share a public link or send an invite.
                   </TableCell>
                 </TableRow>
               )}
@@ -289,9 +275,14 @@ export default function VendorListPage() {
                   <TableCell className="font-medium">{vendor.legalCompanyName}</TableCell>
                   <TableCell>{vendor.primaryContactEmail || "—"}</TableCell>
                   <TableCell>
-                    <Badge variant={STATUS_VARIANT[vendor.status] || "secondary"}>
-                      {formatStatus(vendor.status)}
-                    </Badge>
+                    <div className="flex flex-wrap gap-1">
+                      <Badge variant={STATUS_VARIANT[vendor.status] || "secondary"}>
+                        {formatStatus(vendor.status)}
+                      </Badge>
+                      {vendor.status === "REGISTERED" || vendor.status === "UNDER_REVIEW" ? (
+                        <Badge variant="outline" className="text-[10px]">NEW / FOR REVIEW</Badge>
+                      ) : null}
+                    </div>
                   </TableCell>
                   <TableCell>{vendor.complianceStatus}</TableCell>
                   <TableCell className="text-right">
@@ -306,13 +297,36 @@ export default function VendorListPage() {
         </CardContent>
       </Card>
 
+      <Dialog open={publicLinkOpen} onOpenChange={setPublicLinkOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Public registration link</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Share this link on WhatsApp, email or any channel. Recipients self-register without you creating their company first.
+          </p>
+          <Input readOnly value={publicLink?.fullUrl || ""} className="font-mono text-xs" />
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" size="sm" disabled={saving} onClick={() => handlePublicLink(true)}>
+              Regenerate
+            </Button>
+            <Button size="sm" className="gap-2" onClick={copyLink}>
+              <Copy className="h-4 w-4" /> Copy link
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Invite subcontractor</DialogTitle>
+            <DialogTitle>Invite subcontractor (manual)</DialogTitle>
           </DialogHeader>
+          <div className="flex justify-end">
+            <FillDemoDataButton onClick={() => setInviteForm({ ...DEMO.vendorInvite })} />
+          </div>
           <p className="text-sm text-muted-foreground">
-            Registration is invite-only. The contact receives an email to set their portal password.
+            Create the vendor and send a password-setup email. Demo emails ending in @fitouts.demo use the configured demo password behaviour.
           </p>
           <div className="grid gap-3 py-2">
             <div className="grid gap-1.5">
@@ -357,69 +371,18 @@ export default function VendorListPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={reviewOpen} onOpenChange={setReviewOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Prequalification review</DialogTitle>
-          </DialogHeader>
-          {selected && (
-            <p className="text-sm text-muted-foreground">
-              {selected.legalCompanyName} · {selected.primaryContactEmail}
-            </p>
-          )}
-          <div className="grid gap-3 py-2">
-            <div className="grid gap-1.5">
-              <Label>Decision</Label>
-              <Select
-                value={reviewForm.status}
-                onValueChange={(v) => setReviewForm((f) => ({ ...f, status: v }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {REVIEW_STATUS_OPTIONS.map((s) => (
-                    <SelectItem key={s} value={s}>{formatStatus(s)}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-1.5">
-              <Label>Approved trades (comma-separated)</Label>
-              <Input
-                value={reviewForm.approvedTrades}
-                onChange={(e) => setReviewForm((f) => ({ ...f, approvedTrades: e.target.value }))}
-                placeholder="e.g. MEP, Joinery"
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>Max package value (AED)</Label>
-              <Input
-                type="number"
-                min="0"
-                value={reviewForm.maxPackageValue}
-                onChange={(e) => setReviewForm((f) => ({ ...f, maxPackageValue: e.target.value }))}
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>Notes</Label>
-              <Textarea
-                rows={3}
-                value={reviewForm.notes}
-                onChange={(e) => setReviewForm((f) => ({ ...f, notes: e.target.value }))}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setReviewOpen(false)} disabled={saving}>
-              Cancel
-            </Button>
-            <Button onClick={handleReview} disabled={saving}>
-              Save review
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <VendorReviewDialog
+        open={reviewOpen}
+        onOpenChange={(open) => {
+          setReviewOpen(open);
+          if (!open) setReviewOrgUuid(null);
+        }}
+        organizationUuid={reviewOrgUuid}
+        onSaved={async () => {
+          setMessage("Prequalification review saved.");
+          await loadVendors();
+        }}
+      />
     </PageShell>
   );
 }

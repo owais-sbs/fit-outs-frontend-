@@ -42,6 +42,197 @@ function toDatetimeLocal(value) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+function clip(text, max = 120) {
+  const s = String(text || "").trim();
+  if (!s) return "—";
+  return s.length > max ? `${s.slice(0, max - 1)}…` : s;
+}
+
+function BidComparisonMatrix({ comparison, rows, deadlinePassed }) {
+  const scopeLines = comparison?.scopeLines || [];
+  const submitted = rows.filter((r) => r.quoteUuid || String(r.bidderStatus).toUpperCase() === "SUBMITTED");
+
+  if (!deadlinePassed) {
+    return (
+      <div className="divide-y divide-border/30 rounded-lg border border-border/40">
+        {rows.map((row) => (
+          <div key={row.organizationUuid} className="flex flex-wrap items-center gap-2 px-3 py-2 text-xs">
+            <span className="font-medium flex-1">{row.organizationName || "—"}</span>
+            <span className="tabular-nums">••••</span>
+            <span>—</span>
+            <Badge variant="outline" className="text-[10px]">{formatScStatus(row.bidderStatus)}</Badge>
+          </div>
+        ))}
+        <p className="px-3 py-2 text-[11px] text-amber-800">
+          Rates and commercial fields stay sealed until the tender deadline.
+        </p>
+      </div>
+    );
+  }
+
+  if (submitted.length === 0) {
+    return <p className="text-xs text-muted-foreground">No submitted bids to compare yet.</p>;
+  }
+
+  const commercialRows = [
+    {
+      key: "total",
+      label: "Total (quoted)",
+      render: (b) => (
+        <span className={b.cheapestTotal ? "font-semibold text-emerald-700" : "tabular-nums"}>
+          {formatMoney(b.totalValue)}
+          {b.cheapestTotal ? " · lowest" : ""}
+        </span>
+      ),
+    },
+    {
+      key: "lead",
+      label: "Lead time",
+      render: (b) => (b.leadTimeDays != null ? `${b.leadTimeDays} days` : "—"),
+    },
+    {
+      key: "pay",
+      label: "Payment terms",
+      render: (b) => clip(b.paymentTerms || comparison?.paymentTerms, 80),
+    },
+    {
+      key: "ret",
+      label: "Retention",
+      render: (b) => (b.retentionPct != null || comparison?.retentionPct != null
+        ? `${b.retentionPct ?? comparison.retentionPct}%`
+        : "—"),
+    },
+    {
+      key: "prelim",
+      label: "Preliminaries",
+      render: (b) => formatMoney(b.preliminariesValue),
+    },
+    {
+      key: "prov",
+      label: "Provisional sums",
+      render: (b) => formatMoney(b.provisionalSumsValue),
+    },
+    {
+      key: "scope",
+      label: "Scope gaps / exclusions",
+      render: (b) => (
+        <span className="block max-w-[220px]">
+          {b.excludedLineCount > 0 && (
+            <span className="text-amber-800">{b.excludedLineCount} line(s) excluded/missing. </span>
+          )}
+          {clip(b.exclusionsText || (b.scopeGaps || []).join("; "), 140)}
+        </span>
+      ),
+    },
+    {
+      key: "qual",
+      label: "Qualifications",
+      render: (b) => clip(b.qualificationsText, 140),
+    },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <p className="text-[11px] text-muted-foreground">
+        Side-by-side comparison, normalised for scope gaps and exclusions, payment terms, retention,
+        lead time, preliminaries, provisional sums and qualifications. Cheapest is highlighted per
+        line and in total — lowest total is not always lowest risk.
+      </p>
+
+      <div className="overflow-x-auto rounded-lg border border-border/50">
+        <table className="w-full min-w-[640px] text-xs">
+          <thead>
+            <tr className="border-b bg-muted/30 text-left">
+              <th className="sticky left-0 z-10 bg-muted/40 px-3 py-2 font-medium">Commercial / scope</th>
+              {submitted.map((b) => (
+                <th key={b.organizationUuid} className={`px-3 py-2 font-medium ${b.cheapestTotal ? "bg-emerald-500/10" : ""}`}>
+                  <div>{b.organizationName || "—"}</div>
+                  <Badge variant="outline" className="mt-1 text-[10px]">{formatScStatus(b.bidderStatus)}</Badge>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {commercialRows.map((row) => (
+              <tr key={row.key} className="border-b border-border/30 align-top">
+                <td className="sticky left-0 z-10 bg-background px-3 py-2 font-medium text-muted-foreground">{row.label}</td>
+                {submitted.map((b) => (
+                  <td
+                    key={`${row.key}-${b.organizationUuid}`}
+                    className={`px-3 py-2 ${row.key === "total" && b.cheapestTotal ? "bg-emerald-500/10" : ""}`}
+                  >
+                    {row.render(b)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {scopeLines.length > 0 && (
+        <div className="overflow-x-auto rounded-lg border border-border/50">
+          <table className="w-full min-w-[720px] text-xs">
+            <thead>
+              <tr className="border-b bg-muted/30 text-left">
+                <th className="sticky left-0 z-10 bg-muted/40 px-3 py-2 font-medium">BOQ line</th>
+                {submitted.map((b) => (
+                  <th key={b.organizationUuid} className="px-3 py-2 font-medium">
+                    {b.organizationName || "—"}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {scopeLines.map((scope) => (
+                <tr key={scope.boqLineId} className="border-b border-border/30 align-top">
+                  <td className="sticky left-0 z-10 bg-background px-3 py-2">
+                    <p className="font-medium leading-snug">{clip(scope.description, 90)}</p>
+                    <p className="text-[10px] text-muted-foreground font-mono">
+                      {scope.sectionCode || "—"}
+                      {scope.quantity != null ? ` · qty ${scope.quantity}` : ""}
+                      {scope.unit ? ` ${scope.unit}` : ""}
+                      {scope.preliminaries ? " · Prelims" : ""}
+                      {scope.provisionalSum ? " · Prov. sum" : ""}
+                    </p>
+                  </td>
+                  {submitted.map((b) => {
+                    const cell = (b.lines || []).find((l) => String(l.boqLineId) === String(scope.boqLineId));
+                    const status = cell?.lineStatus || "MISSING";
+                    return (
+                      <td
+                        key={`${scope.boqLineId}-${b.organizationUuid}`}
+                        className={`px-3 py-2 ${cell?.cheapest ? "bg-emerald-500/10" : ""}`}
+                      >
+                        {status === "EXCLUDED" || status === "MISSING" ? (
+                          <span className="text-amber-800">{status === "MISSING" ? "No price" : "Excluded"}</span>
+                        ) : (
+                          <>
+                            <p className={`tabular-nums ${cell?.cheapest ? "font-semibold text-emerald-700" : ""}`}>
+                              {formatMoney(cell?.amount)}
+                              {cell?.cheapest ? " · lowest" : ""}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">
+                              rate {formatMoney(cell?.rate)} · {status}
+                            </p>
+                            {cell?.remarks && (
+                              <p className="mt-0.5 text-[10px] text-muted-foreground">{clip(cell.remarks, 80)}</p>
+                            )}
+                          </>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ScTenderPanel({ projectId, packages, busy: parentBusy, onMessage, onRefresh }) {
   const [selectedPackage, setSelectedPackage] = useState("");
   const [eligible, setEligible] = useState([]);
@@ -53,7 +244,11 @@ export default function ScTenderPanel({ projectId, packages, busy: parentBusy, o
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [selectedOrgs, setSelectedOrgs] = useState([]);
+  const [eligibilityFilter, setEligibilityFilter] = useState("ALL");
+  const [eligibleLoadError, setEligibleLoadError] = useState("");
   const [awardOrg, setAwardOrg] = useState("");
+  const [awardValue, setAwardValue] = useState("");
+  const [awardValueReason, setAwardValueReason] = useState("");
   const [issueForm, setIssueForm] = useState({
     tenderDeadline: "",
     quoteValidityDays: "30",
@@ -75,11 +270,18 @@ export default function ScTenderPanel({ projectId, packages, busy: parentBusy, o
       setBidders([]);
       setComparison(null);
       setClarifications([]);
+      setEligibleLoadError("");
       return Promise.resolve();
     }
     setLoading(true);
+    setEligibleLoadError("");
     return Promise.all([
-      fetchScEligibleBidders(projectId, packageUuid).catch(() => []),
+      fetchScEligibleBidders(projectId, packageUuid).catch((e) => {
+        setEligibleLoadError(
+          e?.response?.data?.error || e?.response?.data?.message || "Failed to load vendors"
+        );
+        return [];
+      }),
       fetchScTenderBidders(projectId, packageUuid).catch(() => []),
       fetchScTenderComparison(projectId, packageUuid).catch(() => null),
       fetchScTenderClarifications(projectId, packageUuid).catch(() => []),
@@ -130,8 +332,15 @@ export default function ScTenderPanel({ projectId, packages, busy: parentBusy, o
   );
 
   const notInvited = useMemo(
-    () => eligible.filter((e) => e.eligible && !invitedOrgIds.has(String(e.organizationUuid))),
-    [eligible, invitedOrgIds]
+    () => eligible.filter((e) => {
+      if (invitedOrgIds.has(String(e.organizationUuid))) return false;
+      const status = e.eligibility?.status || (e.eligible ? "ELIGIBLE" : "INELIGIBLE");
+      return eligibilityFilter === "ALL"
+        || (eligibilityFilter === "ELIGIBLE" && status === "ELIGIBLE")
+        || (eligibilityFilter === "WARNING" && status === "ELIGIBLE_WITH_WARNINGS")
+        || (eligibilityFilter === "INELIGIBLE" && status === "INELIGIBLE");
+    }),
+    [eligible, invitedOrgIds, eligibilityFilter]
   );
 
   const comparisonRows = comparison?.bidders?.length
@@ -172,11 +381,13 @@ export default function ScTenderPanel({ projectId, packages, busy: parentBusy, o
     );
   };
 
-  const addBidders = () =>
+  const addBidders = () => {
+    if (selectedOrgs.length === 0) return;
     run(
       () => addScTenderBidders(projectId, packageUuid, { organizationUuids: selectedOrgs }),
-      "Bidders added"
+      "Bidders invited"
     ).then(() => setSelectedOrgs([]));
+  };
 
   const issueRfq = () =>
     run(
@@ -199,9 +410,10 @@ export default function ScTenderPanel({ projectId, packages, busy: parentBusy, o
         awardScPackage(projectId, packageUuid, {
           organizationUuid: awardOrg,
           quoteUuid: row?.quoteUuid || null,
-          awardedValue: row?.totalValue ?? null,
+          awardedValue: awardValue === "" ? (row?.totalValue ?? null) : Number(awardValue),
+          awardValueReason: awardValueReason.trim() || null,
         }),
-      "Package awarded — other bidders marked regret"
+      "Package awarded — open Contract section below for signature handoff"
     );
   };
 
@@ -278,18 +490,57 @@ export default function ScTenderPanel({ projectId, packages, busy: parentBusy, o
           <>
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground">Add bidders</p>
-              {notInvited.length === 0 ? (
-                <p className="text-xs text-muted-foreground">No additional eligible bidders to invite.</p>
+              <div className="flex gap-1">
+                {["ALL", "ELIGIBLE", "WARNING", "INELIGIBLE"].map((filter) => (
+                  <Button key={filter} size="sm" variant={eligibilityFilter === filter ? "secondary" : "ghost"}
+                    className="h-7 text-[10px]" onClick={() => setEligibilityFilter(filter)}>
+                    {filter === "WARNING" ? "With warnings" : filter[0] + filter.slice(1).toLowerCase()}
+                  </Button>
+                ))}
+              </div>
+              {eligibleLoadError ? (
+                <p className="text-xs text-destructive">{eligibleLoadError}</p>
+              ) : notInvited.length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  {eligible.length === 0
+                    ? "No vendors in your directory yet. Invite or register subcontractors, complete QS prequalification (APPROVED/CONDITIONAL), then refresh."
+                    : "No additional vendors match this filter."}
+                </p>
               ) : (
                 <div className="max-h-36 space-y-1 overflow-y-auto rounded-lg border border-border/40 p-2">
                   {notInvited.map((e) => (
-                    <label key={e.organizationUuid} className="flex items-center gap-2 text-xs cursor-pointer">
+                    <label key={e.organizationUuid} className="flex items-start gap-2 text-xs cursor-pointer">
                       <input
                         type="checkbox"
                         checked={selectedOrgs.includes(e.organizationUuid)}
                         onChange={() => toggleOrg(e.organizationUuid)}
                       />
-                      <span>{e.organizationName}</span>
+                      <span className="flex-1">
+                        <span className="font-medium">{e.organizationName}</span>
+                        <span className={`ml-2 ${e.eligible ? "text-emerald-700" : "text-destructive"}`}>
+                          {e.eligibility?.status || (e.eligible ? "ELIGIBLE" : "INELIGIBLE")}
+                        </span>
+                        {e.eligibility?.blockers?.length > 0 && (
+                          <span className="block text-[10px] text-destructive">
+                            {e.eligibility.blockers.length} blocker{e.eligibility.blockers.length === 1 ? "" : "s"}
+                          </span>
+                        )}
+                        {e.eligibility?.checks?.length > 0 && (
+                          <details className="mt-1 text-[10px]">
+                            <summary className="cursor-pointer text-muted-foreground">View eligibility</summary>
+                            <div className="mt-1 space-y-0.5">
+                              {e.eligibility.checks.map((check) => (
+                                <div key={check.code} className="flex justify-between gap-2">
+                                  <span>{check.label}</span>
+                                  <span className={check.result === "FAIL" ? "text-destructive" : "text-muted-foreground"}>
+                                    {check.result}{check.reason ? ` — ${check.reason}` : ""}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </details>
+                        )}
+                      </span>
                     </label>
                   ))}
                 </div>
@@ -302,6 +553,9 @@ export default function ScTenderPanel({ projectId, packages, busy: parentBusy, o
               >
                 <Plus className="h-4 w-4 mr-1" /> Invite selected
               </Button>
+              <p className="text-[11px] text-muted-foreground">
+                Vendors with warnings can be invited. Hard blockers (not approved, expired licence/insurance) still block invite.
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -401,22 +655,11 @@ export default function ScTenderPanel({ projectId, packages, busy: parentBusy, o
               ) : comparisonRows.length === 0 ? (
                 <p className="text-xs text-muted-foreground">No bidders yet.</p>
               ) : (
-                <div className="divide-y divide-border/30 rounded-lg border border-border/40">
-                  {comparisonRows.map((row) => (
-                    <div key={row.organizationUuid} className="flex flex-wrap items-center gap-2 px-3 py-2 text-xs">
-                      <span className="font-medium flex-1">{row.organizationName || "—"}</span>
-                      <span className="tabular-nums">
-                        {deadlinePassed ? formatMoney(row.totalValue) : "••••"}
-                      </span>
-                      <span>
-                        {deadlinePassed && row.leadTimeDays != null ? `${row.leadTimeDays}d` : "—"}
-                      </span>
-                      <Badge variant="outline" className="text-[10px]">
-                        {formatScStatus(row.bidderStatus)}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
+                <BidComparisonMatrix
+                  comparison={comparison}
+                  rows={comparisonRows}
+                  deadlinePassed={deadlinePassed}
+                />
               )}
 
               {!deadlinePassed && comparisonRows.some((r) => String(r.bidderStatus).toUpperCase() === "SUBMITTED") && (
@@ -440,9 +683,21 @@ export default function ScTenderPanel({ projectId, packages, busy: parentBusy, o
                         .map((b) => (
                           <option key={b.organizationUuid} value={b.organizationUuid}>
                             {b.organizationName} — {formatMoney(b.totalValue)}
+                            {b.cheapestTotal ? " (lowest total)" : ""}
                           </option>
                         ))}
                     </select>
+                  </div>
+                  <div className="w-44 space-y-1">
+                    <Label className="text-xs">Award value</Label>
+                    <Input type="number" value={awardValue}
+                      onChange={(e) => setAwardValue(e.target.value)} placeholder="Quoted total" />
+                  </div>
+                  <div className="min-w-[220px] flex-1 space-y-1">
+                    <Label className="text-xs">Value difference reason</Label>
+                    <Input value={awardValueReason}
+                      onChange={(e) => setAwardValueReason(e.target.value)}
+                      placeholder="Required when different from quote" />
                   </div>
                   <Button size="sm" disabled={isBusy || !awardOrg} onClick={award}>
                     <Trophy className="h-4 w-4 mr-1" /> Award package

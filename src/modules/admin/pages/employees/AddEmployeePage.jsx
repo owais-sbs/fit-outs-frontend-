@@ -14,6 +14,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { FillDemoDataButton } from "@/components/shared/FillDemoDataButton";
+import { DEMO } from "@/shared/demo/formDemoData";
 
 function FeatureSelector({ selected, onChange }) {
   return (
@@ -135,10 +137,22 @@ export default function AddEmployeePage() {
 
   return (
     <PageShell className="pb-28">
-      <PageHeader
-        title="Add Employee"
-        description="Create staff with a portal role. They will receive an email to set their password."
-      />
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <PageHeader
+          title="Add Employee"
+          description="Create staff with a portal role. They will receive an email to set their password."
+        />
+        <FillDemoDataButton
+          onClick={() => setForm({
+            employeeName: DEMO.employee.fullName,
+            email: DEMO.employee.email,
+            phone: DEMO.employee.phone,
+            role: "qs",
+            designation: DEMO.employee.jobTitle,
+            features: [],
+          })}
+        />
+      </div>
 
       {apiError && (
         <div className="flex items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">

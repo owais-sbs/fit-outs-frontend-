@@ -1,8 +1,10 @@
 import ScPortalGate from "./components/ScPortalGate";
 import ScPlaceholderPage from "./pages/ScPlaceholderPage";
+import { Navigate } from "react-router-dom";
 import SubcontractorDocumentsPage from "./pages/SubcontractorDocumentsPage";
 import SubcontractorRfqInboxPage from "./pages/SubcontractorRfqInboxPage";
 import SubcontractorRfqDetailPage from "./pages/SubcontractorRfqDetailPage";
+import SubcontractorClarificationsPage from "./pages/SubcontractorClarificationsPage";
 import SubcontractorMyBidsPage from "./pages/SubcontractorMyBidsPage";
 import SubcontractorAwardPacksPage from "./pages/SubcontractorAwardPacksPage";
 import SubcontractorCertificatesPage from "./pages/SubcontractorCertificatesPage";
@@ -63,13 +65,6 @@ export function gate(roles, element) {
 
 export const SC_PLACEHOLDER_ROUTES = [
   {
-    path: "clarifications",
-    roles: [A, E],
-    title: "Clarifications",
-    subtitle: "Ask questions and view addenda broadcast to all bidders.",
-    specRef: "SC Estimator §2",
-  },
-  {
     path: "inspections",
     roles: [A, S],
     title: "Inspection requests",
@@ -85,10 +80,11 @@ export const SC_PLACEHOLDER_ROUTES = [
   },
   {
     path: "awards",
-    roles: [A],
+    roles: [A, E],
     title: "Awards & contracts",
-    subtitle: "Digital subcontract agreements and e-signature status.",
+    subtitle: "Redirects to award packs / LOI workspace.",
     specRef: "SC Admin §1",
+    redirectTo: "award-packs",
   },
   {
     path: "review-status",
@@ -112,6 +108,10 @@ export function ScRfqInboxPage() {
 
 export function ScRfqDetailPage() {
   return gate([A, E], <SubcontractorRfqDetailPage />);
+}
+
+export function ScClarificationsPage() {
+  return gate([A, E], <SubcontractorClarificationsPage />);
 }
 
 export function ScMyBidsPage() {
@@ -154,7 +154,10 @@ export function ScDrawingRegisterPage() {
   return gate([A, D], <SubcontractorDocumentsPage />);
 }
 
-export function placeholderElement({ path, title, subtitle, specRef, roles }) {
+export function placeholderElement({ path, title, subtitle, specRef, roles, redirectTo }) {
+  if (redirectTo) {
+    return gate(roles, <Navigate to={redirectTo} replace />);
+  }
   return gate(
     roles,
     <ScPlaceholderPage title={title} subtitle={subtitle} specRef={specRef} />,

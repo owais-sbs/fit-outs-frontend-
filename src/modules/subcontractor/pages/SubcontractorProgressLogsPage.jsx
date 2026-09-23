@@ -18,10 +18,12 @@ import {
 } from "@/components/ui/select";
 import { fetchMaterialPlan } from "@/modules/admin/api/material-plan.api";
 import { AttachmentList, AttachmentUploadField } from "@/components/shared/AttachmentField";
+import { FillDemoDataButton } from "@/components/shared/FillDemoDataButton";
 import ProgressMaterialIssuesFields, {
   toMaterialIssuesPayload,
 } from "@/modules/admin/components/progress/ProgressMaterialIssuesFields";
 import { ROUTES } from "@/shared/constants/routes";
+import { DEMO } from "@/shared/demo/formDemoData";
 
 const DELAY_CODES = [
   { value: "WEATHER", label: "Weather" },
@@ -164,7 +166,17 @@ export default function SubcontractorProgressLogsPage() {
           {selected ? (
             <div className="space-y-4">
               <Surface className="p-5">
-                <h2 className="mb-3 text-sm font-semibold">New progress log — {selected.name}</h2>
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <h2 className="text-sm font-semibold">New progress log — {selected.name}</h2>
+                  <FillDemoDataButton
+                    onClick={() => setForm({
+                      percentComplete: DEMO.scProgressLog.percentComplete,
+                      notes: DEMO.scProgressLog.notes,
+                      labourHours: String(DEMO.scProgressLog.manpowerCount * 8),
+                      delayReason: "",
+                    })}
+                  />
+                </div>
                 <div className="space-y-3">
                   <div>
                     <Label className="text-xs">Percent complete</Label>

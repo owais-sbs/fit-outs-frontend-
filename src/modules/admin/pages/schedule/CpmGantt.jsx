@@ -616,7 +616,7 @@ export default function CpmGantt({
                       {months.map((m) => (
                         <div
                           key={`${m.label}-${m.startIndex}`}
-                          className="flex items-center justify-center text-[11px] font-semibold border-r border-border/30"
+                          className="flex items-center justify-center text-[11px] font-semibold border-r border-zinc-300/60 text-zinc-800"
                           style={{
                             width: m.span * PX_PER_DAY,
                             backgroundColor: MONTH_HEADER_BG[m.month],
@@ -633,16 +633,16 @@ export default function CpmGantt({
                         return (
                           <div
                             key={cell.column}
-                            className={`flex flex-col items-center justify-center border-r border-border/20 text-[10px] leading-none text-muted-foreground ${
-                              isToday ? "font-bold text-rose-700" : ""
+                            className={`flex flex-col items-center justify-center border-r border-zinc-300/50 text-[10px] leading-none ${
+                              isToday ? "font-bold text-rose-800" : "text-zinc-700"
                             }`}
                             style={{
                               width: PX_PER_DAY,
                               backgroundColor: isToday ? "#ffe4e6" : !cell.working ? "#e4e4e7" : monthBg,
                             }}
                           >
-                            <span className="opacity-70">{DAY_INITIALS[cell.date.getDay()]}</span>
-                            <span className="mt-0.5">{cell.date.getDate()}</span>
+                            <span className="text-zinc-600">{DAY_INITIALS[cell.date.getDay()]}</span>
+                            <span className="mt-0.5 font-medium">{cell.date.getDate()}</span>
                           </div>
                         );
                       })}
@@ -666,9 +666,8 @@ export default function CpmGantt({
                         className="absolute top-0 bottom-0 z-[1] w-px pointer-events-none"
                         style={{
                           left: i * PX_PER_DAY,
-                          // Even tile: 1.5px mark + gap in a 6px period (40% tighter than 10px).
                           backgroundImage:
-                            "linear-gradient(to bottom, oklch(var(--border)) 0, oklch(var(--border)) 1.5px, transparent 1.5px, transparent 100%)",
+                            "linear-gradient(to bottom, #a1a1aa 0, #a1a1aa 1.5px, transparent 1.5px, transparent 100%)",
                           backgroundSize: "1px 6px",
                           backgroundRepeat: "repeat-y",
                           backgroundPosition: "0 0",

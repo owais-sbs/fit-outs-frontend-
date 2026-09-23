@@ -19,6 +19,8 @@ import {
   submitScClaim,
   uploadScClaimAttachment,
 } from "@/modules/admin/api/subcontractor.api";
+import { FillDemoDataButton } from "@/components/shared/FillDemoDataButton";
+import { DEMO } from "@/shared/demo/formDemoData";
 import { ROUTES } from "@/shared/constants/routes";
 import { SC_STATUS_BADGE, formatScStatus } from "../utils/subcontractor.utils";
 import { AttachmentList, AttachmentUploadField } from "@/components/shared/AttachmentField";
@@ -305,8 +307,11 @@ export default function SubcontractorClaimsPage() {
               </>
             )}
 
-            <div className="space-y-1.5">
+            <div className="flex items-center justify-between gap-2">
               <Label className="text-xs">Claimed quantity</Label>
+              <FillDemoDataButton onClick={() => setForm({ ...DEMO.scClaim })} />
+            </div>
+            <div className="space-y-1.5">
               <Input
                 type="number"
                 value={form.claimedQty}

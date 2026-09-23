@@ -28,6 +28,8 @@ import {
   uploadScOrgDocument,
 } from "@/modules/admin/api/subcontractor.api";
 import { AttachmentList } from "@/components/shared/AttachmentField";
+import { FillDemoDataButton } from "@/components/shared/FillDemoDataButton";
+import { DEMO } from "@/shared/demo/formDemoData";
 import { useSubcontractorPortal } from "../context/SubcontractorPortalContext";
 
 const ORG_DOC_TYPES = [
@@ -154,10 +156,48 @@ export default function SubcontractorOrganizationExtrasPage() {
 
   return (
     <PageShell className="max-w-3xl mx-auto space-y-6">
-      <PageTitle
-        title="Extended profile"
-        subtitle="HSE, capacity, financial terms, community registrations and references (C7)."
-      />
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <PageTitle
+          title="Extended profile"
+          subtitle="HSE, capacity, financial terms, community registrations and references (C7)."
+        />
+        <FillDemoDataButton
+          onClick={() => {
+            setExtForm((f) => ({
+              ...f,
+              tradeLicenceAuthority: "Dubai Economy & Tourism",
+              tradeLicenceActivities: "Electrical contracting, fire alarm & ELV works",
+              locationPin: "25.1465, 55.2280",
+              monthlyCapacityValue: "1200000",
+              monthlyCapacityManpower: "45",
+              yearsInOperation: "12",
+              annualTurnoverBand: "AED 5–10M",
+              workshopAddress: "Al Quoz Industrial 3, Dubai",
+              hseLtiCount: "0",
+              hseOfficerName: "Imran Sheikh",
+              hseOfficerCertExpiry: DEMO.scWorker.insuranceExpiry,
+              paymentTermsAccepted: "30 days",
+              retentionPctAccepted: "5",
+              advancePaymentRequired: "10",
+              workforceTotal: "45",
+              workforceTradeBreakdown: "Electricians 18, Helpers 12, Supervisors 5, Others 10",
+            }));
+            setBankForm({ ...DEMO.scBankDetail });
+            setCommunityForm({
+              authorityCode: "",
+              authorityName: DEMO.scCommunityRegistration.authorityName,
+              registrationNo: DEMO.scCommunityRegistration.registrationNumber,
+              expiryDate: DEMO.scCommunityRegistration.expiryDate,
+            });
+            setRefForm({
+              clientName: "Emaar Properties",
+              projectValue: "3200000",
+              yearCompleted: "2024",
+              scopeDescription: "Electrical package for 18-floor residential tower common areas",
+            });
+          }}
+        />
+      </div>
       {message && <p className="text-sm text-muted-foreground">{message}</p>}
 
       <Surface>
