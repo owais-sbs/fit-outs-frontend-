@@ -9,25 +9,32 @@ const unwrap = (r) => r.data?.data ?? r.data;
 const emptyInbox = () => ({
   progressItems: [],
   claimItems: [],
+  variationItems: [],
+  invoiceItems: [],
   pendingProgressCount: 0,
   pendingClaimCount: 0,
+  pendingVariationCount: 0,
+  pendingInvoiceCount: 0,
 });
 
 export const normalizeValidationInbox = (data) => {
   if (!data) return emptyInbox();
   if (Array.isArray(data)) {
     return {
+      ...emptyInbox(),
       progressItems: data,
-      claimItems: [],
       pendingProgressCount: data.filter((i) => !i.status || i.status === "PENDING").length,
-      pendingClaimCount: 0,
     };
   }
   return {
     progressItems: Array.isArray(data.progressItems) ? data.progressItems : [],
     claimItems: Array.isArray(data.claimItems) ? data.claimItems : [],
+    variationItems: Array.isArray(data.variationItems) ? data.variationItems : [],
+    invoiceItems: Array.isArray(data.invoiceItems) ? data.invoiceItems : [],
     pendingProgressCount: data.pendingProgressCount ?? 0,
     pendingClaimCount: data.pendingClaimCount ?? 0,
+    pendingVariationCount: data.pendingVariationCount ?? 0,
+    pendingInvoiceCount: data.pendingInvoiceCount ?? 0,
   };
 };
 

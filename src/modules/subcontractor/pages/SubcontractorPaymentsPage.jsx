@@ -10,7 +10,9 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  createScInvoice, fetchMyScInvoices, fetchMyScPackages, fetchPackageClaims,
+  createScInvoice,
+  fetchMyScInvoices,
+  fetchScCertificates,
   submitScInvoice,
 } from "@/modules/admin/api/subcontractor.api";
 import { SC_STATUS_BADGE, formatScStatus } from "../utils/subcontractor.utils";
@@ -20,27 +22,42 @@ function formatMoney(amount, currency = "AED") {
   return `${currency} ${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+const emptyForm = () => ({
+  certificateUuid: "",
+  invoiceNumber: "",
+  amount: "",
+  taxAmount: "",
+  notes: "",
+});
+
 export default function SubcontractorPaymentsPage() {
-  const [packages, setPackages] = useState([]);
+  const [certificates, setCertificates] = useState([]);
   const [invoices, setInvoices] = useState([]);
-  const [approvedClaims, setApprovedClaims] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({
-    packageUuid: "", claimUuid: "", invoiceNumber: "", amount: "", taxAmount: "", notes: "",
-  });
+  const [form, setForm] = useState(emptyForm);
+
+  const payableCerts = useMemo(
+    () => certificates.filter((c) => String(c.status || "").toUpperCase() === "PAYABLE"),
+    [certificates]
+  );
+
+  const selectedCert = useMemo(
+    () => payableCerts.find((c) => String(c.uuid) === String(form.certificateUuid)),
+    [payableCerts, form.certificateUuid]
+  );
 
   const load = useCallback(() => {
     setLoading(true);
-    Promise.all([fetchMyScPackages(), fetchMyScInvoices()])
-      .then(([pkgList, invList]) => {
-        setPackages(Array.isArray(pkgList) ? pkgList : []);
+    Promise.all([fetchScCertificates(), fetchMyScInvoices()])
+      .then(([certList, invList]) => {
+        setCertificates(Array.isArray(certList) ? certList : []);
         setInvoices(Array.isArray(invList) ? invList : []);
       })
       .catch(() => {
-        setPackages([]);
+        setCertificates([]);
         setInvoices([]);
       })
       .finally(() => setLoading(false));
@@ -48,42 +65,55 @@ export default function SubcontractorPaymentsPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  useEffect(() => {
-    if (!form.packageUuid) {
-      setApprovedClaims([]);
-      return;
-    }
-    fetchPackageClaims(form.packageUuid)
-      .then((list) => setApprovedClaims((Array.isArray(list) ? list : []).filter((c) => c.status === "APPROVED")))
-      .catch(() => setApprovedClaims([]));
-  }, [form.packageUuid]);
+  const stats = useMemo(() => {
+    const paid = invoices.filter((i) => String(i.status || "").toUpperCase() === "PAID");
+    return {
+      submitted: invoices.filter((i) => i.status === "SUBMITTED").length,
+      approved: invoices.filter((i) => i.status === "APPROVED").length,
+      paid: paid.length,
+      paidTotal: paid.reduce((s, i) => s + Number(i.totalAmount ?? i.amount ?? 0), 0),
+    };
+  }, [invoices]);
 
-  const stats = useMemo(() => ({
-    submitted: invoices.filter((i) => i.status === "SUBMITTED").length,
-    approved: invoices.filter((i) => i.status === "APPROVED").length,
-    paid: invoices.filter((i) => i.status === "PAID").length,
-    paidTotal: invoices.filter((i) => i.status === "PAID").reduce((s, i) => s + Number(i.totalAmount ?? i.amount ?? 0), 0),
-  }), [invoices]);
+  // Also show amounts received from PAID certificates (in case invoice sync lags)
+  const certPaidTotal = useMemo(
+    () =>
+      certificates
+        .filter((c) => String(c.status || "").toUpperCase() === "PAID")
+        .reduce((s, c) => s + Number(c.paidAmount ?? c.netPayable ?? 0), 0),
+    [certificates]
+  );
+  const totalReceived = stats.paidTotal > 0 ? stats.paidTotal : certPaidTotal;
+
+  const selectCertificate = (uuid) => {
+    const cert = payableCerts.find((c) => String(c.uuid) === String(uuid));
+    setForm((f) => ({
+      ...f,
+      certificateUuid: uuid,
+      amount: cert?.netPayable != null ? String(cert.netPayable) : f.amount,
+    }));
+  };
 
   const create = async () => {
-    if (!form.packageUuid || !form.amount) {
-      setMessage("Package and amount are required");
+    if (!form.certificateUuid || form.amount === "") {
+      setMessage("Payable certificate and amount are required");
       return;
     }
     setBusy(true);
     setMessage("");
     try {
       await createScInvoice({
-        packageUuid: form.packageUuid,
-        claimUuid: form.claimUuid || null,
+        certificateUuid: form.certificateUuid,
+        packageUuid: selectedCert?.packageUuid || null,
+        claimUuid: selectedCert?.claimUuid || null,
         invoiceNumber: form.invoiceNumber || null,
         amount: Number(form.amount),
         taxAmount: form.taxAmount !== "" ? Number(form.taxAmount) : 0,
         notes: form.notes || null,
       });
       setShowForm(false);
-      setForm({ packageUuid: "", claimUuid: "", invoiceNumber: "", amount: "", taxAmount: "", notes: "" });
-      setMessage("Invoice draft created");
+      setForm(emptyForm());
+      setMessage("Invoice draft created against payable certificate");
       load();
     } catch (e) {
       setMessage(e?.response?.data?.error || e?.response?.data?.message || "Failed to create invoice");
@@ -117,9 +147,9 @@ export default function SubcontractorPaymentsPage() {
     <PageShell>
       <PageTitle
         title="Invoices & Payments"
-        subtitle="Submit invoices against approved work. Track payment status from your PM."
+        subtitle="Raise invoices against PAYABLE payment certificates. Amount prefills from net payable."
         actions={
-          <Button size="sm" onClick={() => setShowForm((v) => !v)} disabled={packages.length === 0}>
+          <Button size="sm" onClick={() => setShowForm((v) => !v)} disabled={payableCerts.length === 0}>
             <Plus className="mr-2 h-4 w-4" /> New invoice
           </Button>
         }
@@ -140,7 +170,7 @@ export default function SubcontractorPaymentsPage() {
         </Surface>
         <Surface className="p-4">
           <p className="text-xs text-muted-foreground">Total received</p>
-          <p className="text-lg font-semibold">{formatMoney(stats.paidTotal)}</p>
+          <p className="text-lg font-semibold">{formatMoney(totalReceived)}</p>
         </Surface>
       </div>
 
@@ -148,32 +178,27 @@ export default function SubcontractorPaymentsPage() {
 
       {showForm && (
         <Surface className="space-y-4 p-5">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Package</Label>
-              <Select value={form.packageUuid} onValueChange={(v) => setForm((f) => ({ ...f, packageUuid: v, claimUuid: "" }))}>
-                <SelectTrigger><SelectValue placeholder="Select package" /></SelectTrigger>
-                <SelectContent>
-                  {packages.map((p) => (
-                    <SelectItem key={p.uuid} value={p.uuid}>{p.name} · {p.projectName}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Link to approved claim (optional)</Label>
-              <Select value={form.claimUuid || "none"} onValueChange={(v) => setForm((f) => ({ ...f, claimUuid: v === "none" ? "" : v }))}>
-                <SelectTrigger><SelectValue placeholder="Optional" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">—</SelectItem>
-                  {approvedClaims.map((c) => (
-                    <SelectItem key={c.uuid} value={c.uuid}>
-                      Qty {c.claimedQty} · {c.submittedAt?.slice(0, 10) || "approved"}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-2">
+            <Label>Payable certificate</Label>
+            <Select value={form.certificateUuid} onValueChange={selectCertificate}>
+              <SelectTrigger><SelectValue placeholder="Select PAYABLE certificate" /></SelectTrigger>
+              <SelectContent>
+                {payableCerts.map((c) => (
+                  <SelectItem key={c.uuid} value={c.uuid}>
+                    {c.certificateNumber || String(c.uuid).slice(0, 8)}
+                    {c.packageName ? ` · ${c.packageName}` : ""}
+                    {" · net "}
+                    {Number(c.netPayable ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedCert && (
+              <p className="text-xs text-muted-foreground">
+                Claim {selectedCert.claimNumber || (selectedCert.claimUuid ? String(selectedCert.claimUuid).slice(0, 8) : "—")}
+                {" · "}certified {formatMoney(selectedCert.certifiedValue)}
+              </p>
+            )}
           </div>
           <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
@@ -203,7 +228,7 @@ export default function SubcontractorPaymentsPage() {
       {invoices.length === 0 ? (
         <Surface className="px-4 py-16 text-center text-sm text-muted-foreground">
           <CreditCard className="mx-auto mb-3 h-10 w-10 opacity-30" />
-          No invoices yet. Create one after your claims are approved.
+          No invoices yet. Create one after a certificate is marked PAYABLE.
         </Surface>
       ) : (
         <Surface className="overflow-x-auto">
@@ -211,9 +236,11 @@ export default function SubcontractorPaymentsPage() {
             <thead>
               <tr className="border-b border-border/40 text-xs uppercase text-muted-foreground">
                 <th className="p-3">Invoice</th>
+                <th className="p-3">Certificate / Claim</th>
                 <th className="p-3">Project / Package</th>
                 <th className="p-3">Amount</th>
                 <th className="p-3">Status</th>
+                <th className="p-3">Paid</th>
                 <th className="p-3 text-right">Action</th>
               </tr>
             </thead>
@@ -221,6 +248,10 @@ export default function SubcontractorPaymentsPage() {
               {invoices.map((inv) => (
                 <tr key={inv.uuid}>
                   <td className="p-3 font-mono text-xs">{inv.invoiceNumber || inv.uuid.slice(0, 8)}</td>
+                  <td className="p-3 font-mono text-xs text-muted-foreground">
+                    {inv.certificateUuid ? String(inv.certificateUuid).slice(0, 8) : "—"}
+                    {inv.claimUuid ? ` / ${String(inv.claimUuid).slice(0, 8)}` : ""}
+                  </td>
                   <td className="p-3">
                     <p>{inv.projectName}</p>
                     <p className="text-xs text-muted-foreground">{inv.packageName}</p>
@@ -230,8 +261,18 @@ export default function SubcontractorPaymentsPage() {
                     <Badge className={SC_STATUS_BADGE[inv.status] || "bg-muted border-none"}>
                       {formatScStatus(inv.status)}
                     </Badge>
-                    {inv.paymentReference && (
-                      <p className="mt-1 text-[10px] text-muted-foreground">Ref: {inv.paymentReference}</p>
+                  </td>
+                  <td className="p-3 text-xs text-muted-foreground">
+                    {String(inv.status || "").toUpperCase() === "PAID" ? (
+                      <>
+                        <p className="tabular-nums font-medium text-foreground">
+                          {formatMoney(inv.totalAmount ?? inv.amount, inv.currency)}
+                        </p>
+                        {inv.paidAt && <p>{new Date(inv.paidAt).toLocaleDateString()}</p>}
+                        {inv.paymentReference && <p>Ref: {inv.paymentReference}</p>}
+                      </>
+                    ) : (
+                      "—"
                     )}
                   </td>
                   <td className="p-3 text-right">

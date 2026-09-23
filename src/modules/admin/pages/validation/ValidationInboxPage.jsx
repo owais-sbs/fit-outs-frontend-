@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { ArrowLeft, Check, ClipboardCheck, HardHat, Loader2, Plus, X, ShieldAlert, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -24,12 +24,16 @@ import { useProjectLifecycle } from "../../hooks/useProjectLifecycle";
 import {
   approveScClaim,
   rejectScClaim,
+  measureScClaim,
+  certifyScClaim,
+  markScCertificatePayable,
   approveScVariation,
   rejectScVariation,
   approveScInvoice,
   rejectScInvoice,
   markScInvoicePaid,
 } from "../../api/subcontractor.api";
+import { ROUTES } from "@/shared/constants/routes";
 
 const TAB = { PROGRESS: "progress", CLAIMS: "claims", VARIATIONS: "variations", INVOICES: "invoices" };
 
@@ -55,6 +59,12 @@ function formatDate(value) {
   }
 }
 
+function claimStatus(item) {
+  const s = item?.status;
+  if (s && typeof s === "object" && s.name) return String(s.name).toUpperCase();
+  return String(s || "").toUpperCase();
+}
+
 export default function ValidationInboxPage() {
   const { projectId } = useParams();
   const location = useLocation();
@@ -76,6 +86,7 @@ export default function ValidationInboxPage() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [rejectReasons, setRejectReasons] = useState({});
+  const [measureForms, setMeasureForms] = useState({});
   const [holdForm, setHoldForm] = useState({
     title: "",
     activityUuid: "",
@@ -86,14 +97,29 @@ export default function ValidationInboxPage() {
 
   const load = useCallback(() => {
     setLoading(true);
+    setMessage("");
     const req = projectId ? fetchProjectValidations(projectId) : fetchValidationInbox();
     const holdReq = projectId
       ? fetchHoldPoints(projectId).catch(() => [])
       : Promise.resolve([]);
-    Promise.all([req.catch(() => ({ progressItems: [], claimItems: [] })), holdReq])
+    Promise.all([req, holdReq])
       .then(([data, holds]) => {
         setInbox(data);
         setHoldPoints(Array.isArray(holds) ? holds : []);
+      })
+      .catch((err) => {
+        setInbox({
+          progressItems: [],
+          claimItems: [],
+          pendingProgressCount: 0,
+          pendingClaimCount: 0,
+        });
+        setMessage(
+          err?.response?.data?.error
+            || err?.response?.data?.message
+            || err?.message
+            || "Failed to load validation inbox"
+        );
       })
       .finally(() => setLoading(false));
   }, [projectId]);
@@ -165,6 +191,22 @@ export default function ValidationInboxPage() {
 
   const progressItems = inbox.progressItems || [];
   const claimItems = inbox.claimItems || [];
+  const { needsAction, acceptedOrCertified, rejected } = useMemo(() => {
+    const needsAction = [];
+    const acceptedOrCertified = [];
+    const rejected = [];
+    for (const item of claimItems) {
+      const s = claimStatus(item);
+      if (["SUBMITTED", "PENDING", "UNDER_REVIEW", "MEASURED"].includes(s)) {
+        needsAction.push(item);
+      } else if (["APPROVED", "CERTIFIED", "PAID"].includes(s)) {
+        acceptedOrCertified.push(item);
+      } else if (s === "REJECTED") {
+        rejected.push(item);
+      }
+    }
+    return { needsAction, acceptedOrCertified, rejected };
+  }, [claimItems]);
   const variationItems = inbox.variationItems || [];
   const invoiceItems = inbox.invoiceItems || [];
   const totalPending = (inbox.pendingProgressCount || 0) + (inbox.pendingClaimCount || 0)
@@ -172,14 +214,14 @@ export default function ValidationInboxPage() {
 
   if (loading) {
     return (
-      <PageShell className="max-w-4xl mx-auto flex justify-center py-24 text-muted-foreground">
+      <PageShell className="w-full max-w-none px-3 md:px-4 flex justify-center py-24 text-muted-foreground">
         <Loader2 className="h-6 w-6 animate-spin" />
       </PageShell>
     );
   }
 
   return (
-    <PageShell className="max-w-4xl mx-auto">
+    <PageShell className="w-full max-w-none px-3 md:px-4">
       <div className="flex items-center gap-2">
         <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" title={`Back to ${backLabel}`}>
           <Link to={backPath}><ArrowLeft className="h-4 w-4" /></Link>
@@ -216,7 +258,9 @@ export default function ValidationInboxPage() {
           onClick={() => setActiveTab(TAB.CLAIMS)}
         >
           <HardHat className="h-4 w-4 mr-1" />
-          Subcontractor claims ({inbox.pendingClaimCount || 0})
+          Subcontractor claims ({needsAction.length} pending
+          {` · ${acceptedOrCertified.length} approved`}
+          {` · ${rejected.length} rejected`})
         </Button>
         <Button
           type="button"
@@ -342,80 +386,266 @@ export default function ValidationInboxPage() {
             {claimItems.length === 0 ? (
               <p className="text-sm text-muted-foreground py-10 text-center">No pending subcontractor claims</p>
             ) : (
-              <div className="divide-y divide-border/40">
-                {claimItems.map((item) => (
-                  <div key={item.uuid} className="flex flex-col sm:flex-row sm:items-start gap-3 py-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <Badge className="border-none bg-amber-500/15 text-amber-700">
-                          {item.status || "SUBMITTED"}
-                        </Badge>
-                        <span className="text-sm font-medium">
-                          {item.packageName || "Work package"}
-                        </span>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {item.projectName ? item.projectName : `Project #${item.projectId}`}
-                        {item.subcontractorName ? ` · ${item.subcontractorName}` : ""}
-                        {item.submittedByName ? ` · ${item.submittedByName}` : ""}
-                        {formatDate(item.submittedAt) ? ` · ${formatDate(item.submittedAt)}` : ""}
+              <div className="space-y-4">
+                {[
+                  { key: "action", title: "Needs action", items: needsAction, tone: "default" },
+                  { key: "accepted", title: "Accepted only (not measured yet)", items: acceptedOrCertified.filter((i) => claimStatus(i) === "APPROVED"), tone: "green" },
+                  { key: "certified", title: "Certified — certificate with SC", items: acceptedOrCertified.filter((i) => ["CERTIFIED", "PAID"].includes(claimStatus(i))), tone: "green" },
+                  { key: "rejected", title: "Rejected", items: rejected, tone: "red" },
+                ]
+                  .filter((section) => section.items.length > 0)
+                  .map((section) => (
+                    <div key={section.key} className="space-y-1">
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground px-1">
+                        {section.title} ({section.items.length})
                       </p>
-                      <div className="mt-2 grid grid-cols-2 gap-2 max-w-xs">
-                        <div className="rounded-lg bg-secondary/60 px-3 py-2">
-                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Planned</p>
-                          <p className="text-sm font-semibold tabular-nums">{Number(item.plannedQty ?? 0)}</p>
-                        </div>
-                        <div className="rounded-lg bg-secondary/60 px-3 py-2">
-                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Claimed</p>
-                          <p className="text-sm font-semibold tabular-nums">{Number(item.claimedQty ?? 0)}</p>
-                        </div>
+                      <div className="space-y-2">
+                        {section.items.map((item) => {
+                          const status = claimStatus(item);
+                          const isRejected = status === "REJECTED";
+                          const isApproved = status === "APPROVED" || status === "CERTIFIED" || status === "PAID";
+                          const isMeasured = status === "MEASURED";
+                          const canMeasure =
+                            status === "SUBMITTED" || status === "PENDING" || status === "UNDER_REVIEW" || status === "APPROVED";
+                          const canAcceptReject = status === "SUBMITTED" || status === "PENDING";
+                          return (
+                            <div
+                              key={String(item.uuid)}
+                              className={`flex flex-col sm:flex-row sm:items-start gap-3 rounded-lg border border-border/40 py-3 px-3 ${
+                                section.tone === "red"
+                                  ? "bg-red-50/90"
+                                  : section.tone === "green"
+                                    ? "bg-emerald-50/90"
+                                    : "bg-background"
+                              }`}
+                            >
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <Badge
+                                    className={`border-none ${
+                                      isRejected
+                                        ? "bg-red-600/15 text-red-700"
+                                        : isApproved
+                                          ? "bg-emerald-600/15 text-emerald-800"
+                                          : isMeasured
+                                            ? "bg-blue-500/15 text-blue-700"
+                                            : "bg-amber-500/15 text-amber-700"
+                                    }`}
+                                  >
+                                    {status || "SUBMITTED"}
+                                  </Badge>
+                                  <span
+                                    className={`text-sm font-medium ${
+                                      isRejected ? "text-red-900" : isApproved ? "text-emerald-900" : ""
+                                    }`}
+                                  >
+                                    {item.packageName || "Work package"}
+                                  </span>
+                                  {item.claimNumber && (
+                                    <span className="text-[11px] text-muted-foreground font-mono">{item.claimNumber}</span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {item.projectName ? item.projectName : `Project #${item.projectId}`}
+                                  {item.subcontractorName ? ` · ${item.subcontractorName}` : ""}
+                                  {item.submittedByName ? ` · ${item.submittedByName}` : ""}
+                                  {formatDate(item.submittedAt) ? ` · ${formatDate(item.submittedAt)}` : ""}
+                                </p>
+                                <div className="mt-2 grid grid-cols-2 gap-2 max-w-md sm:grid-cols-4">
+                                  <div className="rounded-lg bg-secondary/60 px-3 py-2">
+                                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Claimed qty</p>
+                                    <p className="text-sm font-semibold tabular-nums">{Number(item.claimedQty ?? 0)}</p>
+                                  </div>
+                                  <div className="rounded-lg bg-secondary/60 px-3 py-2">
+                                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Measured</p>
+                                    <p className="text-sm font-semibold tabular-nums">{item.measuredQty ?? item.measuredValue ?? "—"}</p>
+                                  </div>
+                                  <div className="rounded-lg bg-secondary/60 px-3 py-2">
+                                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Certified</p>
+                                    <p className="text-sm font-semibold tabular-nums">{item.certifiedValue ?? "—"}</p>
+                                  </div>
+                                  <div className="rounded-lg bg-secondary/60 px-3 py-2">
+                                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Claimed value</p>
+                                    <p className="text-sm font-semibold tabular-nums">{item.claimedValue ?? "—"}</p>
+                                  </div>
+                                </div>
+                                {item.notes && (
+                                  <p className="text-xs text-muted-foreground mt-1">{item.notes}</p>
+                                )}
+                                {isRejected && item.reason && (
+                                  <p className="mt-2 text-xs font-medium text-red-700">
+                                    Rejection reason: {item.reason}
+                                  </p>
+                                )}
+                                {isApproved && (
+                                  <p className="mt-2 text-xs font-medium text-emerald-700">
+                                    {status === "CERTIFIED" || status === "PAID"
+                                      ? `Certified${item.certifiedValue != null ? ` · value ${item.certifiedValue}` : ""}${item.certificateUuid ? ` · cert ${String(item.certificateUuid).slice(0, 8).toUpperCase()}` : ""}`
+                                      : `Accepted${formatDate(item.decidedAt) ? ` · ${formatDate(item.decidedAt)}` : ""} — ready to measure`}
+                                  </p>
+                                )}
+                                <AttachmentList paths={item.attachmentPaths} className="mt-2" />
+                              </div>
+                              {isRejected ? (
+                                <div className="text-xs text-red-600/90 sm:text-right max-w-xs">
+                                  Rejected{formatDate(item.decidedAt) ? ` · ${formatDate(item.decidedAt)}` : ""}.
+                                  Subcontractor can revise and resubmit.
+                                </div>
+                              ) : status === "CERTIFIED" || status === "PAID" ? (
+                                <div className="flex flex-col gap-2 sm:items-end text-xs text-emerald-800 max-w-xs">
+                                  <p>
+                                    {status === "PAID"
+                                      ? "Certificate paid — record kept."
+                                      : "Certificate issued to SC. Next: mark PAYABLE so they can invoice."}
+                                  </p>
+                                  {status === "CERTIFIED" && item.certificateUuid && item.projectId && (
+                                    <Button
+                                      size="sm"
+                                      disabled={busy}
+                                      onClick={() =>
+                                        run(
+                                          () => markScCertificatePayable(item.projectId, item.certificateUuid),
+                                          "Certificate marked PAYABLE — SC can now invoice"
+                                        )
+                                      }
+                                    >
+                                      Mark Payable
+                                    </Button>
+                                  )}
+                                  {item.projectId && (
+                                    <Button size="sm" variant="ghost" asChild>
+                                      <Link
+                                        to={ROUTES.ADMIN.PROJECT_SUBCONTRACTORS.replace(":projectId", String(item.projectId))}
+                                      >
+                                        Open package
+                                      </Link>
+                                    </Button>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="flex flex-col gap-2 sm:items-end">
+                                  {canMeasure && (
+                                    <div className="flex flex-wrap gap-2 items-center">
+                                      <Input
+                                        className="h-8 w-24 text-xs"
+                                        placeholder="Meas. qty"
+                                        value={measureForms[item.uuid]?.qty ?? ""}
+                                        onChange={(e) =>
+                                          setMeasureForms((m) => ({
+                                            ...m,
+                                            [item.uuid]: { ...m[item.uuid], qty: e.target.value },
+                                          }))
+                                        }
+                                      />
+                                      <Input
+                                        className="h-8 w-28 text-xs"
+                                        placeholder="Meas. value"
+                                        value={measureForms[item.uuid]?.value ?? ""}
+                                        onChange={(e) =>
+                                          setMeasureForms((m) => ({
+                                            ...m,
+                                            [item.uuid]: { ...m[item.uuid], value: e.target.value },
+                                          }))
+                                        }
+                                      />
+                                      <Button
+                                        size="sm"
+                                        disabled={busy}
+                                        onClick={() => {
+                                          const formValue = measureForms[item.uuid]?.value;
+                                          const measuredValue =
+                                            formValue !== "" && formValue != null
+                                              ? Number(formValue)
+                                              : Number(item.claimedValue ?? item.claimedQty) || 0;
+                                          return run(
+                                            () =>
+                                              measureScClaim(item.projectId, item.uuid, {
+                                                measuredQty: Number(measureForms[item.uuid]?.qty) || Number(item.claimedQty),
+                                                measuredValue,
+                                              }),
+                                            "Claim measured — ready to certify"
+                                          );
+                                        }}
+                                      >
+                                        Measure
+                                      </Button>
+                                    </div>
+                                  )}
+                                  {isMeasured && (
+                                    <Button
+                                      size="sm"
+                                      disabled={busy}
+                                      onClick={() =>
+                                        run(
+                                          () =>
+                                            certifyScClaim(item.projectId, item.uuid, {
+                                              certifiedValue:
+                                                Number(item.measuredValue ?? item.claimedValue ?? item.claimedQty) || 0,
+                                            }),
+                                          "Payment certificate generated"
+                                        )
+                                      }
+                                    >
+                                      Certify
+                                    </Button>
+                                  )}
+                                  {canAcceptReject && (
+                                    <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+                                      <Input
+                                        className="h-8 w-full sm:w-40 text-xs"
+                                        placeholder="Reject reason"
+                                        value={rejectReasons[`c-${item.uuid}`] || ""}
+                                        onChange={(e) =>
+                                          setRejectReasons((m) => ({ ...m, [`c-${item.uuid}`]: e.target.value }))
+                                        }
+                                      />
+                                      <div className="flex gap-1 flex-wrap">
+                                        <Button
+                                          size="sm"
+                                          variant="secondary"
+                                          disabled={busy}
+                                          onClick={() =>
+                                            run(
+                                              () => approveScClaim(item.projectId, item.uuid),
+                                              "Claim accepted for review"
+                                            )
+                                          }
+                                        >
+                                          <Check className="h-4 w-4 mr-1" /> Accept
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          disabled={busy}
+                                          onClick={() =>
+                                            run(
+                                              () => rejectScClaim(item.projectId, item.uuid, rejectReasons[`c-${item.uuid}`]),
+                                              "Claim rejected"
+                                            )
+                                          }
+                                        >
+                                          <X className="h-4 w-4 mr-1" /> Reject
+                                        </Button>
+                                        {item.projectId && (
+                                          <Button size="sm" variant="ghost" asChild>
+                                            <Link
+                                              to={ROUTES.ADMIN.PROJECT_SUBCONTRACTORS.replace(":projectId", String(item.projectId))}
+                                            >
+                                              Open package
+                                            </Link>
+                                          </Button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
-                      {item.notes && (
-                        <p className="text-xs text-muted-foreground mt-1">{item.notes}</p>
-                      )}
-                      <AttachmentList paths={item.attachmentPaths} className="mt-2" />
                     </div>
-                    {(item.status === "SUBMITTED" || item.status === "PENDING") && (
-                      <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-                        <Input
-                          className="h-8 w-full sm:w-40 text-xs"
-                          placeholder="Reject reason"
-                          value={rejectReasons[`c-${item.uuid}`] || ""}
-                          onChange={(e) =>
-                            setRejectReasons((m) => ({ ...m, [`c-${item.uuid}`]: e.target.value }))
-                          }
-                        />
-                        <div className="flex gap-1">
-                          <Button
-                            size="sm"
-                            disabled={busy}
-                            onClick={() =>
-                              run(
-                                () => approveScClaim(item.projectId, item.uuid),
-                                "Claim approved"
-                              )
-                            }
-                          >
-                            <Check className="h-4 w-4 mr-1" /> Approve
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            disabled={busy}
-                            onClick={() =>
-                              run(
-                                () => rejectScClaim(item.projectId, item.uuid, rejectReasons[`c-${item.uuid}`]),
-                                "Claim rejected"
-                              )
-                            }
-                          >
-                            <X className="h-4 w-4 mr-1" /> Reject
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                  ))}
               </div>
             )}
           </CardContent>
