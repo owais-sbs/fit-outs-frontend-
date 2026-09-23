@@ -7,10 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { fetchProgressReport } from "../../api/reporting.api";
 import { ROUTES } from "@/shared/constants/routes";
+import ProjectLifecycleBanner from "../../components/projects/ProjectLifecycleBanner";
+import { useProjectLifecycle } from "../../hooks/useProjectLifecycle";
 
 export default function ProjectReportingPage() {
   const { projectId } = useParams();
   const location = useLocation();
+  const { commercialStage } = useProjectLifecycle(projectId);
   const isPm = location.pathname.startsWith("/project-manager");
   const detailPath = (isPm ? ROUTES.PROJECT_MANAGER.PROJECT_DETAIL : ROUTES.ADMIN.PROJECT_DETAIL)
     .replace(":projectId", projectId);
@@ -86,6 +89,8 @@ export default function ProjectReportingPage() {
           }
         />
       </div>
+
+      <ProjectLifecycleBanner commercialStage={commercialStage} className="no-print" />
 
       {message && <p className="text-sm text-muted-foreground no-print">{message}</p>}
 

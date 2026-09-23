@@ -22,6 +22,8 @@ import {
 } from "@/modules/admin/api/room-collab.api";
 import TaskChatPanel from "@/modules/admin/pages/roomcollab/TaskChatPanel";
 import { useCollabChatSocket } from "@/shared/hooks/useCollabChatSocket";
+import ProjectLifecycleBanner from "@/modules/admin/components/projects/ProjectLifecycleBanner";
+import { useProjectLifecycle } from "@/modules/admin/hooks/useProjectLifecycle";
 
 function StatusStrip({ task, timeline, historyOpen, setHistoryOpen }) {
   const events = (timeline || []).filter((ev) => ev.eventType !== "MESSAGE");
@@ -64,6 +66,7 @@ function StatusStrip({ task, timeline, historyOpen, setHistoryOpen }) {
 /** Client-facing task page: chat-first review + approve / request changes */
 export default function ClientRoomTaskPage() {
   const { projectId, taskId } = useParams();
+  const { commercialStage, archived } = useProjectLifecycle(projectId);
   const [task, setTask] = useState(null);
   const [timeline, setTimeline] = useState([]);
   const [messages, setMessages] = useState([]);
@@ -147,8 +150,8 @@ export default function ClientRoomTaskPage() {
     );
   }
 
-  const awaiting = task.status === "AWAITING_CLIENT";
-  const readOnly = task.status === "APPROVED" || task.status === "CLOSED";
+  const awaiting = task.status === "AWAITING_CLIENT" && !archived;
+  const readOnly = archived || task.status === "APPROVED" || task.status === "CLOSED";
   const versions = task.versions || [];
   const latest = versions.length
     ? [...versions].sort((a, b) => (b.versionNo || 0) - (a.versionNo || 0))[0]
@@ -168,6 +171,8 @@ export default function ClientRoomTaskPage() {
         </div>
         <Badge variant="outline">{task.status.replace(/_/g, " ")}</Badge>
       </div>
+
+      <ProjectLifecycleBanner commercialStage={commercialStage} />
 
       {error && (
         <p className="text-sm text-destructive border border-destructive/30 bg-destructive/10 rounded-md px-3 py-2">
@@ -251,7 +256,7 @@ export default function ClientRoomTaskPage() {
         </div>
       )}
 
-      {readOnly && (
+      {!archived && (task.status === "APPROVED" || task.status === "CLOSED") && (
         <p className="text-sm text-emerald-700 rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3 py-2">
           This item is finalized
           {task.clientApprovalDays != null

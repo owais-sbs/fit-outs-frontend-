@@ -13,6 +13,7 @@ import { fetchIssuedEstimatesForClient } from "@/modules/admin/api/site-visits.a
 import { ROUTES } from "@/shared/constants/routes";
 import { formatAed } from "@/shared/utils/currency";
 import ClientProjectRoomsSection from "./ClientProjectRoomsSection";
+import ProjectLifecycleBanner from "@/modules/admin/components/projects/ProjectLifecycleBanner";
 
 function InfoItem({ label, value, mono = false }) {
   return (
@@ -62,6 +63,7 @@ export default function ClientProjectDetailPage() {
           assignedManager: apiProj.assignedManager,
           startDate: apiProj.startDate,
           expectedCompletionDate: apiProj.expectedCompletionDate,
+          commercialStage: apiProj.commercialStage || null,
         });
         setEstimates(Array.isArray(issued) ? issued : []);
       })
@@ -127,6 +129,8 @@ export default function ClientProjectDetailPage() {
           </div>
         }
       />
+
+      <ProjectLifecycleBanner commercialStage={project.commercialStage} />
 
       <ClientProjectRoomsSection projectId={projectId} projectName={project.projectName} />
 

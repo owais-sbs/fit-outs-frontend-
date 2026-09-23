@@ -4,8 +4,15 @@ import { ArrowUpDown, Briefcase, Plus } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import { PageShell, StatTile, SearchInput, FilterToolbar } from "@/components/layout/PageShell";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import ProjectStatusBadge from "../components/projects/ProjectStatusBadge";
+import CommercialLifecycleBadge from "../components/projects/CommercialLifecycleBadge";
+import {
+  COMMERCIAL_LIFECYCLE_LABELS,
+  COMMERCIAL_LIFECYCLE_LIST,
+  PROJECT_STATUS,
+  PROJECT_STATUS_LIST,
+} from "../constants/project.constants";
 import {
   Select,
   SelectContent,
@@ -20,6 +27,7 @@ import { ROUTES, portalRoutesFromPath } from "@/shared/constants/routes";
 const SORT_ID = "id";
 const SORT_NEW_FIRST = "new-first";
 const SORT_OLD_FIRST = "old-first";
+const STATUS_ALL = "all";
 
 function projectCreatedMs(p) {
   if (!p?.createdAt) return 0;
@@ -40,6 +48,8 @@ export default function ProjectsPage() {
   const [clientMap, setClientMap] = useState(new Map());
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState(SORT_ID);
+  const [statusFilter, setStatusFilter] = useState(STATUS_ALL);
+  const [commercialFilter, setCommercialFilter] = useState(STATUS_ALL);
   const [loading, setLoading] = useState(true);
 
   const loadData = useCallback(() => {
@@ -56,14 +66,20 @@ export default function ProjectsPage() {
 
   const stats = useMemo(() => {
     const total = projects.length;
-    const active = projects.filter((p) => p.isActive).length;
-    const inactive = projects.filter((p) => !p.isActive).length;
-    return { total, active, inactive };
+    const inProgress = projects.filter((p) => p.status === PROJECT_STATUS.IN_PROGRESS).length;
+    const completed = projects.filter((p) => p.status === PROJECT_STATUS.COMPLETED).length;
+    return { total, inProgress, completed };
   }, [projects]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     const matched = projects.filter((p) => {
+      if (statusFilter !== STATUS_ALL && (p.status || PROJECT_STATUS.PLANNING) !== statusFilter) {
+        return false;
+      }
+      if (commercialFilter !== STATUS_ALL && (p.commercialStage || "NOT_READY") !== commercialFilter) {
+        return false;
+      }
       if (!q) return true;
       const clientName = clientMap.get(String(p.clientId))?.fullName || "";
       return (
@@ -85,7 +101,7 @@ export default function ProjectsPage() {
       }
       return Number(a.id) - Number(b.id);
     });
-  }, [projects, search, clientMap, sort]);
+  }, [projects, search, clientMap, sort, statusFilter, commercialFilter]);
 
   return (
     <PageShell>
@@ -104,8 +120,8 @@ export default function ProjectsPage() {
 
       <div className="grid gap-3 sm:grid-cols-3">
         <StatTile label="Total" value={stats.total} />
-        <StatTile label="Active" value={stats.active} />
-        <StatTile label="Inactive" value={stats.inactive} />
+        <StatTile label="In Progress" value={stats.inProgress} />
+        <StatTile label="Completed" value={stats.completed} />
       </div>
 
       <FilterToolbar>
@@ -114,6 +130,30 @@ export default function ProjectsPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="h-8 w-[160px] rounded-lg" aria-label="Filter by status">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={STATUS_ALL}>All status</SelectItem>
+            {PROJECT_STATUS_LIST.map((s) => (
+              <SelectItem key={s} value={s}>{s}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={commercialFilter} onValueChange={setCommercialFilter}>
+          <SelectTrigger className="h-8 w-[200px] rounded-lg" aria-label="Filter by commercial stage">
+            <SelectValue placeholder="Commercial" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={STATUS_ALL}>All commercial</SelectItem>
+            {COMMERCIAL_LIFECYCLE_LIST.map((s) => (
+              <SelectItem key={s} value={s}>
+                {COMMERCIAL_LIFECYCLE_LABELS[s]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Select value={sort} onValueChange={setSort}>
           <SelectTrigger className="h-8 w-[160px] rounded-lg gap-2" aria-label="Sort projects">
             <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
@@ -137,6 +177,7 @@ export default function ProjectsPage() {
                 <th className="py-3 px-4">Project Name</th>
                 <th className="py-3 px-4">Client</th>
                 <th className="py-3 px-4">Status</th>
+                <th className="py-3 px-4">Commercial</th>
                 <th className="py-3 px-4">Created</th>
               </tr>
             </thead>
@@ -149,12 +190,13 @@ export default function ProjectsPage() {
                     <td className="py-4 px-4"><div className="h-4 w-36 bg-muted rounded" /></td>
                     <td className="py-4 px-4"><div className="h-4 w-28 bg-muted rounded" /></td>
                     <td className="py-4 px-4"><div className="h-5 w-14 bg-muted rounded-full" /></td>
+                    <td className="py-4 px-4"><div className="h-5 w-20 bg-muted rounded-full" /></td>
                     <td className="py-4 px-4"><div className="h-4 w-24 bg-muted rounded" /></td>
                   </tr>
                 ))
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={7} className="py-12 text-center text-muted-foreground">
                     <Briefcase className="h-10 w-10 mx-auto mb-3 text-muted-foreground/30" />
                     <p className="font-medium">No projects found</p>
                     <Button
@@ -200,9 +242,10 @@ export default function ProjectsPage() {
                       <td className="py-4 px-4 font-medium">{p.name}</td>
                       <td className="py-4 px-4 text-muted-foreground">{clientName}</td>
                       <td className="py-4 px-4">
-                        <Badge variant={p.isActive ? "success" : "secondary"}>
-                          {p.isActive ? "Active" : "Inactive"}
-                        </Badge>
+                        <ProjectStatusBadge status={p.status || PROJECT_STATUS.PLANNING} />
+                      </td>
+                      <td className="py-4 px-4">
+                        <CommercialLifecycleBadge stage={p.commercialStage || "NOT_READY"} />
                       </td>
                       <td className="py-4 px-4 text-muted-foreground text-xs">
                         {p.createdAt ? new Date(p.createdAt).toLocaleDateString("en-AU") : "—"}

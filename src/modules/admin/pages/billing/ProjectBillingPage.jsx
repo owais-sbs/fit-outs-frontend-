@@ -61,6 +61,8 @@ import { ROLES } from "@/shared/constants/roles";
 import { useAuth } from "@/shared/context/auth-context";
 import { formatAed } from "@/shared/utils/currency";
 import { BillingApprovalPipeline, BillingApprovalTimeline } from "./BillingApprovalPipeline";
+import ProjectLifecycleBanner from "../../components/projects/ProjectLifecycleBanner";
+import { isCommercialFrozen } from "../../constants/project.constants";
 
 const PAGE_SIZE = 10;
 
@@ -143,6 +145,7 @@ export default function ProjectBillingPage() {
 
   const [milestones, setMilestones] = useState([]);
   const [projectBudget, setProjectBudget] = useState(0);
+  const [projectMeta, setProjectMeta] = useState(null);
   const [approvedBoq, setApprovedBoq] = useState(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -180,6 +183,7 @@ export default function ProjectBillingPage() {
       .then(([milestoneList, project, boqList]) => {
         setMilestones(Array.isArray(milestoneList) ? milestoneList : []);
         setProjectBudget(Number(project?.budget) || 0);
+        setProjectMeta(project || null);
         setApprovedBoq(pickLatestApprovedBoq(boqList));
       })
       .finally(() => setLoading(false));
@@ -229,6 +233,10 @@ export default function ProjectBillingPage() {
   );
 
   const run = async (fn, okMsg) => {
+    if (isCommercialFrozen(projectMeta?.commercialStage)) {
+      setMessage("Commercial data is frozen for this project.");
+      return;
+    }
     setBusy(true);
     setMessage("");
     try {
@@ -450,6 +458,8 @@ export default function ProjectBillingPage() {
     );
   }
 
+  const commercialFrozen = isCommercialFrozen(projectMeta?.commercialStage);
+
   return (
     <PageShell className="max-w-4xl mx-auto">
       <div className="flex items-center gap-2">
@@ -458,6 +468,8 @@ export default function ProjectBillingPage() {
         </Button>
         <PageTitle title="Milestone Billing" subtitle={`Project #${projectId}`} />
       </div>
+
+      <ProjectLifecycleBanner commercialStage={projectMeta?.commercialStage} />
 
       {message && <p className="text-sm text-muted-foreground">{message}</p>}
 
@@ -566,7 +578,7 @@ export default function ProjectBillingPage() {
         </Card>
       )}
 
-      {isFinanceUser && (
+      {isFinanceUser && !commercialFrozen && (
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold">New milestone</CardTitle>
@@ -681,7 +693,7 @@ export default function ProjectBillingPage() {
                             <div className="min-w-0 space-y-0.5">
                               <Input
                                 value={m.name || ""}
-                                disabled={!isDraft || busy}
+                                disabled={!isDraft || busy || commercialFrozen}
                                 onChange={(e) =>
                                   setMilestones((list) =>
                                     list.map((row) =>
@@ -708,7 +720,7 @@ export default function ProjectBillingPage() {
                             <Input
                               type="date"
                               value={m.dueDate ? String(m.dueDate).slice(0, 10) : ""}
-                              disabled={!isDraft || busy}
+                              disabled={!isDraft || busy || commercialFrozen}
                               onChange={(e) => {
                                 const dueDate = e.target.value;
                                 setMilestones((list) =>
@@ -808,13 +820,13 @@ export default function ProjectBillingPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            {isFinanceUser && draftOrRejectedMilestones.length > 0 && (
+            {!commercialFrozen && isFinanceUser && draftOrRejectedMilestones.length > 0 && (
               <Button size="sm" disabled={busy} onClick={handleSubmitAllForApproval}>
                 <Send className="h-4 w-4 mr-1.5" /> Submit all for approval ({draftOrRejectedMilestones.length})
               </Button>
             )}
 
-            {isPmUser && pendingPmMilestones.length > 0 && (
+            {!commercialFrozen && isPmUser && pendingPmMilestones.length > 0 && (
               <div className="flex gap-2">
                 <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" disabled={busy} onClick={handlePmApproveAll}>
                   <Check className="h-4 w-4 mr-1.5" /> Approve Package ({pendingPmMilestones.length})
@@ -825,7 +837,7 @@ export default function ProjectBillingPage() {
               </div>
             )}
 
-            {isDirectorUser && pendingDirectorMilestones.length > 0 && (
+            {!commercialFrozen && isDirectorUser && pendingDirectorMilestones.length > 0 && (
               <div className="flex gap-2">
                 <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" disabled={busy} onClick={handleDirectorApproveAll}>
                   <Check className="h-4 w-4 mr-1.5" /> Approve & Notify Client ({pendingDirectorMilestones.length})
@@ -886,7 +898,7 @@ export default function ProjectBillingPage() {
                         )}
                       </div>
                       <div className="flex flex-wrap gap-1 items-center">
-                        {isFinanceUser && (workflowStatus === "DRAFT" || workflowStatus === "REJECTED") && (
+                        {!commercialFrozen && isFinanceUser && (workflowStatus === "DRAFT" || workflowStatus === "REJECTED") && (
                           <Button
                             size="icon"
                             variant="ghost"
@@ -900,7 +912,8 @@ export default function ProjectBillingPage() {
                           </Button>
                         )}
 
-                        {isFinanceUser &&
+                        {!commercialFrozen &&
+                          isFinanceUser &&
                           paymentReq?.uuid &&
                           (workflowStatus === "CLIENT_ACCEPTED" || workflowStatus === "PART_PAID") && (
                             <div className="flex gap-1.5">

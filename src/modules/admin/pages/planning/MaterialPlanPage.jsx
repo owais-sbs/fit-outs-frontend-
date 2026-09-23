@@ -20,6 +20,8 @@ import {
   exportMaterialPlanCsv,
 } from "../../api/material-plan.api";
 import { ROUTES, projectPlanningBackPath } from "@/shared/constants/routes";
+import ProjectLifecycleBanner from "../../components/projects/ProjectLifecycleBanner";
+import { useProjectLifecycle } from "../../hooks/useProjectLifecycle";
 
 function toQty(value) {
   const n = Number(value);
@@ -168,6 +170,7 @@ function MaterialPlanLineRow({ line, index, onPatch, readOnly = false }) {
 
 export default function MaterialPlanPage() {
   const { projectId } = useParams();
+  const { commercialStage, archived } = useProjectLifecycle(projectId);
   const location = useLocation();
   const backPath = projectPlanningBackPath(location, projectId);
   const backLabel = location.state?.from === "detail" ? "Project" : "Schedule";
@@ -204,6 +207,10 @@ export default function MaterialPlanPage() {
   }, [load]);
 
   const run = async (fn, okMsg) => {
+    if (archived) {
+      setMessage("This project is archived and read-only.");
+      return;
+    }
     setBusy(true);
     setMessage("");
     try {
@@ -372,17 +379,19 @@ export default function MaterialPlanPage() {
         />
       </div>
 
+      <ProjectLifecycleBanner commercialStage={commercialStage} />
+
       <div className="flex flex-wrap gap-2">
-        <Button size="sm" onClick={handleGenerate} disabled={busy}>
+        <Button size="sm" onClick={handleGenerate} disabled={busy || archived}>
           <RefreshCw className="h-4 w-4 mr-1" /> Generate from BOQ
         </Button>
-        <Button size="sm" variant="outline" onClick={handleSave} disabled={busy || lines.length === 0}>
+        <Button size="sm" variant="outline" onClick={handleSave} disabled={busy || archived || lines.length === 0}>
           <Save className="h-4 w-4 mr-1" /> Save plan
         </Button>
-        <Button size="sm" variant="outline" onClick={handleReady} disabled={busy || !plan}>
+        <Button size="sm" variant="outline" onClick={handleReady} disabled={busy || archived || !plan}>
           <CheckCircle2 className="h-4 w-4 mr-1" /> Mark READY
         </Button>
-        <Button size="sm" variant="secondary" onClick={handleReserve} disabled={busy || !plan}>
+        <Button size="sm" variant="secondary" onClick={handleReserve} disabled={busy || archived || !plan}>
           <Package className="h-4 w-4 mr-1" /> Reserve stock
         </Button>
         <Button size="sm" variant="outline" onClick={handleExport} disabled={busy || !plan}>
@@ -451,7 +460,7 @@ export default function MaterialPlanPage() {
                             line={line}
                             index={index}
                             onPatch={patchLine}
-                            readOnly={index < 0}
+                            readOnly={index < 0 || archived}
                           />
                         ))}
                       </div>

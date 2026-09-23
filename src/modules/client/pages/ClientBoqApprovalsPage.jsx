@@ -29,6 +29,7 @@ import { fetchAllProjects } from "@/modules/admin/api/projects.api";
 import { useAuth } from "@/shared/context/auth-context";
 import { boqViewPath } from "@/shared/constants/routes";
 import { canApproveBoq, isBoqPendingForRole } from "@/shared/constants/roles";
+import { isCommercialFrozen } from "@/modules/admin/constants/project.constants";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -45,12 +46,18 @@ export default function ClientBoqApprovalsPage() {
   const [comments, setComments] = useState("");
   const [detailBoq, setDetailBoq] = useState(null);
   const [acting, setActing] = useState(false);
+  const [stageByProject, setStageByProject] = useState({});
 
   const loadInbox = useCallback(async () => {
     setLoading(true);
     try {
       const inboxList = await fetchBoqInbox(role).catch(() => []);
       const projects = await fetchAllProjects().catch(() => []);
+      const stages = {};
+      (Array.isArray(projects) ? projects : []).forEach((p) => {
+        if (p?.id != null) stages[String(p.id)] = p.commercialStage || null;
+      });
+      setStageByProject(stages);
       const projectBoqsList = await Promise.all(
         (Array.isArray(projects) ? projects : []).map(async (p) => {
           try {
@@ -106,6 +113,10 @@ export default function ClientBoqApprovalsPage() {
 
   const confirmAction = async () => {
     if (!actionItem) return;
+    if (isCommercialFrozen(stageByProject[String(actionItem.projectId)])) {
+      setMessage("Commercial data is frozen for this project.");
+      return;
+    }
     if (actionType === "reject" && !comments.trim()) {
       setMessage("Please provide a reason for rejection.");
       return;
@@ -185,7 +196,8 @@ export default function ClientBoqApprovalsPage() {
             </TableHeader>
             <TableBody>
               {pendingItems.map((item) => {
-                const canAct = canApproveBoq(role) && isBoqPendingForRole(role, item.status);
+                const frozen = isCommercialFrozen(stageByProject[String(item.projectId)]);
+                const canAct = canApproveBoq(role) && isBoqPendingForRole(role, item.status) && !frozen;
                 return (
                   <TableRow key={item.id}>
                     <TableCell className="font-medium">

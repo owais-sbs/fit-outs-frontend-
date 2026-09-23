@@ -102,7 +102,7 @@ function RoleCheckboxGroup({ roleKey, label, candidates, selected, onToggle }) {
   );
 }
 
-export default function ProjectTeamAssignmentSection({ projectId, onSaved }) {
+export default function ProjectTeamAssignmentSection({ projectId, onSaved, readOnly = false }) {
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -203,10 +203,12 @@ export default function ProjectTeamAssignmentSection({ projectId, onSaved }) {
             <Users className="h-4 w-4 text-primary" />
             Project Team
           </CardTitle>
-          <Button type="button" size="sm" variant="outline" onClick={openEditor}>
-            <Pencil className="h-3.5 w-3.5 mr-1" />
-            Assign team
-          </Button>
+          {!readOnly && (
+            <Button type="button" size="sm" variant="outline" onClick={openEditor}>
+              <Pencil className="h-3.5 w-3.5 mr-1" />
+              Assign team
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           {loading ? (

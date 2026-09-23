@@ -21,7 +21,18 @@ export default function MyProjectsPage() {
       const list = await fetchAllProjects();
       setProjects(list);
     } catch (err) {
-      setError(err.response?.data?.error || "Unable to load projects");
+      const raw = err.response?.data?.error || err.response?.data?.message || "";
+      const looksTechnical =
+        typeof raw === "string" &&
+        (raw.includes("JDBC") ||
+          raw.includes("SQL") ||
+          raw.includes("does not exist") ||
+          raw.includes("Exception"));
+      setError(
+        looksTechnical || !raw
+          ? "Unable to load projects right now. Please try again shortly."
+          : raw
+      );
       setProjects([]);
     } finally {
       setLoading(false);

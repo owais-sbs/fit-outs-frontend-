@@ -28,6 +28,8 @@ import {
   fetchBoqApprovalHistory,
   rejectBoq,
 } from "../../api/boq.api";
+import ProjectLifecycleBanner from "../../components/projects/ProjectLifecycleBanner";
+import { useProjectLifecycle } from "../../hooks/useProjectLifecycle";
 
 const QAS_EDIT_ROLES = new Set([ROLES.QS, ROLES.SENIOR_QS, ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.FINANCE]);
 
@@ -89,6 +91,7 @@ export default function BoqViewPage() {
   }, [load]);
 
   const projectId = projectIdParam || apiBoq?.projectId;
+  const { commercialStage, commercialFrozen } = useProjectLifecycle(projectId);
   const doc = apiBoq
     ? apiBoqToDocument(apiBoq, {
         ref: apiBoq.id,
@@ -102,8 +105,8 @@ export default function BoqViewPage() {
 
   const backToInbox = boqInboxPath(role);
   const backToProject = projectBackPath(role, projectId);
-  const canAct = canApproveBoq(role) && isBoqPendingForRole(role, apiBoq?.status);
-  const showEditInQas = QAS_EDIT_ROLES.has(role) && isBoqEditable(apiBoq?.status) && projectId;
+  const canAct = canApproveBoq(role) && isBoqPendingForRole(role, apiBoq?.status) && !commercialFrozen;
+  const showEditInQas = QAS_EDIT_ROLES.has(role) && isBoqEditable(apiBoq?.status) && projectId && !commercialFrozen;
 
   const handleDownload = async () => {
     setDownloading(true);
@@ -182,6 +185,8 @@ export default function BoqViewPage() {
           </div>
         }
       />
+
+      <ProjectLifecycleBanner commercialStage={commercialStage} />
 
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
         <div className="flex flex-wrap items-center gap-2">
