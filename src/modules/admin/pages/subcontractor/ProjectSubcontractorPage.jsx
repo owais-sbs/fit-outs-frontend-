@@ -13,6 +13,7 @@ import {
   fetchScPackages,
   createScPackage,
   fetchProjectScClaims,
+  fetchProjectScCertificates,
   fetchScTradePackages,
   fetchScPackageBoqLines,
   updateScPackage,
@@ -21,6 +22,7 @@ import {
   measureScClaim,
   certifyScClaim,
   markScClaimPaid,
+  markScCertificatePayable,
 } from "../../api/subcontractor.api";
 import { ROUTES, projectPlanningBackPath } from "@/shared/constants/routes";
 import ScTenderPanel from "./ScTenderPanel";
@@ -323,6 +325,7 @@ export default function ProjectSubcontractorPage() {
 
   const [packages, setPackages] = useState([]);
   const [claims, setClaims] = useState([]);
+  const [certificates, setCertificates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -336,10 +339,12 @@ export default function ProjectSubcontractorPage() {
     return Promise.all([
       fetchScPackages(projectId).catch(() => []),
       fetchProjectScClaims(projectId).catch(() => []),
+      fetchProjectScCertificates(projectId).catch(() => []),
     ])
-      .then(([pkgs, cls]) => {
+      .then(([pkgs, cls, certs]) => {
         setPackages(Array.isArray(pkgs) ? pkgs : []);
         setClaims(Array.isArray(cls) ? cls : []);
+        setCertificates(Array.isArray(certs) ? certs : []);
       })
       .finally(() => setLoading(false));
   }, [projectId]);
@@ -467,14 +472,26 @@ export default function ProjectSubcontractorPage() {
                 const pkg = packages.find((p) => p.uuid === c.packageUuid);
                 const planned = Number(c.plannedQty ?? 0);
                 const claimed = Number(c.claimedQty ?? 0);
+                const linkedCert =
+                  certificates.find((cert) => String(cert.uuid) === String(c.certificateUuid))
+                  || certificates.find((cert) => String(cert.claimUuid) === String(c.uuid));
+                const certStatus = String(linkedCert?.status || "").toUpperCase();
+                const canReview = c.status === "SUBMITTED" || c.status === "PENDING" || c.status === "UNDER_REVIEW" || c.status === "APPROVED";
+                const canMeasure = c.status === "SUBMITTED" || c.status === "APPROVED" || c.status === "UNDER_REVIEW";
                 return (
                   <div key={c.uuid} className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm font-medium">{pkg?.name || String(c.packageUuid || "").slice(0, 8)}</p>
                         <Badge variant="secondary">{c.status || "DRAFT"}</Badge>
+                        {c.claimNumber && (
+                          <span className="font-mono text-[10px] text-muted-foreground">{c.claimNumber}</span>
+                        )}
+                        {String(c.paymentStatus || "").toUpperCase() === "PAID" && (
+                          <Badge className="bg-emerald-500/15 text-emerald-700 border-none text-[10px]">Cert paid</Badge>
+                        )}
                       </div>
-                      <div className="mt-2 grid grid-cols-2 gap-2 max-w-xs">
+                      <div className="mt-2 grid grid-cols-2 gap-2 max-w-md sm:grid-cols-4">
                         <div className="rounded-lg bg-secondary/60 px-3 py-2">
                           <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Planned</p>
                           <p className="text-sm font-semibold tabular-nums">{planned}</p>
@@ -483,10 +500,29 @@ export default function ProjectSubcontractorPage() {
                           <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Claimed</p>
                           <p className="text-sm font-semibold tabular-nums">{claimed}</p>
                         </div>
+                        <div className="rounded-lg bg-secondary/60 px-3 py-2">
+                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Measured</p>
+                          <p className="text-sm font-semibold tabular-nums">{c.measuredQty ?? "—"}</p>
+                        </div>
+                        <div className="rounded-lg bg-secondary/60 px-3 py-2">
+                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Certified</p>
+                          <p className="text-sm font-semibold tabular-nums">
+                            {c.certifiedValue != null ? Number(c.certifiedValue).toLocaleString() : "—"}
+                          </p>
+                        </div>
                       </div>
+                      {(c.certificateUuid || linkedCert) && (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Certificate{" "}
+                          <span className="font-mono">
+                            {linkedCert?.certificateNumber || String(c.certificateUuid || linkedCert?.uuid).slice(0, 8)}
+                          </span>
+                          {certStatus ? ` · ${certStatus}` : ""}
+                        </p>
+                      )}
                       {c.notes && <p className="text-xs text-muted-foreground mt-1">{c.notes}</p>}
                     </div>
-                    {(c.status === "SUBMITTED" || c.status === "PENDING" || c.status === "APPROVED") && (
+                    {canReview && (
                       <div className="flex flex-col gap-2 sm:items-end">
                         <Input
                           className="h-8 w-full sm:w-40 text-xs"
@@ -520,7 +556,7 @@ export default function ProjectSubcontractorPage() {
                         </div>
                       </div>
                     )}
-                    {(c.status === "SUBMITTED" || c.status === "APPROVED") && (
+                    {canMeasure && (
                       <div className="flex flex-col gap-2 sm:items-end">
                         <Input
                           className="h-8 w-full sm:w-32 text-xs"
@@ -555,7 +591,7 @@ export default function ProjectSubcontractorPage() {
                               () =>
                                 measureScClaim(projectId, c.uuid, {
                                   measuredQty: Number(measureForms[c.uuid]?.qty) || Number(c.claimedQty),
-                                  measuredValue: measureForms[c.uuid]?.value !== ""
+                                  measuredValue: measureForms[c.uuid]?.value !== "" && measureForms[c.uuid]?.value != null
                                     ? Number(measureForms[c.uuid]?.value)
                                     : null,
                                 }),
@@ -576,7 +612,22 @@ export default function ProjectSubcontractorPage() {
                         Certify
                       </Button>
                     )}
-                    {c.status === "CERTIFIED" && (
+                    {c.status === "CERTIFIED" && linkedCert && certStatus === "ISSUED" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={busy}
+                        onClick={() =>
+                          run(
+                            () => markScCertificatePayable(projectId, linkedCert.uuid),
+                            "Certificate marked payable"
+                          )
+                        }
+                      >
+                        Mark payable
+                      </Button>
+                    )}
+                    {c.status === "CERTIFIED" && linkedCert && certStatus === "PAYABLE" && (
                       <div className="flex flex-col gap-2 sm:items-end">
                         <Input
                           className="h-8 w-full sm:w-40 text-xs"
@@ -592,7 +643,7 @@ export default function ProjectSubcontractorPage() {
                           onClick={() =>
                             run(
                               () => markScClaimPaid(projectId, c.uuid, paidRefs[c.uuid]),
-                              "Claim marked paid"
+                              "Certificate marked paid"
                             )
                           }
                         >

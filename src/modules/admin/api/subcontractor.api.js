@@ -73,6 +73,7 @@ export const acceptScPackage = (packageUuid) =>
 export const fetchPackageClaims = (packageUuid) =>
   axiosInstance.get(`/subcontractor/packages/${packageUuid}/claims`).then(unwrap);
 
+/** Create claim. Prefer `{ notes, claimPeriodFrom, claimPeriodTo, lines: [{ awardBoqLineUuid, claimedQty }] }`; legacy `{ claimedQty }` still accepted. */
 export const createScClaim = (packageUuid, payload) =>
   axiosInstance.post(`/subcontractor/packages/${packageUuid}/claims`, payload).then(unwrap);
 
@@ -123,8 +124,19 @@ export const createScSiteReport = (payload) =>
 export const fetchMyScInvoices = () =>
   axiosInstance.get("/subcontractor/invoices").then(unwrap);
 
+/** Invoice against a PAYABLE certificate — payload must include `certificateUuid`. */
 export const createScInvoice = (payload) =>
-  axiosInstance.post("/subcontractor/invoices", payload).then(unwrap);
+  axiosInstance.post("/subcontractor/invoices", {
+    certificateUuid: payload.certificateUuid,
+    packageUuid: payload.packageUuid,
+    claimUuid: payload.claimUuid ?? null,
+    invoiceNumber: payload.invoiceNumber ?? null,
+    invoiceDate: payload.invoiceDate ?? null,
+    amount: payload.amount,
+    taxAmount: payload.taxAmount ?? 0,
+    currency: payload.currency ?? null,
+    notes: payload.notes ?? null,
+  }).then(unwrap);
 
 export const submitScInvoice = (uuid) =>
   axiosInstance.post(`/subcontractor/invoices/${uuid}/submit`).then(unwrap);
@@ -450,9 +462,24 @@ export const markScClaimPaid = (projectId, uuid, accountingRef) =>
 export const fetchProjectScCertificates = (projectId) =>
   axiosInstance.get(`/projects/${projectId}/sc-certificates`).then(unwrap);
 
+export const markScCertificatePayable = (projectId, uuid) =>
+  axiosInstance.post(`/projects/${projectId}/sc-certificates/${uuid}/mark-payable`).then(unwrap);
+
 export const fetchProjectScRetention = (projectId, packageUuid) =>
   axiosInstance
     .get(`/projects/${projectId}/sc-retention`, { params: packageUuid ? { packageUuid } : {} })
+    .then(unwrap);
+
+export const markScRetentionEligible = (projectId, uuid) =>
+  axiosInstance.post(`/projects/${projectId}/sc-retention/${uuid}/mark-eligible`).then(unwrap);
+
+export const releaseScRetention = (projectId, uuid, payload = {}) =>
+  axiosInstance
+    .post(`/projects/${projectId}/sc-retention/${uuid}/release`, {
+      amountReleased: payload.amountReleased,
+      releaseDate: payload.releaseDate ?? null,
+      notes: payload.notes ?? null,
+    })
     .then(unwrap);
 
 export const fetchProjectScBackCharges = (projectId, packageUuid) =>
