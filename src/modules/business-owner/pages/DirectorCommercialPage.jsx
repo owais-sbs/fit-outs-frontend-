@@ -11,8 +11,7 @@ import {
 import { ROUTES, boqViewPath } from "@/shared/constants/routes";
 import { filterBoqInboxForRole } from "@/shared/constants/roles";
 import { useAuth } from "@/shared/context/auth-context";
-import { fetchAllProjects } from "@/modules/admin/api/projects.api";
-import { fetchBoqsByProject, fetchBoqInbox } from "@/modules/admin/api/boq.api";
+import { fetchBoqInbox, fetchCompanyBoqPortfolio } from "@/modules/admin/api/boq.api";
 import { BoqStatusBadge } from "@/modules/admin/pages/boq/BoqApprovalTimeline";
 import { formatCurrency } from "@/modules/admin/pages/boq/quantityCalcUtils";
 import { formatAed } from "../utils/directorDashboardUtils";
@@ -26,33 +25,42 @@ export default function DirectorCommercialPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
     setLoading(true);
-    Promise.all([fetchAllProjects(), fetchBoqInbox(role)])
-      .then(async ([projects, inboxItems]) => {
+    Promise.all([fetchBoqInbox(role), fetchCompanyBoqPortfolio()])
+      .then(([inboxItems, portfolio]) => {
+        if (cancelled) return;
         setInbox(filterBoqInboxForRole(inboxItems, role));
         const allBoqs = [];
         const tableRows = [];
-        for (const p of projects) {
-          const boqs = await fetchBoqsByProject(p.id).catch(() => []);
-          const list = Array.isArray(boqs) ? boqs : [];
+        (Array.isArray(portfolio) ? portfolio : []).forEach((row) => {
+          const projectId = row.projectId ?? row.id;
+          const projectName = row.projectName || "";
+          const list = Array.isArray(row.boqs) ? row.boqs : [];
           allBoqs.push(...list);
           list.forEach((b) => {
             tableRows.push({
               ...b,
-              projectId: p.id,
-              projectName: p.projectName,
+              projectId,
+              projectName: b.projectName || projectName,
             });
           });
-        }
+        });
         tableRows.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
         setRows(tableRows.filter((r) => String(r.status || "").toUpperCase() !== "OBSOLETE"));
         setFunnel(boqFunnelCounts(allBoqs));
       })
       .catch(() => {
+        if (cancelled) return;
         setRows([]);
         setInbox([]);
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [role]);
 
   const approvedTotal = rows

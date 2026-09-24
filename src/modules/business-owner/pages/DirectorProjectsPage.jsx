@@ -14,9 +14,8 @@ import {
 } from "@/components/ui/table";
 import { Plus } from "lucide-react";
 import { ROUTES } from "@/shared/constants/routes";
-import { fetchAllProjects } from "@/modules/admin/api/projects.api";
-import { fetchBoqsByProject } from "@/modules/admin/api/boq.api";
-import { formatAed } from "../utils/directorDashboardUtils";
+import { fetchCompanyBoqPortfolio } from "@/modules/admin/api/boq.api";
+import { formatAed, latestBoqTotal } from "../utils/directorDashboardUtils";
 
 const STATUSES = ["All", "Planning", "In Progress", "On Hold", "Completed", "Cancelled"];
 
@@ -31,39 +30,55 @@ function StatusBadge({ status }) {
   return <Badge variant={variants[status] || "outline"}>{status}</Badge>;
 }
 
+function normalizeStatus(status) {
+  return String(status || "").trim().toLowerCase();
+}
+
+function mapPortfolioRow(row) {
+  const id = String(row.projectId ?? row.id ?? "");
+  const boqs = Array.isArray(row.boqs) ? row.boqs : [];
+  const boqFromDocs = latestBoqTotal(boqs);
+  const boq = Number(row.boqTotal ?? row.grandTotal ?? boqFromDocs ?? 0);
+  const budget = Number(row.budget ?? 0) || boq;
+  return {
+    id,
+    projectName: row.projectName || row.name || "",
+    projectType: row.projectType || "—",
+    location: row.location || "—",
+    status: row.status || "Planning",
+    progress: row.progress ?? 0,
+    budget,
+    boqTotal: boq,
+  };
+}
+
 export default function DirectorProjectsPage() {
   const [projects, setProjects] = useState([]);
-  const [boqTotals, setBoqTotals] = useState({});
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("All");
 
   useEffect(() => {
+    let cancelled = false;
     setLoading(true);
-    fetchAllProjects()
-      .then(async (list) => {
-        setProjects(list);
-        const totals = {};
-        await Promise.all(
-          list.map((p) =>
-            fetchBoqsByProject(p.id)
-              .then((boqs) => {
-                const approved = (Array.isArray(boqs) ? boqs : [])
-                  .filter((b) => ["APPROVED", "FINAL"].includes(String(b.status).toUpperCase()))
-                  .sort((a, b) => (b.version || 0) - (a.version || 0));
-                totals[p.id] = approved[0]?.grandTotal || 0;
-              })
-              .catch(() => { totals[p.id] = 0; })
-          )
-        );
-        setBoqTotals(totals);
+    fetchCompanyBoqPortfolio()
+      .then((rows) => {
+        if (cancelled) return;
+        setProjects(Array.isArray(rows) ? rows.map(mapPortfolioRow) : []);
       })
-      .catch(() => setProjects([]))
-      .finally(() => setLoading(false));
+      .catch(() => {
+        if (!cancelled) setProjects([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const filtered = statusFilter === "All"
     ? projects
-    : projects.filter((p) => p.status === statusFilter);
+    : projects.filter((p) => normalizeStatus(p.status) === normalizeStatus(statusFilter));
 
   return (
     <PageShell>
@@ -110,7 +125,7 @@ export default function DirectorProjectsPage() {
               </TableHeader>
               <TableBody>
                 {filtered.map((p) => {
-                  const boq = Number(boqTotals[p.id] || 0);
+                  const boq = Number(p.boqTotal || 0);
                   const budget = Number(p.budget || 0);
                   const variance = budget - boq;
                   return (

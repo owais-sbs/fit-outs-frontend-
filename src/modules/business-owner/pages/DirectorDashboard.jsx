@@ -27,12 +27,12 @@ import { BoqStatusBadge } from "@/modules/admin/pages/boq/BoqApprovalTimeline";
 const KPI_CONFIG = [
   { key: "activeProjects", label: "Active projects", icon: Briefcase, accent: "from-[#18181B]/[0.06] text-[#18181B]" },
   { key: "contractValue", label: "Contract value", icon: DollarSign, accent: "from-[#C4845A]/[0.10] text-[#C4845A]", format: formatAed },
+  { key: "totalCost", label: "Total cost (P&L)", icon: FileText, accent: "from-[#18181B]/[0.07] text-[#18181B]", format: formatAed },
+  { key: "margin", label: "Portfolio margin", icon: TrendingUp, accent: "from-[#C4845A]/[0.12] text-[#C4845A]", format: formatAed },
   { key: "avgProgress", label: "Avg progress", icon: TrendingUp, accent: "from-[#C4845A]/[0.12] text-[#C4845A]", suffix: "%" },
   { key: "stockValue", label: "Stock on hand", icon: Warehouse, accent: "from-[#18181B]/[0.07] text-[#18181B]", format: formatAed },
   { key: "lowStockCount", label: "Low-stock alerts", icon: AlertTriangle, accent: "from-[#C4845A]/[0.10] text-[#C4845A]" },
   { key: "pendingApprovals", label: "BOQ pending approval", icon: Inbox, accent: "from-amber-500/[0.07] text-amber-600" },
-  { key: "openLeads", label: "Open leads", icon: Users, accent: "from-sky-500/[0.07] text-sky-600" },
-  { key: "siteVisitsThisMonth", label: "Site visits (month)", icon: MapPin, accent: "from-violet-500/[0.07] text-violet-600" },
 ];
 
 const STATUS_COLORS = {
@@ -75,6 +75,11 @@ export default function DirectorDashboard() {
         description="Executive overview — portfolio, procurement, commercial pipeline, and CRM."
       >
         <div className="flex flex-wrap gap-2">
+          <Button asChild size="sm" variant="outline">
+            <Link to={ROUTES.BUSINESS_OWNER.FINANCE}>
+              <ClipboardList className="h-4 w-4 mr-1" /> Finance / P&L
+            </Link>
+          </Button>
           <Button asChild size="sm" variant="outline">
             <Link to={ROUTES.BUSINESS_OWNER.BOQ_INBOX}>
               <Inbox className="h-4 w-4 mr-1" /> BOQ Inbox

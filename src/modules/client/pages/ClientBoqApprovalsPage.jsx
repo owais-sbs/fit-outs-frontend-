@@ -22,7 +22,7 @@ import {
   approveBoq,
   fetchBoq,
   fetchBoqInbox,
-  fetchBoqsByProject,
+  fetchCompanyBoqPortfolio,
   rejectBoq,
 } from "@/modules/admin/api/boq.api";
 import { fetchAllProjects } from "@/modules/admin/api/projects.api";
@@ -51,28 +51,31 @@ export default function ClientBoqApprovalsPage() {
   const loadInbox = useCallback(async () => {
     setLoading(true);
     try {
-      const inboxList = await fetchBoqInbox(role).catch(() => []);
-      const projects = await fetchAllProjects().catch(() => []);
+      const [inboxList, projects, portfolio] = await Promise.all([
+        fetchBoqInbox(role).catch(() => []),
+        fetchAllProjects().catch(() => []),
+        fetchCompanyBoqPortfolio().catch(() => []),
+      ]);
       const stages = {};
       (Array.isArray(projects) ? projects : []).forEach((p) => {
         if (p?.id != null) stages[String(p.id)] = p.commercialStage || null;
       });
       setStageByProject(stages);
-      const projectBoqsList = await Promise.all(
-        (Array.isArray(projects) ? projects : []).map(async (p) => {
-          try {
-            const boqs = await fetchBoqsByProject(p.id);
-            return (Array.isArray(boqs) ? boqs : []).map((b) => ({
-              ...b,
-              projectName: b.projectName || p.projectName || p.name,
-              clientName: p.clientName || p.projectName || p.name,
-              projectId: b.projectId || p.id,
-            }));
-          } catch {
-            return [];
-          }
-        })
+      const clientNames = Object.fromEntries(
+        (Array.isArray(projects) ? projects : []).map((p) => [
+          String(p.id),
+          p.clientName || p.projectName || p.name,
+        ])
       );
+      const projectBoqsList = (Array.isArray(portfolio) ? portfolio : []).flatMap((row) => {
+        const projectId = row.projectId ?? row.id;
+        return (Array.isArray(row.boqs) ? row.boqs : []).map((b) => ({
+          ...b,
+          projectName: b.projectName || row.projectName,
+          clientName: clientNames[String(projectId)] || row.projectName,
+          projectId: b.projectId || projectId,
+        }));
+      });
 
       const combined = [
         ...(Array.isArray(inboxList) ? inboxList : []),

@@ -13,6 +13,12 @@ export const fetchBoq = (id) =>
 export const fetchBoqsByProject = (projectId) =>
   axiosInstance.get(`/boq/project/${projectId}`).then((r) => r.data?.data ?? r.data);
 
+export const fetchCompanyBoqPortfolio = () =>
+  axiosInstance.get("/boq/company-portfolio").then((r) => {
+    const data = r.data?.data ?? r.data;
+    return Array.isArray(data) ? data : [];
+  });
+
 export const updateBoq = (id, data) =>
   axiosInstance.put(`/boq/${id}`, data).then((r) => r.data?.data ?? r.data);
 

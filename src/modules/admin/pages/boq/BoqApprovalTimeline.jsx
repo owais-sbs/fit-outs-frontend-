@@ -1,6 +1,7 @@
 import { CheckCircle2, Clock, XCircle, GitBranch, Send } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { boqStatusLabel } from "@/shared/constants/roles";
+import CrBadge from "@/modules/admin/pages/variations/CrBadge";
 
 const ACTION_ICONS = {
   SUBMITTED: Send,
@@ -65,14 +66,25 @@ export default function BoqApprovalTimeline({
         <div className="rounded-lg border bg-muted/20 p-3">
           <p className="text-xs font-semibold uppercase text-muted-foreground mb-2">Version history</p>
           <div className="flex flex-wrap gap-2">
-            {versions.map((v) => (
-              <Badge key={v.id} variant="outline" className="font-mono text-[10px]">
-                v{v.version}
-                {v.revisionLabel ? ` · ${v.revisionLabel}` : ""}
-                {" · "}
-                {boqStatusLabel(v.status)}
-              </Badge>
-            ))}
+            {versions.map((v) => {
+              const fromCr = typeof v.revisionLabel === "string"
+                && /^CR-\d+/i.test(v.revisionLabel.trim());
+              return (
+                <div key={v.id} className="inline-flex items-center gap-1">
+                  <Badge variant="outline" className="font-mono text-[10px]">
+                    v{v.version}
+                    {v.revisionLabel && !fromCr ? ` · ${v.revisionLabel}` : ""}
+                    {" · "}
+                    {boqStatusLabel(v.status)}
+                  </Badge>
+                  {fromCr && (
+                    <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                      From <CrBadge number={v.revisionLabel} />
+                    </span>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

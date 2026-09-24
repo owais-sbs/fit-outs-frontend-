@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, Briefcase, Inbox, Stamp, ScrollText } from "lucide-react";
+import { LayoutDashboard, Briefcase, Inbox, Stamp, ScrollText, CircleDollarSign } from "lucide-react";
 import { SidebarBrand } from "@/components/brand/BrandMark";
 import {
   Sidebar,
@@ -22,6 +22,7 @@ const GROUPS = [
     label: "Overview",
     items: [
       { label: "Dashboard", href: ROUTES.FINANCE.DASHBOARD, icon: LayoutDashboard },
+      { label: "Profit & Loss", href: ROUTES.FINANCE.PNL, icon: CircleDollarSign },
     ],
   },
   {
@@ -43,8 +44,11 @@ const GROUPS = [
 function isActivePath(pathname, href) {
   if (pathname === href) return true;
   if (href === ROUTES.FINANCE.DASHBOARD) return false;
+  if (href === ROUTES.FINANCE.PNL) {
+    return pathname === href || pathname.includes("/pnl");
+  }
   if (href === ROUTES.FINANCE.PROJECTS) {
-    return pathname.startsWith(`${href}/`) || pathname === href;
+    return (pathname.startsWith(`${href}/`) || pathname === href) && !pathname.includes("/pnl");
   }
   return pathname.startsWith(`${href}/`);
 }

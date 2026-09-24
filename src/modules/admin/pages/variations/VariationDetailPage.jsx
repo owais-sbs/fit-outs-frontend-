@@ -19,6 +19,13 @@ import { useAuth } from "@/shared/context/auth-context";
 import { ROLES } from "@/shared/constants/roles";
 import ProjectLifecycleBanner from "@/modules/admin/components/projects/ProjectLifecycleBanner";
 import { useProjectLifecycle } from "@/modules/admin/hooks/useProjectLifecycle";
+import VariationLinesEditor from "./VariationLinesEditor";
+import VariationLinksPanel from "./VariationLinksPanel";
+import VariationAttachments from "./VariationAttachments";
+import VariationStatusPipeline from "./VariationStatusPipeline";
+import VariationBoqAuditPanel from "./VariationBoqAuditPanel";
+import CrBadge from "./CrBadge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function VariationDetailPage() {
   const { projectId, uuid } = useParams();
@@ -29,8 +36,9 @@ export default function VariationDetailPage() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [comment, setComment] = useState("");
-  const [sellEdit, setSellEdit] = useState("");
-  const [costEdit, setCostEdit] = useState("");
+  const [costMode, setCostMode] = useState("LUMP_SUM");
+  const [lines, setLines] = useState([]);
+  const [links, setLinks] = useState([]);
   const [delayEdit, setDelayEdit] = useState("0");
   const [applyScheduleEdit, setApplyScheduleEdit] = useState(false);
 
@@ -39,8 +47,9 @@ export default function VariationDetailPage() {
     fetchVariation(projectId, uuid)
       .then((v) => {
         setItem(v);
-        setSellEdit(v?.sellDelta != null ? String(v.sellDelta) : "");
-        setCostEdit(v?.costDelta != null ? String(v.costDelta) : "");
+        setCostMode(v?.costMode || "LUMP_SUM");
+        setLines(v?.lines || []);
+        setLinks(v?.links || []);
         setDelayEdit(v?.proposedDelayDays != null ? String(v.proposedDelayDays) : "0");
         setApplyScheduleEdit(Boolean(v?.applyScheduleOnApproval));
       })
@@ -71,13 +80,15 @@ export default function VariationDetailPage() {
       reasonCode: item.reasonCode,
       proposedDelayDays: Number(delayEdit || 0),
       applyScheduleOnApproval: applyScheduleEdit,
-      lines: [{
-        lineType: "LUMP_SUM",
-        description: item.title,
-        quantity: 1,
-        sellRate: Number(sellEdit || 0),
-        costRate: Number(costEdit || 0),
-      }],
+      costMode,
+      lines: lines.map((line, index) => ({
+        ...line,
+        quantity: Number(line.quantity || 0),
+        sellRate: Number(line.sellRate || 0),
+        costRate: Number(line.costRate || 0),
+        sortOrder: index,
+      })),
+      links,
     });
   }, "Pricing & schedule settings saved");
 
@@ -103,7 +114,7 @@ export default function VariationDetailPage() {
   return (
     <PageShell>
       <PageTitle
-        title={`${item.crNumber} — ${item.title}`}
+        title={<span className="flex items-center gap-2"><CrBadge number={item.crNumber} /> {item.title}</span>}
         description={`${item.origin} · ${item.status?.replace(/_/g, " ")}`}
         actions={(
           <Button variant="outline" asChild>
@@ -115,6 +126,7 @@ export default function VariationDetailPage() {
       <ProjectLifecycleBanner commercialStage={commercialStage} className="mb-4" />
 
       {message && <p className="text-sm mb-3 text-muted-foreground">{message}</p>}
+      <Surface className="mb-4 p-4"><VariationStatusPipeline status={item.status} /></Surface>
 
       <div className="grid lg:grid-cols-3 gap-4 mb-4">
         <Surface className="p-4 space-y-2 text-sm lg:col-span-2">
@@ -156,10 +168,15 @@ export default function VariationDetailPage() {
 
           {editable && (
             <>
-              <Label>Sell amount</Label>
-              <Input type="number" value={sellEdit} onChange={(e) => setSellEdit(e.target.value)} />
-              <Label>Cost amount</Label>
-              <Input type="number" value={costEdit} onChange={(e) => setCostEdit(e.target.value)} />
+              <Label>Pricing mode</Label>
+              <Select value={costMode} onValueChange={setCostMode}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="LUMP_SUM">Lump sum</SelectItem>
+                  <SelectItem value="BOQ_LINES">BOQ lines</SelectItem>
+                  <SelectItem value="MIXED">Mixed</SelectItem>
+                </SelectContent>
+              </Select>
 
               <div className="pt-2 border-t space-y-2">
                 <div className="flex items-center gap-2">
@@ -192,13 +209,6 @@ export default function VariationDetailPage() {
                 () => submitVariationReview(projectId, uuid),
                 "Submitted for internal review",
               )}>Submit for review</Button>
-              <div>
-                <Label>Attachment</Label>
-                <Input type="file" onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) run(() => uploadVariationAttachment(projectId, uuid, f), "Uploaded");
-                }} />
-              </div>
             </>
           )}
 
@@ -223,6 +233,31 @@ export default function VariationDetailPage() {
               ))}
             </div>
           )}
+        </Surface>
+      </div>
+
+      <Surface className="mb-4 p-4">
+        <VariationLinesEditor projectId={projectId} costMode={costMode} lines={lines} onChange={setLines} disabled={!editable} />
+      </Surface>
+      <Surface className="mb-4 p-4">
+        <VariationLinksPanel projectId={projectId} links={links} onChange={setLinks} disabled={!editable} />
+      </Surface>
+      <div className="mb-4 grid gap-4 lg:grid-cols-2">
+        <Surface className="p-4">
+          <VariationAttachments
+            attachments={item.attachments}
+            editable={editable}
+            busy={busy}
+            onUpload={(file) => run(() => uploadVariationAttachment(projectId, uuid, file), "Attachment uploaded")}
+          />
+        </Surface>
+        <Surface className="p-4">
+          <VariationBoqAuditPanel
+            projectId={projectId}
+            uuid={uuid}
+            sourceBoqId={item.sourceBoqId}
+            resultBoqId={item.resultBoqId}
+          />
         </Surface>
       </div>
 

@@ -5,6 +5,7 @@ const unwrap = (r) => r.data?.data ?? r.data;
 export const PROJECT_TEAM_ROLES = [
   { key: "QS_SENIOR_QS", label: "QS / Senior QS" },
   { key: "PROJECT_MANAGER", label: "Project Manager" },
+  { key: "SITE_ENGINEER", label: "Site Engineer" },
   { key: "FINANCE", label: "Finance" },
   { key: "CLIENT", label: "Client" },
   { key: "SUBCONTRACTOR", label: "Subcontractor" },

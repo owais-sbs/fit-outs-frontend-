@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Inbox, Briefcase, FileText, Warehouse,
   Users, BarChart3, ChevronRight, MapPin, UserSquare2,
   CalendarRange, Package, ClipboardList, PenTool, Settings,
-  Grid, Wrench, ArrowDownToLine, ArrowUpFromLine, History,
+  Grid, Wrench, ArrowDownToLine, ArrowUpFromLine, History, CircleDollarSign,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup,
@@ -36,6 +36,7 @@ const PORTFOLIO = [
 
 const INSIGHTS = [
   { label: "CRM & Pipeline", href: ROUTES.BUSINESS_OWNER.CRM, icon: Users },
+  { label: "Finance / P&L", href: ROUTES.BUSINESS_OWNER.FINANCE, icon: CircleDollarSign },
   { label: "Reports", href: ROUTES.BUSINESS_OWNER.DASHBOARD, icon: BarChart3 },
 ];
 

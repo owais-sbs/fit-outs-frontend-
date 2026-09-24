@@ -78,6 +78,8 @@ import ProjectManagerDashboard from "./modules/project-manager/pages/dashboard";
 import PmLayout from "./modules/project-manager/layouts/PmLayout";
 import FinanceLayout from "./modules/finance/layouts/FinanceLayout";
 import FinanceDashboard from "./modules/finance/pages/dashboard";
+import CompanyPnlPage from "./modules/pnl/pages/CompanyPnlPage";
+import ProjectPnlPage from "./modules/pnl/pages/ProjectPnlPage";
 import DesignerDashboard from "./modules/designer/pages/dashboard";
 import QASDashboard from "./modules/qas/pages/dashboard";
 import SubcontractorDashboard from "./modules/subcontractor/pages/dashboard";
@@ -140,6 +142,7 @@ import {
   ClientBoqApprovalsPage,
 } from "./modules/client";
 import ClientRoomTaskPage from "./modules/client/pages/ClientRoomTaskPage";
+import ClientCommunicationsHubPage from "./modules/client/pages/ClientCommunicationsHubPage";
 import SalesDashboard from "./modules/sales/pages/dashboard";
 import EmployeeLayout from "./modules/employee/layouts/EmployeeLayout";
 import EmployeeDashboard from "./modules/employee/pages/EmployeeDashboard";
@@ -147,6 +150,15 @@ import EmployeeProjectsPage from "./modules/employee/pages/EmployeeProjectsPage"
 import EmployeeCalendarPage from "./modules/employee/pages/EmployeeCalendarPage";
 import EmployeeSiteVisitsPage from "./modules/employee/pages/EmployeeSiteVisitsPage";
 import EmployeeMyActivitiesPage from "./modules/employee/pages/EmployeeMyActivitiesPage";
+import SiteEngineerLayout from "./modules/site-engineer/layouts/SiteEngineerLayout";
+import SiteEngineerDashboard from "./modules/site-engineer/pages/SiteEngineerDashboard";
+import SiteEngineerProjectsPage from "./modules/site-engineer/pages/SiteEngineerProjectsPage";
+import SiteEngineerProjectDetailPage from "./modules/site-engineer/pages/SiteEngineerProjectDetailPage";
+import SiteEngineerSiteVisitsPage from "./modules/site-engineer/pages/SiteEngineerSiteVisitsPage";
+import SiteEngineerActivitiesPage from "./modules/site-engineer/pages/SiteEngineerActivitiesPage";
+import SiteEngineerTasksPage from "./modules/site-engineer/pages/SiteEngineerTasksPage";
+import SiteEngineerSnagsPage from "./modules/site-engineer/pages/SiteEngineerSnagsPage";
+import SiteEngineerCommunicationsPage from "./modules/site-engineer/pages/SiteEngineerCommunicationsPage";
 import ProjectSchedulePage from "./modules/admin/pages/schedule/ProjectSchedulePage";
 import ScheduleHubPage from "./modules/admin/pages/schedule/ScheduleHubPage";
 import ScheduleTemplateLibraryPage from "./modules/admin/pages/schedule/ScheduleTemplateLibraryPage";
@@ -164,6 +176,7 @@ import VariationDetailPage from "./modules/admin/pages/variations/VariationDetai
 import VariationsInboxPage from "./modules/admin/pages/variations/VariationsInboxPage";
 import CommercialMatricesPage from "./modules/admin/pages/variations/CommercialMatricesPage";
 import ClientVariationsPage from "./modules/client/pages/ClientVariationsPage";
+import ClientVariationDetailPage from "./modules/client/pages/ClientVariationDetailPage";
 import ProjectDocumentsPage from "./modules/admin/pages/documents/ProjectDocumentsPage";
 import ProjectReportingPage from "./modules/admin/pages/reporting/ProjectReportingPage";
 import ProjectBillingPage from "./modules/admin/pages/billing/ProjectBillingPage";
@@ -339,6 +352,26 @@ function App() {
               <Route path="variations/inbox" element={<VariationsInboxPage />} />
               <Route path="commercial-approvals/matrices" element={<CommercialMatricesPage />} />
               <Route path="crm" element={<DirectorCrmPage />} />
+              <Route
+                path="finance"
+                element={
+                  <CompanyPnlPage
+                    title="Finance / Profit & Loss"
+                    projectPnlPath={(id) =>
+                      ROUTES.BUSINESS_OWNER.PROJECT_PNL.replace(":projectId", id)
+                    }
+                  />
+                }
+              />
+              <Route
+                path="projects/:projectId/pnl"
+                element={
+                  <ProjectPnlPage
+                    backHref={ROUTES.BUSINESS_OWNER.FINANCE}
+                    backLabel="Back to Finance / P&L"
+                  />
+                }
+              />
               <Route path="terms" element={<TermsAndConditionsPage />} />
             </Route>
 
@@ -419,10 +452,28 @@ function App() {
               }
             >
               <Route index element={<FinanceDashboard />} />
+              <Route
+                path="pnl"
+                element={
+                  <CompanyPnlPage
+                    title="Profit & Loss"
+                    projectPnlPath={(id) => ROUTES.FINANCE.PROJECT_PNL.replace(":projectId", id)}
+                  />
+                }
+              />
               <Route path="projects" element={<ProjectsPage />} />
               <Route path="projects/:projectId" element={<ProjectDetailPage />} />
               <Route path="projects/:projectId/billing" element={<ProjectBillingPage />} />
               <Route path="projects/:projectId/completion" element={<ProjectCompletionPage />} />
+              <Route
+                path="projects/:projectId/pnl"
+                element={
+                  <ProjectPnlPage
+                    backHref={ROUTES.FINANCE.PNL}
+                    backLabel="Back to P&L"
+                  />
+                }
+              />
               <Route path="billing/inbox" element={<BillingMilestoneInboxPage />} />
               <Route path="boq/inbox" element={<BoqApprovalInboxPage />} />
               <Route path="boq/:boqId" element={<BoqViewPage />} />
@@ -498,11 +549,12 @@ function App() {
               <Route path="boq-approvals" element={<ClientBoqApprovalsPage />} />
               <Route path="boq/:boqId" element={<BoqViewPage />} />
               <Route path="variations" element={<ClientVariationsPage />} />
+              <Route path="projects/:projectId/variations/:uuid" element={<ClientVariationDetailPage />} />
               <Route path="designs/:id" element={<DesignDetailPage />} />
               <Route path="documents" element={<ClientDocumentsPage />} />
               <Route path="snags" element={<ClientSnagsPage />} />
               <Route path="invoices" element={<ClientInvoicesPage />} />
-              <Route path="communications" element={<CommunicationsPage clientMode />} />
+              <Route path="communications" element={<ClientCommunicationsHubPage />} />
               <Route path="settings" element={<ClientSettingsPage />} />
               <Route path="terms" element={<TermsAndConditionsPage />} />
               <Route path="projects/my" element={<MyProjectsPage />} />
@@ -523,12 +575,12 @@ function App() {
               }
             />
 
-            {/* Employee / Site Engineer Portal */}
+            {/* Employee Portal */}
             <Route
               path="/employee"
               element={
                 <ProtectedRoute>
-                  <RoleRoute allowedRoles={[ROLES.EMPLOYEE, ROLES.SITE_ENGINEER]}>
+                  <RoleRoute allowedRoles={[ROLES.EMPLOYEE]}>
                     <EmployeeLayout />
                   </RoleRoute>
                 </ProtectedRoute>
@@ -541,6 +593,29 @@ function App() {
               <Route path="site-visits" element={<EmployeeSiteVisitsPage />} />
               <Route path="site-visits/:visitId/report" element={<SiteVisitReportPage />} />
               <Route path="communications" element={<CommunicationsPage />} />
+              <Route path="terms" element={<TermsAndConditionsPage />} />
+            </Route>
+
+            {/* Site Engineer Portal */}
+            <Route
+              path="/site-engineer"
+              element={
+                <ProtectedRoute>
+                  <RoleRoute allowedRoles={[ROLES.SITE_ENGINEER]}>
+                    <SiteEngineerLayout />
+                  </RoleRoute>
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<SiteEngineerDashboard />} />
+              <Route path="projects" element={<SiteEngineerProjectsPage />} />
+              <Route path="projects/:projectId" element={<SiteEngineerProjectDetailPage />} />
+              <Route path="activities" element={<SiteEngineerActivitiesPage />} />
+              <Route path="tasks" element={<SiteEngineerTasksPage />} />
+              <Route path="snags" element={<SiteEngineerSnagsPage />} />
+              <Route path="site-visits" element={<SiteEngineerSiteVisitsPage />} />
+              <Route path="site-visits/:visitId/report" element={<SiteVisitReportPage />} />
+              <Route path="communications" element={<SiteEngineerCommunicationsPage />} />
               <Route path="terms" element={<TermsAndConditionsPage />} />
             </Route>
 

@@ -12,6 +12,16 @@ function wsBaseUrl() {
 
 export function useCommunicationsSocket({ channelUuid, accountId, onMessage, onInboxRefresh }) {
   const clientRef = useRef(null);
+  const onMessageRef = useRef(onMessage);
+  const onInboxRefreshRef = useRef(onInboxRefresh);
+
+  useEffect(() => {
+    onMessageRef.current = onMessage;
+  }, [onMessage]);
+
+  useEffect(() => {
+    onInboxRefreshRef.current = onInboxRefresh;
+  }, [onInboxRefresh]);
 
   useEffect(() => {
     const client = new Client({
@@ -27,7 +37,7 @@ export function useCommunicationsSocket({ channelUuid, accountId, onMessage, onI
         if (channelUuid) {
           client.subscribe(`/topic/channels/${channelUuid}`, (frame) => {
             try {
-              onMessage?.(JSON.parse(frame.body));
+              onMessageRef.current?.(JSON.parse(frame.body));
             } catch {
               /* ignore */
             }
@@ -35,7 +45,7 @@ export function useCommunicationsSocket({ channelUuid, accountId, onMessage, onI
         }
         if (accountId) {
           client.subscribe(`/topic/inbox/${accountId}`, () => {
-            onInboxRefresh?.();
+            onInboxRefreshRef.current?.();
           });
         }
       },
@@ -45,5 +55,5 @@ export function useCommunicationsSocket({ channelUuid, accountId, onMessage, onI
     return () => {
       client.deactivate();
     };
-  }, [channelUuid, accountId, onMessage, onInboxRefresh]);
+  }, [channelUuid, accountId]);
 }

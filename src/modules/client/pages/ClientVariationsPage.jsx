@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Loader2, Plus } from "lucide-react";
+import { Link } from "react-router-dom";
 import { PageShell, PageTitle, Surface } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,13 +14,14 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  clientApproveVariation, clientRejectVariation, createVariation,
+  createVariation,
   fetchProjectVariations, REASON_CODES,
 } from "@/modules/admin/api/variations.api";
 import { fetchAllProjects } from "@/modules/admin/api/projects.api";
 import { formatCurrency } from "@/modules/admin/pages/boq/quantityCalcUtils";
 import ProjectLifecycleBanner from "@/modules/admin/components/projects/ProjectLifecycleBanner";
 import { useProjectLifecycle } from "@/modules/admin/hooks/useProjectLifecycle";
+import CrBadge from "@/modules/admin/pages/variations/CrBadge";
 
 export default function ClientVariationsPage() {
   const [projects, setProjects] = useState([]);
@@ -30,7 +32,6 @@ export default function ClientVariationsPage() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [showForm, setShowForm] = useState(false);
-  const [comment, setComment] = useState("");
   const [form, setForm] = useState({ title: "", description: "", reasonCode: "CLIENT_REQUEST" });
 
   const loadProjects = useCallback(() => {
@@ -77,7 +78,7 @@ export default function ClientVariationsPage() {
     <PageShell>
       <PageTitle
         title="Variations"
-        description="Raise a change request or approve issued variations"
+        description="Raise a contract variation request or open issued variations for approval"
         actions={(
           !commercialFrozen ? (
           <Button onClick={() => setShowForm((v) => !v)}>
@@ -161,7 +162,7 @@ export default function ClientVariationsPage() {
             <TableBody>
               {items.map((item) => (
                 <TableRow key={item.uuid}>
-                  <TableCell className="font-mono text-xs">{item.crNumber}</TableCell>
+                  <TableCell><CrBadge number={item.crNumber} /></TableCell>
                   <TableCell>
                     <div>{item.title}</div>
                     <div className="text-xs text-muted-foreground whitespace-pre-wrap">{item.description}</div>
@@ -170,26 +171,13 @@ export default function ClientVariationsPage() {
                     <Badge variant="outline">{item.status?.replace(/_/g, " ")}</Badge>
                   </TableCell>
                   <TableCell>{formatCurrency(item.sellDelta)}</TableCell>
-                  <TableCell className="min-w-[200px] space-y-2">
-                    {item.status === "ISSUED_TO_CLIENT" && !commercialFrozen && (
-                      <>
-                        <Textarea
-                          placeholder="Reject comment"
-                          value={comment}
-                          onChange={(e) => setComment(e.target.value)}
-                        />
-                        <div className="flex gap-2">
-                          <Button size="sm" disabled={busy} onClick={() => run(
-                            () => clientApproveVariation(projectId, item.uuid),
-                            "Approved — variation locked",
-                          )}>Approve</Button>
-                          <Button size="sm" variant="outline" disabled={busy} onClick={() => run(
-                            () => clientRejectVariation(projectId, item.uuid, comment || "Rejected"),
-                            "Returned for revision",
-                          )}>Reject</Button>
-                        </div>
-                      </>
-                    )}
+                  <TableCell className="min-w-[160px] space-y-2">
+                    <Button size="sm" variant="outline" asChild disabled={commercialFrozen && item.status === "ISSUED_TO_CLIENT"}>
+                      <Link to={`/client/projects/${projectId}/variations/${item.uuid}`}>
+                        {item.status === "ISSUED_TO_CLIENT" ? "Review & decide" : "View details"}
+                      </Link>
+                    </Button>
+
                     {item.lockedAt && (
                       <div className="text-xs text-muted-foreground">
                         Locked · contract {formatCurrency(item.currentContractValue)}

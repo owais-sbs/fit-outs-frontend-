@@ -2,6 +2,14 @@ import axiosInstance from "@/lib/axiosInstance";
 
 const unwrap = (r) => r.data?.data ?? r.data;
 
+export const fetchCompanySummary = () =>
+  axiosInstance.get("/billing/company-summary").then((r) => {
+    const data = unwrap(r);
+    return Array.isArray(data) ? data : [];
+  });
+
+export const getCompanySummary = fetchCompanySummary;
+
 export const fetchBillingMilestones = (projectId) =>
   axiosInstance.get(`/projects/${projectId}/billing-milestones`).then(unwrap);
 

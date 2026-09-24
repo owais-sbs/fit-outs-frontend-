@@ -1,7 +1,7 @@
 import { useLocation } from "react-router-dom";
 import { ROUTES } from "@/shared/constants/routes";
 
-/** Resolve site-visit list/report base routes for admin, PM, or employee shells. */
+/** Resolve site-visit list/report base routes for admin, PM, employee, or site-engineer shells. */
 export function useSiteVisitPortalRoutes() {
   const { pathname } = useLocation();
   if (pathname.startsWith("/project-manager")) {
@@ -9,6 +9,14 @@ export function useSiteVisitPortalRoutes() {
       list: ROUTES.PROJECT_MANAGER.SITE_VISITS,
       report: ROUTES.PROJECT_MANAGER.SITE_VISIT_REPORT,
       schedule: ROUTES.ADMIN.SITE_VISIT_SCHEDULE,
+      canSchedule: false,
+    };
+  }
+  if (pathname.startsWith("/site-engineer")) {
+    return {
+      list: ROUTES.SITE_ENGINEER.SITE_VISITS,
+      report: ROUTES.SITE_ENGINEER.SITE_VISIT_REPORT,
+      schedule: null,
       canSchedule: false,
     };
   }

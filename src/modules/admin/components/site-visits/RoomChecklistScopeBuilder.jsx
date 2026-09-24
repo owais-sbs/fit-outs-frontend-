@@ -215,6 +215,35 @@ export default function RoomChecklistScopeBuilder({
     }
   };
 
+  const removeItem = (floorName, roomName, category, item) => {
+    updateScopes(
+      floors.map((floor) => {
+        if (floor.floorName !== floorName) return floor;
+        return {
+          ...floor,
+          rooms: (floor.rooms || []).map((room) => {
+            if (room.roomName !== roomName) return room;
+            const selections = (room.selections || [])
+              .map((sel) => {
+                if (sel.category !== category) return sel;
+                return {
+                  ...sel,
+                  items: (sel.items || []).filter((x) => x !== item),
+                };
+              })
+              .filter((sel) => (sel.items || []).length > 0);
+            return { ...room, selections };
+          }),
+        };
+      })
+    );
+  };
+
+  const discardActiveRoom = () => {
+    if (!activeFloor || !activeRoom) return;
+    removeRoom(activeFloor, activeRoom);
+  };
+
   const focusRoom = (floorName, roomName) => {
     setActiveFloor(floorName);
     setActiveRoom(roomName);
@@ -484,6 +513,16 @@ export default function RoomChecklistScopeBuilder({
                 >
                   Clear
                 </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  disabled={disabled || !activeFloor || !activeRoom}
+                  onClick={discardActiveRoom}
+                  className="text-destructive hover:text-destructive"
+                >
+                  Discard
+                </Button>
               </div>
             ) : (
               <p className="text-xs text-muted-foreground pt-1">Items appear after category.</p>
@@ -673,10 +712,26 @@ export default function RoomChecklistScopeBuilder({
                                           {(sel.items || []).map((item) => (
                                             <li
                                               key={item}
-                                              className="flex items-start gap-1.5 text-xs text-muted-foreground"
+                                              className="flex items-center gap-1.5 text-xs text-muted-foreground"
                                             >
-                                              <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-primary/70" />
-                                              <span>{item}</span>
+                                              <span className="h-1 w-1 shrink-0 rounded-full bg-primary/70" />
+                                              <span className="min-w-0 flex-1">{item}</span>
+                                              <button
+                                                type="button"
+                                                disabled={disabled}
+                                                onClick={() =>
+                                                  removeItem(
+                                                    floor.floorName,
+                                                    room.roomName,
+                                                    sel.category,
+                                                    item
+                                                  )
+                                                }
+                                                aria-label={`Remove ${item}`}
+                                                className="shrink-0 rounded p-0.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:pointer-events-none disabled:opacity-50"
+                                              >
+                                                <X className="h-3 w-3" />
+                                              </button>
                                             </li>
                                           ))}
                                         </ul>

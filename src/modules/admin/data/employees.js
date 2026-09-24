@@ -1,15 +1,83 @@
+import { ROLES } from "@/shared/constants/roles";
+
 export const FEATURE_OPTIONS = [
+  "DASHBOARD",
   "LEADS",
+  "SOURCES",
+  "CLIENTS",
   "SITE_VISITS",
+  "CALENDAR",
+  "PROJECTS",
+  "SCHEDULE",
+  "SCHEDULE_TEMPLATES",
+  "APPROVALS",
+  "VALIDATION",
+  "VARIATIONS",
+  "CHECKLISTS",
+  "COMMUNICATIONS",
+  "VENDORS",
+  "DESIGN",
+  "QAS",
+  "BOQ",
+  "SUBCONTRACTOR_APPS",
+  "PROCUREMENT",
+  "PROJECT_CONFIG",
   "EMPLOYEES",
+  "SETTINGS",
+  "TERMS",
+  "TASKS",
+  "ACTIVITIES",
+  "SNAGS",
   "ACCOUNTS",
   "COMPANIES",
   "SUBSCRIPTIONS",
-  "PROJECTS",
-  "CHECKLISTS",
   "REPORTS",
-  "SETTINGS",
 ];
+
+export const FINANCIAL_FEATURES = ["ACCOUNTS", "COMPANIES", "SUBSCRIPTIONS", "REPORTS"];
+
+export const MATRIX_FEATURES = [
+  // CRM
+  "LEADS",
+  "SOURCES",
+  "CLIENTS",
+  // BOQ
+  "BOQ",
+  // Project Tasks
+  "PROJECTS",
+  "TASKS",
+  // Subcontractor Management
+  "SUBCONTRACTOR_APPS",
+  "VENDORS",
+  // Resource Management
+  "PROCUREMENT",
+  "PROJECT_CONFIG",
+  // Progress Reporting
+  "ACTIVITIES",
+  "VALIDATION",
+  // Variation (CR)
+  "VARIATIONS",
+];
+
+export const SITE_ENGINEER_FEATURES = [
+  "DASHBOARD",
+  "SITE_VISITS",
+  "TASKS",
+  "ACTIVITIES",
+  "SNAGS",
+  "PROJECTS",
+  "COMMUNICATIONS",
+  "TERMS",
+];
+
+export function defaultFeaturesForRole(role) {
+  if (role === ROLES.SITE_ENGINEER) return [...SITE_ENGINEER_FEATURES];
+  if (role === ROLES.BUSINESS_OWNER || role === ROLES.FINANCE) {
+    return [...MATRIX_FEATURES, ...FINANCIAL_FEATURES];
+  }
+  // PM, QS, Designer, Sales
+  return [...MATRIX_FEATURES];
+}
 
 export const INITIAL_EMPLOYEES = [
   {

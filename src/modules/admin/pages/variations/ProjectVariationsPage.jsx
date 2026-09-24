@@ -16,10 +16,14 @@ import {
 import {
   createVariation, fetchProjectCommercial, fetchProjectVariations, REASON_CODES,
 } from "@/modules/admin/api/variations.api";
-import { portalRoutesFromPath, projectDetailPath } from "@/shared/constants/routes";
+import { projectDetailPath } from "@/shared/constants/routes";
 import { formatCurrency } from "@/modules/admin/pages/boq/quantityCalcUtils";
 import ProjectLifecycleBanner from "@/modules/admin/components/projects/ProjectLifecycleBanner";
 import { useProjectLifecycle } from "@/modules/admin/hooks/useProjectLifecycle";
+import VariationLinesEditor, { blankLine } from "./VariationLinesEditor";
+import VariationLinksPanel from "./VariationLinksPanel";
+import VariationStatusPipeline from "./VariationStatusPipeline";
+import CrBadge from "./CrBadge";
 
 const STATUS_VARIANT = {
   AWAITING_TRIAGE: "secondary",
@@ -33,7 +37,6 @@ const STATUS_VARIANT = {
 
 export default function ProjectVariationsPage() {
   const { projectId } = useParams();
-  const routes = portalRoutesFromPath(window.location.pathname);
   const { commercialStage, commercialFrozen } = useProjectLifecycle(projectId);
   const [items, setItems] = useState([]);
   const [commercial, setCommercial] = useState(null);
@@ -46,13 +49,11 @@ export default function ProjectVariationsPage() {
     description: "",
     reasonCode: "SCOPE_CHANGE",
     proposedDelayDays: "",
-    sellAmount: "",
-    costAmount: "",
+    costMode: "LUMP_SUM",
+    lines: [blankLine()],
+    links: [],
     applyScheduleOnApproval: false,
   });
-
-  const detailPath = (uuid) =>
-    `${routes.PROJECTS}/${projectId}/variations/${uuid}`.replace("/projects/projects", "/projects");
 
   const load = useCallback(() => {
     setLoading(true);
@@ -78,30 +79,29 @@ export default function ProjectVariationsPage() {
     setBusy(true);
     setMessage("");
     try {
-      const sell = form.sellAmount !== "" ? Number(form.sellAmount) : 0;
-      const cost = form.costAmount !== "" ? Number(form.costAmount) : 0;
       const payload = {
         title: form.title.trim(),
         description: form.description || null,
         reasonCode: form.reasonCode,
         proposedDelayDays: form.proposedDelayDays !== "" ? Number(form.proposedDelayDays) : null,
         applyScheduleOnApproval: form.applyScheduleOnApproval,
-        costMode: "LUMP_SUM",
-        lines: sell || cost
-          ? [{
-              lineType: "LUMP_SUM",
-              description: form.title.trim(),
-              quantity: 1,
-              sellRate: sell,
-              costRate: cost,
-            }]
-          : [],
+        costMode: form.costMode,
+        lines: form.lines.map((line, index) => ({
+          ...line,
+          description: line.description || form.title.trim(),
+          quantity: Number(line.quantity || 0),
+          sellRate: Number(line.sellRate || 0),
+          costRate: Number(line.costRate || 0),
+          sortOrder: index,
+        })),
+        links: form.links,
       };
       await createVariation(projectId, payload);
       setShowForm(false);
       setForm({
         title: "", description: "", reasonCode: "SCOPE_CHANGE",
-        proposedDelayDays: "", sellAmount: "", costAmount: "", applyScheduleOnApproval: false,
+        proposedDelayDays: "", costMode: "LUMP_SUM", lines: [blankLine()], links: [],
+        applyScheduleOnApproval: false,
       });
       setMessage("Variation draft created");
       load();
@@ -179,12 +179,15 @@ export default function ProjectVariationsPage() {
               <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
             </div>
             <div>
-              <Label>Sell amount (AED)</Label>
-              <Input type="number" value={form.sellAmount} onChange={(e) => setForm({ ...form, sellAmount: e.target.value })} />
-            </div>
-            <div>
-              <Label>Cost amount (AED)</Label>
-              <Input type="number" value={form.costAmount} onChange={(e) => setForm({ ...form, costAmount: e.target.value })} />
+              <Label>Pricing mode</Label>
+              <Select value={form.costMode} onValueChange={(v) => setForm({ ...form, costMode: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="LUMP_SUM">Lump sum</SelectItem>
+                  <SelectItem value="BOQ_LINES">BOQ lines</SelectItem>
+                  <SelectItem value="MIXED">Mixed</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label>Proposed delay days</Label>
@@ -197,10 +200,12 @@ export default function ProjectVariationsPage() {
                   checked={form.applyScheduleOnApproval}
                   onChange={(e) => setForm({ ...form, applyScheduleOnApproval: e.target.checked })}
                 />
-                Apply schedule on approval (Wave B)
+                Apply schedule changes on approval
               </label>
             </div>
           </div>
+          <VariationLinesEditor projectId={projectId} costMode={form.costMode} lines={form.lines} onChange={(lines) => setForm({ ...form, lines })} />
+          <VariationLinksPanel projectId={projectId} links={form.links} onChange={(links) => setForm({ ...form, links })} />
           <Button disabled={busy} onClick={create}>
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create draft"}
           </Button>
@@ -230,13 +235,12 @@ export default function ProjectVariationsPage() {
             <TableBody>
               {items.map((item) => (
                 <TableRow key={item.uuid}>
-                  <TableCell className="font-mono text-xs">{item.crNumber}</TableCell>
+                  <TableCell><CrBadge number={item.crNumber} /></TableCell>
                   <TableCell>{item.title}</TableCell>
                   <TableCell>{item.origin}</TableCell>
                   <TableCell>
-                    <Badge variant={STATUS_VARIANT[item.status] || "outline"}>
-                      {item.status?.replace(/_/g, " ")}
-                    </Badge>
+                    <Badge variant={STATUS_VARIANT[item.status] || "outline"} className="mb-2">{item.status?.replace(/_/g, " ")}</Badge>
+                    <VariationStatusPipeline status={item.status} />
                   </TableCell>
                   <TableCell className="text-right">{formatCurrency(item.sellDelta)}</TableCell>
                   <TableCell>

@@ -38,7 +38,7 @@ export default function RoleRoute({ allowedRoles, children }) {
       [ROLES.CLIENT]: "/client",
       [ROLES.SALES]: "/sales",
       [ROLES.EMPLOYEE]: "/employee",
-      [ROLES.SITE_ENGINEER]: "/employee",
+      [ROLES.SITE_ENGINEER]: "/site-engineer",
     };
 
     return <Navigate to={roleDefaultRoutes[role] || "/login"} replace />;

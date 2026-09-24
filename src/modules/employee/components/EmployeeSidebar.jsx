@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/sidebar";
 import { ROUTES } from "@/shared/constants/routes";
 import { useAuth } from "@/shared/context/auth-context";
-import { ROLES } from "@/shared/constants/roles";
 
 const NAV = [
   { label: "Dashboard", href: ROUTES.EMPLOYEE.DASHBOARD, icon: LayoutDashboard },
@@ -22,8 +21,8 @@ const NAV = [
 
 export default function EmployeeSidebar() {
   const location = useLocation();
-  const { user, role } = useAuth();
-  const portalLabel = role === ROLES.SITE_ENGINEER ? "Site Engineer" : "Employee Portal";
+  const { user } = useAuth();
+  const portalLabel = "Employee Portal";
 
   return (
     <Sidebar collapsible="icon">

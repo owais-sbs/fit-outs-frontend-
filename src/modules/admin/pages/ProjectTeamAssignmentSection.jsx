@@ -35,17 +35,28 @@ function buildCandidates(employees, clients, subcontractors) {
   });
 
   const qs = employees
-    .filter((e) => e.accountId && (e.role === "QS" || e.role === "SENIOR_QS"))
+    .filter(
+      (e) =>
+        e.accountId &&
+        (e.role === "QS" ||
+          e.role === "SENIOR_QS" ||
+          e.role === "qs" ||
+          e.role === "senior-qs")
+    )
     .map((e) =>
       withAccount(e.accountId, e.employeeName, e.email, e.roleLabel || e.role)
     );
 
   const pms = employees
-    .filter((e) => e.accountId && e.role === "PROJECT_MANAGER")
+    .filter((e) => e.accountId && (e.role === "PROJECT_MANAGER" || e.role === "project-manager"))
+    .map((e) => withAccount(e.accountId, e.employeeName, e.email));
+
+  const siteEngineers = employees
+    .filter((e) => e.accountId && (e.role === "SITE_ENGINEER" || e.role === "site-engineer"))
     .map((e) => withAccount(e.accountId, e.employeeName, e.email));
 
   const finance = employees
-    .filter((e) => e.accountId && e.role === "FINANCE")
+    .filter((e) => e.accountId && (e.role === "FINANCE" || e.role === "finance"))
     .map((e) => withAccount(e.accountId, e.employeeName, e.email));
 
   const clientList = clients
@@ -59,6 +70,7 @@ function buildCandidates(employees, clients, subcontractors) {
   return {
     QS_SENIOR_QS: qs,
     PROJECT_MANAGER: pms,
+    SITE_ENGINEER: siteEngineers,
     FINANCE: finance,
     CLIENT: clientList,
     SUBCONTRACTOR: subs,
@@ -215,8 +227,8 @@ export default function ProjectTeamAssignmentSection({ projectId, onSaved, readO
             <Skeleton className="h-24 w-full" />
           ) : !hasAssignments ? (
             <p className="text-center text-sm text-muted-foreground py-6">
-              No project team assigned yet. Click &quot;Assign team&quot; to add QS, project manager, finance,
-              client contacts, and subcontractors.
+              No project team assigned yet. Click &quot;Assign team&quot; to add QS, project manager, site
+              engineer, finance, client contacts, and subcontractors.
             </p>
           ) : (
             <div className="space-y-4">

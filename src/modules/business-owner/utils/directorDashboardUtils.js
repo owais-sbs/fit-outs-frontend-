@@ -22,11 +22,25 @@ export function countByField(items, field) {
   }, {});
 }
 
+export function latestBoqTotal(boqs = []) {
+  const list = Array.isArray(boqs) ? boqs : [];
+  const live = list.filter((b) => String(b.status || "").toUpperCase() !== "OBSOLETE");
+  const approved = live.filter((b) => {
+    const status = String(b.status || "").toUpperCase();
+    return status === "APPROVED" || status === "FINAL";
+  });
+  const pool = approved.length ? approved : live;
+  const sorted = [...pool].sort((a, b) => {
+    const tb = new Date(b.createdAt || b.updatedAt || 0).getTime();
+    const ta = new Date(a.createdAt || a.updatedAt || 0).getTime();
+    return tb - ta;
+  });
+  const top = sorted[0];
+  return Number(top?.grandTotal ?? top?.subtotal ?? 0);
+}
+
 export function latestApprovedBoqTotal(boqs = []) {
-  const approved = boqs
-    .filter((b) => String(b.status).toUpperCase() === "APPROVED" || String(b.status).toUpperCase() === "FINAL")
-    .sort((a, b) => (b.version || 0) - (a.version || 0));
-  return approved[0]?.grandTotal || 0;
+  return latestBoqTotal(boqs);
 }
 
 export function sumApprovedBoqTotals(projectBoqMap) {

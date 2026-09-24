@@ -8,6 +8,7 @@ import { useAuth } from "@/shared/context/auth-context";
 import { useCommunicationsSocket } from "@/shared/hooks/useCommunicationsSocket";
 import {
   createCommunicationChannel,
+  emailItemToMessage,
   fetchChannelMessages,
   fetchCommunicationsInbox,
   markChannelRead,
@@ -42,22 +43,43 @@ export default function CommunicationsPage({ clientMode = false }) {
   const [selected, setSelected] = useState(null);
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const loadInbox = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const items = await fetchCommunicationsInbox(filter);
       setInbox(items);
+    } catch (err) {
+      console.error("Failed to load communications inbox", err);
+      setError("Unable to load conversations. Check your connection and try again.");
     } finally {
       setLoading(false);
     }
   }, [filter]);
 
-  const loadMessages = useCallback(async (channelUuid) => {
-    if (!channelUuid) return;
-    const msgs = await fetchChannelMessages(channelUuid);
-    setMessages(msgs);
-    await markChannelRead(channelUuid).catch(() => {});
+  const loadMessages = useCallback(async (item) => {
+    if (!item?.channelUuid) return;
+    if (item.channelType === "EMAIL") {
+      try {
+        const msgs = await fetchChannelMessages(item.channelUuid);
+        setMessages(msgs.length > 0 ? msgs : [emailItemToMessage(item)].filter(Boolean));
+      } catch (err) {
+        console.error("Failed to load sent email", err);
+        const fallback = emailItemToMessage(item);
+        setMessages(fallback ? [fallback] : []);
+      }
+      return;
+    }
+    try {
+      const msgs = await fetchChannelMessages(item.channelUuid);
+      setMessages(msgs);
+      await markChannelRead(item.channelUuid).catch(() => {});
+    } catch (err) {
+      console.error("Failed to load channel messages", err);
+      setMessages([]);
+    }
   }, []);
 
   useEffect(() => {
@@ -74,14 +96,14 @@ export default function CommunicationsPage({ clientMode = false }) {
 
   useEffect(() => {
     if (selected?.channelUuid) {
-      loadMessages(selected.channelUuid);
+      loadMessages(selected);
     } else {
       setMessages([]);
     }
   }, [selected, loadMessages]);
 
   useCommunicationsSocket({
-    channelUuid: selected?.channelUuid,
+    channelUuid: selected?.channelType === "EMAIL" ? null : selected?.channelUuid,
     accountId,
     onMessage: (msg) => {
       setMessages((prev) => {
@@ -95,8 +117,13 @@ export default function CommunicationsPage({ clientMode = false }) {
   const startInternalChat = async () => {
     const name = window.prompt("Channel name", "Team chat");
     if (!name) return;
-    await createCommunicationChannel({ channelType: "INTERNAL", name });
-    loadInbox();
+    try {
+      await createCommunicationChannel({ channelType: "INTERNAL", name });
+      loadInbox();
+    } catch (err) {
+      console.error("Failed to create channel", err);
+      setError("Unable to create channel. Please try again.");
+    }
   };
 
   const projectLink = useMemo(() => {
@@ -163,6 +190,15 @@ export default function CommunicationsPage({ clientMode = false }) {
         </TabsList>
       </Tabs>
 
+      {error && (
+        <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {error}
+          <Button variant="link" size="sm" className="ml-2 h-auto p-0" onClick={loadInbox}>
+            Retry
+          </Button>
+        </div>
+      )}
+
       <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[320px_1fr]">
         <div className="surface-panel overflow-y-auto">
           {loading ? (
@@ -222,7 +258,7 @@ export default function CommunicationsPage({ clientMode = false }) {
                   });
                 }}
                 onSent={() => {
-                  loadMessages(selected.channelUuid);
+                  loadMessages(selected);
                   loadInbox();
                 }}
               />

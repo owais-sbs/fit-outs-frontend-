@@ -20,6 +20,11 @@ export const fetchProjectVariations = (projectId) =>
 export const fetchVariation = (projectId, uuid) =>
   axiosInstance.get(`/projects/${projectId}/variations/${uuid}`).then(unwrap);
 
+export const fetchVariationBoqAudit = (projectId, uuid) =>
+  axiosInstance
+    .get(`/projects/${projectId}/variations/${uuid}/boq-changes`)
+    .then(unwrap);
+
 export const createVariation = (projectId, payload) =>
   axiosInstance.post(`/projects/${projectId}/variations`, payload).then(unwrap);
 

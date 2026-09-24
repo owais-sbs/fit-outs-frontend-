@@ -12,7 +12,8 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { fetchAllProjects } from "@/modules/admin/api/projects.api";
-import { fetchBillingMilestones } from "@/modules/admin/api/billing.api";
+import { fetchCompanySummary } from "@/modules/admin/api/billing.api";
+import { fetchCompanyPnl } from "@/modules/pnl/api/pnl.api";
 import { ROUTES } from "@/shared/constants/routes";
 import { formatAed } from "@/shared/utils/currency";
 import { BillingApprovalPipeline } from "@/modules/admin/pages/billing/BillingApprovalPipeline";
@@ -31,6 +32,7 @@ function paymentStatus(milestone) {
 export default function FinanceDashboard() {
   const [projects, setProjects] = useState([]);
   const [milestoneRows, setMilestoneRows] = useState([]);
+  const [pnl, setPnl] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [refreshedAt, setRefreshedAt] = useState(null);
@@ -39,25 +41,22 @@ export default function FinanceDashboard() {
     setLoading(true);
     setError("");
     try {
-      const projectData = await fetchAllProjects();
+      const [projectData, companyPnl, billingSummary] = await Promise.all([
+        fetchAllProjects(),
+        fetchCompanyPnl().catch(() => null),
+        fetchCompanySummary().catch(() => []),
+      ]);
       const list = Array.isArray(projectData) ? projectData : [];
       setProjects(list);
+      setPnl(companyPnl);
 
-      const groups = await Promise.all(
-        list.map(async (project) => {
-          const milestones = await fetchBillingMilestones(project.id).catch(() => []);
-          return {
-            project,
-            milestones: Array.isArray(milestones) ? milestones : [],
-          };
-        })
-      );
-
-      const rows = groups.flatMap(({ project, milestones }) =>
-        milestones.map((m) => ({
+      const summaries = Array.isArray(billingSummary) ? billingSummary : [];
+      const names = Object.fromEntries(list.map((p) => [String(p.id), p.projectName]));
+      const rows = summaries.flatMap((summary) =>
+        (Array.isArray(summary.milestones) ? summary.milestones : []).map((m) => ({
           ...m,
-          projectId: project.id,
-          projectName: project.projectName,
+          projectId: summary.projectId,
+          projectName: summary.projectName || names[String(summary.projectId)] || m.projectName,
         }))
       );
       rows.sort((a, b) => new Date(b.dueDate || b.updatedAt || 0) - new Date(a.dueDate || a.updatedAt || 0));
@@ -67,6 +66,7 @@ export default function FinanceDashboard() {
       setError(err?.response?.data?.message || err?.message || "Failed to load finance dashboard");
       setProjects([]);
       setMilestoneRows([]);
+      setPnl(null);
     } finally {
       setLoading(false);
     }
@@ -127,15 +127,21 @@ export default function FinanceDashboard() {
       {!loading && (
         <>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <StatTile label="Project budget" value={formatAed(kpis.budget)} icon={Wallet} />
-            <StatTile label="Milestones billed" value={formatAed(kpis.billed)} icon={CircleDollarSign} />
-            <StatTile label="Collected" value={formatAed(kpis.paid)} icon={Banknote} />
+            <StatTile label="Contract value (P&L)" value={formatAed(pnl?.contractValue ?? kpis.budget)} icon={Wallet} />
+            <StatTile label="Total cost (P&L)" value={formatAed(pnl?.totalCost)} icon={Briefcase} />
+            <StatTile label="Margin (P&L)" value={formatAed(pnl?.margin)} icon={CircleDollarSign} />
             <StatTile
-              label="Outstanding"
-              value={formatAed(kpis.outstanding)}
-              icon={Briefcase}
+              label="Collected"
+              value={formatAed(kpis.paid)}
+              icon={Banknote}
               hint={`${kpis.milestoneCount} milestone${kpis.milestoneCount === 1 ? "" : "s"} · ${kpis.projectCount} projects`}
             />
+          </div>
+
+          <div className="flex justify-end">
+            <Button asChild size="sm" variant="outline">
+              <Link to={ROUTES.FINANCE.PNL}>Open full Profit &amp; Loss</Link>
+            </Button>
           </div>
 
           <div className="grid gap-4 lg:grid-cols-2">

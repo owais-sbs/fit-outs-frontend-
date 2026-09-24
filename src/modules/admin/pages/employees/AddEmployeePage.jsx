@@ -3,10 +3,14 @@ import { Link, useNavigate } from "react-router-dom";
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import { PageShell } from "@/components/layout/PageShell";
-import { FEATURE_OPTIONS } from "../../data/employees";
+import {
+  FEATURE_OPTIONS,
+  SITE_ENGINEER_FEATURES,
+  defaultFeaturesForRole,
+} from "../../data/employees";
 import { createEmployee } from "../../api/employees.api";
 import { ROUTES } from "@/shared/constants/routes";
-import { ROLE_LABELS, STAFF_CREATE_ROLES } from "@/shared/constants/roles";
+import { ROLE_LABELS, ROLES, STAFF_CREATE_ROLES } from "@/shared/constants/roles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,7 +21,24 @@ import {
 import { FillDemoDataButton } from "@/components/shared/FillDemoDataButton";
 import { DEMO } from "@/shared/demo/formDemoData";
 
-function FeatureSelector({ selected, onChange }) {
+function FeatureSelector({ selected, onChange, lockedFeatures = [] }) {
+  const locked = new Set(lockedFeatures);
+
+  const removeFeature = (feature) => {
+    if (locked.has(feature)) return;
+    onChange(selected.filter((x) => x !== feature));
+  };
+
+  const toggleFeature = (feature) => {
+    const active = selected.includes(feature);
+    if (active) {
+      if (locked.has(feature)) return;
+      onChange(selected.filter((f) => f !== feature));
+    } else {
+      onChange([...selected, feature]);
+    }
+  };
+
   return (
     <div className="space-y-3">
       {selected.length > 0 && (
@@ -28,13 +49,15 @@ function FeatureSelector({ selected, onChange }) {
               className="flex items-center gap-1.5 rounded-full bg-primary/10 border border-primary/20 pl-3 pr-2 py-1 text-xs font-medium text-primary"
             >
               {f}
-              <button
-                type="button"
-                onClick={() => onChange(selected.filter((x) => x !== f))}
-                className="rounded-full hover:bg-primary/20 p-0.5"
-              >
-                ×
-              </button>
+              {!locked.has(f) && (
+                <button
+                  type="button"
+                  onClick={() => removeFeature(f)}
+                  className="rounded-full hover:bg-primary/20 p-0.5"
+                >
+                  ×
+                </button>
+              )}
             </span>
           ))}
         </div>
@@ -42,26 +65,30 @@ function FeatureSelector({ selected, onChange }) {
       <div className="flex flex-wrap gap-2">
         {FEATURE_OPTIONS.map((feature) => {
           const active = selected.includes(feature);
+          const isLocked = locked.has(feature) && active;
           return (
             <button
               key={feature}
               type="button"
-              onClick={() =>
-                onChange(active ? selected.filter((f) => f !== feature) : [...selected, feature])
-              }
+              onClick={() => toggleFeature(feature)}
+              disabled={isLocked}
               className={`rounded-full border px-3 py-1 text-xs font-medium transition-all ${
                 active
                   ? "border-primary bg-primary text-primary-foreground"
                   : "border-border/60 bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground"
-              }`}
+              } ${isLocked ? "cursor-default opacity-90" : ""}`}
             >
               {feature}
             </button>
           );
         })}
       </div>
-      {selected.length === 0 && (
+      {selected.length === 0 ? (
         <p className="text-xs text-muted-foreground">Click features above to grant access.</p>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          Defaults for this role are pre-selected. You can add more.
+        </p>
       )}
     </div>
   );
@@ -76,6 +103,11 @@ const emptyForm = () => ({
   features: [],
 });
 
+function featuresForSave(role, features) {
+  if (role !== ROLES.SITE_ENGINEER) return features;
+  return [...new Set([...SITE_ENGINEER_FEATURES, ...features])];
+}
+
 export default function AddEmployeePage() {
   const navigate = useNavigate();
   const [errors, setErrors] = useState({});
@@ -84,6 +116,9 @@ export default function AddEmployeePage() {
   const [submitting, setSubmitting] = useState(false);
   const [apiError, setApiError] = useState(null);
   const [form, setForm] = useState(emptyForm);
+
+  const lockedFeatures =
+    form.role === ROLES.SITE_ENGINEER ? SITE_ENGINEER_FEATURES : [];
 
   const set = (k, v) => {
     setForm((f) => ({ ...f, [k]: v }));
@@ -96,6 +131,7 @@ export default function AddEmployeePage() {
       ...f,
       role,
       designation: f.designation.trim() ? f.designation : (ROLE_LABELS[role] || ""),
+      features: defaultFeaturesForRole(role),
     }));
     setErrors((e) => ({ ...e, role: undefined, designation: undefined }));
     if (apiError) setApiError(null);
@@ -116,7 +152,11 @@ export default function AddEmployeePage() {
     setSubmitting(true);
     setApiError(null);
     try {
-      const created = await createEmployee(form);
+      const payload = {
+        ...form,
+        features: featuresForSave(form.role, form.features),
+      };
+      const created = await createEmployee(payload);
       setInviteSent(created?.inviteEmailSent !== false);
       setSaved(true);
       setTimeout(() => {
@@ -130,7 +170,9 @@ export default function AddEmployeePage() {
         }
       }, 1600);
     } catch (err) {
-      setApiError(err.response?.data?.message || err.message || "Failed to create employee");
+      const data = err.response?.data;
+      const detail = data?.error || data?.message || err.message || "Failed to create employee";
+      setApiError(detail);
       setSubmitting(false);
     }
   };
@@ -170,99 +212,99 @@ export default function AddEmployeePage() {
         </div>
       )}
 
-      <div className="grid gap-6 xl:grid-cols-[1fr_340px]">
-        <div className="space-y-6">
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-3">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
-                  1
-                </span>
-                <div>
-                  <CardTitle className="text-sm font-semibold">Employee Details</CardTitle>
-                  <CardDescription className="text-xs">Basic information and portal role.</CardDescription>
-                </div>
+      <div className="space-y-6">
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-3">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
+                1
+              </span>
+              <div>
+                <CardTitle className="text-sm font-semibold">Employee Details</CardTitle>
+                <CardDescription className="text-xs">Basic information and portal role.</CardDescription>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label className="text-sm">
-                    Employee Name<span className="ml-0.5 text-destructive">*</span>
-                  </Label>
-                  <Input value={form.employeeName} onChange={(e) => set("employeeName", e.target.value)} placeholder="John Smith" />
-                  {errors.employeeName && <p className="text-xs text-destructive">{errors.employeeName}</p>}
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-sm">
-                    Email<span className="ml-0.5 text-destructive">*</span>
-                  </Label>
-                  <Input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="john@company.com" />
-                  {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
-                </div>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label className="text-sm">
-                    Role<span className="ml-0.5 text-destructive">*</span>
-                  </Label>
-                  <Select value={form.role} onValueChange={setRole}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {STAFF_CREATE_ROLES.map((role) => (
-                        <SelectItem key={role} value={role}>
-                          {ROLE_LABELS[role]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.role && <p className="text-xs text-destructive">{errors.role}</p>}
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-sm">Phone</Label>
-                  <Input value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="+971 50 000 0000" />
-                </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label className="text-sm">
+                  Employee Name<span className="ml-0.5 text-destructive">*</span>
+                </Label>
+                <Input value={form.employeeName} onChange={(e) => set("employeeName", e.target.value)} placeholder="John Smith" />
+                {errors.employeeName && <p className="text-xs text-destructive">{errors.employeeName}</p>}
               </div>
               <div className="space-y-1.5">
                 <Label className="text-sm">
-                  Designation<span className="ml-0.5 text-destructive">*</span>
+                  Email<span className="ml-0.5 text-destructive">*</span>
                 </Label>
-                <Input
-                  value={form.designation}
-                  onChange={(e) => set("designation", e.target.value)}
-                  placeholder="Auto-filled from role"
-                />
-                {errors.designation && <p className="text-xs text-destructive">{errors.designation}</p>}
+                <Input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="john@company.com" />
+                {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label className="text-sm">
+                  Role<span className="ml-0.5 text-destructive">*</span>
+                </Label>
+                <Select value={form.role} onValueChange={setRole}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STAFF_CREATE_ROLES.map((role) => (
+                      <SelectItem key={role} value={role}>
+                        {ROLE_LABELS[role]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.role && <p className="text-xs text-destructive">{errors.role}</p>}
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-sm">Phone</Label>
+                <Input value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="+971 50 000 0000" />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm">
+                Designation<span className="ml-0.5 text-destructive">*</span>
+              </Label>
+              <Input
+                value={form.designation}
+                onChange={(e) => set("designation", e.target.value)}
+                placeholder="Auto-filled from role"
+              />
+              {errors.designation && <p className="text-xs text-destructive">{errors.designation}</p>}
+            </div>
+          </CardContent>
+        </Card>
 
-        <div className="space-y-6">
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-3">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
-                  2
-                </span>
-                <div>
-                  <CardTitle className="text-sm font-semibold">Feature Access</CardTitle>
-                  <CardDescription className="text-xs">Select which features this employee can access.</CardDescription>
-                </div>
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-3">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
+                2
+              </span>
+              <div>
+                <CardTitle className="text-sm font-semibold">Feature Access</CardTitle>
+                <CardDescription className="text-xs">Select which features this employee can access.</CardDescription>
               </div>
-            </CardHeader>
-            <CardContent>
-              <FeatureSelector selected={form.features} onChange={(v) => set("features", v)} />
-              {form.features.length > 0 && (
-                <p className="mt-2 text-[11px] text-muted-foreground">
-                  {form.features.length} feature{form.features.length > 1 ? "s" : ""} selected
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <FeatureSelector
+              selected={form.features}
+              onChange={(v) => set("features", v)}
+              lockedFeatures={lockedFeatures}
+            />
+            {form.features.length > 0 && (
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                {form.features.length} feature{form.features.length > 1 ? "s" : ""} selected
+              </p>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-border bg-background/95 px-4 py-3 backdrop-blur md:left-[var(--sidebar-width)]">

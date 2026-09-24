@@ -39,6 +39,7 @@ import { formatCurrency, formatAed } from "@/shared/utils/currency";
 import { splitProjectBoqs } from "./boq/boqDataUtils";
 import ProjectRoomsSection from "./roomcollab/ProjectRoomsSection";
 import ProjectTeamAssignmentSection from "./ProjectTeamAssignmentSection";
+import SiteEngineerTaskAssignSection from "./SiteEngineerTaskAssignSection";
 import ProjectApprovalsSection from "./ProjectApprovalsSection";
 import ProjectDeveloperInfo from "./ProjectDeveloperInfo";
 import { fetchPlanningStatus } from "../api/planning.api";
@@ -765,6 +766,8 @@ export default function ProjectDetailPage() {
       {!isFinance && (
         <ProjectTeamAssignmentSection projectId={projectId} onSaved={handleTeamSaved} readOnly={archived} />
       )}
+
+      {!isFinance && <SiteEngineerTaskAssignSection projectId={projectId} />}
 
       {labourCrews.length > 0 && (
         <Card>

@@ -16,9 +16,13 @@ import {
 } from "@/modules/admin/api/commercial-approvals.api";
 import { formatCurrency } from "@/modules/admin/pages/boq/quantityCalcUtils";
 import { portalRoutesFromPath } from "@/shared/constants/routes";
+import { useAuth } from "@/shared/context/auth-context";
+import { ROLES } from "@/shared/constants/roles";
 
 export default function VariationsInboxPage() {
   const routes = portalRoutesFromPath(window.location.pathname);
+  const { role } = useAuth();
+  const canTriage = [ROLES.PROJECT_MANAGER, ROLES.ADMIN, ROLES.SUPER_ADMIN].includes(role);
   const [triage, setTriage] = useState([]);
   const [matrix, setMatrix] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -29,7 +33,7 @@ export default function VariationsInboxPage() {
   const load = useCallback(() => {
     setLoading(true);
     Promise.all([
-      fetchVariationTriageInbox().catch(() => []),
+      canTriage ? fetchVariationTriageInbox().catch(() => []) : Promise.resolve([]),
       fetchCommercialApprovalInbox().catch(() => []),
     ])
       .then(([t, m]) => {
@@ -37,7 +41,7 @@ export default function VariationsInboxPage() {
         setMatrix(Array.isArray(m) ? m : []);
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [canTriage]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -83,12 +87,12 @@ export default function VariationsInboxPage() {
       {loading ? (
         <div className="py-16 flex justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>
       ) : (
-        <Tabs defaultValue="triage">
+        <Tabs defaultValue={canTriage ? "triage" : "matrix"}>
           <TabsList>
-            <TabsTrigger value="triage">Triage ({triage.length})</TabsTrigger>
+            {canTriage && <TabsTrigger value="triage">Triage ({triage.length})</TabsTrigger>}
             <TabsTrigger value="matrix">Matrix approvals ({matrix.length})</TabsTrigger>
           </TabsList>
-          <TabsContent value="triage">
+          {canTriage && <TabsContent value="triage">
             <Surface>
               {triage.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-10 text-center">No client requests awaiting triage</p>
@@ -138,7 +142,7 @@ export default function VariationsInboxPage() {
                 </Table>
               )}
             </Surface>
-          </TabsContent>
+          </TabsContent>}
           <TabsContent value="matrix">
             <Surface>
               {matrix.length === 0 ? (

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/shared/context/auth-context";
 import { ROUTES } from "@/shared/constants/routes";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import {
   ShieldAlert, Users2, HeartHandshake, UserSquare2,
   ArrowLeft, ExternalLink, Loader2, ClipboardList, Inbox, Briefcase,
+  HardHat, Palette, TrendingUp,
 } from "lucide-react";
 
 const PORTAL_CONFIG = {
@@ -38,6 +39,13 @@ const PORTAL_CONFIG = {
     icon: UserSquare2,
     description: "View assigned projects, site visit schedules, and personal work calendar in one clean workspace.",
     route: ROUTES.EMPLOYEE.DASHBOARD,
+  },
+  [ROLES.SITE_ENGINEER]: {
+    id: "site-engineer",
+    label: "Site Engineer",
+    icon: HardHat,
+    description: "Site visits, construction progress, PM tasks, snags, and client communication for field assignments.",
+    route: ROUTES.SITE_ENGINEER.DASHBOARD,
   },
   [ROLES.QS]: {
     id: "qs",
@@ -74,11 +82,51 @@ const PORTAL_CONFIG = {
     description: "Billing, milestones, and commercial workflows.",
     route: ROUTES.FINANCE.DASHBOARD,
   },
+  [ROLES.DESIGNER]: {
+    id: "designer",
+    label: "Designer",
+    icon: Palette,
+    description: "Design requests, room collaboration, and client presentations.",
+    route: ROUTES.DESIGNER.DASHBOARD,
+  },
+  [ROLES.SALES]: {
+    id: "sales",
+    label: "Sales",
+    icon: TrendingUp,
+    description: "Leads, proposals, and client acquisition pipeline.",
+    route: ROUTES.SALES.DASHBOARD,
+  },
+  [ROLES.SUBCONTRACTOR]: {
+    id: "subcontractor",
+    label: "Subcontractor",
+    icon: HardHat,
+    description: "Packages, snags, and site delivery workspace.",
+    route: ROUTES.SUBCONTRACTOR.DASHBOARD,
+  },
 };
 
 export default function RolesManagement() {
   const navigate = useNavigate();
   const { user, roles, selectRole, isLoading } = useAuth();
+
+  const availablePortals = (roles || [])
+    .filter((r) => PORTAL_CONFIG[r])
+    .map((r) => ({
+      roleKey: r,
+      ...PORTAL_CONFIG[r],
+      permissions: ROLE_PERMISSIONS[r] || [],
+    }));
+
+  useEffect(() => {
+    if (isLoading || !user || !roles?.length) return;
+    const portals = roles.filter((r) => PORTAL_CONFIG[r]);
+    if (portals.length === 1) {
+      const roleKey = portals[0];
+      const portal = PORTAL_CONFIG[roleKey];
+      selectRole(roleKey);
+      navigate(portal.route, { replace: true });
+    }
+  }, [isLoading, user, roles, selectRole, navigate]);
 
   if (isLoading) {
     return (
@@ -94,18 +142,21 @@ export default function RolesManagement() {
     return null;
   }
 
+  if (availablePortals.length <= 1) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-background">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <span className="mt-4 text-sm text-muted-foreground animate-pulse font-medium">
+          {availablePortals.length === 0 ? "No portal configured for your role…" : "Opening portal..."}
+        </span>
+      </div>
+    );
+  }
+
   const handleLaunch = (portal) => {
     selectRole(portal.roleKey);
     navigate(portal.route);
   };
-
-  const availablePortals = roles
-    .filter((r) => PORTAL_CONFIG[r])
-    .map((r) => ({
-      roleKey: r,
-      ...PORTAL_CONFIG[r],
-      permissions: ROLE_PERMISSIONS[r] || [],
-    }));
 
   return (
     <div className="relative min-h-screen bg-background text-foreground flex flex-col pb-12">
@@ -146,6 +197,11 @@ export default function RolesManagement() {
           </div>
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {availablePortals.length === 0 ? (
+              <p className="col-span-full text-sm text-muted-foreground">
+                No portal is configured for your assigned role(s). Contact an administrator.
+              </p>
+            ) : null}
             {availablePortals.map((portal) => {
               const Icon = portal.icon;
               return (

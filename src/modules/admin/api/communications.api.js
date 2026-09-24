@@ -12,6 +12,26 @@ export function normalizeInboxItem(item = {}) {
     projectRoomId: item.projectRoomId || null,
     roomTaskId: item.roomTaskId || null,
     contextLabel: item.contextLabel || "",
+    emailBody: item.emailBody || "",
+  };
+}
+
+/** Build a display message for EMAIL outbox rows when the API is unavailable. */
+export function emailItemToMessage(item) {
+  if (!item || item.channelType !== "EMAIL") return null;
+  const subject = item.lastMessage || "";
+  const bodyParts = [];
+  if (subject) bodyParts.push(`Subject: ${subject}`);
+  if (item.emailBody) bodyParts.push(item.emailBody);
+  return {
+    uuid: item.channelUuid,
+    channelUuid: item.channelUuid,
+    senderAccountId: null,
+    senderName: "Sent email",
+    body: bodyParts.join("\n\n") || subject || "Email sent.",
+    attachmentUrl: "",
+    attachmentName: "",
+    createdAt: item.lastMessageAt,
   };
 }
 
@@ -51,6 +71,11 @@ export const sendChannelMessage = (channelUuid, body) =>
 
 export const createCommunicationChannel = (payload) =>
   axiosInstance.post("/communications/channels", payload).then((r) => r.data?.data ?? r.data);
+
+export const ensureProjectClientChannel = (projectId) =>
+  axiosInstance
+    .post(`/projects/${projectId}/client-channel`)
+    .then((r) => normalizeInboxItem(r.data?.data ?? r.data));
 
 export const markChannelRead = (channelUuid) =>
   axiosInstance.patch(`/communications/channels/${channelUuid}/read`);
