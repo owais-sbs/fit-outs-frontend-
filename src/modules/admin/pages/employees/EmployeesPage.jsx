@@ -57,7 +57,17 @@ export default function EmployeesPage() {
     let cancelled = false;
     fetchAllEmployees()
       .then((data) => { if (!cancelled) setEmployees(data); })
-      .catch((err) => { if (!cancelled) console.error(err); })
+      .catch((err) => {
+        if (!cancelled) {
+          console.error(err);
+          setToast({
+            type: "error",
+            title: "Could not load employees",
+            message: err?.response?.data?.message || err?.message || "Request failed",
+          });
+          setTimeout(() => setToast(null), 5000);
+        }
+      })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, []);
