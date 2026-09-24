@@ -19,6 +19,8 @@ import { fetchProjectRooms } from "@/modules/admin/api/room-collab.api";
 import { fetchProjectSchedule } from "@/modules/admin/api/schedule.api";
 import ProjectLifecycleBanner from "@/modules/admin/components/projects/ProjectLifecycleBanner";
 import { useProjectLifecycle } from "@/modules/admin/hooks/useProjectLifecycle";
+import { FillDemoDataButton } from "@/components/shared/FillDemoDataButton";
+import { buildDemoClientSnagForm } from "@/shared/demo/formDemoData";
 
 const statusClass = {
   OPEN: "bg-amber-500/15 text-amber-700",
@@ -200,8 +202,14 @@ export default function ClientSnagsPage() {
 
       {projectId && !archived && (
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between gap-2 space-y-0">
             <CardTitle className="text-sm font-semibold">Raise a snag</CardTitle>
+            <FillDemoDataButton
+              disabled={busy}
+              onClick={() =>
+                setForm(buildDemoClientSnagForm({ rooms, activities }))
+              }
+            />
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="grid gap-3 sm:grid-cols-2">
