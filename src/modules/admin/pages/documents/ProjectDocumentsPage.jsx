@@ -27,6 +27,12 @@ import {
   resolveFileUrl,
 } from "../../api/documents.api";
 import { ROUTES } from "@/shared/constants/routes";
+import { FillDemoDataButton } from "@/components/shared/FillDemoDataButton";
+import {
+  assignDemoFileToInput,
+  buildDemoDocumentUpload,
+  buildDemoDocumentVersionFile,
+} from "@/shared/demo/formDemoData";
 import ProjectLifecycleBanner from "../../components/projects/ProjectLifecycleBanner";
 import { useProjectLifecycle } from "../../hooks/useProjectLifecycle";
 
@@ -205,8 +211,16 @@ export default function ProjectDocumentsPage() {
 
       {!archived && (
       <Card>
-        <CardHeader className="pb-2">
+        <CardHeader className="pb-2 flex flex-row items-center justify-between gap-2 space-y-0">
           <CardTitle className="text-sm font-semibold">Upload document</CardTitle>
+          <FillDemoDataButton
+            disabled={busy}
+            onClick={() => {
+              const demo = buildDemoDocumentUpload();
+              setForm({ title: demo.title, category: demo.category, file: demo.file });
+              assignDemoFileToInput(fileRef.current, demo.file);
+            }}
+          />
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="grid gap-3 sm:grid-cols-3">
@@ -236,6 +250,11 @@ export default function ProjectDocumentsPage() {
                 type="file"
                 onChange={(e) => setForm((f) => ({ ...f, file: e.target.files?.[0] || null }))}
               />
+              {form.file && (
+                <p className="text-[11px] text-muted-foreground truncate">
+                  Selected: {form.file.name}
+                </p>
+              )}
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -266,10 +285,18 @@ export default function ProjectDocumentsPage() {
 
       {versionTarget && !archived && (
         <Card className="border-dashed">
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between gap-2 space-y-0">
             <CardTitle className="text-sm font-semibold">
               Upload new version — {versionTarget.title}
             </CardTitle>
+            <FillDemoDataButton
+              disabled={busy}
+              onClick={() => {
+                const file = buildDemoDocumentVersionFile(versionTarget.title);
+                setVersionFile(file);
+                assignDemoFileToInput(versionFileRef.current, file);
+              }}
+            />
           </CardHeader>
           <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-end">
             <div className="flex-1 space-y-1">
@@ -279,6 +306,11 @@ export default function ProjectDocumentsPage() {
                 type="file"
                 onChange={(e) => setVersionFile(e.target.files?.[0] || null)}
               />
+              {versionFile && (
+                <p className="text-[11px] text-muted-foreground truncate">
+                  Selected: {versionFile.name}
+                </p>
+              )}
             </div>
             <div className="flex gap-2">
               <Button size="sm" disabled={busy || !versionFile} onClick={handleVersionUpload}>
@@ -290,6 +322,7 @@ export default function ProjectDocumentsPage() {
                 onClick={() => {
                   setVersionTarget(null);
                   setVersionFile(null);
+                  if (versionFileRef.current) versionFileRef.current.value = "";
                 }}
               >
                 Cancel

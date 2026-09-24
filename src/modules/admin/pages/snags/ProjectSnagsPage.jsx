@@ -22,6 +22,8 @@ import { fetchAllEmployees } from "../../api/employees.api";
 import { fetchProjectRooms } from "../../api/room-collab.api";
 import { fetchProjectSchedule } from "../../api/schedule.api";
 import { ROUTES } from "@/shared/constants/routes";
+import { FillDemoDataButton } from "@/components/shared/FillDemoDataButton";
+import { buildDemoSnagForm } from "@/shared/demo/formDemoData";
 import ProjectLifecycleBanner from "../../components/projects/ProjectLifecycleBanner";
 import { useProjectLifecycle } from "../../hooks/useProjectLifecycle";
 
@@ -158,8 +160,16 @@ export default function ProjectSnagsPage() {
 
       {!archived && (
       <Card>
-        <CardHeader className="pb-2">
+        <CardHeader className="pb-2 flex flex-row items-center justify-between gap-2 space-y-0">
           <CardTitle className="text-sm font-semibold">Raise snag</CardTitle>
+          <FillDemoDataButton
+            disabled={busy}
+            onClick={() =>
+              setForm(
+                buildDemoSnagForm({ rooms, activities, employees, withAssignee: true })
+              )
+            }
+          />
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="grid gap-3 sm:grid-cols-2">
