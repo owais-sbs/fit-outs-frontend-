@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Briefcase, MapPin, Loader2, MessageSquare } from "lucide-react";
+import { Briefcase, MapPin, Loader2, MessageSquare, GanttChart } from "lucide-react";
 import { PageShell, PageTitle, Surface } from "@/components/layout/PageShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -91,6 +91,16 @@ export default function SiteEngineerProjectsPage() {
               <div className="flex flex-wrap gap-2 pt-1">
                 <Button size="sm" variant="outline" onClick={() => openProject(p.id)}>
                   Open
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    navigate(ROUTES.SITE_ENGINEER.PROJECT_SCHEDULE.replace(":projectId", p.id))
+                  }
+                >
+                  <GanttChart className="mr-1 h-3.5 w-3.5" />
+                  Programme
                 </Button>
                 <Button
                   size="sm"

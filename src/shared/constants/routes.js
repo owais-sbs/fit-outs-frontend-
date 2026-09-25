@@ -102,6 +102,8 @@ export const ROUTES = {
     BOQ_VIEW: "/business-owner/boq/:boqId",
     BILLING_MILESTONE_INBOX: "/business-owner/billing/inbox",
     PROJECTS: "/business-owner/projects",
+    PROJECT_DETAIL: "/business-owner/projects/:projectId",
+    PROJECT_SCHEDULE: "/business-owner/projects/:projectId/schedule",
     PROJECT_BILLING: "/business-owner/projects/:projectId/billing",
     PROCUREMENT: "/business-owner/procurement",
     COMMERCIAL: "/business-owner/commercial",
@@ -140,6 +142,7 @@ export const ROUTES = {
     PROJECT_SUBCONTRACTORS: "/project-manager/projects/:projectId/subcontractors",
     VENDORS: "/project-manager/subcontractors/vendors",
     VALIDATION_INBOX: "/project-manager/validation/inbox",
+    DURATION_EXTENSION_INBOX: "/project-manager/schedule/duration-extensions",
     QUALITY_TEMPLATES: "/project-manager/quality-templates",
     APPROVALS_DASHBOARD: "/project-manager/approvals",
     DEPOSIT_LEDGER: "/project-manager/approvals/deposits",
@@ -251,6 +254,7 @@ export const ROUTES = {
   EMPLOYEE: {
     DASHBOARD: "/employee",
     PROJECTS: "/employee/projects",
+    PROJECT_SCHEDULE: "/employee/projects/:projectId/schedule",
     ACTIVITIES: "/employee/activities",
     CALENDAR: "/employee/calendar",
     SITE_VISITS: "/employee/site-visits",
@@ -262,6 +266,7 @@ export const ROUTES = {
     DASHBOARD: "/site-engineer",
     PROJECTS: "/site-engineer/projects",
     PROJECT_DETAIL: "/site-engineer/projects/:projectId",
+    PROJECT_SCHEDULE: "/site-engineer/projects/:projectId/schedule",
     ACTIVITIES: "/site-engineer/activities",
     TASKS: "/site-engineer/tasks",
     SNAGS: "/site-engineer/snags",
@@ -276,6 +281,7 @@ export const ROUTES = {
 export function portalRoutesFromPath(pathname = "") {
   if (pathname.startsWith("/project-manager")) return ROUTES.PROJECT_MANAGER;
   if (pathname.startsWith("/finance")) return ROUTES.FINANCE;
+  if (pathname.startsWith("/business-owner")) return ROUTES.BUSINESS_OWNER;
   return ROUTES.ADMIN;
 }
 
@@ -316,7 +322,9 @@ export const SCHEDULE_NAV_STATE = { from: "schedule" };
 export const PROJECT_DETAIL_NAV_STATE = { from: "detail" };
 
 export function projectRoutesForPath(pathname = "") {
-  return pathname.startsWith("/project-manager") ? ROUTES.PROJECT_MANAGER : ROUTES.ADMIN;
+  if (pathname.startsWith("/project-manager")) return ROUTES.PROJECT_MANAGER;
+  if (pathname.startsWith("/business-owner")) return ROUTES.BUSINESS_OWNER;
+  return ROUTES.ADMIN;
 }
 
 export function projectSchedulePath(pathname, projectId) {

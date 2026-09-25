@@ -1,81 +1,59 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
-import { PageShell, PageTitle, Surface } from "@/components/layout/PageShell";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import {
-  fetchMyScheduleActivities,
-  postActivityProgress,
-} from "@/modules/admin/api/schedule.api";
-import { fetchMaterialPlan } from "@/modules/admin/api/material-plan.api";
-import ProgressMaterialIssuesFields, {
-  toMaterialIssuesPayload,
-} from "@/modules/admin/components/progress/ProgressMaterialIssuesFields";
+import { PageShell, PageTitle } from "@/components/layout/PageShell";
+import { fetchMineAssignedProjects } from "@/modules/admin/api/projects.api";
+import { fetchMyScheduleActivities } from "@/modules/admin/api/schedule.api";
+import AssignedProgrammeView from "@/modules/shared/schedule/AssignedProgrammeView";
+import { useAuth } from "@/shared/context/auth-context";
 
 export default function EmployeeMyActivitiesPage() {
-  const [activities, setActivities] = useState([]);
+  const { user } = useAuth();
+  const [projects, setProjects] = useState([]);
+  const [myActivityUuids, setMyActivityUuids] = useState(() => new Set());
+  const [activityProjectIds, setActivityProjectIds] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState(null);
-  const [form, setForm] = useState({ percentComplete: 0, notes: "", labourHours: "" });
-  const [materialRows, setMaterialRows] = useState([]);
-  const [planLines, setPlanLines] = useState([]);
-  const [message, setMessage] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  const load = () => {
-    setLoading(true);
-    fetchMyScheduleActivities()
-      .then((list) => setActivities(Array.isArray(list) ? list : []))
-      .catch(() => setActivities([]))
-      .finally(() => setLoading(false));
-  };
 
   useEffect(() => {
-    load();
+    let cancelled = false;
+    setLoading(true);
+    Promise.all([
+      fetchMineAssignedProjects().catch(() => []),
+      fetchMyScheduleActivities().catch(() => []),
+    ])
+      .then(([projs, acts]) => {
+        if (cancelled) return;
+        setProjects(Array.isArray(projs) ? projs : []);
+        const list = Array.isArray(acts) ? acts : [];
+        setMyActivityUuids(new Set(list.map((a) => String(a.uuid))));
+        const ids = [
+          ...new Set(
+            list
+              .map((a) => a.projectId)
+              .filter((id) => id != null)
+              .map(String)
+          ),
+        ];
+        setActivityProjectIds(ids);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const open = (a) => {
-    setSelected(a);
-    setForm({ percentComplete: a.percentComplete || 0, notes: "", labourHours: "" });
-    setMaterialRows([]);
-    setMessage("");
-    if (a?.projectId) {
-      fetchMaterialPlan(a.projectId)
-        .then((plan) => setPlanLines(Array.isArray(plan?.lines) ? plan.lines : []))
-        .catch(() => setPlanLines([]));
-    } else {
-      setPlanLines([]);
-    }
-  };
+  const projectOptions = useMemo(() => {
+    const fromTeam = Array.isArray(projects) ? projects : [];
+    if (fromTeam.length) return fromTeam;
+    return activityProjectIds.map((id) => ({ id, name: `Project #${id}` }));
+  }, [projects, activityProjectIds]);
 
-  const submit = async () => {
-    if (!selected) return;
-    setBusy(true);
-    setMessage("");
-    try {
-      const materialIssues = toMaterialIssuesPayload(materialRows);
-      await postActivityProgress(selected.uuid, {
-        percentComplete: Number(form.percentComplete) || 0,
-        notes: form.notes || null,
-        labourHours: form.labourHours !== "" ? Number(form.labourHours) : null,
-        ...(materialIssues.length ? { materialIssues } : {}),
-      });
-      setMessage("Submitted for PM validation — awaiting approval.");
-      setMaterialRows([]);
-      load();
-    } catch (e) {
-      setMessage(e?.response?.data?.error || e?.response?.data?.message || "Failed to post progress");
-    } finally {
-      setBusy(false);
-    }
-  };
+  const accountId = user?.accountId ?? user?.id;
 
   if (loading) {
     return (
-      <PageShell className="max-w-4xl mx-auto">
+      <PageShell className="mx-auto max-w-[1400px]">
         <div className="flex justify-center py-24 text-muted-foreground">
           <Loader2 className="h-6 w-6 animate-spin" />
         </div>
@@ -84,71 +62,22 @@ export default function EmployeeMyActivitiesPage() {
   }
 
   return (
-    <PageShell className="max-w-4xl mx-auto">
+    <PageShell className="mx-auto max-w-[1400px]">
       <PageTitle
-        title="My activities"
-        subtitle="Published schedule activities assigned to you"
+        title="My programme"
+        subtitle="Published Gantt for projects you are assigned to — click your bars to report progress"
       />
-
-      {activities.length === 0 ? (
-        <Surface className="px-4 py-10 text-center text-sm text-muted-foreground">
-          No published activities assigned to your account yet.
-        </Surface>
-      ) : (
-        <div className="space-y-2">
-          {activities.map((a) => (
-            <button
-              key={a.uuid}
-              type="button"
-              onClick={() => open(a)}
-              className={`w-full rounded-xl px-4 py-3 text-left transition-colors hover:bg-secondary/70 ${
-                selected?.uuid === a.uuid ? "bg-primary/5 ring-1 ring-primary/25" : "bg-secondary/50"
-              }`}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-sm font-medium">{a.name}</p>
-                <Badge className="border-none bg-primary/10 text-primary">{a.percentComplete}% approved</Badge>
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {a.startDate} → {a.endDate} · Project #{a.projectId}
-              </p>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {selected && (
-        <Surface className="p-5">
-          <h2 className="mb-3 text-sm font-semibold">Update progress — {selected.name}</h2>
-          <div className="space-y-3">
-            <div>
-              <Label className="text-xs">Percent complete</Label>
-              <Input type="number" min={0} max={100} value={form.percentComplete}
-                onChange={(e) => setForm((f) => ({ ...f, percentComplete: e.target.value }))} />
-            </div>
-            <div>
-              <Label className="text-xs">Labour hours</Label>
-              <Input type="number" step="0.5" value={form.labourHours}
-                onChange={(e) => setForm((f) => ({ ...f, labourHours: e.target.value }))} />
-            </div>
-            <div>
-              <Label className="text-xs">Notes</Label>
-              <Textarea rows={3} value={form.notes}
-                onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} />
-            </div>
-            <ProgressMaterialIssuesFields
-              planLines={planLines}
-              rows={materialRows}
-              onChange={setMaterialRows}
-            />
-            <Button size="sm" disabled={busy} onClick={submit}>Submit for validation</Button>
-            <p className="text-[11px] text-muted-foreground">
-              Your update applies to the schedule after PM approval. Materials debit stock only after approve.
-            </p>
-            {message && <p className="text-sm text-muted-foreground">{message}</p>}
-          </div>
-        </Surface>
-      )}
+      <AssignedProgrammeView
+        projectOptions={projectOptions}
+        progressMode="validation"
+        allowProgress
+        canUpdateActivity={(a) => {
+          if (myActivityUuids.has(String(a.uuid))) return true;
+          if (accountId != null && String(a.assigneeAccountId) === String(accountId)) return true;
+          return false;
+        }}
+        emptyMessage="No published programme on your assigned projects yet. Ask your PM to publish the schedule and add you to the project team or assign you activities."
+      />
     </PageShell>
   );
 }

@@ -37,6 +37,13 @@ export const fetchAllProjects = () =>
     return (Array.isArray(data) ? data : []).map(normalizeProject);
   });
 
+/** Projects where the current account has any team assignment. */
+export const fetchMineAssignedProjects = () =>
+  axiosInstance.get("/projects/mine-assigned").then((r) => {
+    const data = r.data?.data ?? r.data;
+    return (Array.isArray(data) ? data : []).map(normalizeProject);
+  });
+
 export const fetchProjectById = (id) =>
   axiosInstance.get(`/projects/${id}`).then((r) => normalizeProject(r.data?.data ?? r.data));
 

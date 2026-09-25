@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/shared/constants/routes";
 import { useAuth } from "@/shared/context/auth-context";
 import { fetchMySiteVisits } from "@/modules/admin/api/site-visits.api";
-import { fetchAllProjects } from "@/modules/admin/api/projects.api";
+import { fetchMineAssignedProjects } from "@/modules/admin/api/projects.api";
 
 const STATUS_BADGE = {
   SCHEDULED: "bg-amber-500/15 text-amber-700 border-none",
@@ -49,7 +49,7 @@ export default function EmployeeDashboard() {
     setLoading(true);
     Promise.all([
       fetchMySiteVisits().catch(() => []),
-      fetchAllProjects().catch(() => []),
+      fetchMineAssignedProjects().catch(() => []),
     ]).then(([v, p]) => {
       if (cancelled) return;
       setVisits(Array.isArray(v) ? v : []);

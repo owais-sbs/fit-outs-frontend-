@@ -173,9 +173,10 @@ export default function ProjectBillingPage() {
     return milestones.slice(start, start + PAGE_SIZE);
   }, [milestones, page]);
 
-  const load = useCallback(() => {
-    setLoading(true);
-    Promise.all([
+  const load = useCallback((opts = {}) => {
+    const silent = opts.silent === true;
+    if (!silent) setLoading(true);
+    return Promise.all([
       fetchBillingMilestones(projectId).catch(() => []),
       fetchProjectById(projectId).catch(() => ({ budget: 0 })),
       fetchBoqsByProject(projectId).catch(() => []),
@@ -186,7 +187,9 @@ export default function ProjectBillingPage() {
         setProjectMeta(project || null);
         setApprovedBoq(pickLatestApprovedBoq(boqList));
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (!silent) setLoading(false);
+      });
   }, [projectId]);
 
   useEffect(() => {
@@ -241,17 +244,98 @@ export default function ProjectBillingPage() {
     setMessage("");
     try {
       const result = await fn();
-      await load();
+      await load({ silent: true });
       if (typeof result === "string" && result.trim()) {
         setMessage(result);
       } else if (okMsg) {
         setMessage(okMsg);
       }
     } catch (err) {
-      setMessage(err?.response?.data?.message || err.message || "Operation failed.");
+      setMessage(
+        err?.response?.data?.error ||
+          err?.response?.data?.message ||
+          err.message ||
+          "Operation failed."
+      );
     } finally {
       setBusy(false);
     }
+  };
+
+  const isDeletableMilestone = (m) => {
+    const milestoneStatus = (m.status || "DRAFT").toUpperCase();
+    return milestoneStatus === "DRAFT";
+  };
+
+  const handleDeleteMilestone = (milestone) => {
+    if (isCommercialFrozen(projectMeta?.commercialStage)) {
+      setMessage("Commercial data is frozen for this project.");
+      return;
+    }
+    if (!isDeletableMilestone(milestone)) {
+      setMessage("Only draft milestones can be deleted.");
+      return;
+    }
+    const uuid = milestone.uuid;
+    const previous = milestones;
+    setMilestones((list) => list.filter((m) => m.uuid !== uuid));
+    setMessage("");
+    setBusy(true);
+    deleteBillingMilestone(projectId, uuid)
+      .then(() => setMessage("Milestone deleted."))
+      .catch((err) => {
+        setMilestones(previous);
+        setMessage(
+          err?.response?.data?.error ||
+            err?.response?.data?.message ||
+            err.message ||
+            "Failed to delete milestone."
+        );
+      })
+      .finally(() => setBusy(false));
+  };
+
+  const handleDeleteAllMilestones = () => {
+    if (isCommercialFrozen(projectMeta?.commercialStage)) {
+      setMessage("Commercial data is frozen for this project.");
+      return;
+    }
+    const deletable = milestones.filter(isDeletableMilestone);
+    if (deletable.length === 0) {
+      setMessage("No draft milestones to delete.");
+      return;
+    }
+    const skipped = milestones.length - deletable.length;
+    const confirmMsg =
+      skipped > 0
+        ? `Delete ${deletable.length} draft milestone${deletable.length === 1 ? "" : "s"}? ${skipped} non-draft milestone${skipped === 1 ? "" : "s"} will be kept.`
+        : `Delete all ${deletable.length} milestone${deletable.length === 1 ? "" : "s"}?`;
+    if (!window.confirm(confirmMsg)) return;
+
+    const previous = milestones;
+    const deleteUuids = new Set(deletable.map((m) => m.uuid));
+    setMilestones((list) => list.filter((m) => !deleteUuids.has(m.uuid)));
+    setMessage("");
+    setBusy(true);
+    Promise.all(deletable.map((m) => deleteBillingMilestone(projectId, m.uuid)))
+      .then(() =>
+        setMessage(
+          skipped > 0
+            ? `Deleted ${deletable.length} draft milestone${deletable.length === 1 ? "" : "s"}.`
+            : `Deleted all ${deletable.length} milestones.`
+        )
+      )
+      .catch((err) => {
+        setMilestones(previous);
+        load({ silent: true });
+        setMessage(
+          err?.response?.data?.error ||
+            err?.response?.data?.message ||
+            err.message ||
+            "Failed to delete milestones."
+        );
+      })
+      .finally(() => setBusy(false));
   };
 
   const handleCreate = () =>
@@ -314,11 +398,7 @@ export default function ProjectBillingPage() {
       return "Schedule milestone updated.";
     });
 
-  const handleDeleteScheduleDraft = (milestone) =>
-    run(async () => {
-      await deleteBillingMilestone(projectId, milestone.uuid);
-      return "Schedule milestone removed. Re-apply the programme to seed it again.";
-    });
+  const handleDeleteScheduleDraft = (milestone) => handleDeleteMilestone(milestone);
 
   const draftOrRejectedMilestones = useMemo(
     () =>
@@ -584,6 +664,17 @@ export default function ProjectBillingPage() {
             <CardTitle className="text-sm font-semibold">New milestone</CardTitle>
           </CardHeader>
           <CardContent>
+            {message && (
+              <p
+                className={`mb-3 text-sm ${
+                  /fail|required|error|frozen|denied|forbidden/i.test(message)
+                    ? "text-destructive"
+                    : "text-muted-foreground"
+                }`}
+              >
+                {message}
+              </p>
+            )}
             <Tabs value={createMode} onValueChange={setCreateMode}>
               <TabsList>
                 <TabsTrigger value="template" disabled={!approvedBoq}>
@@ -739,6 +830,7 @@ export default function ProjectBillingPage() {
                             />
                             {isDraft && (
                               <Button
+                                type="button"
                                 size="sm"
                                 variant="ghost"
                                 className="text-destructive"
@@ -820,6 +912,18 @@ export default function ProjectBillingPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            {!commercialFrozen && isFinanceUser && milestones.some(isDeletableMilestone) && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-destructive border-destructive/30"
+                disabled={busy}
+                type="button"
+                onClick={handleDeleteAllMilestones}
+              >
+                <Trash2 className="h-4 w-4 mr-1.5" /> Delete all milestones
+              </Button>
+            )}
             {!commercialFrozen && isFinanceUser && draftOrRejectedMilestones.length > 0 && (
               <Button size="sm" disabled={busy} onClick={handleSubmitAllForApproval}>
                 <Send className="h-4 w-4 mr-1.5" /> Submit all for approval ({draftOrRejectedMilestones.length})
@@ -898,15 +1002,14 @@ export default function ProjectBillingPage() {
                         )}
                       </div>
                       <div className="flex flex-wrap gap-1 items-center">
-                        {!commercialFrozen && isFinanceUser && (workflowStatus === "DRAFT" || workflowStatus === "REJECTED") && (
+                        {!commercialFrozen && isFinanceUser && isDeletableMilestone(m) && (
                           <Button
+                            type="button"
                             size="icon"
                             variant="ghost"
                             className="h-8 w-8 text-destructive"
                             disabled={busy}
-                            onClick={() =>
-                              run(() => deleteBillingMilestone(projectId, m.uuid), "Deleted")
-                            }
+                            onClick={() => handleDeleteMilestone(m)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>

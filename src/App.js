@@ -150,10 +150,12 @@ import EmployeeProjectsPage from "./modules/employee/pages/EmployeeProjectsPage"
 import EmployeeCalendarPage from "./modules/employee/pages/EmployeeCalendarPage";
 import EmployeeSiteVisitsPage from "./modules/employee/pages/EmployeeSiteVisitsPage";
 import EmployeeMyActivitiesPage from "./modules/employee/pages/EmployeeMyActivitiesPage";
+import EmployeeProjectSchedulePage from "./modules/employee/pages/EmployeeProjectSchedulePage";
 import SiteEngineerLayout from "./modules/site-engineer/layouts/SiteEngineerLayout";
 import SiteEngineerDashboard from "./modules/site-engineer/pages/SiteEngineerDashboard";
 import SiteEngineerProjectsPage from "./modules/site-engineer/pages/SiteEngineerProjectsPage";
 import SiteEngineerProjectDetailPage from "./modules/site-engineer/pages/SiteEngineerProjectDetailPage";
+import SiteEngineerProjectSchedulePage from "./modules/site-engineer/pages/SiteEngineerProjectSchedulePage";
 import SiteEngineerSiteVisitsPage from "./modules/site-engineer/pages/SiteEngineerSiteVisitsPage";
 import SiteEngineerActivitiesPage from "./modules/site-engineer/pages/SiteEngineerActivitiesPage";
 import SiteEngineerTasksPage from "./modules/site-engineer/pages/SiteEngineerTasksPage";
@@ -165,6 +167,7 @@ import ScheduleTemplateLibraryPage from "./modules/admin/pages/schedule/Schedule
 import MaterialPlanPage from "./modules/admin/pages/planning/MaterialPlanPage";
 import ResourcePlanPage from "./modules/admin/pages/planning/ResourcePlanPage";
 import ValidationInboxPage from "./modules/admin/pages/validation/ValidationInboxPage";
+import DurationExtensionInboxPage from "./modules/project-manager/pages/schedule/DurationExtensionInboxPage";
 import QualityTemplatesPage from "./modules/admin/pages/validation/QualityTemplatesPage";
 import ApprovalsDashboardPage from "./modules/admin/pages/approvals/ApprovalsDashboardPage";
 import DepositLedgerPage from "./modules/admin/pages/approvals/DepositLedgerPage";
@@ -347,6 +350,8 @@ function App() {
               <Route path="billing/inbox" element={<BillingMilestoneInboxPage />} />
               <Route path="procurement" element={<DirectorProcurementPage />} />
               <Route path="projects" element={<DirectorProjectsPage />} />
+              <Route path="projects/:projectId" element={<ProjectDetailPage />} />
+              <Route path="projects/:projectId/schedule" element={<ProjectSchedulePage />} />
               <Route path="projects/:projectId/billing" element={<ProjectBillingPage />} />
               <Route path="commercial" element={<DirectorCommercialPage />} />
               <Route path="variations/inbox" element={<VariationsInboxPage />} />
@@ -408,6 +413,7 @@ function App() {
               <Route path="projects/:projectId/subcontractors" element={<ProjectSubcontractorPage />} />
               <Route path="subcontractors/vendors" element={<VendorListPage />} />
               <Route path="validation/inbox" element={<ValidationInboxPage />} />
+              <Route path="schedule/duration-extensions" element={<DurationExtensionInboxPage />} />
               <Route path="quality-templates" element={<QualityTemplatesPage />} />
               <Route path="schedule" element={<ScheduleHubPage />} />
               <Route path="schedule/templates" element={<ScheduleTemplateLibraryPage />} />
@@ -588,6 +594,7 @@ function App() {
             >
               <Route index element={<EmployeeDashboard />} />
               <Route path="projects" element={<EmployeeProjectsPage />} />
+              <Route path="projects/:projectId/schedule" element={<EmployeeProjectSchedulePage />} />
               <Route path="activities" element={<EmployeeMyActivitiesPage />} />
               <Route path="calendar" element={<EmployeeCalendarPage />} />
               <Route path="site-visits" element={<EmployeeSiteVisitsPage />} />
@@ -609,6 +616,7 @@ function App() {
             >
               <Route index element={<SiteEngineerDashboard />} />
               <Route path="projects" element={<SiteEngineerProjectsPage />} />
+              <Route path="projects/:projectId/schedule" element={<SiteEngineerProjectSchedulePage />} />
               <Route path="projects/:projectId" element={<SiteEngineerProjectDetailPage />} />
               <Route path="activities" element={<SiteEngineerActivitiesPage />} />
               <Route path="tasks" element={<SiteEngineerTasksPage />} />

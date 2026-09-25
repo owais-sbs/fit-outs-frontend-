@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ArrowLeft, CalendarDays, Loader2 } from "lucide-react";
+import { ArrowLeft, CalendarDays, GanttChart, Loader2 } from "lucide-react";
 import { PageShell, PageTitle, Surface } from "@/components/layout/PageShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -100,11 +100,18 @@ export default function SiteEngineerProjectDetailPage() {
         title={title}
         subtitle={project.clientName || project.location || "Assigned project"}
         actions={
-          <Button variant="outline" size="sm" asChild>
-            <Link to={ROUTES.SITE_ENGINEER.PROJECTS}>
-              <ArrowLeft className="mr-1 h-4 w-4" /> Projects
-            </Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link to={ROUTES.SITE_ENGINEER.PROJECT_SCHEDULE.replace(":projectId", projectId)}>
+                <GanttChart className="mr-1 h-4 w-4" /> View programme
+              </Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link to={ROUTES.SITE_ENGINEER.PROJECTS}>
+                <ArrowLeft className="mr-1 h-4 w-4" /> Projects
+              </Link>
+            </Button>
+          </div>
         }
       />
 

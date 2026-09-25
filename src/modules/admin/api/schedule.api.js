@@ -57,6 +57,21 @@ export const fetchActivityProgress = (activityUuid) =>
 export const fetchActivityMaterialSummary = (activityUuid) =>
   axiosInstance.get(`/schedule/activities/${activityUuid}/material-summary`).then(unwrap);
 
+/** SE requests a longer duration; CPM dates change only after PM approval. */
+export const requestDurationExtension = (activityUuid, payload) =>
+  axiosInstance
+    .post(`/schedule/activities/${activityUuid}/duration-extensions`, payload)
+    .then(unwrap);
+
+export const fetchDurationExtensionInbox = () =>
+  axiosInstance.get("/schedule/duration-extensions/inbox").then(unwrap);
+
+export const approveDurationExtension = (uuid, payload = {}) =>
+  axiosInstance.post(`/schedule/duration-extensions/${uuid}/approve`, payload).then(unwrap);
+
+export const rejectDurationExtension = (uuid, payload = {}) =>
+  axiosInstance.post(`/schedule/duration-extensions/${uuid}/reject`, payload).then(unwrap);
+
 export const fetchMyScheduleActivities = () =>
   axiosInstance.get(`/schedule/my-activities`).then(unwrap);
 
@@ -104,6 +119,20 @@ export const rescheduleProject = (projectId, payload) =>
 /** Copy live programme into a new tenant template. */
 export const saveScheduleAsTemplate = (projectId, payload) =>
   axiosInstance.post(`/projects/${projectId}/schedule/save-as-template`, payload || {}).then(unwrap);
+
+/** Mode 3: suggest template activity matches for approved BOQ lines. */
+export const suggestBoqMatches = (projectId, templateUuid) =>
+  axiosInstance
+    .post(`/projects/${projectId}/schedule/programme/suggest-boq-matches`, { templateUuid })
+    .then(unwrap);
+
+/** Mode 2 / Mode 3 programme preview (mode: BOQ | BLEND). */
+export const previewProgramme = (projectId, payload) =>
+  axiosInstance.post(`/projects/${projectId}/schedule/programme/preview`, payload).then(unwrap);
+
+/** Mode 2 / Mode 3 programme apply — replaces the current schedule. */
+export const applyProgramme = (projectId, payload) =>
+  axiosInstance.post(`/projects/${projectId}/schedule/programme/apply`, payload).then(unwrap);
 
 export const uploadProgressAttachment = (progressUuid, file) => {
   const fd = new FormData();
