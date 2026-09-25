@@ -164,6 +164,7 @@ import ScheduleHubPage from "./modules/admin/pages/schedule/ScheduleHubPage";
 import ScheduleTemplateLibraryPage from "./modules/admin/pages/schedule/ScheduleTemplateLibraryPage";
 import MaterialPlanPage from "./modules/admin/pages/planning/MaterialPlanPage";
 import ResourcePlanPage from "./modules/admin/pages/planning/ResourcePlanPage";
+import LabourPlanPage from "./modules/admin/pages/planning/LabourPlanPage";
 import ValidationInboxPage from "./modules/admin/pages/validation/ValidationInboxPage";
 import QualityTemplatesPage from "./modules/admin/pages/validation/QualityTemplatesPage";
 import ApprovalsDashboardPage from "./modules/admin/pages/approvals/ApprovalsDashboardPage";
@@ -281,6 +282,7 @@ function App() {
               <Route path="projects/:projectId/schedule" element={<ProjectSchedulePage />} />
               <Route path="projects/:projectId/material-plan" element={<MaterialPlanPage />} />
               <Route path="projects/:projectId/resource-plan" element={<ResourcePlanPage />} />
+              <Route path="projects/:projectId/labour-plan" element={<LabourPlanPage />} />
               <Route path="projects/:projectId/validation" element={<ValidationInboxPage />} />
               <Route path="projects/:projectId/snags" element={<ProjectSnagsPage />} />
               <Route path="projects/:projectId/variations" element={<ProjectVariationsPage />} />
@@ -395,6 +397,7 @@ function App() {
               <Route path="projects/:projectId/schedule" element={<ProjectSchedulePage />} />
               <Route path="projects/:projectId/material-plan" element={<MaterialPlanPage />} />
               <Route path="projects/:projectId/resource-plan" element={<ResourcePlanPage />} />
+              <Route path="projects/:projectId/labour-plan" element={<LabourPlanPage />} />
               <Route path="projects/:projectId/validation" element={<ValidationInboxPage />} />
               <Route path="projects/:projectId/snags" element={<ProjectSnagsPage />} />
               <Route path="projects/:projectId/variations" element={<ProjectVariationsPage />} />

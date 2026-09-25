@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { CheckCircle2, ChevronDown, ChevronRight, ClipboardList, Loader2, Package, Users } from "lucide-react";
+import { CheckCircle2, ChevronDown, ChevronRight, ClipboardList, Loader2, Package, Users, Wrench } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -15,8 +15,8 @@ import { ROUTES, SCHEDULE_NAV_STATE } from "@/shared/constants/routes";
 
 const AREAS = [
   { key: "materialStatus", label: "Material", routeKey: "PROJECT_MATERIAL_PLAN", icon: Package, gateKey: "requireMaterial" },
-  { key: "resourceStatus", label: "Resource", routeKey: "PROJECT_RESOURCE_PLAN", icon: Users, gateKey: "requireResource" },
-  { key: "labourStatus", label: "Labour", routeKey: "PROJECT_RESOURCE_PLAN", icon: Users, gateKey: "requireLabour" },
+  { key: "resourceStatus", label: "Resource", routeKey: "PROJECT_RESOURCE_PLAN", icon: Wrench, gateKey: "requireResource" },
+  { key: "labourStatus", label: "Labour", routeKey: "PROJECT_LABOUR_PLAN", icon: Users, gateKey: "requireLabour" },
   { key: "subcontractorStatus", label: "Subcontractor", routeKey: "PROJECT_SUBCONTRACTORS", icon: null, gateKey: "requireSubcontractor" },
 ];
 

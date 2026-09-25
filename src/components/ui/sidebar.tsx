@@ -324,7 +324,7 @@ function Sidebar({
           // Adjust the padding for floating and inset variants.
           variant === "floating" || variant === "inset"
             ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+1rem+2px)]"
-            : "group-data-[collapsible=icon]:w-[var(--sidebar-width-icon)] group-data-[side=left]:border-r group-data-[side=right]:border-l",
+            : "group-data-[collapsible=icon]:w-[var(--sidebar-width-icon)]",
           className
         )}
         {...props}
@@ -332,7 +332,13 @@ function Sidebar({
         <div
           data-sidebar="sidebar"
           data-slot="sidebar-inner"
-          className="relative flex h-full w-full flex-col overflow-hidden border-r border-sidebar-border bg-sidebar group-data-[variant=floating]:rounded-2xl group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow-sm"
+          className={cn(
+            "relative flex h-full w-full flex-col bg-sidebar",
+            // Keep floating/inset clipped to radius; default must allow the resize rail to overhang the edge.
+            variant === "floating" || variant === "inset"
+              ? "overflow-hidden group-data-[variant=floating]:rounded-2xl group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow-sm"
+              : "overflow-visible"
+          )}
         >
           <button
             type="button"
@@ -481,12 +487,15 @@ function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
         document.body.style.userSelect = "none"
       }}
       className={cn(
-        "absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 group-data-[side=left]:-right-4 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] hover:after:bg-[var(--color-accent-blue)] sm:flex",
-        "in-data-[side=left]:cursor-col-resize in-data-[side=right]:cursor-col-resize",
+        "absolute inset-y-0 z-20 hidden w-4 cursor-col-resize sm:flex",
+        // Center the hit target on the sidebar edge (half inside, half out).
+        "right-0 translate-x-1/2",
+        // 1px hairline at the edge — no -translate on the strip (avoids half-pixel blur vs navbar Separator).
+        "after:pointer-events-none after:absolute after:inset-y-0 after:left-1/2 after:w-px after:content-[''] after:bg-transparent after:transition-colors",
+        "hover:after:bg-[var(--color-accent-blue)]",
         "[[data-side=left][data-state=collapsed]_&]:cursor-e-resize [[data-side=right][data-state=collapsed]_&]:cursor-w-resize",
-        "group-data-[collapsible=offcanvas]:translate-x-0 group-data-[collapsible=offcanvas]:after:left-full hover:group-data-[collapsible=offcanvas]:bg-sidebar",
-        "[[data-side=left][data-collapsible=offcanvas]_&]:-right-2",
-        "[[data-side=right][data-collapsible=offcanvas]_&]:-left-2",
+        "group-data-[side=right]:left-0 group-data-[side=right]:right-auto group-data-[side=right]:-translate-x-1/2",
+        "hover:group-data-[collapsible=offcanvas]:bg-sidebar",
         className
       )}
       {...props}
@@ -676,8 +685,8 @@ const sidebarMenuButtonVariants = cva(
           "bg-background shadow-[0_0_0_1px_var(--sidebar-border)] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-[0_0_0_1px_var(--sidebar-accent)]",
       },
       size: {
-        default: "h-8 text-sm",
-        sm: "h-7 text-xs",
+        default: "min-h-8 h-auto py-2 text-sm",
+        sm: "min-h-7 h-auto py-1.5 text-xs",
         lg: "h-12 text-sm group-data-[collapsible=icon]:!p-0",
       },
     },
@@ -904,7 +913,7 @@ function SidebarMenuSubButton({
       data-size={size}
       data-active={isActive}
       className={cn(
-        "flex h-7 min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-md px-2 text-sidebar-foreground/70 ring-sidebar-ring outline-none transition-colors duration-150 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span:last-child]:truncate [&>svg]:h-4 [&>svg]:w-4 [&>svg]:shrink-0",
+        "flex h-7 min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-md px-2 text-sidebar-foreground/70 ring-sidebar-ring outline-none transition-colors duration-150 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span:last-child]:truncate [&>svg]:h-4 [&>svg]:w-4 [&>svg]:shrink-0",
         "data-[active=true]:bg-sidebar-accent data-[active=true]:font-semibold data-[active=true]:text-sidebar-accent-foreground data-[active=true]:[&>svg]:text-[var(--color-accent-blue)]",
         size === "sm" && "text-xs",
         size === "md" && "text-sm",

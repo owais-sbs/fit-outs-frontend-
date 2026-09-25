@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { CheckCircle2, GanttChart, Loader2, Package, Users } from "lucide-react";
+import { CheckCircle2, GanttChart, Loader2, Package, Users, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,8 +11,8 @@ import { ROUTES } from "@/shared/constants/routes";
 
 const AREA_LABELS = [
   { key: "materialStatus", label: "Material plan", routeKey: "PROJECT_MATERIAL_PLAN", icon: Package },
-  { key: "resourceStatus", label: "Resource plan", routeKey: "PROJECT_RESOURCE_PLAN", icon: Users },
-  { key: "labourStatus", label: "Labour plan", routeKey: "PROJECT_RESOURCE_PLAN", icon: Users },
+  { key: "resourceStatus", label: "Resource plan", routeKey: "PROJECT_RESOURCE_PLAN", icon: Wrench },
+  { key: "labourStatus", label: "Labour plan", routeKey: "PROJECT_LABOUR_PLAN", icon: Users },
   { key: "subcontractorStatus", label: "Subcontractor plan", routeKey: "PROJECT_SUBCONTRACTORS", icon: null },
 ];
 
@@ -90,7 +90,7 @@ export default function ProjectPlanningSection({ projectId }) {
           </Button>
           <Button asChild size="sm" variant="outline">
             <Link to={routes.PROJECT_RESOURCE_PLAN.replace(":projectId", projectId)}>
-              <Users className="h-4 w-4 mr-1" /> Resources
+              <Wrench className="h-4 w-4 mr-1" /> Resources
             </Link>
           </Button>
           <Button asChild size="sm" variant="outline">
