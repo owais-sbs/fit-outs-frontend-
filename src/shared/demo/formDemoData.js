@@ -245,20 +245,44 @@ export function pickDemo(items = []) {
 }
 
 /**
- * Tiny valid PNG File for snag / photo demo uploads.
+ * Demo PNG File for snag / photo uploads.
+ * Uses a canvas image in the browser so the thumbnail is clearly visible.
  * Each call gets a unique filename so consecutive fills look fresh.
  */
 export function makeDemoPng(fileName) {
   const stamp = Date.now().toString(36);
-  // 1×1 PNG (opaque grey pixel)
+  const safe = String(fileName || `demo-${stamp}.png`).replace(/[^\w.-]+/g, "_");
+  const name = safe.endsWith(".png") ? safe : `${safe}.png`;
+
+  if (typeof document !== "undefined") {
+    const canvas = document.createElement("canvas");
+    canvas.width = 320;
+    canvas.height = 240;
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      const grad = ctx.createLinearGradient(0, 0, 320, 240);
+      grad.addColorStop(0, "#0f766e");
+      grad.addColorStop(1, "#155e75");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 320, 240);
+      ctx.fillStyle = "rgba(255,255,255,0.92)";
+      ctx.font = "bold 28px sans-serif";
+      ctx.fillText("DEMO PHOTO", 70, 110);
+      ctx.font = "16px sans-serif";
+      ctx.fillText(name.slice(0, 28), 70, 145);
+      const dataUrl = canvas.toDataURL("image/png");
+      const bin = atob(dataUrl.split(",")[1] || "");
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return new File([bytes], name, { type: "image/png", lastModified: Date.now() });
+    }
+  }
+
+  // Fallback 1×1 PNG if canvas is unavailable
   const bytes = Uint8Array.from(atob(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
   ), (c) => c.charCodeAt(0));
-  const safe = String(fileName || `demo-${stamp}.png`).replace(/[^\w.-]+/g, "_");
-  return new File([bytes], safe.endsWith(".png") ? safe : `${safe}.png`, {
-    type: "image/png",
-    lastModified: Date.now(),
-  });
+  return new File([bytes], name, { type: "image/png", lastModified: Date.now() });
 }
 
 /** Assign a File to a native <input type="file"> so the UI shows the name. */
@@ -355,6 +379,8 @@ export function buildDemoSnagForm({
     dueDate: daysFromNow(5 + Math.floor(Math.random() * 25)),
     assigneeAccountId: assignee?.id != null ? String(assignee.id) : "",
     clientVisible: withClientVisible,
+    scVisible: false,
+    scRecipientAccountIds: [],
     photos: [photo],
   };
 }

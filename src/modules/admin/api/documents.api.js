@@ -44,6 +44,12 @@ export const publishDocumentToClient = (projectId, uuid) =>
 export const unpublishDocumentFromClient = (projectId, uuid) =>
   axiosInstance.post(`/projects/${projectId}/documents/${uuid}/unpublish-from-client`).then(unwrap);
 
+export const publishDocumentToSc = (projectId, uuid) =>
+  axiosInstance.post(`/projects/${projectId}/documents/${uuid}/publish-to-sc`).then(unwrap);
+
+export const unpublishDocumentFromSc = (projectId, uuid) =>
+  axiosInstance.post(`/projects/${projectId}/documents/${uuid}/unpublish-from-sc`).then(unwrap);
+
 export const fetchDocumentVersions = (projectId, uuid) =>
   axiosInstance.get(`/projects/${projectId}/documents/${uuid}/versions`).then(unwrap);
 
@@ -52,3 +58,6 @@ export const syncDrawingsIntoDocuments = (projectId) =>
 
 export const fetchClientDocuments = (projectId) =>
   axiosInstance.get(`/client/projects/${projectId}/documents`).then(unwrap);
+
+export const fetchScDocuments = (projectId) =>
+  axiosInstance.get(`/subcontractor/projects/${projectId}/documents`).then(unwrap);

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { ArrowLeft, Check, ClipboardCheck, HardHat, Loader2, Plus, X, ShieldAlert, Trash2 } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Check, ClipboardCheck, HardHat, Loader2, Plus, X, ShieldAlert, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageShell, PageTitle } from "@/components/layout/PageShell";
 import { AttachmentList } from "@/components/shared/AttachmentField";
@@ -32,10 +32,18 @@ import {
   approveScInvoice,
   rejectScInvoice,
   markScInvoicePaid,
+  acknowledgeScSiteReport,
+  resolveScSiteReport,
 } from "../../api/subcontractor.api";
 import { ROUTES } from "@/shared/constants/routes";
 
-const TAB = { PROGRESS: "progress", CLAIMS: "claims", VARIATIONS: "variations", INVOICES: "invoices" };
+const TAB = {
+  PROGRESS: "progress",
+  CLAIMS: "claims",
+  VARIATIONS: "variations",
+  INVOICES: "invoices",
+  SITE_REPORTS: "site-reports",
+};
 
 function parseChecklist(raw) {
   if (Array.isArray(raw)) return raw.map(String).filter(Boolean);
@@ -65,6 +73,20 @@ function claimStatus(item) {
   return String(s || "").toUpperCase();
 }
 
+function siteReportStatus(item) {
+  const s = item?.status;
+  if (s && typeof s === "object" && s.name) return String(s.name).toUpperCase();
+  return String(s || "").toUpperCase();
+}
+
+function siteReportTypeLabel(type) {
+  const t = String(type || "").toUpperCase();
+  if (t === "DELAY") return "Delay";
+  if (t === "ISSUE") return "Issue";
+  if (t === "MATERIAL_DELIVERY" || t === "MATERIAL") return "Material delivery";
+  return t || "Report";
+}
+
 export default function ValidationInboxPage() {
   const { projectId } = useParams();
   const location = useLocation();
@@ -77,8 +99,14 @@ export default function ValidationInboxPage() {
   const [inbox, setInbox] = useState({
     progressItems: [],
     claimItems: [],
+    variationItems: [],
+    invoiceItems: [],
+    siteReportItems: [],
     pendingProgressCount: 0,
     pendingClaimCount: 0,
+    pendingVariationCount: 0,
+    pendingInvoiceCount: 0,
+    pendingSiteReportCount: 0,
   });
   const [activeTab, setActiveTab] = useState(TAB.PROGRESS);
   const [holdPoints, setHoldPoints] = useState([]);
@@ -111,8 +139,14 @@ export default function ValidationInboxPage() {
         setInbox({
           progressItems: [],
           claimItems: [],
+          variationItems: [],
+          invoiceItems: [],
+          siteReportItems: [],
           pendingProgressCount: 0,
           pendingClaimCount: 0,
+          pendingVariationCount: 0,
+          pendingInvoiceCount: 0,
+          pendingSiteReportCount: 0,
         });
         setMessage(
           err?.response?.data?.error
@@ -209,8 +243,20 @@ export default function ValidationInboxPage() {
   }, [claimItems]);
   const variationItems = inbox.variationItems || [];
   const invoiceItems = inbox.invoiceItems || [];
+  const siteReportItems = inbox.siteReportItems || [];
+  const { openSiteReports, resolvedSiteReports } = useMemo(() => {
+    const openSiteReports = [];
+    const resolvedSiteReports = [];
+    for (const item of siteReportItems) {
+      const s = siteReportStatus(item);
+      if (s === "RESOLVED" || s === "CLOSED") resolvedSiteReports.push(item);
+      else openSiteReports.push(item);
+    }
+    return { openSiteReports, resolvedSiteReports };
+  }, [siteReportItems]);
   const totalPending = (inbox.pendingProgressCount || 0) + (inbox.pendingClaimCount || 0)
-    + (inbox.pendingVariationCount || 0) + (inbox.pendingInvoiceCount || 0);
+    + (inbox.pendingVariationCount || 0) + (inbox.pendingInvoiceCount || 0)
+    + (inbox.pendingSiteReportCount || 0);
 
   if (loading) {
     return (
@@ -277,6 +323,16 @@ export default function ValidationInboxPage() {
           onClick={() => setActiveTab(TAB.INVOICES)}
         >
           SC invoices ({inbox.pendingInvoiceCount || 0})
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant={activeTab === TAB.SITE_REPORTS ? "default" : "outline"}
+          onClick={() => setActiveTab(TAB.SITE_REPORTS)}
+        >
+          <AlertTriangle className="h-4 w-4 mr-1" />
+          Site reports ({inbox.pendingSiteReportCount || 0} pending
+          {resolvedSiteReports.length ? ` · ${resolvedSiteReports.length} resolved` : ""})
         </Button>
       </div>
 
@@ -732,6 +788,149 @@ export default function ValidationInboxPage() {
                         </Button>
                       )}
                     </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === TAB.SITE_REPORTS && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold">
+              Site reports ({openSiteReports.length} pending · {resolvedSiteReports.length} resolved)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {siteReportItems.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-10 text-center">No site reports</p>
+            ) : (
+              <div className="space-y-6">
+                {[
+                  { key: "open", title: "Needs action", items: openSiteReports },
+                  { key: "resolved", title: "Resolved", items: resolvedSiteReports },
+                ].map((section) => (
+                  <div key={section.key}>
+                    <p className="text-xs font-medium text-muted-foreground mb-2">
+                      {section.title} ({section.items.length})
+                    </p>
+                    {section.items.length === 0 ? (
+                      <p className="text-sm text-muted-foreground py-4 text-center">None</p>
+                    ) : (
+                      <div className="divide-y divide-border/40">
+                        {section.items.map((item) => {
+                          const status = siteReportStatus(item);
+                          const isOpen = status === "OPEN";
+                          const isAcked = status === "ACKNOWLEDGED";
+                          const isDone = status === "RESOLVED" || status === "CLOSED";
+                          return (
+                            <div key={item.uuid} className="flex flex-col sm:flex-row sm:items-start gap-3 py-3">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <Badge
+                                    className={
+                                      isDone
+                                        ? "border-none bg-emerald-500/15 text-emerald-700"
+                                        : "border-none bg-amber-500/15 text-amber-700"
+                                    }
+                                  >
+                                    {status || "OPEN"}
+                                  </Badge>
+                                  <Badge variant="outline" className="text-[11px]">
+                                    {siteReportTypeLabel(item.reportType)}
+                                  </Badge>
+                                  <span className="text-sm font-medium">{item.title || "Site report"}</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {item.projectName || (item.projectId ? `Project #${item.projectId}` : "Project")}
+                                  {item.packageName ? ` · ${item.packageName}` : ""}
+                                  {formatDate(item.createdAt) ? ` · ${formatDate(item.createdAt)}` : ""}
+                                  {isDone && formatDate(item.resolvedAt)
+                                    ? ` · resolved ${formatDate(item.resolvedAt)}`
+                                    : ""}
+                                </p>
+                                {item.description && (
+                                  <p className="text-xs text-muted-foreground mt-1">{item.description}</p>
+                                )}
+                                {item.delayReasonCode && (
+                                  <p className="text-xs font-medium text-amber-700 mt-1">
+                                    Reason: {item.delayReasonCode}
+                                  </p>
+                                )}
+                                {(item.materialName || item.quantity != null) && (
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {item.materialName || "Material"}
+                                    {item.quantity != null
+                                      ? ` · qty ${item.quantity}${item.unit ? ` ${item.unit}` : ""}`
+                                      : ""}
+                                    {item.expectedDate ? ` · expected ${item.expectedDate}` : ""}
+                                    {item.deliveredDate ? ` · delivered ${item.deliveredDate}` : ""}
+                                  </p>
+                                )}
+                                {isDone && item.resolutionNotes && (
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Resolution: {item.resolutionNotes}
+                                  </p>
+                                )}
+                              </div>
+                              {!isDone && (
+                                <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+                                  {(isOpen || isAcked) && (
+                                    <Input
+                                      className="h-8 w-full sm:w-44 text-xs"
+                                      placeholder="Resolution notes"
+                                      value={rejectReasons[`sr-${item.uuid}`] || ""}
+                                      onChange={(e) =>
+                                        setRejectReasons((m) => ({
+                                          ...m,
+                                          [`sr-${item.uuid}`]: e.target.value,
+                                        }))
+                                      }
+                                    />
+                                  )}
+                                  {isOpen && (
+                                    <Button
+                                      size="sm"
+                                      variant="secondary"
+                                      disabled={busy}
+                                      onClick={() =>
+                                        run(
+                                          () => acknowledgeScSiteReport(item.projectId, item.uuid),
+                                          "Site report acknowledged"
+                                        )
+                                      }
+                                    >
+                                      Acknowledge
+                                    </Button>
+                                  )}
+                                  {(isOpen || isAcked) && (
+                                    <Button
+                                      size="sm"
+                                      disabled={busy}
+                                      onClick={() =>
+                                        run(
+                                          () =>
+                                            resolveScSiteReport(
+                                              item.projectId,
+                                              item.uuid,
+                                              rejectReasons[`sr-${item.uuid}`]
+                                            ),
+                                          "Site report resolved"
+                                        )
+                                      }
+                                    >
+                                      <Check className="h-4 w-4 mr-1" /> Resolve
+                                    </Button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { fetchClientDocuments, resolveFileUrl } from "@/modules/admin/api/documents.api";
+import { fetchScDocuments, resolveFileUrl } from "@/modules/admin/api/documents.api";
 import { fetchMyScPackages } from "@/modules/admin/api/subcontractor.api";
 
 function formatDate(d) {
@@ -53,7 +53,7 @@ export default function SubcontractorDocumentsPage() {
       return;
     }
     setDocsLoading(true);
-    fetchClientDocuments(projectId)
+    fetchScDocuments(projectId)
       .then((list) => setDocs(Array.isArray(list) ? list : []))
       .catch(() => setDocs([]))
       .finally(() => setDocsLoading(false));
@@ -87,7 +87,7 @@ export default function SubcontractorDocumentsPage() {
     <PageShell>
       <PageTitle
         title="Documents"
-        subtitle="Published project documents shared for your assigned work."
+        subtitle="Documents published to subcontractors for your appointed packages."
       />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
@@ -125,7 +125,7 @@ export default function SubcontractorDocumentsPage() {
             <FolderOpen className="mb-3 h-12 w-12 opacity-30" />
             <p className="font-medium">No documents found</p>
             <p className="mt-1 text-xs">
-              {projectId ? "Nothing published for this project yet." : "Select a project to view documents."}
+              {projectId ? "No documents published to subcontractors for this project yet." : "Select a project to view documents."}
             </p>
           </div>
         ) : (
