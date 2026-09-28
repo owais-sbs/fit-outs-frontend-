@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, Save } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Loader2, Save, Stamp } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAuth } from "@/shared/context/auth-context";
+import { ROUTES } from "@/shared/constants/routes";
 import { fetchPlanningGates, updatePlanningGates } from "../api/planning.api";
 
 function SettingsGroup({ title, description, children }) {
@@ -51,6 +53,7 @@ const DEFAULT_GATES = {
 
 export default function AdminSettingsPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [saved, setSaved] = useState(false);
   const [message, setMessage] = useState("");
   const [profile, setProfile] = useState({
@@ -158,6 +161,21 @@ export default function AdminSettingsPage() {
               <Label>Role</Label>
               <Input disabled value={profile.role} />
             </div>
+          </SettingsGroup>
+
+          <SettingsGroup
+            title="Company stamp & signature"
+            description="Add or update stamp and signature used on cover letters."
+          >
+            <Button
+              type="button"
+              variant="outline"
+              className="gap-2"
+              onClick={() => navigate(ROUTES.ADMIN.COVER_LETTER_CONFIG)}
+            >
+              <Stamp className="h-4 w-4" />
+              Add company stamp & signature
+            </Button>
           </SettingsGroup>
         </TabsContent>
 

@@ -259,7 +259,11 @@ export default function AdminSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" className="h-14 rounded-none pointer-events-none">
-              <SidebarBrand portal={QS_ROLES.has(role) ? "QS Panel" : "Admin Panel"} />
+              <SidebarBrand
+                portal={QS_ROLES.has(role) ? "QS Panel" : "Admin Panel"}
+                companyName={user?.companyName}
+                logoUrl={user?.companyLogo}
+              />
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

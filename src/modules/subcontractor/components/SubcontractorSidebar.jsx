@@ -30,7 +30,11 @@ export default function SubcontractorSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" className="pointer-events-none">
-              <SidebarBrand portal="Subcontractor Portal" />
+              <SidebarBrand
+                portal="Subcontractor Portal"
+                companyName={user?.companyName}
+                logoUrl={user?.companyLogo}
+              />
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

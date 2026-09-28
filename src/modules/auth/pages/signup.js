@@ -28,15 +28,17 @@ const ROLE_ROUTES = {
   [ROLES.SITE_ENGINEER]: ROUTES.SITE_ENGINEER.DASHBOARD,
 };
 
-function destinationForAuth(user, role) {
-  const portal = ROLE_ROUTES[role] || ROUTES.ADMIN.DASHBOARD;
-  return routeForAccessPhase(user?.accessPhase, portal);
+function destinationForAuthResult(result, role) {
+  const accessPhase = result?.user?.accessPhase;
+  const portal = ROLE_ROUTES[result?.singleRole || role] || ROUTES.ADMIN.DASHBOARD;
+  return routeForAccessPhase(accessPhase, portal);
 }
 
-export default function Login() {
+export default function SignupPage() {
   const navigate = useNavigate();
-  const { login, isAuthenticated, role, user, isLoading: authLoading } = useAuth();
+  const { signup, isAuthenticated, role, user, isLoading: authLoading } = useAuth();
 
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -45,12 +47,12 @@ export default function Login() {
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
       if (role) {
-        navigate(destinationForAuth(user, role), { replace: true });
+        navigate(routeForAccessPhase(user?.accessPhase, ROLE_ROUTES[role]), { replace: true });
       } else {
         navigate("/roles", { replace: true });
       }
     }
-  }, [authLoading, isAuthenticated, role, user, navigate]);
+  }, [authLoading, isAuthenticated, role, user?.accessPhase, navigate]);
 
   if (authLoading) {
     return <SessionBootLoader />;
@@ -58,8 +60,12 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!email || !password) {
-      setError("Please enter both email and password.");
+    if (!fullName || !email || !password) {
+      setError("Please fill in all fields.");
+      return;
+    }
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
       return;
     }
 
@@ -67,15 +73,10 @@ export default function Login() {
     setError("");
 
     try {
-      const result = await login({ email, password });
+      const result = await signup({ fullName, email, password });
 
       if (result?.noValidRole) {
         setError("Your account does not have access to any available portal.");
-        return;
-      }
-
-      if (result?.singleRole) {
-        navigate(destinationForAuth(result.user, result.singleRole));
         return;
       }
 
@@ -83,8 +84,10 @@ export default function Login() {
         navigate("/roles");
         return;
       }
+
+      navigate(destinationForAuthResult(result, result?.singleRole));
     } catch (err) {
-      setError(err.message || "Login failed. Please try again.");
+      setError(err.message || "Signup failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -92,7 +95,6 @@ export default function Login() {
 
   return (
     <div className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-background px-6 py-12">
-      {/* Full-page dotted check grid — dark on light, light on dark */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
@@ -105,7 +107,6 @@ export default function Login() {
       />
 
       <div className="relative z-10 w-full max-w-[468px] page-enter">
-        {/* Dotted crop-mark frame — lines extend past corners */}
         <div aria-hidden className="pointer-events-none absolute inset-0">
           <div className="absolute -left-10 -right-10 top-0 border-t border-dotted border-foreground/35" />
           <div className="absolute -left-10 -right-10 bottom-0 border-t border-dotted border-foreground/35" />
@@ -113,7 +114,6 @@ export default function Login() {
           <div className="absolute -top-10 -bottom-10 right-0 border-l border-dotted border-foreground/35" />
         </div>
 
-        {/* Plain fill inside the frame; dots remain outside */}
         <div className="relative bg-background px-10 py-14 sm:px-12 sm:py-16">
           <div className="mb-12 flex items-center justify-center gap-3.5">
             <JctLogoTile className="h-[2.6rem] w-[2.6rem] rounded-xl" imgClassName="h-[1.625rem] w-[1.625rem]" />
@@ -122,66 +122,70 @@ export default function Login() {
             </span>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="mb-8 text-center">
+            <h1 className="text-xl font-semibold tracking-tight">Create your account</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Sign up, then choose a plan to access your admin portal.
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
-              <div className="flex items-center gap-2.5 rounded-xl border border-destructive/20 bg-destructive/10 p-3.5 text-base text-destructive animate-in fade-in slide-in-from-top-1 duration-200">
+              <div className="flex items-center gap-2.5 rounded-xl border border-destructive/20 bg-destructive/10 p-3.5 text-base text-destructive">
                 <AlertCircle className="h-5 w-5 shrink-0" />
                 <p>{error}</p>
               </div>
             )}
 
-            <div className="space-y-2.5">
-              <Label htmlFor="email" className="text-base font-medium text-foreground">
-                Email
-              </Label>
+            <div className="space-y-2">
+              <Label htmlFor="fullName">Full name</Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="h-[3.575rem] rounded-xl text-base"
+                id="fullName"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="h-12 rounded-xl"
                 required
               />
             </div>
 
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-base font-medium text-foreground">
-                  Password
-                </Label>
-                <Link
-                  to={ROUTES.AUTH.FORGOT_PASSWORD}
-                  className="text-sm text-muted-foreground hover:text-foreground"
-                >
-                  Forgot password?
-                </Link>
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="h-12 rounded-xl"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
                 type="password"
-                placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="h-[3.575rem] rounded-xl text-base"
+                className="h-12 rounded-xl"
+                minLength={8}
                 required
               />
             </div>
 
             <Button
               type="submit"
-              variant="ghost"
-              className="mt-1.5 h-[3.575rem] w-full rounded-full bg-transparent px-12 text-base font-bold uppercase tracking-widest text-foreground shadow-[inset_0_0_0_2px_#616467] transition duration-200 hover:bg-[#616467] hover:text-white dark:text-neutral-200"
+              className="mt-2 h-12 w-full rounded-full text-base font-semibold"
               disabled={isLoading}
             >
-              {isLoading ? "Signing in..." : "Sign in"}
+              {isLoading ? "Creating account..." : "Create account"}
             </Button>
           </form>
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
-            New here?{" "}
-            <Link to={ROUTES.AUTH.SIGNUP} className="font-medium text-foreground hover:underline">
-              Create an account
+            Already have an account?{" "}
+            <Link to={ROUTES.AUTH.LOGIN} className="font-medium text-foreground hover:underline">
+              Sign in
             </Link>
           </p>
         </div>

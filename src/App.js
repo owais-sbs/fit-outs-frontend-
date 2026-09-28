@@ -6,12 +6,16 @@ import { ROUTES } from "./shared/constants/routes";
 
 import ProtectedRoute from "./app/routes/protected-route";
 import RoleRoute from "./app/routes/role-route";
+import AccessPhaseGate from "./app/routes/access-phase-gate";
 
 import Login from "./modules/auth/pages/login";
+import SignupPage from "./modules/auth/pages/signup";
 import ForgotPasswordPage from "./modules/auth/pages/forgot-password";
 import SetPasswordPage from "./modules/auth/pages/set-password";
 import RolesManagement from "./modules/auth/pages/roles-management";
 import LandingPage from "./modules/marketing/pages/LandingPage";
+import SubscribePage from "./modules/onboarding/pages/SubscribePage";
+import OnboardingPage from "./modules/onboarding/pages/OnboardingPage";
 
 import SuperAdminLayout from "./modules/super-admin/layouts/SuperAdminLayout";
 import SuperAdminDashboard from "./modules/super-admin/pages/SuperAdminDashboard";
@@ -216,19 +220,24 @@ function App() {
           <Routes>
             {/* Public routes */}
             <Route path={ROUTES.AUTH.LOGIN} element={<Login />} />
+            <Route path={ROUTES.AUTH.SIGNUP} element={<SignupPage />} />
             <Route path={ROUTES.AUTH.REGISTER_SUBCONTRACTOR} element={<SubcontractorRegistrationPage />} />
             <Route path={ROUTES.AUTH.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
             <Route path={ROUTES.AUTH.SET_PASSWORD} element={<SetPasswordPage />} />
             <Route path="/roles" element={<RolesManagement />} />
+            <Route path={ROUTES.SUBSCRIBE} element={<SubscribePage />} />
+            <Route path={ROUTES.ONBOARDING} element={<OnboardingPage />} />
 
             {/* Super Admin — nested layout + pages */}
             <Route
               path="/super-admin"
               element={
                 <ProtectedRoute>
-                  <RoleRoute allowedRoles={[ROLES.SUPER_ADMIN]}>
-                    <SuperAdminLayout />
-                  </RoleRoute>
+                  <AccessPhaseGate>
+                    <RoleRoute allowedRoles={[ROLES.SUPER_ADMIN]}>
+                      <SuperAdminLayout />
+                    </RoleRoute>
+                  </AccessPhaseGate>
                 </ProtectedRoute>
               }>
               <Route index element={<SuperAdminDashboard />} />
@@ -251,9 +260,11 @@ function App() {
               path="/admin"
               element={
                 <ProtectedRoute>
-                  <RoleRoute allowedRoles={[ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.SALES, ROLES.QS, ROLES.SENIOR_QS, ROLES.BUSINESS_OWNER]}>
-                    <AdminPortalLayout />
-                  </RoleRoute>
+                  <AccessPhaseGate>
+                    <RoleRoute allowedRoles={[ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.SALES, ROLES.QS, ROLES.SENIOR_QS, ROLES.BUSINESS_OWNER]}>
+                      <AdminPortalLayout />
+                    </RoleRoute>
+                  </AccessPhaseGate>
                 </ProtectedRoute>
               }>
               <Route index element={<AdminDashboard />} />
