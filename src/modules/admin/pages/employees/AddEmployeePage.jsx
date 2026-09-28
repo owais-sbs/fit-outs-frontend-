@@ -14,6 +14,7 @@ import { ROLE_LABELS, ROLES, STAFF_CREATE_ROLES } from "@/shared/constants/roles
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -21,73 +22,74 @@ import {
 import { FillDemoDataButton } from "@/components/shared/FillDemoDataButton";
 import { DEMO } from "@/shared/demo/formDemoData";
 
+function featureLabel(feature) {
+  return String(feature || "")
+    .split("_")
+    .filter(Boolean)
+    .map((w) => w.charAt(0) + w.slice(1).toLowerCase())
+    .join(" ");
+}
+
 function FeatureSelector({ selected, onChange, lockedFeatures = [] }) {
   const locked = new Set(lockedFeatures);
 
-  const removeFeature = (feature) => {
-    if (locked.has(feature)) return;
-    onChange(selected.filter((x) => x !== feature));
-  };
-
-  const toggleFeature = (feature) => {
+  const toggleFeature = (feature, next) => {
     const active = selected.includes(feature);
-    if (active) {
+    if (next && !active) {
+      onChange([...selected, feature]);
+      return;
+    }
+    if (!next && active) {
       if (locked.has(feature)) return;
       onChange(selected.filter((f) => f !== feature));
-    } else {
-      onChange([...selected, feature]);
     }
   };
 
   return (
     <div className="space-y-3">
-      {selected.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {selected.map((f) => (
-            <span
-              key={f}
-              className="flex items-center gap-1.5 rounded-full bg-primary/10 border border-primary/20 pl-3 pr-2 py-1 text-xs font-medium text-primary"
-            >
-              {f}
-              {!locked.has(f) && (
-                <button
-                  type="button"
-                  onClick={() => removeFeature(f)}
-                  className="rounded-full hover:bg-primary/20 p-0.5"
-                >
-                  ×
-                </button>
-              )}
-            </span>
-          ))}
-        </div>
-      )}
-      <div className="flex flex-wrap gap-2">
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {FEATURE_OPTIONS.map((feature) => {
           const active = selected.includes(feature);
           const isLocked = locked.has(feature) && active;
+          const id = `feature-${feature}`;
           return (
-            <button
+            <div
               key={feature}
-              type="button"
-              onClick={() => toggleFeature(feature)}
-              disabled={isLocked}
-              className={`rounded-full border px-3 py-1 text-xs font-medium transition-all ${
+              className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 ${
                 active
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border/60 bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground"
-              } ${isLocked ? "cursor-default opacity-90" : ""}`}
+                  ? "border-primary/30 bg-primary/5"
+                  : "border-border/50 bg-background"
+              }`}
             >
-              {feature}
-            </button>
+              <Label
+                htmlFor={id}
+                className={`cursor-pointer text-sm font-medium leading-snug ${
+                  active ? "text-foreground" : "text-muted-foreground"
+                } ${isLocked ? "cursor-default" : ""}`}
+              >
+                {featureLabel(feature)}
+                {isLocked ? (
+                  <span className="mt-0.5 block text-[10px] font-normal text-muted-foreground">
+                    Required for this role
+                  </span>
+                ) : null}
+              </Label>
+              <Switch
+                id={id}
+                checked={active}
+                disabled={isLocked}
+                onCheckedChange={(checked) => toggleFeature(feature, checked)}
+                className="border border-border/80 data-[state=unchecked]:bg-slate-300 data-[state=checked]:bg-primary data-[state=unchecked]:shadow-sm"
+              />
+            </div>
           );
         })}
       </div>
       {selected.length === 0 ? (
-        <p className="text-xs text-muted-foreground">Click features above to grant access.</p>
+        <p className="text-xs text-muted-foreground">Toggle features on to grant access.</p>
       ) : (
         <p className="text-xs text-muted-foreground">
-          Defaults for this role are pre-selected. You can add more.
+          Defaults for this role are pre-selected. You can turn more on or off.
         </p>
       )}
     </div>

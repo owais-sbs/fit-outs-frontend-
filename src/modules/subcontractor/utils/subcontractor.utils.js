@@ -185,7 +185,21 @@ export function filterScNavGroups(groups, portal = {}) {
       ...group,
       items: group.items.filter((item) => {
         if (role === SC_ROLES.ADMIN) return true;
-        return item.roles?.includes(role);
+        const roles = item.roles || [];
+        // Shared items (e.g. Dashboard) stay visible to every portal user.
+        if (
+          roles.includes(SC_ROLES.ESTIMATOR)
+          && roles.includes(SC_ROLES.SUPERVISOR)
+          && roles.includes(SC_ROLES.QS)
+          && roles.includes(SC_ROLES.DOC_CONTROLLER)
+        ) {
+          return true;
+        }
+        if (roles.includes(SC_ROLES.ESTIMATOR) && portal.canAccessTendering) return true;
+        if (roles.includes(SC_ROLES.SUPERVISOR) && portal.canAccessExecution) return true;
+        if (roles.includes(SC_ROLES.QS) && portal.canAccessCommercial) return true;
+        if (roles.includes(SC_ROLES.DOC_CONTROLLER) && portal.canAccessDocuments) return true;
+        return false;
       }),
     }))
     .filter((group) => group.items.length > 0);
