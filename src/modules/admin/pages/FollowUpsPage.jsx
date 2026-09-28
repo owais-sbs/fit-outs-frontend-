@@ -128,7 +128,7 @@ export default function FollowUpsPage() {
               />
             <div className="flex flex-wrap gap-2">
               <Select value={statusFilter} onValueChange={setStatusFilter} disabled={loading}>
-                <SelectTrigger className="h-8 w-[140px] rounded-lg">
+                <SelectTrigger className="h-8 w-[140px] rounded-sm">
                   <SelectValue placeholder="All Statuses" />
                 </SelectTrigger>
                 <SelectContent>
@@ -139,7 +139,7 @@ export default function FollowUpsPage() {
               </Select>
               
               <Select value={userFilter} onValueChange={setUserFilter} disabled={loading}>
-                <SelectTrigger className="h-8 w-[180px] rounded-lg">
+                <SelectTrigger className="h-8 w-[180px] rounded-sm">
                   <SelectValue placeholder="All Users" />
                 </SelectTrigger>
                 <SelectContent>

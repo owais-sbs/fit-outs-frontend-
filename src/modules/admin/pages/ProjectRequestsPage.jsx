@@ -94,14 +94,14 @@ export default function ProjectRequestsPage() {
             <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Search request ID, client, project..."
-              className="h-8 rounded-lg pl-8"
+              className="h-8 rounded-sm pl-8"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
 
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="h-8 w-full rounded-lg sm:w-[150px]">
+            <SelectTrigger className="h-8 w-full rounded-sm sm:w-[150px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>

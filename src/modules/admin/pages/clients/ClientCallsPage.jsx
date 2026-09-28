@@ -177,7 +177,7 @@ export default function ClientCallsPage() {
                 onChange={(e) => setSearch(e.target.value)}
             />
             <Select value={dirFilter} onValueChange={setDirFilter}>
-              <SelectTrigger className="h-8 w-[150px] rounded-lg"><SelectValue placeholder="Direction" /></SelectTrigger>
+              <SelectTrigger className="h-8 w-[150px] rounded-sm"><SelectValue placeholder="Direction" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All calls</SelectItem>
                 <SelectItem value="outbound">Outbound</SelectItem>

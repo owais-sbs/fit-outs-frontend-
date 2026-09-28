@@ -173,7 +173,7 @@
     background-color: oklch(var(--secondary));
   }
   .field-control {
-    @apply rounded-xl border border-border bg-background px-3 py-2 text-sm shadow-sm transition-colors hover:border-muted-foreground/40 focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply rounded-sm border border-border bg-background px-3 py-2 text-sm shadow-sm transition-colors hover:border-muted-foreground/40 focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50;
   }
 }
 
@@ -205,6 +205,28 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* Sidebar resize rail — full-height hover strip (spans navbar + content) */
+@media (min-width: 768px) {
+  [data-slot="sidebar-wrapper"]:has([data-slot="sidebar-rail"]:hover)::before,
+  [data-slot="sidebar-wrapper"][data-resizing="true"]::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: calc(var(--sidebar-width) - 0.5px);
+    width: 1px;
+    background: var(--color-accent-blue);
+    pointer-events: none;
+    z-index: 35;
+  }
+
+  [data-slot="sidebar-wrapper"]:has([data-side="right"] [data-slot="sidebar-rail"]:hover)::before,
+  [data-slot="sidebar-wrapper"]:has([data-side="right"])[data-resizing="true"]::before {
+    left: auto;
+    right: calc(var(--sidebar-width) - 0.5px);
   }
 }
 

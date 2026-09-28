@@ -480,14 +480,14 @@ export default function CalendarPage() {
             />
             <div className="flex flex-wrap gap-2">
               <Select value={projFilt} onValueChange={setProjFilt}>
-                <SelectTrigger className="h-8 w-[185px] rounded-lg"><SelectValue placeholder="All projects" /></SelectTrigger>
+                <SelectTrigger className="h-8 w-[185px] rounded-sm"><SelectValue placeholder="All projects" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All projects</SelectItem>
                   {CALENDAR_PROJECTS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
                 </SelectContent>
               </Select>
               <Select value={statFilt} onValueChange={setStatFilt}>
-                <SelectTrigger className="h-8 w-[140px] rounded-lg"><SelectValue placeholder="All statuses" /></SelectTrigger>
+                <SelectTrigger className="h-8 w-[140px] rounded-sm"><SelectValue placeholder="All statuses" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All statuses</SelectItem>
                   {VISIT_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}

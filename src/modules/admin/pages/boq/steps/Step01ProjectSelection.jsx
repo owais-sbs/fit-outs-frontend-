@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useBoq, QAS_TOTAL_STEPS } from "../BoqEngine";
+import { BoqStatusBadge } from "../BoqApprovalTimeline";
+import { isBoqEditable } from "../boqDataUtils";
 import { formatCurrency } from "../quantityCalcUtils";
 import { fetchAllProjects } from "@/modules/admin/api/projects.api";
 import { fetchAllClients } from "@/modules/admin/api/clients.api";
@@ -68,8 +70,9 @@ function ProjectDrawer({ project, clientName, projectDrafts, onClose, onStart, o
                   <div key={draft.projectId} className="flex items-center justify-between gap-2 rounded-lg border bg-background px-3 py-2">
                     <div className="min-w-0">
                       <p className="text-xs font-semibold truncate">{draft.boqRef}</p>
-                      <p className="text-[10px] text-muted-foreground">
-                        {draft.status} · {formatCurrency(draft.grandTotal)}
+                      <p className="text-[10px] text-muted-foreground flex items-center gap-1.5 flex-wrap">
+                        <BoqStatusBadge status={draft.status} className="text-[10px]" />
+                        <span>{formatCurrency(draft.grandTotal)}</span>
                       </p>
                     </div>
                     <Button size="sm" variant="outline" className="h-7 text-xs shrink-0" onClick={() => onResumeBoq(draft.entry)}>
@@ -130,11 +133,18 @@ function InfoRow({ icon: Icon, label, value }) {
 
 // ─── Main Step 1 ─────────────────────────────────────────────────────────────
 export default function Step01ProjectSelection() {
-  const { startSession, resumeSession, listStoredBoqDrafts, listStoredQasDrafts, getDraftsForProject } = useBoq();
+  const {
+    startSession,
+    resumeSession,
+    listStoredQasDrafts,
+    refreshBoqDraftsFromServer,
+    getDraftsForProject,
+  } = useBoq();
 
   const [projects, setProjects]   = useState([]);
   const [clientMap, setClientMap] = useState(new Map());
   const [loading, setLoading]     = useState(true);
+  const [draftsLoading, setDraftsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [search, setSearch]       = useState("");
   const [filterType, setType]     = useState("All Types");
@@ -142,10 +152,16 @@ export default function Step01ProjectSelection() {
   const [boqDrafts, setBoqDrafts] = useState([]);
   const [qasDrafts, setQasDrafts] = useState([]);
 
-  const refreshDrafts = useCallback(() => {
-    setBoqDrafts(listStoredBoqDrafts());
-    setQasDrafts(listStoredQasDrafts());
-  }, [listStoredBoqDrafts, listStoredQasDrafts]);
+  const refreshDrafts = useCallback(async () => {
+    setDraftsLoading(true);
+    try {
+      const syncedBoqDrafts = await refreshBoqDraftsFromServer();
+      setBoqDrafts(syncedBoqDrafts);
+      setQasDrafts(listStoredQasDrafts());
+    } finally {
+      setDraftsLoading(false);
+    }
+  }, [refreshBoqDraftsFromServer, listStoredQasDrafts]);
 
   useEffect(() => {
     refreshDrafts();
@@ -213,12 +229,17 @@ export default function Step01ProjectSelection() {
         </p>
       </div>
 
-      {(boqDrafts.length > 0 || qasDrafts.length > 0) && (
+      {(draftsLoading || boqDrafts.length > 0 || qasDrafts.length > 0) && (
         <Card className="border-primary/20 shadow-sm">
           <CardHeader className="border-b border-border/60 bg-primary/5 py-3 px-6">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <FileText className="h-4 w-4 text-primary" />
               Saved Drafts
+              {draftsLoading && (
+                <span className="text-xs font-normal text-muted-foreground animate-pulse">
+                  Syncing with server…
+                </span>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
@@ -242,9 +263,7 @@ export default function Step01ProjectSelection() {
                       <td className="py-3 px-4 font-mono text-xs">{draft.boqRef}</td>
                       <td className="py-3 px-4 font-medium">{draft.projectName}</td>
                       <td className="py-3 px-4">
-                        <Badge variant={draft.status === "final" ? "default" : "secondary"} className="text-xs capitalize">
-                          {draft.status}
-                        </Badge>
+                        <BoqStatusBadge status={draft.status} className="text-xs" />
                       </td>
                       <td className="py-3 px-4 text-xs text-muted-foreground">
                         {draft.savedAt ? new Date(draft.savedAt).toLocaleString("en-AE") : "—"}
@@ -254,7 +273,8 @@ export default function Step01ProjectSelection() {
                       </td>
                       <td className="py-3 px-4 pr-6 text-right">
                         <Button size="sm" className="h-7 text-xs gap-1" onClick={() => handleResumeBoq(draft.entry)}>
-                          <FileText className="h-3.5 w-3.5" /> Open BOQ
+                          <FileText className="h-3.5 w-3.5" />
+                          {isBoqEditable(draft.status) ? "Open BOQ" : "View BOQ"}
                         </Button>
                       </td>
                     </tr>
@@ -297,13 +317,13 @@ export default function Step01ProjectSelection() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search project, client, location…"
-                className="h-8 rounded-lg pl-8"
+                className="h-8 rounded-sm pl-8"
               />
             </div>
             <select
               value={filterType}
               onChange={(e) => setType(e.target.value)}
-              className="h-8 rounded-lg border border-input bg-background px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+              className="h-8 rounded-sm border border-input bg-background px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
             >
               {PROJECT_TYPES.map((t) => <option key={t}>{t}</option>)}
             </select>
@@ -398,9 +418,10 @@ export default function Step01ProjectSelection() {
                             {project.isActive ? "Active" : "Inactive"}
                           </Badge>
                           {projectBoq && (
-                            <Badge variant="outline" className="text-[10px] text-primary border-primary/30">
-                              BOQ draft
-                            </Badge>
+                            <BoqStatusBadge
+                              status={projectBoq.status}
+                              className="text-[10px]"
+                            />
                           )}
                           {!projectBoq && projectQas && (
                             <Badge variant="outline" className="text-[10px] text-amber-700 border-amber-300">

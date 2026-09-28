@@ -490,9 +490,6 @@ function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
         "absolute inset-y-0 z-20 hidden w-4 cursor-col-resize sm:flex",
         // Center the hit target on the sidebar edge (half inside, half out).
         "right-0 translate-x-1/2",
-        // 1px hairline at the edge — no -translate on the strip (avoids half-pixel blur vs navbar Separator).
-        "after:pointer-events-none after:absolute after:inset-y-0 after:left-1/2 after:w-px after:content-[''] after:bg-transparent after:transition-colors",
-        "hover:after:bg-[var(--color-accent-blue)]",
         "[[data-side=left][data-state=collapsed]_&]:cursor-e-resize [[data-side=right][data-state=collapsed]_&]:cursor-w-resize",
         "group-data-[side=right]:left-0 group-data-[side=right]:right-auto group-data-[side=right]:-translate-x-1/2",
         "hover:group-data-[collapsible=offcanvas]:bg-sidebar",

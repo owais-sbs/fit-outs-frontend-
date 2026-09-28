@@ -167,7 +167,7 @@ export default function EmployeesPage() {
               <select
                 value={statusFilter}
                 onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-                className="h-8 rounded-lg border border-input bg-background px-3 text-sm"
+                className="h-8 rounded-sm border border-input bg-background px-3 text-sm"
               >
                 <option value="all">All statuses</option>
                 <option value="active">Active</option>

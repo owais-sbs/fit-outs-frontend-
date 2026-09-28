@@ -850,7 +850,7 @@ export default function WorkItemConfigurationPage() {
               placeholder="Search work items..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="h-8 rounded-lg pl-8"
+              className="h-8 rounded-sm pl-8"
             />
           </div>
           

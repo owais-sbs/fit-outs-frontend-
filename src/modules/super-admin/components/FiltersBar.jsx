@@ -25,7 +25,7 @@ export default function FiltersBar({
         />
       <div className="flex flex-wrap gap-2">
         <Select value={planFilter} onValueChange={onPlanChange}>
-          <SelectTrigger className="h-8 w-[140px] rounded-lg bg-background">
+          <SelectTrigger className="h-8 w-[140px] rounded-sm bg-background">
             <SelectValue placeholder="Plan" />
           </SelectTrigger>
           <SelectContent>
@@ -36,7 +36,7 @@ export default function FiltersBar({
           </SelectContent>
         </Select>
         <Select value={statusFilter} onValueChange={onStatusChange}>
-          <SelectTrigger className="h-8 w-[140px] rounded-lg bg-background">
+          <SelectTrigger className="h-8 w-[140px] rounded-sm bg-background">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>

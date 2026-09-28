@@ -97,7 +97,7 @@ export default function SubcontractorPackagesPage() {
               onChange={(e) => setSearch(e.target.value)}
             />
           <Select value={projectFilter} onValueChange={setProjectFilter}>
-            <SelectTrigger className="h-8 w-full rounded-lg lg:w-[220px]">
+            <SelectTrigger className="h-8 w-full rounded-sm lg:w-[220px]">
               <SelectValue placeholder="All projects" />
             </SelectTrigger>
             <SelectContent>

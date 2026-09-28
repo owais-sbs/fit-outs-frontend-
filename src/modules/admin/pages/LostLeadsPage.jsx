@@ -87,7 +87,7 @@ export default function LostLeadsPage() {
             />
             <div className="flex flex-wrap gap-2">
               <Select value={sourceFilter} onValueChange={(v) => { setSourceFilter(v); setPage(1); }}>
-                <SelectTrigger className="h-8 w-[130px] rounded-lg"><SelectValue placeholder="Source" /></SelectTrigger>
+                <SelectTrigger className="h-8 w-[130px] rounded-sm"><SelectValue placeholder="Source" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All sources</SelectItem>
                   {LEAD_SOURCES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
