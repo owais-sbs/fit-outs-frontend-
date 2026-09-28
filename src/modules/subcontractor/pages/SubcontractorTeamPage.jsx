@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Loader2, UserPlus } from "lucide-react";
 import { PageShell, PageTitle, Surface } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -31,6 +32,11 @@ import { FillDemoDataButton } from "@/components/shared/FillDemoDataButton";
 import { DEMO } from "@/shared/demo/formDemoData";
 import { useSubcontractorPortal } from "../context/SubcontractorPortalContext";
 import { roleLabel } from "../utils/scPortalRoles";
+import {
+  SC_PERMISSION_CATALOG,
+  defaultPermissionsForRole,
+  togglePermission,
+} from "../utils/scPortalPermissions";
 
 const ROLES = [
   { value: "SC_ESTIMATOR", label: "Estimator" },
@@ -39,41 +45,67 @@ const ROLES = [
   { value: "SC_DOC_CONTROLLER", label: "Document Controller" },
 ];
 
-const ROLE_PERMISSIONS = {
-  SC_ESTIMATOR: {
-    allow: ["View RFQs", "View tender BOQ", "Draft quote", "Submit quote", "Raise clarifications", "View addenda", "My bids"],
-    deny: ["Progress entry", "Claims", "Payment certificates", "Tender evaluation (main contractor)"],
-  },
-  SC_SUPERVISOR: {
-    allow: ["View awarded package", "Enter progress", "Enter manpower", "Material requests", "Snags", "Inspection request", "HSE (where available)"],
-    deny: ["Quote submission", "Claim / payment"],
-  },
-  SC_QS: {
-    allow: ["View awarded commercial BOQ", "Submit claim", "View certificates", "Retention", "Back charges", "Payment status"],
-    deny: ["Daily progress entry", "Tender evaluation"],
-  },
-  SC_DOC_CONTROLLER: {
-    allow: ["Method statements", "Shop drawings", "Material submittals", "Revisions", "As-builts", "O&M / warranty docs"],
-    deny: ["Claims", "Quote pricing"],
-  },
-};
-
-function PermissionPreview({ role }) {
-  const perms = ROLE_PERMISSIONS[role];
-  if (!perms) return null;
+function PermissionToggles({ role, selected, onChange }) {
   return (
-    <div className="rounded-lg border border-border/50 bg-muted/20 p-3 space-y-2 text-xs">
-      <p className="font-medium">Predefined permissions — {roleLabel(role)}</p>
-      <ul className="space-y-0.5">
-        {perms.allow.map((p) => <li key={p} className="text-emerald-800">✓ {p}</li>)}
-        {perms.deny.map((p) => <li key={p} className="text-muted-foreground">✕ {p}</li>)}
-      </ul>
+    <div className="rounded-lg border border-border/50 bg-muted/20 p-3 space-y-3">
+      <div>
+        <p className="text-sm font-medium">Permissions — {roleLabel(role)}</p>
+        <p className="text-[11px] text-muted-foreground mt-0.5">
+          Role defaults are on. Toggle to add more or remove access. Main-contractor tender evaluation cannot be granted.
+        </p>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {SC_PERMISSION_CATALOG.map((perm) => {
+          const active = selected.includes(perm.key);
+          const id = `sc-perm-${perm.key}`;
+          return (
+            <div
+              key={perm.key}
+              className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 ${
+                active ? "border-primary/30 bg-primary/5" : "border-border/50 bg-background"
+              }`}
+            >
+              <Label
+                htmlFor={id}
+                className={`cursor-pointer text-xs font-medium leading-snug ${
+                  active ? "text-foreground" : "text-muted-foreground"
+                }`}
+              >
+                {perm.label}
+              </Label>
+              <Switch
+                id={id}
+                checked={active}
+                onCheckedChange={(checked) => onChange(togglePermission(selected, perm.key, checked))}
+                className="border border-border/80 data-[state=unchecked]:bg-slate-300 data-[state=checked]:bg-primary data-[state=unchecked]:shadow-sm"
+              />
+            </div>
+          );
+        })}
+      </div>
       <p className="text-[11px] text-muted-foreground">
-        Permissions are fixed by portal role. Team members cannot receive main-contractor tender evaluation rights.
+        {selected.length} permission{selected.length === 1 ? "" : "s"} enabled
       </p>
     </div>
   );
 }
+
+const emptyInvite = () => ({
+  fullName: "",
+  email: "",
+  phone: "",
+  portalRole: "SC_ESTIMATOR",
+  permissions: defaultPermissionsForRole("SC_ESTIMATOR"),
+});
+
+const emptyManual = () => ({
+  fullName: "",
+  email: "",
+  phone: "",
+  portalRole: "SC_ESTIMATOR",
+  password: "",
+  permissions: defaultPermissionsForRole("SC_ESTIMATOR"),
+});
 
 export default function SubcontractorTeamPage() {
   const { isOrgAdmin, portalRole } = useSubcontractorPortal();
@@ -81,8 +113,8 @@ export default function SubcontractorTeamPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
-  const [invite, setInvite] = useState({ fullName: "", email: "", phone: "", portalRole: "SC_ESTIMATOR" });
-  const [manual, setManual] = useState({ fullName: "", email: "", phone: "", portalRole: "SC_ESTIMATOR", password: "" });
+  const [invite, setInvite] = useState(emptyInvite);
+  const [manual, setManual] = useState(emptyManual);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -94,6 +126,22 @@ export default function SubcontractorTeamPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  const setInviteRole = (portalRoleValue) => {
+    setInvite((f) => ({
+      ...f,
+      portalRole: portalRoleValue,
+      permissions: defaultPermissionsForRole(portalRoleValue),
+    }));
+  };
+
+  const setManualRole = (portalRoleValue) => {
+    setManual((f) => ({
+      ...f,
+      portalRole: portalRoleValue,
+      permissions: defaultPermissionsForRole(portalRoleValue),
+    }));
+  };
+
   const handleInvite = async () => {
     if (!invite.email.trim()) {
       setMessage("Email is required");
@@ -103,7 +151,7 @@ export default function SubcontractorTeamPage() {
     setMessage("");
     try {
       await inviteScTeamMember(invite);
-      setInvite({ fullName: "", email: "", phone: "", portalRole: "SC_ESTIMATOR" });
+      setInvite(emptyInvite());
       setMessage("Invite sent to the real email address entered.");
       load();
     } catch (e) {
@@ -122,7 +170,7 @@ export default function SubcontractorTeamPage() {
     setMessage("");
     try {
       await addScTeamMemberManually(manual);
-      setManual({ fullName: "", email: "", phone: "", portalRole: "SC_ESTIMATOR", password: "" });
+      setManual(emptyManual());
       setMessage("Team member added — they can log in immediately.");
       load();
     } catch (e) {
@@ -144,9 +192,6 @@ export default function SubcontractorTeamPage() {
     }
   };
 
-  const invitePreview = useMemo(() => invite.portalRole, [invite.portalRole]);
-  const manualPreview = useMemo(() => manual.portalRole, [manual.portalRole]);
-
   if (loading) {
     return (
       <PageShell className="flex justify-center py-24 text-muted-foreground">
@@ -165,8 +210,16 @@ export default function SubcontractorTeamPage() {
         {isOrgAdmin && (
           <FillDemoDataButton
             onClick={() => {
-              setManual({ ...DEMO.scTeamManual });
-              setInvite({ ...DEMO.scTeamInvite });
+              const demoRole = DEMO.scTeamManual?.portalRole || "SC_ESTIMATOR";
+              setManual({
+                ...DEMO.scTeamManual,
+                permissions: defaultPermissionsForRole(demoRole),
+              });
+              const inviteRole = DEMO.scTeamInvite?.portalRole || "SC_ESTIMATOR";
+              setInvite({
+                ...DEMO.scTeamInvite,
+                permissions: defaultPermissionsForRole(inviteRole),
+              });
             }}
           />
         )}
@@ -239,7 +292,7 @@ export default function SubcontractorTeamPage() {
                 </div>
                 <div className="space-y-1 sm:col-span-2">
                   <Label className="text-xs">Portal role</Label>
-                  <Select value={manual.portalRole} onValueChange={(v) => setManual((f) => ({ ...f, portalRole: v }))}>
+                  <Select value={manual.portalRole} onValueChange={setManualRole}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {ROLES.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
@@ -247,7 +300,11 @@ export default function SubcontractorTeamPage() {
                   </Select>
                 </div>
               </div>
-              <PermissionPreview role={manualPreview} />
+              <PermissionToggles
+                role={manual.portalRole}
+                selected={manual.permissions}
+                onChange={(permissions) => setManual((f) => ({ ...f, permissions }))}
+              />
               <Button disabled={busy} className="gap-2" onClick={handleManualAdd}>
                 <UserPlus className="h-4 w-4" /> Add member
               </Button>
@@ -275,7 +332,7 @@ export default function SubcontractorTeamPage() {
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">Portal role</Label>
-                  <Select value={invite.portalRole} onValueChange={(v) => setInvite((f) => ({ ...f, portalRole: v }))}>
+                  <Select value={invite.portalRole} onValueChange={setInviteRole}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {ROLES.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
@@ -283,7 +340,11 @@ export default function SubcontractorTeamPage() {
                   </Select>
                 </div>
               </div>
-              <PermissionPreview role={invitePreview} />
+              <PermissionToggles
+                role={invite.portalRole}
+                selected={invite.permissions}
+                onChange={(permissions) => setInvite((f) => ({ ...f, permissions }))}
+              />
               <Button disabled={busy} className="gap-2" onClick={handleInvite}>
                 <UserPlus className="h-4 w-4" /> Send invite
               </Button>
