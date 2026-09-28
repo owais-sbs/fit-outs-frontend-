@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { ArrowLeft, Loader2, Plus, Trash2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,17 @@ import {
   deleteCrewAssignment,
   fetchResourceUtilisation,
 } from "../../api/resource.api";
+import { fetchProjectSchedule } from "../../api/schedule.api";
 import { projectPlanningBackPath } from "@/shared/constants/routes";
+
+function activityLabel(a) {
+  if (!a) return "Activity";
+  const name = a.name || a.title || "Untitled activity";
+  const start = a.plannedStart || a.startDate || a.start || "";
+  const end = a.plannedEnd || a.endDate || a.end || "";
+  const range = start && end ? ` · ${String(start).slice(0, 10)} → ${String(end).slice(0, 10)}` : "";
+  return `${name}${range}`;
+}
 
 export default function LabourPlanPage() {
   const { projectId } = useParams();
@@ -25,6 +35,7 @@ export default function LabourPlanPage() {
 
   const [crews, setCrews] = useState([]);
   const [assignments, setAssignments] = useState([]);
+  const [activities, setActivities] = useState([]);
   const [utilisation, setUtilisation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -37,17 +48,27 @@ export default function LabourPlanPage() {
     endDate: "",
   });
 
+  const activityByUuid = useMemo(() => {
+    const map = new Map();
+    for (const a of activities) {
+      if (a?.uuid) map.set(String(a.uuid), a);
+    }
+    return map;
+  }, [activities]);
+
   const load = useCallback(() => {
     setLoading(true);
     Promise.all([
       fetchLabourCrews().catch(() => []),
       fetchCrewAssignments(projectId).catch(() => []),
       fetchResourceUtilisation(projectId).catch(() => null),
+      fetchProjectSchedule(projectId).catch(() => null),
     ])
-      .then(([c, a, u]) => {
+      .then(([c, a, u, schedule]) => {
         setCrews(Array.isArray(c) ? c : []);
         setAssignments(Array.isArray(a) ? a : []);
         setUtilisation(u);
+        setActivities(Array.isArray(schedule?.activities) ? schedule.activities : []);
       })
       .finally(() => setLoading(false));
   }, [projectId]);
@@ -199,12 +220,30 @@ export default function LabourPlanPage() {
         <CardContent className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div className="space-y-1">
-              <Label className="text-xs">Activity UUID</Label>
-              <Input
+              <Label className="text-xs">Schedule activity</Label>
+              <select
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
                 value={assignForm.activityUuid}
-                onChange={(e) => setAssignForm((f) => ({ ...f, activityUuid: e.target.value }))}
-                placeholder="activity uuid"
-              />
+                onChange={(e) => {
+                  const uuid = e.target.value;
+                  const act = activityByUuid.get(uuid);
+                  const start = act?.plannedStart || act?.startDate || act?.start || "";
+                  const end = act?.plannedEnd || act?.endDate || act?.end || "";
+                  setAssignForm((f) => ({
+                    ...f,
+                    activityUuid: uuid,
+                    startDate: f.startDate || (start ? String(start).slice(0, 10) : ""),
+                    endDate: f.endDate || (end ? String(end).slice(0, 10) : ""),
+                  }));
+                }}
+              >
+                <option value="">
+                  {activities.length ? "Select activity" : "No schedule activities — create them on Schedule first"}
+                </option>
+                {activities.map((a) => (
+                  <option key={a.uuid} value={a.uuid}>{activityLabel(a)}</option>
+                ))}
+              </select>
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Crew</Label>
@@ -245,12 +284,14 @@ export default function LabourPlanPage() {
           </Button>
 
           <div className="divide-y divide-border/40">
-            {assignments.map((a) => (
+            {assignments.map((a) => {
+              const act = activityByUuid.get(String(a.activityUuid || ""));
+              return (
               <div key={a.uuid} className="flex items-center justify-between gap-2 py-2">
                 <div className="min-w-0">
                   <p className="text-sm font-medium truncate">{a.crewName || a.crewUuid}</p>
                   <p className="text-xs text-muted-foreground">
-                    Activity {String(a.activityUuid || "").slice(0, 8)}… · {a.startDate} → {a.endDate}
+                    {act ? activityLabel(act) : "Activity"} · {a.startDate} → {a.endDate}
                   </p>
                 </div>
                 <Button
@@ -263,7 +304,8 @@ export default function LabourPlanPage() {
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
-            ))}
+              );
+            })}
             {!assignments.length && (
               <p className="text-sm text-muted-foreground py-4 text-center">No assignments yet</p>
             )}

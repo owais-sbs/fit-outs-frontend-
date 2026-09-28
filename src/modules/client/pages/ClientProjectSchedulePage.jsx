@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, GanttChart, Loader2 } from "lucide-react";
-import { PageShell, PageTitle } from "@/components/layout/PageShell";
+import { PageShell, PageTitle, Surface } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { fetchPublishedProjectSchedule } from "@/modules/admin/api/schedule.api";
+import { AttachmentList } from "@/components/shared/AttachmentField";
+import {
+  fetchActivityProgress,
+  fetchPublishedProjectSchedule,
+} from "@/modules/admin/api/schedule.api";
 import { fetchProjectById } from "@/modules/admin/api/projects.api";
 import CpmGantt from "@/modules/admin/pages/schedule/CpmGantt";
 import { ROUTES } from "@/shared/constants/routes";
@@ -16,6 +20,9 @@ export default function ClientProjectSchedulePage() {
   const [activities, setActivities] = useState([]);
   const [dependencies, setDependencies] = useState([]);
   const [criticalPaths, setCriticalPaths] = useState([]);
+  const [selected, setSelected] = useState(null);
+  const [progressHistory, setProgressHistory] = useState([]);
+  const [progressLoading, setProgressLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -25,6 +32,8 @@ export default function ClientProjectSchedulePage() {
     if (!projectId) return;
     setLoading(true);
     setError("");
+    setSelected(null);
+    setProgressHistory([]);
     Promise.all([
       fetchProjectById(projectId).catch(() => null),
       fetchPublishedProjectSchedule(projectId),
@@ -32,7 +41,6 @@ export default function ClientProjectSchedulePage() {
       .then(([project, schedule]) => {
         setProjectName(project?.name || project?.projectName || `Project ${projectId}`);
         const acts = Array.isArray(schedule?.activities) ? schedule.activities : [];
-        // Prefer per-activity critical from CPM engine; fall back to primary path list.
         const pathCrit = new Set((schedule?.criticalPath || []).map(String));
         setActivities(
           acts.map((a) => ({
@@ -60,6 +68,19 @@ export default function ClientProjectSchedulePage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const selectActivity = (activity) => {
+    setSelected(activity);
+    if (!activity?.uuid) {
+      setProgressHistory([]);
+      return;
+    }
+    setProgressLoading(true);
+    fetchActivityProgress(activity.uuid)
+      .then((list) => setProgressHistory(Array.isArray(list) ? list : []))
+      .catch(() => setProgressHistory([]))
+      .finally(() => setProgressLoading(false));
+  };
 
   return (
     <PageShell className="mx-auto max-w-[1400px]">
@@ -110,11 +131,13 @@ export default function ClientProjectSchedulePage() {
       ) : (
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground">
-            Critical path highlighted · {activities.length} activities
+            Critical path highlighted · {activities.length} activities · click a bar to see approved progress photos
           </p>
           <CpmGantt
             activities={activities}
             dependencies={dependencies}
+            selectedUuid={selected?.uuid}
+            onSelect={selectActivity}
             emptyMessage="Programme not published yet"
           />
           {!!criticalPaths.length && (
@@ -137,6 +160,42 @@ export default function ClientProjectSchedulePage() {
                 })}
               </div>
             </div>
+          )}
+
+          {selected && (
+            <Surface className="p-5 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h2 className="text-sm font-semibold">{selected.name}</h2>
+                  <p className="text-xs text-muted-foreground">
+                    Approved progress updates and site photos (visible after PM approval)
+                  </p>
+                </div>
+                <Badge variant="secondary">{selected.percentComplete ?? 0}% complete</Badge>
+              </div>
+              {progressLoading ? (
+                <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Loading progress…
+                </div>
+              ) : progressHistory.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-2">
+                  No approved progress photos for this activity yet.
+                </p>
+              ) : (
+                <ul className="space-y-3">
+                  {progressHistory.map((u) => (
+                    <li key={u.uuid} className="rounded-md border border-border/50 p-3 space-y-2">
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                        <span className="font-medium text-foreground">{u.percentComplete}%</span>
+                        <span>{u.notes || "No notes"}</span>
+                        <span>· {u.reportedAt ? new Date(u.reportedAt).toLocaleString() : ""}</span>
+                      </div>
+                      <AttachmentList paths={u.photoPaths} />
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Surface>
           )}
         </div>
       )}
