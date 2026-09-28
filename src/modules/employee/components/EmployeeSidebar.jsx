@@ -30,7 +30,11 @@ export default function EmployeeSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" className="pointer-events-none">
-              <SidebarBrand portal={portalLabel} />
+              <SidebarBrand
+                portal={portalLabel}
+                companyName={user?.companyName}
+                logoUrl={user?.companyLogo}
+              />
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

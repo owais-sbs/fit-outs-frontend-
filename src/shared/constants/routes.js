@@ -2,8 +2,11 @@ import { ROLES } from "./roles";
 
 export const ROUTES = {
   LANDING: "/",
+  SUBSCRIBE: "/subscribe",
+  ONBOARDING: "/onboarding",
   AUTH: {
     LOGIN: "/login",
+    SIGNUP: "/signup",
     REGISTER: "/register",
     REGISTER_SUBCONTRACTOR: "/register/subcontractor",
     FORGOT_PASSWORD: "/forgot-password",

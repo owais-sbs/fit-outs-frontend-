@@ -47,7 +47,11 @@ export default function SiteEngineerSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" className="pointer-events-none">
-              <SidebarBrand portal="Site Engineer" />
+              <SidebarBrand
+                portal="Site Engineer"
+                companyName={user?.companyName}
+                logoUrl={user?.companyLogo}
+              />
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

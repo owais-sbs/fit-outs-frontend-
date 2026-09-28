@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/shared/context/auth-context";
 import { ROUTES } from "@/shared/constants/routes";
 import { ROLES, ROLE_PERMISSIONS } from "@/shared/constants/roles";
+import { routeForAccessPhase } from "@/shared/constants/access-phase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -124,7 +125,7 @@ export default function RolesManagement() {
       const roleKey = portals[0];
       const portal = PORTAL_CONFIG[roleKey];
       selectRole(roleKey);
-      navigate(portal.route, { replace: true });
+      navigate(routeForAccessPhase(user.accessPhase, portal.route), { replace: true });
     }
   }, [isLoading, user, roles, selectRole, navigate]);
 
@@ -155,7 +156,7 @@ export default function RolesManagement() {
 
   const handleLaunch = (portal) => {
     selectRole(portal.roleKey);
-    navigate(portal.route);
+    navigate(routeForAccessPhase(user?.accessPhase, portal.route));
   };
 
   return (

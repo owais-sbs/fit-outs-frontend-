@@ -87,7 +87,11 @@ export default function PmSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" className="pointer-events-none">
-              <SidebarBrand portal="PM Panel" />
+              <SidebarBrand
+                portal="PM Panel"
+                companyName={user?.companyName}
+                logoUrl={user?.companyLogo}
+              />
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

@@ -132,8 +132,8 @@ export default function LandingPage() {
             </a>
           </nav>
           <Button asChild size="sm" className="gap-2">
-            <Link to={ROUTES.AUTH.LOGIN}>
-              Sign in
+            <Link to={ROUTES.AUTH.SIGNUP}>
+              Get started
               <ArrowRight className="h-4 w-4" />
             </Link>
           </Button>
@@ -157,7 +157,7 @@ export default function LandingPage() {
               </p>
               <div className="flex flex-wrap gap-3">
                 <Button asChild size="lg" className="gap-2">
-                  <Link to={ROUTES.AUTH.LOGIN}>
+                  <Link to={ROUTES.AUTH.SIGNUP}>
                     Get started
                     <ArrowRight className="h-4 w-4" />
                   </Link>
@@ -371,8 +371,8 @@ export default function LandingPage() {
                         </ul>
 
                         <Button asChild className="w-full gap-2">
-                          <Link to={ROUTES.AUTH.LOGIN}>
-                            Sign in
+                          <Link to={ROUTES.AUTH.SIGNUP}>
+                            Get started
                             <ArrowRight className="h-4 w-4" />
                           </Link>
                         </Button>

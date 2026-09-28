@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { ROLES, ROLE_PERMISSIONS } from "../constants/roles";
+import { ACCESS_PHASE } from "../constants/access-phase";
 import axiosInstance from "@/lib/axiosInstance";
 
 const AuthContext = createContext(null);
@@ -21,6 +22,14 @@ const VALID_PORTAL_ROLES = new Set([
   ROLES.SITE_ENGINEER,
 ]);
 
+/** Prefer API `error` (specific) over wrapper `message` (e.g. "Unable to login"). */
+function apiErrorMessage(error, fallback) {
+  const data = error?.response?.data;
+  const detail = typeof data?.error === "string" ? data.error.trim() : "";
+  const summary = typeof data?.message === "string" ? data.message.trim() : "";
+  return detail || summary || error?.message || fallback;
+}
+
 function normalizeRole(role) {
   if (typeof role === "string") return role.toLowerCase().replace(/_/g, "-");
   if (role && typeof role === "object") {
@@ -28,6 +37,27 @@ function normalizeRole(role) {
     if (typeof role.value === "string") return normalizeRole(role.value);
   }
   return String(role ?? "").toLowerCase().replace(/_/g, "-");
+}
+
+function mapUser(userData) {
+  const rawRoles = userData?.roles || [];
+  const normalizedRoles = rawRoles.map(normalizeRole);
+  return {
+    id: userData.id,
+    name: userData.fullName,
+    fullName: userData.fullName,
+    email: userData.email,
+    phone: userData.phone,
+    companyId: userData.companyId,
+    companyName: userData.companyName,
+    companyLogo: userData.companyLogo || null,
+    roles: normalizedRoles,
+    enabledFeatures: Array.isArray(userData.enabledFeatures) ? userData.enabledFeatures : [],
+    accessPhase: userData.accessPhase || ACCESS_PHASE.PORTAL,
+    companyStatus: userData.companyStatus || null,
+    onboardingCompleted: !!userData.onboardingCompleted,
+    pendingPaymentStatus: userData.pendingPaymentStatus || null,
+  };
 }
 
 async function fetchCurrentUser() {
@@ -43,48 +73,38 @@ export function AuthProvider({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    let cancelled = false;
+  const applyUserSession = useCallback((userData) => {
+    const mapped = mapUser(userData);
+    const normalizedRoles = mapped.roles;
 
-    const applyUserSession = (userData) => {
-      const rawRoles = userData.roles || [];
-      const normalizedRoles = rawRoles.map(normalizeRole);
+    setUser(mapped);
+    setRoles(normalizedRoles);
 
-      setUser({
-        id: userData.id,
-        name: userData.fullName,
-        fullName: userData.fullName,
-        email: userData.email,
-        phone: userData.phone,
-        companyId: userData.companyId,
-        companyName: userData.companyName,
-        roles: normalizedRoles,
-        enabledFeatures: Array.isArray(userData.enabledFeatures) ? userData.enabledFeatures : [],
-      });
-      setRoles(normalizedRoles);
-
-      const validRoles = normalizedRoles.filter((r) => VALID_PORTAL_ROLES.has(r));
-      if (validRoles.length > 0) {
-        const savedRole = localStorage.getItem("selectedRole");
-        if (savedRole && validRoles.includes(savedRole)) {
-          setRole(savedRole);
-          setPermissions(ROLE_PERMISSIONS[savedRole] || []);
-        } else if (validRoles.length === 1) {
-          const singleRole = validRoles[0];
-          setRole(singleRole);
-          setPermissions(ROLE_PERMISSIONS[singleRole] || []);
-          localStorage.setItem("selectedRole", singleRole);
-        } else {
-          setRole(null);
-          setPermissions([]);
-        }
-        setIsAuthenticated(true);
+    const validRoles = normalizedRoles.filter((r) => VALID_PORTAL_ROLES.has(r));
+    if (validRoles.length > 0) {
+      const savedRole = localStorage.getItem("selectedRole");
+      if (savedRole && validRoles.includes(savedRole)) {
+        setRole(savedRole);
+        setPermissions(ROLE_PERMISSIONS[savedRole] || []);
+      } else if (validRoles.length === 1) {
+        const singleRole = validRoles[0];
+        setRole(singleRole);
+        setPermissions(ROLE_PERMISSIONS[singleRole] || []);
+        localStorage.setItem("selectedRole", singleRole);
       } else {
         setRole(null);
         setPermissions([]);
-        setIsAuthenticated(false);
       }
-    };
+      setIsAuthenticated(true);
+    } else {
+      setRole(null);
+      setPermissions([]);
+      setIsAuthenticated(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
 
     const checkSession = async () => {
       try {
@@ -125,6 +145,48 @@ export function AuthProvider({ children }) {
     return () => {
       cancelled = true;
     };
+  }, [applyUserSession]);
+
+  const finishAuthResponse = useCallback((responseData) => {
+    if (!responseData || responseData.status !== "AUTHENTICATED") {
+      throw new Error(responseData?.message || "Authentication failed");
+    }
+
+    const token = responseData.token || responseData.accessToken || responseData.jwt || responseData.jwtToken;
+    if (token) {
+      localStorage.setItem("authToken", token);
+    } else {
+      localStorage.removeItem("authToken");
+    }
+
+    const userData = responseData.user;
+    const mapped = mapUser(userData);
+    const normalizedRoles = mapped.roles;
+    const validRoles = normalizedRoles.filter((r) => VALID_PORTAL_ROLES.has(r));
+
+    setUser(mapped);
+    setRoles(normalizedRoles);
+
+    if (validRoles.length === 0) {
+      setPermissions([]);
+      setRole(null);
+      setIsAuthenticated(false);
+      return { noValidRole: true, message: "Your account does not have access to any available portal.", user: userData };
+    }
+
+    if (validRoles.length === 1) {
+      const singleRole = validRoles[0];
+      setRole(singleRole);
+      setPermissions(ROLE_PERMISSIONS[singleRole] || []);
+      setIsAuthenticated(true);
+      localStorage.setItem("selectedRole", singleRole);
+      return { singleRole, user: userData };
+    }
+
+    setRole(null);
+    setPermissions([]);
+    setIsAuthenticated(true);
+    return { multipleRoles: true, roles: validRoles, user: userData };
   }, []);
 
   const login = useCallback(async (credentials) => {
@@ -134,67 +196,39 @@ export function AuthProvider({ children }) {
         email: credentials.email,
         password: credentials.password,
       });
-
-      const responseData = data?.data;
-      if (!responseData || responseData.status !== "AUTHENTICATED") {
-        throw new Error(responseData?.message || "Login failed");
-      }
-
-      const token = responseData.token || responseData.accessToken || responseData.jwt || responseData.jwtToken;
-      if (token) {
-        localStorage.setItem("authToken", token);
-      } else {
-        localStorage.removeItem("authToken");
-      }
-
-      const userData = responseData.user;
-      const rawRoles = userData?.roles || [];
-      const normalizedRoles = rawRoles.map(normalizeRole);
-
-      setUser({
-        id: userData.id,
-        name: userData.fullName,
-        fullName: userData.fullName,
-        email: userData.email,
-        phone: userData.phone,
-        companyId: userData.companyId,
-        companyName: userData.companyName,
-        roles: normalizedRoles,
-        enabledFeatures: Array.isArray(userData.enabledFeatures) ? userData.enabledFeatures : [],
-      });
-      setRoles(normalizedRoles);
-
-      const validRoles = normalizedRoles.filter((r) => VALID_PORTAL_ROLES.has(r));
-
-      if (validRoles.length === 0) {
-        setIsLoading(false);
-        setPermissions([]);
-        setRole(null);
-        setIsAuthenticated(false);
-        return { noValidRole: true, message: "Your account does not have access to any available portal." };
-      }
-
-      if (validRoles.length === 1) {
-        const singleRole = validRoles[0];
-        setRole(singleRole);
-        setPermissions(ROLE_PERMISSIONS[singleRole] || []);
-        setIsAuthenticated(true);
-        localStorage.setItem("selectedRole", singleRole);
-        setIsLoading(false);
-        return { singleRole, user: userData };
-      }
-
-      setRole(null);
-      setPermissions([]);
-      setIsAuthenticated(true);
+      const result = finishAuthResponse(data?.data);
       setIsLoading(false);
-      return { multipleRoles: true, roles: validRoles, user: userData };
+      return result;
     } catch (error) {
       setIsLoading(false);
-      const message = error?.response?.data?.message || error.message || "Login failed";
-      throw new Error(message);
+      throw new Error(apiErrorMessage(error, "Login failed"));
     }
-  }, []);
+  }, [finishAuthResponse]);
+
+  const signup = useCallback(async (payload) => {
+    setIsLoading(true);
+    try {
+      const { data } = await axiosInstance.post("/auth/signup", {
+        fullName: payload.fullName,
+        email: payload.email,
+        password: payload.password,
+      });
+      const result = finishAuthResponse(data?.data);
+      setIsLoading(false);
+      return result;
+    } catch (error) {
+      setIsLoading(false);
+      throw new Error(apiErrorMessage(error, "Signup failed"));
+    }
+  }, [finishAuthResponse]);
+
+  const refreshUser = useCallback(async () => {
+    const userData = await fetchCurrentUser();
+    if (userData) {
+      applyUserSession(userData);
+    }
+    return userData;
+  }, [applyUserSession]);
 
   const selectRole = useCallback((selectedRole) => {
     const normalized = normalizeRole(selectedRole);
@@ -240,6 +274,8 @@ export function AuthProvider({ children }) {
     isAuthenticated,
     isLoading,
     login,
+    signup,
+    refreshUser,
     selectRole,
     logout,
     hasPermission,

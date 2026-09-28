@@ -115,6 +115,8 @@ export default function CreateCompanyPage() {
 
       const { data } = await axiosInstance.post("/companies/provision", body, {
         headers: { "Content-Type": "multipart/form-data" },
+        // Provision waits on SMTP acceptance; default 15s axios timeout was aborting first.
+        timeout: 45000,
       });
 
       const created = data?.data || {};
@@ -124,10 +126,14 @@ export default function CreateCompanyPage() {
         planName: created.subscriptionPlanName,
         featuresCount: (created.enabledFeatures || form.enabledFeatures).length,
         status: created.status || "ACTIVE",
-        inviteEmailSent: created.inviteEmailSent !== false,
+        inviteEmailSent: created.inviteEmailSent === true,
       });
     } catch (err) {
-      const msg = err?.response?.data?.message || err.message || "Failed to create company";
+      const msg =
+        err?.response?.data?.error ||
+        err?.response?.data?.message ||
+        err.message ||
+        "Failed to create company";
       setError(msg);
     } finally {
       setSubmitting(false);
@@ -200,6 +206,7 @@ export default function CreateCompanyPage() {
                   />
                   <p className="text-xs text-muted-foreground">
                     A set-password invite email is sent. The company is activated immediately.
+                    If this name was used before, a unique domain slug is assigned automatically.
                   </p>
                 </div>
                 <div className="space-y-2 sm:col-span-2">
@@ -338,7 +345,9 @@ export default function CreateCompanyPage() {
       <Dialog open={!!successResult} onOpenChange={(open) => { if (!open) handleDone(); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Invite sent</DialogTitle>
+            <DialogTitle>
+              {successResult?.inviteEmailSent ? "Invite sent" : "Company created"}
+            </DialogTitle>
             <DialogDescription className="space-y-3">
               <div className="rounded-lg border bg-muted/20 p-4 text-sm space-y-2">
                 <div className="flex items-center gap-2">
@@ -362,8 +371,18 @@ export default function CreateCompanyPage() {
                   <p className="text-xs text-muted-foreground">Status</p>
                   <p className="font-medium">{successResult?.status}</p>
                 </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Invite email</p>
+                  <p className="font-medium">
+                    {successResult?.inviteEmailSent
+                      ? "Accepted by mail server"
+                      : "Not sent — ask the admin to use “Forgot password”, or check SMTP"}
+                  </p>
+                </div>
                 <p className="text-xs text-muted-foreground">
-                  The admin will receive a set-password email to access the company portal.
+                  {successResult?.inviteEmailSent
+                    ? "The admin will receive a set-password email to access the company portal."
+                    : "The company and admin account were created. The set-password invite did not leave the mail server."}
                 </p>
               </div>
             </DialogDescription>

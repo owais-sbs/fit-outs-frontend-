@@ -125,7 +125,11 @@ export default function ClientSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" className="pointer-events-none">
-              <SidebarBrand portal="Client Portal" />
+              <SidebarBrand
+                portal="Client Portal"
+                companyName={user?.companyName}
+                logoUrl={user?.companyLogo}
+              />
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
