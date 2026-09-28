@@ -130,7 +130,7 @@ export default function UsersPage() {
       <FilterToolbar>
           <SearchInput placeholder="Search users..." value={search} onChange={(e) => setSearch(e.target.value)} />
           <Select value={roleFilter} onValueChange={setRoleFilter}>
-            <SelectTrigger className="h-8 w-[180px] rounded-lg"><SelectValue placeholder="Role" /></SelectTrigger>
+            <SelectTrigger className="h-8 w-[180px] rounded-sm"><SelectValue placeholder="Role" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All roles</SelectItem>
               {BASE_ROLES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}

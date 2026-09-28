@@ -1,5 +1,6 @@
 import { BoqProvider, useBoq, QAS_STEPS } from "./BoqEngine";
 import BoqProgressBar from "./BoqProgressBar";
+import { boqStatusLabel } from "@/shared/constants/roles";
 import { Navigate, useSearchParams } from "react-router-dom";
 
 import Step01ProjectSelection from "./steps/Step01ProjectSelection";
@@ -13,9 +14,12 @@ const STEP_COMPONENTS = {
 };
 
 function QasWorkspace() {
-  const { currentStep, session } = useBoq();
+  const { currentStep, session, generatedBoq } = useBoq();
   const StepComponent = STEP_COMPONENTS[currentStep] || Step01ProjectSelection;
   const stepDef = QAS_STEPS.find((s) => s.id === currentStep);
+  const workflowStatus = generatedBoq?.status
+    ? boqStatusLabel(generatedBoq.status)
+    : session?.status;
 
   return (
     <div className="flex flex-col min-h-0">
@@ -29,7 +33,7 @@ function QasWorkspace() {
                 <span>·</span>
                 <span>{session.project?.projectName || session.project?.name}</span>
                 <span>·</span>
-                <span className="capitalize">{session.status}</span>
+                <span>{workflowStatus}</span>
               </div>
             ) : (
               <p className="text-xs text-muted-foreground mt-0.5">

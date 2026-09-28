@@ -27,7 +27,7 @@ function DetailSection({ icon: Icon, title, children }) {
         <Icon className="h-4 w-4" />
         <span>{title}</span>
       </div>
-      <div className="rounded-lg border border-border/60 bg-muted/20 p-3 text-sm">
+      <div className="rounded-sm border border-border/60 bg-muted/20 p-3 text-sm">
         {children}
       </div>
     </div>

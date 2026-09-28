@@ -41,28 +41,28 @@ export default function ProjectFilterBar({
       />
       <div className="flex flex-wrap gap-2">
         <Select value={typeFilter} onValueChange={handleChange(onTypeChange)}>
-          <SelectTrigger className="h-8 w-[140px] rounded-lg"><SelectValue placeholder="Type" /></SelectTrigger>
+          <SelectTrigger className="h-8 w-[140px] rounded-sm"><SelectValue placeholder="Type" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All types</SelectItem>
             {PROJECT_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={managerFilter} onValueChange={handleChange(onManagerChange)}>
-          <SelectTrigger className="h-8 w-[150px] rounded-lg"><SelectValue placeholder="Manager" /></SelectTrigger>
+          <SelectTrigger className="h-8 w-[150px] rounded-sm"><SelectValue placeholder="Manager" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All managers</SelectItem>
             {MANAGERS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={statusFilter} onValueChange={handleChange(onStatusChange)}>
-          <SelectTrigger className="h-8 w-[140px] rounded-lg"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectTrigger className="h-8 w-[140px] rounded-sm"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All status</SelectItem>
             {PROJECT_STATUS_LIST.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={paymentFilter} onValueChange={handleChange(onPaymentChange)}>
-          <SelectTrigger className="h-8 w-[140px] rounded-lg"><SelectValue placeholder="Payment" /></SelectTrigger>
+          <SelectTrigger className="h-8 w-[140px] rounded-sm"><SelectValue placeholder="Payment" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All payments</SelectItem>
             {PAYMENT_STATUS_LIST.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}

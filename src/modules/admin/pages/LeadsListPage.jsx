@@ -202,7 +202,7 @@ export default function LeadsListPage() {
             <div className="flex flex-wrap gap-2">
               {view === "all" && (
                 <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
-                  <SelectTrigger className="h-8 w-[160px] rounded-lg"><SelectValue placeholder="Status" /></SelectTrigger>
+                  <SelectTrigger className="h-8 w-[160px] rounded-sm"><SelectValue placeholder="Status" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All statuses</SelectItem>
                     {Object.entries(STATUS_LABELS).map(([key, label]) => (
@@ -212,7 +212,7 @@ export default function LeadsListPage() {
                 </Select>
               )}
               <Select value={sourceFilter} onValueChange={(v) => { setSourceFilter(v); setPage(1); }}>
-                <SelectTrigger className="h-8 w-[130px] rounded-lg"><SelectValue placeholder="Source" /></SelectTrigger>
+                <SelectTrigger className="h-8 w-[130px] rounded-sm"><SelectValue placeholder="Source" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All sources</SelectItem>
                   {LEAD_SOURCES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}

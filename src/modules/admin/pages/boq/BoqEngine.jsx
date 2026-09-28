@@ -4,9 +4,19 @@ import {
   BOQ_STATUS,
   createAdditionalLine,
   generateBoqDocument,
+  isBoqApproved,
+  isBoqEditable,
+  splitProjectBoqs,
 } from "./boqDataUtils";
 import { calcLineAmount } from "./quantityCalcUtils";
-import { saveBoqFromSurvey, submitBoq as submitBoqApi, updateBoq, createBoqRevision } from "../../api/boq.api";
+import {
+  fetchBoq,
+  fetchBoqsByProject,
+  saveBoqFromSurvey,
+  submitBoq as submitBoqApi,
+  updateBoq,
+  createBoqRevision,
+} from "../../api/boq.api";
 import { apiBoqToDocument, boqDocumentToApiPayload } from "./boqApiUtils";
 import { fetchProjectQasSurveySeed, hydrateQasSurveySeed } from "../../api/qas-survey-seed.api";
 
@@ -33,6 +43,24 @@ export const BOQ_STATUS_LEGACY = QAS_STATUS;
 
 const DRAFT_STORAGE_KEY = "fitouts_qas_drafts";
 const BOQ_DRAFT_STORAGE_KEY = "fitouts_boq_drafts";
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isUuid(value) {
+  return UUID_RE.test(String(value || ""));
+}
+
+function resolveApiBoqId(boqDoc) {
+  if (!boqDoc) return null;
+  if (boqDoc.apiId) return boqDoc.apiId;
+  return isUuid(boqDoc.ref) ? boqDoc.ref : null;
+}
+
+function sessionStatusFromBoq(boqStatus) {
+  if (isBoqApproved(boqStatus)) return QAS_STATUS.COMPLETED;
+  if (isBoqEditable(boqStatus)) return QAS_STATUS.DRAFT;
+  return QAS_STATUS.IN_PROGRESS;
+}
 
 function projectKey(projectOrId) {
   if (projectOrId == null) return "";
@@ -132,20 +160,73 @@ export function getBoqDraftForProject(projectId) {
   return loadBoqDrafts()[key] || null;
 }
 
+export function removeBoqDraftForProject(projectId) {
+  const key = projectKey(projectId);
+  if (!key) return;
+  const drafts = loadBoqDrafts();
+  if (!drafts[key]) return;
+  delete drafts[key];
+  localStorage.setItem(BOQ_DRAFT_STORAGE_KEY, JSON.stringify(drafts));
+}
+
+function mapBoqDraftEntry(projectId, entry) {
+  const apiBoqId = resolveApiBoqId(entry.boq);
+  return {
+    projectId,
+    boqRef: entry.boq?.ref || projectId,
+    apiBoqId,
+    qasRef: entry.boq?.qasRef || entry.session?.ref,
+    projectName: entry.session?.project?.projectName || entry.session?.project?.name || "Unknown project",
+    status: entry.boq?.status || BOQ_STATUS.DRAFT,
+    savedAt: entry.savedAt || entry.boq?.savedAt || entry.boq?.generatedAt,
+    grandTotal: entry.boq?.totals?.grandTotal ?? 0,
+    entry,
+  };
+}
+
 export function listStoredBoqDrafts() {
   const raw = loadBoqDrafts();
   return Object.entries(raw)
-    .map(([projectId, entry]) => ({
-      projectId,
-      boqRef: entry.boq?.ref || projectId,
-      qasRef: entry.boq?.qasRef || entry.session?.ref,
-      projectName: entry.session?.project?.projectName || entry.session?.project?.name || "Unknown project",
-      status: entry.boq?.status || BOQ_STATUS.DRAFT,
-      savedAt: entry.savedAt || entry.boq?.savedAt || entry.boq?.generatedAt,
-      grandTotal: entry.boq?.totals?.grandTotal ?? 0,
-      entry,
-    }))
+    .map(([projectId, entry]) => mapBoqDraftEntry(projectId, entry))
     .sort((a, b) => new Date(b.savedAt || 0) - new Date(a.savedAt || 0));
+}
+
+export async function syncLocalBoqDraftsWithServer() {
+  const localDrafts = loadBoqDrafts();
+  const projectIds = Object.keys(localDrafts);
+  if (!projectIds.length) return;
+
+  await Promise.all(
+    projectIds.map(async (projectId) => {
+      const entry = localDrafts[projectId];
+      if (!entry) return;
+
+      try {
+        const boqs = await fetchBoqsByProject(projectId);
+        const { live } = splitProjectBoqs(boqs);
+        if (!live) return;
+
+        const localApiId = resolveApiBoqId(entry.boq);
+        if (localApiId && String(live.id) !== String(localApiId)) return;
+
+        if (isBoqApproved(live.status)) {
+          removeBoqDraftForProject(projectId);
+          return;
+        }
+
+        const syncedDoc = apiBoqToDocument(live, entry.session);
+        saveBoqDraftToStorage(
+          syncedDoc,
+          entry.session,
+          entry.floors,
+          entry.rooms,
+          entry.additionalLines
+        );
+      } catch (err) {
+        console.error(`Failed to sync BOQ draft for project ${projectId}`, err);
+      }
+    })
+  );
 }
 
 export function listStoredQasDrafts() {
@@ -211,19 +292,42 @@ export function BoqProvider({ children }) {
     [floors, rooms, session, additionalLines]
   );
 
+  const applySyncedBoq = useCallback((syncedDoc, draftSession, draftFloors, draftRooms, draftLines) => {
+    if (!syncedDoc) return;
+    setGeneratedBoq(syncedDoc);
+    setApiBoqId(resolveApiBoqId(syncedDoc));
+    setSession((prev) =>
+      prev || draftSession
+        ? {
+            ...(prev || draftSession),
+            status: sessionStatusFromBoq(syncedDoc.status),
+            lastSaved: new Date().toISOString(),
+          }
+        : null
+    );
+    if (draftFloors) setFloors(draftFloors);
+    if (draftRooms) setRooms(draftRooms);
+    if (draftLines) setAdditionalLines(draftLines);
+  }, []);
+
   const startSession = useCallback(async (project) => {
     const key = projectKey(project);
     const existingBoq = getBoqDraftForProject(project);
     if (existingBoq) {
-      setSession(existingBoq.session);
-      setFloors(existingBoq.floors || []);
-      setRooms(existingBoq.rooms || []);
-      setAdditionalLines(existingBoq.additionalLines || []);
-      setGeneratedBoq(existingBoq.boq || null);
-      setStep(3);
-      setSavedBoqs([]);
-      setSaveNotice(null);
-      return;
+      if (existingBoq.boq && isBoqApproved(existingBoq.boq.status)) {
+        removeBoqDraftForProject(project);
+      } else {
+        setSession(existingBoq.session);
+        setFloors(existingBoq.floors || []);
+        setRooms(existingBoq.rooms || []);
+        setAdditionalLines(existingBoq.additionalLines || []);
+        setGeneratedBoq(existingBoq.boq || null);
+        setApiBoqId(resolveApiBoqId(existingBoq.boq));
+        setStep(3);
+        setSavedBoqs([]);
+        setSaveNotice(null);
+        return;
+      }
     }
 
     const qasDrafts = loadDrafts();
@@ -279,11 +383,17 @@ export function BoqProvider({ children }) {
 
   const resumeSession = useCallback((draft) => {
     if (!draft?.session) return;
+    if (draft.boq && isBoqApproved(draft.boq.status)) {
+      removeBoqDraftForProject(draft.session?.project);
+      setSaveNotice("This BOQ is approved and locked. Open it from the project or BOQ inbox.");
+      return;
+    }
     setSession(draft.session);
     setFloors(draft.floors || []);
     setRooms(draft.rooms || []);
     setAdditionalLines(draft.additionalLines || []);
     setGeneratedBoq(draft.boq || null);
+    setApiBoqId(resolveApiBoqId(draft.boq));
     setStep(draft.boq ? 3 : 2);
     setSaveNotice(null);
   }, []);
@@ -380,6 +490,34 @@ export function BoqProvider({ children }) {
     });
   }, [buildBoq]);
 
+  const persistBoqDraft = useCallback(
+    (saved) => {
+      const payload = boqDocumentToApiPayload(saved, session);
+      const persist = apiBoqId
+        ? updateBoq(apiBoqId, { notes: payload.notes, lines: payload.lines })
+        : saveBoqFromSurvey(payload);
+      return persist
+        .then((apiBoq) => {
+          if (!apiBoq) return saved;
+          const synced = apiBoqToDocument(apiBoq, session);
+          saveBoqDraftToStorage(synced, session, floors, rooms, additionalLines);
+          setApiBoqId(apiBoq.id);
+          setGeneratedBoq(synced);
+          setSession((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  status: sessionStatusFromBoq(synced.status),
+                  lastSaved: new Date().toISOString(),
+                }
+              : null
+          );
+          return synced;
+        });
+    },
+    [session, floors, rooms, additionalLines, apiBoqId]
+  );
+
   const saveBoqDraft = useCallback(() => {
     setGeneratedBoq((current) => {
       if (!current) return current;
@@ -389,15 +527,8 @@ export function BoqProvider({ children }) {
         savedAt: new Date().toISOString(),
       };
       saveBoqDraftToStorage(saved, session, floors, rooms, additionalLines);
-      const payload = boqDocumentToApiPayload(saved, session);
-      const persist = apiBoqId
-        ? updateBoq(apiBoqId, { notes: payload.notes, lines: payload.lines })
-        : saveBoqFromSurvey(payload);
-      persist
-        .then((apiBoq) => {
-          if (apiBoq?.id) setApiBoqId(apiBoq.id);
-          setSaveNotice("BOQ draft saved to server.");
-        })
+      persistBoqDraft(saved)
+        .then(() => setSaveNotice("BOQ draft saved to server."))
         .catch(() => setSaveNotice("BOQ saved locally (server sync failed)."));
       setSavedBoqs((list) => {
         const filtered = list.filter((b) => b.ref !== saved.ref);
@@ -406,7 +537,7 @@ export function BoqProvider({ children }) {
       markBoqDraft();
       return saved;
     });
-  }, [session, floors, rooms, additionalLines, markBoqDraft, apiBoqId]);
+  }, [session, floors, rooms, additionalLines, markBoqDraft, persistBoqDraft]);
 
   const submitBoqForApproval = useCallback(() => {
     setGeneratedBoq((current) => {
@@ -428,7 +559,9 @@ export function BoqProvider({ children }) {
             await updateBoq(id, { notes: payload.notes, lines: payload.lines });
           }
           const apiBoq = await submitBoqApi(id);
-          setGeneratedBoq(apiBoqToDocument(apiBoq, session));
+          const synced = apiBoqToDocument(apiBoq, session);
+          saveBoqDraftToStorage(synced, session, floors, rooms, additionalLines);
+          applySyncedBoq(synced, session, floors, rooms, additionalLines);
           setSaveNotice("BOQ submitted for Senior QS approval.");
         } catch (e) {
           setSaveNotice(e.response?.data?.message || "Failed to submit BOQ for approval.");
@@ -437,19 +570,45 @@ export function BoqProvider({ children }) {
       saveThenSubmit();
       return submitted;
     });
-  }, [session, floors, rooms, additionalLines, apiBoqId]);
+  }, [session, floors, rooms, additionalLines, apiBoqId, applySyncedBoq]);
 
   const createRevision = useCallback(async (revisionLabel) => {
     if (!apiBoqId) return;
     try {
       const apiBoq = await createBoqRevision(apiBoqId, revisionLabel);
-      setApiBoqId(apiBoq.id);
-      setGeneratedBoq(apiBoqToDocument(apiBoq, session));
+      const synced = apiBoqToDocument(apiBoq, session);
+      saveBoqDraftToStorage(synced, session, floors, rooms, additionalLines);
+      applySyncedBoq(synced, session, floors, rooms, additionalLines);
       setSaveNotice(`Revision v${apiBoq.version} created as draft.`);
     } catch (e) {
       setSaveNotice(e.response?.data?.message || "Failed to create revision.");
     }
-  }, [apiBoqId, session]);
+  }, [apiBoqId, session, floors, rooms, additionalLines, applySyncedBoq]);
+
+  const refreshBoqDraftsFromServer = useCallback(async () => {
+    await syncLocalBoqDraftsWithServer();
+    return listStoredBoqDrafts();
+  }, []);
+
+  const refreshActiveBoqFromServer = useCallback(async (boqIdOverride) => {
+    const draft = getBoqDraftForProject(session?.project?.id);
+    const id = boqIdOverride || apiBoqId || resolveApiBoqId(draft?.boq);
+    if (!id) return null;
+    try {
+      const apiBoq = await fetchBoq(id);
+      const synced = apiBoqToDocument(apiBoq, session);
+      if (isBoqApproved(synced.status)) {
+        removeBoqDraftForProject(session?.project);
+      } else {
+        saveBoqDraftToStorage(synced, session, floors, rooms, additionalLines);
+      }
+      applySyncedBoq(synced, session, floors, rooms, additionalLines);
+      return synced;
+    } catch (err) {
+      console.error("Failed to refresh active BOQ from server", err);
+      return null;
+    }
+  }, [apiBoqId, session, floors, rooms, additionalLines, applySyncedBoq]);
 
   const saveBoq = saveBoqDraft;
 
@@ -471,6 +630,8 @@ export function BoqProvider({ children }) {
     loadBoqDrafts,
     listStoredBoqDrafts,
     listStoredQasDrafts,
+    refreshBoqDraftsFromServer,
+    refreshActiveBoqFromServer,
     getDraftsForProject,
     getBoqDraftForProject,
     goToStep,

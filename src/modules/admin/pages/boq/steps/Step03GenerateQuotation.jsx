@@ -30,6 +30,7 @@ export default function Step03GenerateQuotation() {
     removeAdditionalLine,
     saveBoqDraft,
     submitBoqForApproval,
+    refreshActiveBoqFromServer,
     apiBoqId,
     saveNotice,
     prevStep,
@@ -43,6 +44,11 @@ export default function Step03GenerateQuotation() {
       generateBoq();
     }
   }, [generatedBoq, generateBoq]);
+
+  useEffect(() => {
+    const id = apiBoqId || generatedBoq?.apiId;
+    if (id) refreshActiveBoqFromServer(id);
+  }, [apiBoqId, generatedBoq?.apiId, refreshActiveBoqFromServer]);
 
   useEffect(() => {
     const id = apiBoqId || generatedBoq?.apiId;

@@ -60,7 +60,7 @@ export function SearchInput({ className, containerClassName, ...props }) {
       <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
       <Input
         className={cn(
-          "h-8 rounded-lg border-border bg-card pl-8 shadow-sm",
+          "h-8 rounded-sm border-border bg-card pl-8 shadow-sm",
           className
         )}
         {...props}

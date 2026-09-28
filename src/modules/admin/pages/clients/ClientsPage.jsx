@@ -100,7 +100,7 @@ export default function ClientsPage() {
                 onChange={(e) => setSearch(e.target.value)}
             />
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="h-8 w-[150px] rounded-lg"><SelectValue placeholder="All statuses" /></SelectTrigger>
+              <SelectTrigger className="h-8 w-[150px] rounded-sm"><SelectValue placeholder="All statuses" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All statuses</SelectItem>
                 <SelectItem value="Active">Active</SelectItem>

@@ -507,7 +507,7 @@ export default function RoomConfigurationPage() {
               placeholder="Search subcategory rooms..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="h-8 rounded-lg pl-8"
+              className="h-8 rounded-sm pl-8"
             />
           </div>
           

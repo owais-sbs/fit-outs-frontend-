@@ -138,7 +138,7 @@ export default function DesignRequestsPage() {
             />
             <div className="flex flex-wrap gap-2">
               <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
-                <SelectTrigger className="h-8 w-[130px] rounded-lg"><SelectValue placeholder="Status" /></SelectTrigger>
+                <SelectTrigger className="h-8 w-[130px] rounded-sm"><SelectValue placeholder="Status" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="Pending">Pending</SelectItem>
@@ -147,7 +147,7 @@ export default function DesignRequestsPage() {
                 </SelectContent>
               </Select>
               <Select value={priorityFilter} onValueChange={(v) => { setPriorityFilter(v); setPage(1); }}>
-                <SelectTrigger className="h-8 w-[130px] rounded-lg"><SelectValue placeholder="Priority" /></SelectTrigger>
+                <SelectTrigger className="h-8 w-[130px] rounded-sm"><SelectValue placeholder="Priority" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Priority</SelectItem>
                   <SelectItem value="Low">Low</SelectItem>
@@ -157,7 +157,7 @@ export default function DesignRequestsPage() {
                 </SelectContent>
               </Select>
               <Select value={typeFilter} onValueChange={(v) => { setTypeFilter(v); setPage(1); }}>
-                <SelectTrigger className="h-8 w-[190px] rounded-lg"><SelectValue placeholder="Design Type" /></SelectTrigger>
+                <SelectTrigger className="h-8 w-[190px] rounded-sm"><SelectValue placeholder="Design Type" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Types</SelectItem>
                   {allTypes.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}

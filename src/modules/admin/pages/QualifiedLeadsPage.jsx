@@ -111,7 +111,7 @@ export default function QualifiedLeadsPage() {
               />
             <div className="flex flex-wrap gap-2">
               <Select value={engineerFilter} onValueChange={setEngineerFilter} disabled={loading}>
-                <SelectTrigger className="h-8 w-[180px] rounded-lg">
+                <SelectTrigger className="h-8 w-[180px] rounded-sm">
                   <SelectValue placeholder="All Assignees" />
                 </SelectTrigger>
                 <SelectContent>

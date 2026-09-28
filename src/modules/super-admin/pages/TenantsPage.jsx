@@ -120,7 +120,7 @@ export default function TenantsPage() {
                   setStatus(value);
                   setPage(1);
                 }}>
-                <SelectTrigger className="h-8 w-[140px] rounded-lg">
+                <SelectTrigger className="h-8 w-[140px] rounded-sm">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>

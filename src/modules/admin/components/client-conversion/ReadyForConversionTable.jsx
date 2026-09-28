@@ -33,14 +33,14 @@ export default function ReadyForConversionTable({
             onChange={(e) => onSearchChange(e.target.value)}
           />
         <Select value={typeFilter} onValueChange={onTypeChange}>
-          <SelectTrigger className="h-8 w-[130px] rounded-lg"><SelectValue placeholder="Type" /></SelectTrigger>
+          <SelectTrigger className="h-8 w-[130px] rounded-sm"><SelectValue placeholder="Type" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All types</SelectItem>
             {PROJECT_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={managerFilter} onValueChange={onManagerChange}>
-          <SelectTrigger className="h-8 w-[140px] rounded-lg"><SelectValue placeholder="Manager" /></SelectTrigger>
+          <SelectTrigger className="h-8 w-[140px] rounded-sm"><SelectValue placeholder="Manager" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All managers</SelectItem>
             {[...new Set(leads.map((l) => l.manager))].map((m) => (

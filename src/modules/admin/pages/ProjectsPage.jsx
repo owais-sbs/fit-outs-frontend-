@@ -48,7 +48,7 @@ export default function ProjectsPage() {
   const [projects, setProjects] = useState([]);
   const [clientMap, setClientMap] = useState(new Map());
   const [search, setSearch] = useState("");
-  const [sort, setSort] = useState(SORT_ID);
+  const [sort, setSort] = useState(SORT_NEW_FIRST);
   const [statusFilter, setStatusFilter] = useState(STATUS_ALL);
   const [commercialFilter, setCommercialFilter] = useState(STATUS_ALL);
   const [loading, setLoading] = useState(true);
@@ -132,7 +132,7 @@ export default function ProjectsPage() {
           onChange={(e) => setSearch(e.target.value)}
         />
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="h-8 w-[160px] rounded-lg" aria-label="Filter by status">
+          <SelectTrigger className="h-8 w-[160px] rounded-sm" aria-label="Filter by status">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -143,7 +143,7 @@ export default function ProjectsPage() {
           </SelectContent>
         </Select>
         <Select value={commercialFilter} onValueChange={setCommercialFilter}>
-          <SelectTrigger className="h-8 w-[200px] rounded-lg" aria-label="Filter by commercial stage">
+          <SelectTrigger className="h-8 w-[200px] rounded-sm" aria-label="Filter by commercial stage">
             <SelectValue placeholder="Commercial" />
           </SelectTrigger>
           <SelectContent>
@@ -156,7 +156,7 @@ export default function ProjectsPage() {
           </SelectContent>
         </Select>
         <Select value={sort} onValueChange={setSort}>
-          <SelectTrigger className="h-8 w-[160px] rounded-lg gap-2" aria-label="Sort projects">
+          <SelectTrigger className="h-8 w-[160px] rounded-sm gap-2" aria-label="Sort projects">
             <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             <SelectValue placeholder="Sort" />
           </SelectTrigger>
@@ -247,7 +247,7 @@ export default function ProjectsPage() {
                       <td className="py-4 px-4 text-muted-foreground">{clientName}</td>
                       <td className="py-4 px-4">
                         {hasApprovedBoq ? (
-                          <Badge className="bg-emerald-500/15 text-emerald-700 border-emerald-500/30 hover:bg-emerald-500/15">
+                          <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/15">
                             BOQ
                           </Badge>
                         ) : (
