@@ -11,6 +11,7 @@ import {
   Stamp,
   HardHat,
   GitBranch,
+  Timer,
 } from "lucide-react";
 import { SidebarBrand } from "@/components/brand/BrandMark";
 import {
@@ -44,6 +45,7 @@ const GROUPS = [
       { label: "Schedule templates", href: ROUTES.PROJECT_MANAGER.SCHEDULE_TEMPLATES, icon: GanttChart },
       { label: "Approvals", href: ROUTES.PROJECT_MANAGER.APPROVALS_DASHBOARD, icon: Stamp },
       { label: "Validation Inbox", href: ROUTES.PROJECT_MANAGER.VALIDATION_INBOX, icon: ClipboardCheck },
+      { label: "Duration extensions", href: ROUTES.PROJECT_MANAGER.DURATION_EXTENSION_INBOX, icon: Timer },
       { label: "Variations inbox", href: ROUTES.PROJECT_MANAGER.VARIATIONS_INBOX, icon: GitBranch },
       { label: "Quality templates", href: ROUTES.PROJECT_MANAGER.QUALITY_TEMPLATES, icon: ClipboardList },
       { label: "Communications", href: ROUTES.PROJECT_MANAGER.COMMUNICATIONS, icon: Mail },

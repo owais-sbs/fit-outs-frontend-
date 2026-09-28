@@ -39,7 +39,7 @@ import ScheduleActivityList from "./ScheduleActivityList";
 import BaselineVarianceTable from "./BaselineVarianceTable";
 import CpmGantt from "./CpmGantt";
 import ScheduleApplyWizard from "./ScheduleApplyWizard";
-import { ROUTES } from "@/shared/constants/routes";
+import { ROUTES, portalRoutesFromPath } from "@/shared/constants/routes";
 import { Switch } from "@/components/ui/switch";
 import ProjectLifecycleBanner from "../../components/projects/ProjectLifecycleBanner";
 import { useProjectLifecycle } from "../../hooks/useProjectLifecycle";
@@ -67,6 +67,10 @@ function previewToGantt(preview) {
       freeFloat: a.freeFloat,
       constraintNote: a.constraintNote,
       wbsPhase: a.wbsPhase,
+      boqLineId: a.boqLineId,
+      attachedBoqLineCount: a.attachedBoqLineCount || 0,
+      attachedBoqLineIds: a.attachedBoqLineIds || [],
+      attachedBoqLines: (a.attachedBoqLineIds || []).map((id) => ({ boqLineId: id })),
       preview: true,
     };
   });
@@ -95,11 +99,17 @@ export default function ProjectSchedulePage() {
   const { projectId } = useParams();
   const { commercialStage, archived } = useProjectLifecycle(projectId);
   const location = useLocation();
+  const routes = portalRoutesFromPath(location.pathname);
   const isPm = location.pathname.startsWith("/project-manager");
-  const detailPath = (isPm ? ROUTES.PROJECT_MANAGER.PROJECT_DETAIL : ROUTES.ADMIN.PROJECT_DETAIL)
-    .replace(":projectId", projectId);
+  const detailPath = (routes.PROJECT_DETAIL || ROUTES.ADMIN.PROJECT_DETAIL).replace(
+    ":projectId",
+    projectId
+  );
+  const scheduleHubPath = routes.SCHEDULE_HUB || routes.PROJECTS || ROUTES.ADMIN.SCHEDULE_HUB;
   const roomTaskPath = (taskId) =>
-    ROUTES.ADMIN.PROJECT_ROOM_TASK.replace(":projectId", projectId).replace(":taskId", taskId);
+    (routes.PROJECT_ROOM_TASK || ROUTES.ADMIN.PROJECT_ROOM_TASK)
+      .replace(":projectId", projectId)
+      .replace(":taskId", taskId);
 
   const [schedule, setSchedule] = useState(null);
   const [rooms, setRooms] = useState([]);
@@ -450,14 +460,24 @@ export default function ProjectSchedulePage() {
   const activities = usingPreview ? previewGantt.activities : persistedActivities;
   const deps = usingPreview ? previewGantt.dependencies : persistedDeps;
   const overdueOrderBys = orderByRows.filter((r) => r.overdue);
+  const hasActivities = persistedActivities.length > 0;
+  const isPublished =
+    hasActivities && persistedActivities.every((a) => a.publishStatus === "PUBLISHED");
+  const isDraftSchedule =
+    hasActivities && persistedActivities.some((a) => a.publishStatus !== "PUBLISHED");
 
   return (
     <PageShell className="max-w-7xl mx-auto">
       <PageTitle
         title="Schedule workspace"
-        subtitle="Readiness Â· Gantt Â· progress in one place"
+        subtitle="Readiness · Gantt · progress in one place"
         actions={
           <div className="flex flex-wrap gap-2 items-center">
+            {isPublished ? (
+              <Badge className="bg-emerald-500/15 text-emerald-800">Published</Badge>
+            ) : isDraftSchedule ? (
+              <Badge className="bg-amber-500/15 text-amber-800">Draft</Badge>
+            ) : null}
             <Badge className={publishAllowed || schedule?.ganttPublishAllowed ? "bg-emerald-500/15 text-emerald-800" : "bg-amber-500/15 text-amber-800"}>
               {publishAllowed || schedule?.ganttPublishAllowed ? "Publish allowed" : "Mark planning ready"}
             </Badge>
@@ -487,7 +507,7 @@ export default function ProjectSchedulePage() {
               <Save className="h-4 w-4 mr-1" /> Save as template
             </Button>
             <Button size="sm" disabled={busy || archived || !(publishAllowed || schedule?.ganttPublishAllowed)} onClick={handlePublish}>
-              <Upload className="h-4 w-4 mr-1" /> Publish
+              <Upload className="h-4 w-4 mr-1" /> {isPublished ? "Republish" : "Publish"}
             </Button>
           </div>
         }
@@ -497,8 +517,8 @@ export default function ProjectSchedulePage() {
 
       <div className="flex flex-wrap items-center gap-2 -mt-2">
         <Button asChild variant="ghost" size="sm" className="-ml-2 text-muted-foreground">
-          <Link to={isPm ? ROUTES.PROJECT_MANAGER.SCHEDULE_HUB : ROUTES.ADMIN.SCHEDULE_HUB}>
-            <ArrowLeft className="h-4 w-4 mr-1" /> All schedules
+          <Link to={scheduleHubPath}>
+            <ArrowLeft className="h-4 w-4 mr-1" /> {isPm || routes.SCHEDULE_HUB ? "All schedules" : "All projects"}
           </Link>
         </Button>
         <Button asChild variant="ghost" size="sm" className="text-muted-foreground">
@@ -567,6 +587,36 @@ export default function ProjectSchedulePage() {
             : "No activities yet. Apply a template to generate the programme."
         }
       />
+
+      {selected && (selected.attachedBoqLines?.length > 0 || selected.attachedBoqLineCount > 0) && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">
+              BOQ lines attached to {selected.activityCode || selected.name}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {(selected.attachedBoqLines || []).length > 0 ? (
+              <ul className="divide-y divide-border/40 text-sm">
+                {selected.attachedBoqLines.map((line) => (
+                  <li key={line.boqLineId} className="py-2">
+                    <p className="font-medium">{line.description || line.boqLineId}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {line.categoryCode || line.categoryName || "—"}
+                      {line.matchSource ? ` · ${line.matchSource}` : ""}
+                      {line.sortOrder != null ? ` · #${line.sortOrder}` : ""}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                {selected.attachedBoqLineCount} line(s) attached (details load after apply).
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {!!(schedule?.criticalPaths || []).length && !usingPreview && (
         <div className="rounded-lg border border-border/40 bg-secondary/20 p-3">

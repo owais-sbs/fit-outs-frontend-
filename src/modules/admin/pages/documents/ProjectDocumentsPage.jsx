@@ -22,6 +22,8 @@ import {
   deleteDocument,
   publishDocumentToClient,
   unpublishDocumentFromClient,
+  publishDocumentToSc,
+  unpublishDocumentFromSc,
   fetchDocumentVersions,
   syncDrawingsIntoDocuments,
   resolveFileUrl,
@@ -410,7 +412,7 @@ export default function ProjectDocumentsPage() {
                           </Button>
                           {d.publishedToClient ? (
                             <>
-                              <Badge className="border-none bg-emerald-500/15 text-emerald-700">Published</Badge>
+                              <Badge className="border-none bg-emerald-500/15 text-emerald-700">Client</Badge>
                               {!archived && (
                               <Button
                                 size="sm"
@@ -423,7 +425,7 @@ export default function ProjectDocumentsPage() {
                                   )
                                 }
                               >
-                                Unpublish
+                                Unpublish client
                               </Button>
                               )}
                             </>
@@ -437,7 +439,40 @@ export default function ProjectDocumentsPage() {
                                 run(() => publishDocumentToClient(projectId, d.uuid), "Published to client")
                               }
                             >
-                              <Upload className="h-4 w-4 mr-1" /> Publish
+                              <Upload className="h-4 w-4 mr-1" /> Publish client
+                            </Button>
+                            )
+                          )}
+                          {d.publishedToSc ? (
+                            <>
+                              <Badge className="border-none bg-sky-500/15 text-sky-700">SC</Badge>
+                              {!archived && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={busy}
+                                onClick={() =>
+                                  run(
+                                    () => unpublishDocumentFromSc(projectId, d.uuid),
+                                    "Unpublished from subcontractors"
+                                  )
+                                }
+                              >
+                                Unpublish SC
+                              </Button>
+                              )}
+                            </>
+                          ) : (
+                            !archived && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={busy}
+                              onClick={() =>
+                                run(() => publishDocumentToSc(projectId, d.uuid), "Published to subcontractors")
+                              }
+                            >
+                              <Upload className="h-4 w-4 mr-1" /> Publish SC
                             </Button>
                             )
                           )}

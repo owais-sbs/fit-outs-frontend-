@@ -44,10 +44,18 @@ export function allocatePercents(grandTotal, selectedSlices) {
   return allocated;
 }
 
-export function createFinanceTemplateRows() {
-  return FINANCE_BOQ_PAYMENT_SLICES.map((slice) => ({
-    ...slice,
-    selected: true,
-    dueDate: "",
-  }));
+export function createFinanceTemplateRows(baseDate = new Date()) {
+  const base = baseDate instanceof Date ? baseDate : new Date();
+  return FINANCE_BOQ_PAYMENT_SLICES.map((slice, index) => {
+    const due = new Date(base);
+    due.setDate(due.getDate() + 30 * (index + 1));
+    const yyyy = due.getFullYear();
+    const mm = String(due.getMonth() + 1).padStart(2, "0");
+    const dd = String(due.getDate()).padStart(2, "0");
+    return {
+      ...slice,
+      selected: true,
+      dueDate: `${yyyy}-${mm}-${dd}`,
+    };
+  });
 }

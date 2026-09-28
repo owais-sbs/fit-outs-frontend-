@@ -42,6 +42,12 @@ export default function ScheduleActivityList({ activities, selectedUuid, onSelec
                 {a.roomTaskTitle ? ` · ${a.roomTaskTitle}` : ""}
               </p>
             )}
+            {(a.attachedBoqLineCount > 0 || (a.attachedBoqLines || []).length > 0) && (
+              <Badge className="w-fit border-none bg-sky-500/15 text-sky-900">
+                {a.attachedBoqLineCount || a.attachedBoqLines.length} BOQ line
+                {(a.attachedBoqLineCount || a.attachedBoqLines.length) === 1 ? "" : "s"} attached
+              </Badge>
+            )}
             {a.roomTaskId && roomTaskPath && (
               <span className="inline-flex items-center gap-1 text-[11px] font-medium text-foreground">
                 <GanttChart className="h-3 w-3" /> Linked room task

@@ -11,6 +11,8 @@ import {
   fetchProjectRooms,
   fetchRoomTasks,
 } from "@/modules/admin/api/room-collab.api";
+import { fetchPublishedProjectSchedule } from "@/modules/admin/api/schedule.api";
+import { fetchClientInvoices } from "@/modules/admin/api/billing.api";
 import { downloadFinalApprovedPdf } from "@/modules/admin/pages/roomcollab/finalReportPdf";
 
 export default function ClientProjectRoomsSection({ projectId, projectName }) {
@@ -64,8 +66,15 @@ export default function ClientProjectRoomsSection({ projectId, projectName }) {
           onClick={async () => {
             setExporting(true);
             try {
-              const report = await fetchFinalReport(projectId);
-              await downloadFinalApprovedPdf(report, projectName);
+              const [report, schedule, invoices] = await Promise.all([
+                fetchFinalReport(projectId),
+                fetchPublishedProjectSchedule(projectId).catch(() => null),
+                fetchClientInvoices(projectId).catch(() => []),
+              ]);
+              await downloadFinalApprovedPdf(report, projectName, {
+                schedule,
+                invoices: Array.isArray(invoices) ? invoices : [],
+              });
             } catch (err) {
               setError(err.response?.data?.error || "PDF failed");
             } finally {

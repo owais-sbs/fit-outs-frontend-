@@ -77,7 +77,7 @@ export default function ApplyCascadeOverlay({
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
             {phase === "confirm"
-              ? "Review where each record will go. Nothing is saved until you click Finalize."
+              ? "This replaces the current programme. Review where each record will go. Nothing is saved until you click Finalize."
               : result?.note ||
                 "The CPM engine wrote the programme and cascaded related records."}
           </p>

@@ -11,10 +11,12 @@ const emptyInbox = () => ({
   claimItems: [],
   variationItems: [],
   invoiceItems: [],
+  siteReportItems: [],
   pendingProgressCount: 0,
   pendingClaimCount: 0,
   pendingVariationCount: 0,
   pendingInvoiceCount: 0,
+  pendingSiteReportCount: 0,
 });
 
 export const normalizeValidationInbox = (data) => {
@@ -31,10 +33,12 @@ export const normalizeValidationInbox = (data) => {
     claimItems: Array.isArray(data.claimItems) ? data.claimItems : [],
     variationItems: Array.isArray(data.variationItems) ? data.variationItems : [],
     invoiceItems: Array.isArray(data.invoiceItems) ? data.invoiceItems : [],
+    siteReportItems: Array.isArray(data.siteReportItems) ? data.siteReportItems : [],
     pendingProgressCount: data.pendingProgressCount ?? 0,
     pendingClaimCount: data.pendingClaimCount ?? 0,
     pendingVariationCount: data.pendingVariationCount ?? 0,
     pendingInvoiceCount: data.pendingInvoiceCount ?? 0,
+    pendingSiteReportCount: data.pendingSiteReportCount ?? 0,
   };
 };
 

@@ -564,6 +564,14 @@ export default function CpmGantt({
                                 </span>
                               )}
                               <span className="truncate">{a.name}</span>
+                              {(a.attachedBoqLineCount > 0 || (a.attachedBoqLines || []).length > 0) && (
+                                <span
+                                  className="shrink-0 rounded-full bg-sky-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-sky-900"
+                                  title="Attached BOQ lines"
+                                >
+                                  BOQ {a.attachedBoqLineCount || a.attachedBoqLines.length}
+                                </span>
+                              )}
                             </p>
                             <p className="text-[10px] text-muted-foreground truncate">
                               {a.durationWorkingDays != null ? `${a.durationWorkingDays}d · ` : ""}

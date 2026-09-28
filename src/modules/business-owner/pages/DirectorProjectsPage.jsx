@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { PageShell } from "@/components/layout/PageShell";
 import DashboardHeader from "@/modules/super-admin/components/DashboardHeader";
@@ -19,6 +19,15 @@ import { formatAed, latestBoqTotal } from "../utils/directorDashboardUtils";
 
 const STATUSES = ["All", "Planning", "In Progress", "On Hold", "Completed", "Cancelled"];
 
+const SORT_OPTIONS = [
+  { value: "newest", label: "Newest first" },
+  { value: "oldest", label: "Oldest first" },
+  { value: "name-asc", label: "Name A–Z" },
+  { value: "name-desc", label: "Name Z–A" },
+  { value: "progress-desc", label: "Progress high → low" },
+  { value: "progress-asc", label: "Progress low → high" },
+];
+
 function StatusBadge({ status }) {
   const variants = {
     "In Progress": "default",
@@ -32,6 +41,41 @@ function StatusBadge({ status }) {
 
 function normalizeStatus(status) {
   return String(status || "").trim().toLowerCase();
+}
+
+function sortKeyTime(project) {
+  if (project.createdAt) {
+    const t = Date.parse(project.createdAt);
+    if (!Number.isNaN(t)) return t;
+  }
+  if (project.startDate) {
+    const t = Date.parse(project.startDate);
+    if (!Number.isNaN(t)) return t;
+  }
+  const id = Number(project.id);
+  return Number.isFinite(id) ? id : 0;
+}
+
+function compareProjects(a, b, sortBy) {
+  switch (sortBy) {
+    case "oldest":
+      return sortKeyTime(a) - sortKeyTime(b);
+    case "name-asc":
+      return String(a.projectName || "").localeCompare(String(b.projectName || ""), undefined, {
+        sensitivity: "base",
+      });
+    case "name-desc":
+      return String(b.projectName || "").localeCompare(String(a.projectName || ""), undefined, {
+        sensitivity: "base",
+      });
+    case "progress-desc":
+      return (Number(b.progress) || 0) - (Number(a.progress) || 0);
+    case "progress-asc":
+      return (Number(a.progress) || 0) - (Number(b.progress) || 0);
+    case "newest":
+    default:
+      return sortKeyTime(b) - sortKeyTime(a);
+  }
 }
 
 function mapPortfolioRow(row) {
@@ -49,6 +93,8 @@ function mapPortfolioRow(row) {
     progress: row.progress ?? 0,
     budget,
     boqTotal: boq,
+    createdAt: row.createdAt || null,
+    startDate: row.startDate || null,
   };
 }
 
@@ -56,6 +102,7 @@ export default function DirectorProjectsPage() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("All");
+  const [sortBy, setSortBy] = useState("newest");
 
   useEffect(() => {
     let cancelled = false;
@@ -76,9 +123,14 @@ export default function DirectorProjectsPage() {
     };
   }, []);
 
-  const filtered = statusFilter === "All"
-    ? projects
-    : projects.filter((p) => normalizeStatus(p.status) === normalizeStatus(statusFilter));
+  const displayed = useMemo(() => {
+    const filtered =
+      statusFilter === "All"
+        ? [...projects]
+        : projects.filter((p) => normalizeStatus(p.status) === normalizeStatus(statusFilter));
+    filtered.sort((a, b) => compareProjects(a, b, sortBy));
+    return filtered;
+  }, [projects, statusFilter, sortBy]);
 
   return (
     <PageShell>
@@ -86,11 +138,29 @@ export default function DirectorProjectsPage() {
         title="Project Portfolio"
         description="Execution progress, budgets, and BOQ variance across all projects."
       >
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[160px] h-9"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-[160px] h-9">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
             <SelectContent>
-              {STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              {STATUSES.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {s === "All" ? "All statuses" : s}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-[200px] h-9">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              {SORT_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
           <Button asChild size="sm" className="gap-2">
@@ -108,7 +178,11 @@ export default function DirectorProjectsPage() {
       <Card>
         <CardContent className="p-0 overflow-x-auto">
           {loading ? (
-            <div className="p-6 space-y-2">{[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
+            <div className="p-6 space-y-2">
+              {[1, 2, 3, 4].map((i) => (
+                <Skeleton key={i} className="h-10 w-full" />
+              ))}
+            </div>
           ) : (
             <Table>
               <TableHeader>
@@ -124,7 +198,7 @@ export default function DirectorProjectsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((p) => {
+                {displayed.map((p) => {
                   const boq = Number(p.boqTotal || 0);
                   const budget = Number(p.budget || 0);
                   const variance = budget - boq;
@@ -135,36 +209,53 @@ export default function DirectorProjectsPage() {
                         <p className="text-xs text-muted-foreground">{p.location}</p>
                       </TableCell>
                       <TableCell className="text-sm">{p.projectType}</TableCell>
-                      <TableCell><StatusBadge status={p.status} /></TableCell>
+                      <TableCell>
+                        <StatusBadge status={p.status} />
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2 min-w-[90px]">
                           <div className="flex-1 h-1.5 rounded-full bg-muted">
-                            <div className="h-full bg-primary rounded-full" style={{ width: `${p.progress}%` }} />
+                            <div
+                              className="h-full bg-primary rounded-full"
+                              style={{ width: `${p.progress}%` }}
+                            />
                           </div>
                           <span className="text-xs">{p.progress}%</span>
                         </div>
                       </TableCell>
-                      <TableCell className="text-right tabular-nums text-sm">{formatAed(budget)}</TableCell>
+                      <TableCell className="text-right tabular-nums text-sm">
+                        {formatAed(budget)}
+                      </TableCell>
                       <TableCell className="text-right tabular-nums text-sm">{formatAed(boq)}</TableCell>
-                      <TableCell className={`text-right tabular-nums text-sm ${variance < 0 ? "text-amber-600" : "text-emerald-600"}`}>
+                      <TableCell
+                        className={`text-right tabular-nums text-sm ${
+                          variance < 0 ? "text-amber-600" : "text-emerald-600"
+                        }`}
+                      >
                         {formatAed(variance)}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
                           <Button asChild size="sm" variant="ghost">
-                            <Link to={ROUTES.BUSINESS_OWNER.PROJECT_BILLING.replace(":projectId", p.id)}>
+                            <Link
+                              to={ROUTES.BUSINESS_OWNER.PROJECT_BILLING.replace(":projectId", p.id)}
+                            >
                               Billing
                             </Link>
                           </Button>
                           <Button asChild size="sm" variant="ghost">
-                            <Link to={ROUTES.ADMIN.PROJECT_DETAIL.replace(":projectId", p.id)}>Open</Link>
+                            <Link
+                              to={ROUTES.BUSINESS_OWNER.PROJECT_DETAIL.replace(":projectId", p.id)}
+                            >
+                              Open
+                            </Link>
                           </Button>
                         </div>
                       </TableCell>
                     </TableRow>
                   );
                 })}
-                {filtered.length === 0 && (
+                {displayed.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                       No projects match this filter.

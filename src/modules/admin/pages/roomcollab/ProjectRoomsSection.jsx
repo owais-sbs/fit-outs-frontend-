@@ -29,6 +29,8 @@ import {
   fetchRoomTasks,
   syncRoomsFromBoq,
 } from "../../api/room-collab.api";
+import { fetchPublishedProjectSchedule } from "../../api/schedule.api";
+import { fetchBillingMilestones } from "../../api/billing.api";
 import { downloadFinalApprovedPdf } from "./finalReportPdf";
 import { ROOM_TASK_TYPES, formatTaskType } from "../../data/roomTaskTypes";
 
@@ -157,8 +159,15 @@ export default function ProjectRoomsSection({ projectId, projectName }) {
   const handleExportPdf = async () => {
     setExporting(true);
     try {
-      const report = await fetchFinalReport(projectId);
-      await downloadFinalApprovedPdf(report, projectName);
+      const [report, schedule, milestones] = await Promise.all([
+        fetchFinalReport(projectId),
+        fetchPublishedProjectSchedule(projectId).catch(() => null),
+        fetchBillingMilestones(projectId).catch(() => []),
+      ]);
+      await downloadFinalApprovedPdf(report, projectName, {
+        schedule,
+        milestones: Array.isArray(milestones) ? milestones : [],
+      });
     } catch (err) {
       setError(err.response?.data?.error || "PDF export failed");
     } finally {

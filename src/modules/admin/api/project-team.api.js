@@ -11,6 +11,9 @@ export const PROJECT_TEAM_ROLES = [
   { key: "SUBCONTRACTOR", label: "Subcontractor" },
 ];
 
+/** Roles the user can pick in Assign team (Client is seeded from the project). */
+export const ASSIGNABLE_TEAM_ROLES = PROJECT_TEAM_ROLES.filter((r) => r.key !== "CLIENT");
+
 export function normalizeTeamAssignment(item = {}) {
   return {
     uuid: item.uuid || null,

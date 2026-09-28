@@ -21,6 +21,7 @@ import {
 import { fetchAllEmployees } from "../../api/employees.api";
 import { fetchProjectRooms } from "../../api/room-collab.api";
 import { fetchProjectSchedule } from "../../api/schedule.api";
+import { fetchScPackages } from "../../api/subcontractor.api";
 import { ROUTES } from "@/shared/constants/routes";
 import { FillDemoDataButton } from "@/components/shared/FillDemoDataButton";
 import { buildDemoSnagForm } from "@/shared/demo/formDemoData";
@@ -52,8 +53,40 @@ const emptyForm = {
   dueDate: "",
   assigneeAccountId: "",
   clientVisible: true,
+  scVisible: false,
+  scRecipientAccountIds: [],
   photos: [],
 };
+
+/** Unique appointed SC accounts from project packages. */
+function appointedScOptions(packages = []) {
+  const map = new Map();
+  for (const pkg of packages) {
+    const id = pkg.appointedAccountId;
+    if (id == null || id === "") continue;
+    const key = String(id);
+    const company = pkg.appointedCompanyName || pkg.name || `Account #${id}`;
+    const existing = map.get(key);
+    if (!existing) {
+      map.set(key, {
+        accountId: Number(id),
+        label: company,
+        packageNames: pkg.name ? [pkg.name] : [],
+      });
+    } else if (pkg.name && !existing.packageNames.includes(pkg.name)) {
+      existing.packageNames.push(pkg.name);
+    }
+  }
+  return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label));
+}
+
+function toggleId(list, id, on) {
+  const n = Number(id);
+  const set = new Set((list || []).map(Number));
+  if (on) set.add(n);
+  else set.delete(n);
+  return Array.from(set);
+}
 
 export default function ProjectSnagsPage() {
   const { projectId } = useParams();
@@ -65,6 +98,7 @@ export default function ProjectSnagsPage() {
 
   const [snags, setSnags] = useState([]);
   const [employees, setEmployees] = useState([]);
+  const [projectScs, setProjectScs] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -79,12 +113,14 @@ export default function ProjectSnagsPage() {
       fetchAllEmployees().catch(() => []),
       fetchProjectRooms(projectId).catch(() => []),
       fetchProjectSchedule(projectId).catch(() => ({ activities: [] })),
+      fetchScPackages(projectId).catch(() => []),
     ])
-      .then(([snagList, empList, roomList, schedule]) => {
+      .then(([snagList, empList, roomList, schedule, packages]) => {
         setSnags(Array.isArray(snagList) ? snagList : []);
         setEmployees((Array.isArray(empList) ? empList : []).filter((e) => e.isActive !== false));
         setRooms(Array.isArray(roomList) ? roomList : []);
         setActivities(Array.isArray(schedule?.activities) ? schedule.activities : []);
+        setProjectScs(appointedScOptions(Array.isArray(packages) ? packages : []));
       })
       .finally(() => setLoading(false));
   }, [projectId]);
@@ -130,6 +166,10 @@ export default function ProjectSnagsPage() {
         dueDate: form.dueDate || null,
         assigneeAccountId: form.assigneeAccountId ? Number(form.assigneeAccountId) : null,
         clientVisible: !!form.clientVisible,
+        scVisible: !!form.scVisible,
+        scRecipientAccountIds: form.scVisible
+          ? (form.scRecipientAccountIds || []).map(Number)
+          : [],
         photos: form.photos,
       });
       setForm(emptyForm);
@@ -256,7 +296,7 @@ export default function ProjectSnagsPage() {
                 ))}
               </select>
             </div>
-            <div className="flex items-end pb-1">
+            <div className="flex flex-col gap-2 sm:col-span-2">
               <label className="flex items-center gap-2 text-xs">
                 <input
                   type="checkbox"
@@ -265,6 +305,70 @@ export default function ProjectSnagsPage() {
                 />
                 Visible in client portal
               </label>
+              <label className="flex items-center gap-2 text-xs">
+                <input
+                  type="checkbox"
+                  checked={form.scVisible}
+                  onChange={(e) => {
+                    const on = e.target.checked;
+                    setForm((f) => ({
+                      ...f,
+                      scVisible: on,
+                      scRecipientAccountIds: on
+                        ? (projectScs.length === 1
+                          ? [projectScs[0].accountId]
+                          : f.scRecipientAccountIds)
+                        : [],
+                    }));
+                  }}
+                />
+                Visible in subcontractor portal
+              </label>
+              {form.scVisible && (
+                <div className="rounded-md border border-border/60 bg-muted/20 p-3 space-y-2">
+                  <p className="text-[11px] text-muted-foreground">
+                    Choose which appointed subcontractors can see this snag.
+                  </p>
+                  {projectScs.length === 0 ? (
+                    <p className="text-xs text-amber-700">
+                      No appointed subcontractors on this project yet. Appoint an SC under Subcontractors first.
+                    </p>
+                  ) : (
+                    projectScs.map((sc) => {
+                      const checked = (form.scRecipientAccountIds || [])
+                        .map(Number)
+                        .includes(sc.accountId);
+                      return (
+                        <label key={sc.accountId} className="flex items-start gap-2 text-xs">
+                          <input
+                            type="checkbox"
+                            className="mt-0.5"
+                            checked={checked}
+                            onChange={(e) =>
+                              setForm((f) => ({
+                                ...f,
+                                scRecipientAccountIds: toggleId(
+                                  f.scRecipientAccountIds,
+                                  sc.accountId,
+                                  e.target.checked
+                                ),
+                              }))
+                            }
+                          />
+                          <span>
+                            <span className="font-medium">{sc.label}</span>
+                            {sc.packageNames?.length > 0 && (
+                              <span className="text-muted-foreground">
+                                {" "}· {sc.packageNames.join(", ")}
+                              </span>
+                            )}
+                          </span>
+                        </label>
+                      );
+                    })
+                  )}
+                </div>
+              )}
             </div>
           </div>
           <div className="space-y-1">
@@ -315,6 +419,14 @@ export default function ProjectSnagsPage() {
                         )}
                         {s.clientVisible && (
                           <Badge variant="secondary" className="text-[10px]">Client visible</Badge>
+                        )}
+                        {s.scVisible && (
+                          <Badge variant="secondary" className="text-[10px]">
+                            SC visible
+                            {Array.isArray(s.scRecipientNames) && s.scRecipientNames.length > 0
+                              ? ` · ${s.scRecipientNames.join(", ")}`
+                              : ""}
+                          </Badge>
                         )}
                         {s.raisedByClient && (
                           <Badge variant="outline" className="text-[10px]">Client raised</Badge>
@@ -384,6 +496,62 @@ export default function ProjectSnagsPage() {
                         />
                         Client portal
                       </label>
+                      <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                        <input
+                          type="checkbox"
+                          checked={!!s.scVisible}
+                          disabled={busy || archived || projectScs.length === 0}
+                          onChange={(e) => {
+                            const on = e.target.checked;
+                            const recipients = on
+                              ? (projectScs.length === 1
+                                ? [projectScs[0].accountId]
+                                : (s.scRecipientAccountIds || []).map(Number))
+                              : [];
+                            run(
+                              () => updateSnag(projectId, s.uuid, {
+                                scVisible: on,
+                                scRecipientAccountIds: recipients,
+                              }),
+                              "SC visibility updated"
+                            );
+                          }}
+                        />
+                        SC portal
+                      </label>
+                      {!!s.scVisible && projectScs.length > 0 && (
+                        <div className="rounded border border-border/50 bg-muted/15 px-2 py-1.5 space-y-1 max-w-[220px]">
+                          {projectScs.map((sc) => {
+                            const checked = (s.scRecipientAccountIds || [])
+                              .map(Number)
+                              .includes(sc.accountId);
+                            return (
+                              <label key={sc.accountId} className="flex items-center gap-1.5 text-[11px]">
+                                <input
+                                  type="checkbox"
+                                  disabled={busy || archived}
+                                  checked={checked}
+                                  onChange={(e) => {
+                                    const next = toggleId(
+                                      s.scRecipientAccountIds || [],
+                                      sc.accountId,
+                                      e.target.checked
+                                    );
+                                    run(
+                                      () => updateSnag(projectId, s.uuid, {
+                                        scVisible: true,
+                                        scRecipientAccountIds: next,
+                                      }),
+                                      "SC recipients updated"
+                                    );
+                                  }}
+                                />
+                                <span className="truncate">{sc.label}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   </div>
                   {(s.status === "OPEN" || s.status === "IN_PROGRESS" || s.status === "READY_FOR_INSPECTION") && !archived && (

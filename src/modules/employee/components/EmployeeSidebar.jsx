@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, Briefcase, CalendarRange, MapPin, Mail, ListChecks, ScrollText } from "lucide-react";
+import { LayoutDashboard, Briefcase, CalendarRange, MapPin, Mail, GanttChart, ScrollText } from "lucide-react";
 import { SidebarBrand } from "@/components/brand/BrandMark";
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup,
@@ -13,7 +13,7 @@ const NAV = [
   { label: "Dashboard", href: ROUTES.EMPLOYEE.DASHBOARD, icon: LayoutDashboard },
   { label: "My Site Visits", href: ROUTES.EMPLOYEE.SITE_VISITS, icon: MapPin },
   { label: "My Projects", href: ROUTES.EMPLOYEE.PROJECTS, icon: Briefcase },
-  { label: "My Activities", href: ROUTES.EMPLOYEE.ACTIVITIES, icon: ListChecks },
+  { label: "My Programme", href: ROUTES.EMPLOYEE.ACTIVITIES, icon: GanttChart },
   { label: "My Calendar", href: ROUTES.EMPLOYEE.CALENDAR, icon: CalendarRange },
   { label: "Communications", href: ROUTES.EMPLOYEE.COMMUNICATIONS, icon: Mail },
   { label: "Terms & Conditions", href: ROUTES.EMPLOYEE.TERMS, icon: ScrollText },

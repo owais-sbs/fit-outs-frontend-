@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Briefcase, Sliders, CheckCircle, MapPin, Eye, Loader2 } from "lucide-react";
+import { Briefcase, Sliders, CheckCircle, MapPin, Eye, Loader2, GanttChart } from "lucide-react";
 import { PageShell, PageTitle, StatTile, Surface, SearchInput } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -171,15 +171,28 @@ export default function MyProjectsPage() {
                     </td>
                     <td className="px-4 py-4">{getStatusBadge(p.status)}</td>
                     <td className="px-4 py-4 pr-6 text-right" onClick={(e) => e.stopPropagation()}>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-primary"
-                        onClick={() => navigate(ROUTES.CLIENT.PROJECT_DETAIL.replace(":projectId", p.id))}
-                      >
-                        <Eye className="h-3.5 w-3.5" />
-                        <span>Track</span>
-                      </Button>
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-primary"
+                          onClick={() =>
+                            navigate(ROUTES.CLIENT.PROJECT_SCHEDULE.replace(":projectId", p.id))
+                          }
+                        >
+                          <GanttChart className="h-3.5 w-3.5" />
+                          <span>Programme</span>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-primary"
+                          onClick={() => navigate(ROUTES.CLIENT.PROJECT_DETAIL.replace(":projectId", p.id))}
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          <span>Track</span>
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))

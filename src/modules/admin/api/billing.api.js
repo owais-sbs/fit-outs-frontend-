@@ -1,6 +1,14 @@
 import axiosInstance from "@/lib/axiosInstance";
 
-const unwrap = (r) => r.data?.data ?? r.data;
+const unwrap = (r) => {
+  const body = r.data;
+  if (body && body.isSuccess === false) {
+    const err = new Error(body.error || body.message || "Request failed");
+    err.response = r;
+    throw err;
+  }
+  return body?.data ?? body;
+};
 
 export const fetchCompanySummary = () =>
   axiosInstance.get("/billing/company-summary").then((r) => {

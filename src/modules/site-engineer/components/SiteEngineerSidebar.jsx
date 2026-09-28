@@ -4,10 +4,10 @@ import {
   Briefcase,
   MapPin,
   Mail,
-  ListChecks,
   ScrollText,
   ClipboardList,
   AlertTriangle,
+  GanttChart,
 } from "lucide-react";
 import { SidebarBrand } from "@/components/brand/BrandMark";
 import {
@@ -30,7 +30,7 @@ const NAV = [
   { label: "Dashboard", href: ROUTES.SITE_ENGINEER.DASHBOARD, icon: LayoutDashboard },
   { label: "Site Visits", href: ROUTES.SITE_ENGINEER.SITE_VISITS, icon: MapPin },
   { label: "Tasks", href: ROUTES.SITE_ENGINEER.TASKS, icon: ClipboardList },
-  { label: "Activities", href: ROUTES.SITE_ENGINEER.ACTIVITIES, icon: ListChecks },
+  { label: "Programme", href: ROUTES.SITE_ENGINEER.ACTIVITIES, icon: GanttChart },
   { label: "Snags", href: ROUTES.SITE_ENGINEER.SNAGS, icon: AlertTriangle },
   { label: "My Projects", href: ROUTES.SITE_ENGINEER.PROJECTS, icon: Briefcase },
   { label: "Client Communication", href: ROUTES.SITE_ENGINEER.COMMUNICATIONS, icon: Mail },

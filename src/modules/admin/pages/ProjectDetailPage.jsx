@@ -38,6 +38,7 @@ import BoqApprovalPipeline from "./boq/BoqApprovalPipeline";
 import { formatCurrency, formatAed } from "@/shared/utils/currency";
 import { splitProjectBoqs } from "./boq/boqDataUtils";
 import ProjectRoomsSection from "./roomcollab/ProjectRoomsSection";
+import FinalProjectPdfButton from "../components/projects/FinalProjectPdfButton";
 import ProjectTeamAssignmentSection from "./ProjectTeamAssignmentSection";
 import SiteEngineerTaskAssignSection from "./SiteEngineerTaskAssignSection";
 import ProjectApprovalsSection from "./ProjectApprovalsSection";
@@ -117,8 +118,13 @@ export default function ProjectDetailPage() {
   const { role } = useAuth();
   const isPm = location.pathname.startsWith("/project-manager");
   const isFinance = location.pathname.startsWith("/finance");
+  const isDirector = location.pathname.startsWith("/business-owner");
   const routes = portalRoutesFromPath(location.pathname);
-  const projectsListPath = isFinance ? ROUTES.FINANCE.PROJECTS : routes.PROJECTS;
+  const projectsListPath = isFinance
+    ? ROUTES.FINANCE.PROJECTS
+    : isDirector
+      ? ROUTES.BUSINESS_OWNER.PROJECTS
+      : routes.PROJECTS;
   const drawingsPath = projectSubPath(routes, "PROJECT_DRAWINGS", projectId);
   const schedulePath = projectSubPath(routes, "PROJECT_SCHEDULE", projectId);
   const approvalsPath = projectSubPath(routes, "PROJECT_APPROVALS", projectId);
@@ -393,26 +399,34 @@ export default function ProjectDetailPage() {
       <div className="flex flex-wrap items-center gap-2">
         {!isFinance && (
           <>
-            <Button asChild size="sm" variant="outline">
-              <Link to={drawingsPath}>
-                <FileImage className="w-4 h-4 mr-1" /> Drawings
-              </Link>
-            </Button>
-            <Button asChild size="sm" variant="outline">
-              <Link to={schedulePath}>
-                <GanttChart className="w-4 h-4 mr-1" /> Schedule
-              </Link>
-            </Button>
-            <Button asChild size="sm" variant="outline">
-              <Link to={approvalsPath}>
-                <Stamp className="w-4 h-4 mr-1" /> Approvals
-              </Link>
-            </Button>
-            <Button asChild size="sm" variant="outline">
-              <Link to={snagsPath}>
-                <AlertTriangle className="w-4 h-4 mr-1" /> Snags
-              </Link>
-            </Button>
+            {drawingsPath && (
+              <Button asChild size="sm" variant="outline">
+                <Link to={drawingsPath}>
+                  <FileImage className="w-4 h-4 mr-1" /> Drawings
+                </Link>
+              </Button>
+            )}
+            {schedulePath && (
+              <Button asChild size="sm" variant="outline">
+                <Link to={schedulePath}>
+                  <GanttChart className="w-4 h-4 mr-1" /> Schedule
+                </Link>
+              </Button>
+            )}
+            {approvalsPath && (
+              <Button asChild size="sm" variant="outline">
+                <Link to={approvalsPath}>
+                  <Stamp className="w-4 h-4 mr-1" /> Approvals
+                </Link>
+              </Button>
+            )}
+            {snagsPath && (
+              <Button asChild size="sm" variant="outline">
+                <Link to={snagsPath}>
+                  <AlertTriangle className="w-4 h-4 mr-1" /> Snags
+                </Link>
+              </Button>
+            )}
             {variationsPath && (
               <Button asChild size="sm" variant="outline">
                 <Link to={variationsPath}>
@@ -420,26 +434,34 @@ export default function ProjectDetailPage() {
                 </Link>
               </Button>
             )}
-            <Button asChild size="sm" variant="outline">
-              <Link to={documentsPath}>
-                <FileText className="w-4 h-4 mr-1" /> Documents
-              </Link>
-            </Button>
-            <Button asChild size="sm" variant="outline">
-              <Link to={reportingPath}>
-                <BarChart3 className="w-4 h-4 mr-1" /> Reporting
-              </Link>
-            </Button>
-            <Button asChild size="sm" variant="outline">
-              <Link to={subcontractorsPath} state={PROJECT_DETAIL_NAV_STATE}>
-                <HardHat className="w-4 h-4 mr-1" /> Subcontractors
-              </Link>
-            </Button>
-            <Button asChild size="sm" variant="outline">
-              <Link to={validationPath} state={PROJECT_DETAIL_NAV_STATE}>
-                <ClipboardCheck className="w-4 h-4 mr-1" /> Validation
-              </Link>
-            </Button>
+            {documentsPath && (
+              <Button asChild size="sm" variant="outline">
+                <Link to={documentsPath}>
+                  <FileText className="w-4 h-4 mr-1" /> Documents
+                </Link>
+              </Button>
+            )}
+            {reportingPath && (
+              <Button asChild size="sm" variant="outline">
+                <Link to={reportingPath}>
+                  <BarChart3 className="w-4 h-4 mr-1" /> Reporting
+                </Link>
+              </Button>
+            )}
+            {subcontractorsPath && (
+              <Button asChild size="sm" variant="outline">
+                <Link to={subcontractorsPath} state={PROJECT_DETAIL_NAV_STATE}>
+                  <HardHat className="w-4 h-4 mr-1" /> Subcontractors
+                </Link>
+              </Button>
+            )}
+            {validationPath && (
+              <Button asChild size="sm" variant="outline">
+                <Link to={validationPath} state={PROJECT_DETAIL_NAV_STATE}>
+                  <ClipboardCheck className="w-4 h-4 mr-1" /> Validation
+                </Link>
+              </Button>
+            )}
           </>
         )}
         <Button asChild size="sm" variant={isFinance ? "default" : "outline"}>
@@ -454,6 +476,10 @@ export default function ProjectDetailPage() {
             </Link>
           </Button>
         )}
+        <FinalProjectPdfButton
+          projectId={projectId}
+          projectName={project.projectName || project.name}
+        />
       </div>
 
       {saveMessage && (
@@ -511,8 +537,8 @@ export default function ProjectDetailPage() {
             {planningReady === false && " Planning not marked ready yet."}
           </p>
         </div>
-        <Button asChild size="sm">
-          <Link to={schedulePath}>
+        <Button asChild size="sm" disabled={!schedulePath}>
+          <Link to={schedulePath || "#"}>
             <GanttChart className="h-4 w-4 mr-1" /> Open schedule
           </Link>
         </Button>

@@ -120,6 +120,14 @@ export const fetchMyScSiteReports = (type) =>
 export const createScSiteReport = (payload) =>
   axiosInstance.post("/subcontractor/site-reports", payload).then(unwrap);
 
+export const acknowledgeScSiteReport = (projectId, uuid) =>
+  axiosInstance.post(`/projects/${projectId}/sc-site-reports/${uuid}/acknowledge`).then(unwrap);
+
+export const resolveScSiteReport = (projectId, uuid, resolutionNotes) =>
+  axiosInstance
+    .post(`/projects/${projectId}/sc-site-reports/${uuid}/resolve`, resolutionNotes ? { reason: resolutionNotes } : {})
+    .then(unwrap);
+
 // Invoices / payments
 export const fetchMyScInvoices = () =>
   axiosInstance.get("/subcontractor/invoices").then(unwrap);

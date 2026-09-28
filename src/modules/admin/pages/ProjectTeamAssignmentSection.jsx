@@ -13,9 +13,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { fetchAllClients } from "../api/clients.api";
+import { fetchClientById } from "../api/clients.api";
 import { fetchAllEmployees } from "../api/employees.api";
+import { fetchProjectById } from "../api/projects.api";
 import {
+  ASSIGNABLE_TEAM_ROLES,
   fetchProjectTeamAssignments,
   PROJECT_TEAM_ROLES,
   syncProjectTeamAssignments,
@@ -26,7 +28,7 @@ function assignmentKey(role, accountId) {
   return `${role}:${accountId}`;
 }
 
-function buildCandidates(employees, clients, subcontractors) {
+function buildCandidates(employees, subcontractors) {
   const withAccount = (accountId, name, email, extra = "") => ({
     accountId: String(accountId),
     name,
@@ -59,10 +61,6 @@ function buildCandidates(employees, clients, subcontractors) {
     .filter((e) => e.accountId && (e.role === "FINANCE" || e.role === "finance"))
     .map((e) => withAccount(e.accountId, e.employeeName, e.email));
 
-  const clientList = clients
-    .filter((c) => c.active !== false)
-    .map((c) => withAccount(c.id, c.fullName, c.email, c.companyName));
-
   const subs = subcontractors
     .filter((s) => s.active !== false)
     .map((s) => withAccount(s.id, s.fullName, s.email, s.companyName));
@@ -72,7 +70,6 @@ function buildCandidates(employees, clients, subcontractors) {
     PROJECT_MANAGER: pms,
     SITE_ENGINEER: siteEngineers,
     FINANCE: finance,
-    CLIENT: clientList,
     SUBCONTRACTOR: subs,
   };
 }
@@ -114,6 +111,26 @@ function RoleCheckboxGroup({ roleKey, label, candidates, selected, onToggle }) {
   );
 }
 
+function ClientMemberCard({ member }) {
+  const inits = (member.displayName || "")
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+  return (
+    <div className="flex items-center gap-3 rounded-xl bg-secondary/50 p-3">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+        {inits || "?"}
+      </div>
+      <div className="min-w-0">
+        <p className="text-sm font-medium truncate">{member.displayName}</p>
+        <p className="text-xs text-muted-foreground truncate">{member.email}</p>
+      </div>
+    </div>
+  );
+}
+
 export default function ProjectTeamAssignmentSection({ projectId, onSaved, readOnly = false }) {
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -121,9 +138,10 @@ export default function ProjectTeamAssignmentSection({ projectId, onSaved, readO
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [employees, setEmployees] = useState([]);
-  const [clients, setClients] = useState([]);
   const [subcontractors, setSubcontractors] = useState([]);
   const [draftSelected, setDraftSelected] = useState(new Set());
+  const [projectClient, setProjectClient] = useState(null);
+  const [projectClientId, setProjectClientId] = useState(null);
 
   const loadAssignments = useCallback(() => {
     setLoading(true);
@@ -133,26 +151,51 @@ export default function ProjectTeamAssignmentSection({ projectId, onSaved, readO
       .finally(() => setLoading(false));
   }, [projectId]);
 
+  const loadProjectClient = useCallback(() => {
+    fetchProjectById(projectId)
+      .then(async (project) => {
+        const clientId = project?.clientId || null;
+        setProjectClientId(clientId);
+        if (!clientId) {
+          setProjectClient(null);
+          return;
+        }
+        try {
+          const client = await fetchClientById(clientId);
+          setProjectClient(client);
+        } catch {
+          setProjectClient({
+            id: String(clientId),
+            fullName: project.clientName || `Client #${clientId}`,
+            email: "",
+          });
+        }
+      })
+      .catch(() => {
+        setProjectClientId(null);
+        setProjectClient(null);
+      });
+  }, [projectId]);
+
   useEffect(() => {
     loadAssignments();
-  }, [loadAssignments]);
+    loadProjectClient();
+  }, [loadAssignments, loadProjectClient]);
 
   useEffect(() => {
     if (!dialogOpen) return;
     Promise.all([
       fetchAllEmployees().catch(() => []),
-      fetchAllClients().catch(() => []),
       fetchAllSubcontractors().catch(() => []),
-    ]).then(([emp, cli, sub]) => {
+    ]).then(([emp, sub]) => {
       setEmployees(Array.isArray(emp) ? emp.filter((e) => e.isActive !== false) : []);
-      setClients(Array.isArray(cli) ? cli : []);
       setSubcontractors(Array.isArray(sub) ? sub : []);
     });
   }, [dialogOpen]);
 
   const candidatesByRole = useMemo(
-    () => buildCandidates(employees, clients, subcontractors),
-    [employees, clients, subcontractors]
+    () => buildCandidates(employees, subcontractors),
+    [employees, subcontractors]
   );
 
   const groupedAssignments = useMemo(() => {
@@ -168,14 +211,36 @@ export default function ProjectTeamAssignmentSection({ projectId, onSaved, readO
     return groups;
   }, [assignments]);
 
+  const seededClientDisplay = useMemo(() => {
+    const fromTeam = (groupedAssignments.CLIENT || [])[0];
+    if (fromTeam) {
+      return {
+        displayName: fromTeam.displayName,
+        email: fromTeam.email,
+      };
+    }
+    if (projectClient) {
+      return {
+        displayName: projectClient.fullName,
+        email: [projectClient.email, projectClient.companyName].filter(Boolean).join(" · "),
+      };
+    }
+    return null;
+  }, [groupedAssignments, projectClient]);
+
   const openEditor = () => {
-    const selected = new Set(assignments.map((a) => assignmentKey(a.role, a.accountId)));
+    const selected = new Set(
+      assignments
+        .filter((a) => a.role !== "CLIENT")
+        .map((a) => assignmentKey(a.role, a.accountId))
+    );
     setDraftSelected(selected);
     setError("");
     setDialogOpen(true);
   };
 
   const toggleDraft = (role, accountId) => {
+    if (role === "CLIENT") return;
     const key = assignmentKey(role, accountId);
     setDraftSelected((prev) => {
       const next = new Set(prev);
@@ -191,6 +256,7 @@ export default function ProjectTeamAssignmentSection({ projectId, onSaved, readO
     const payload = [];
     draftSelected.forEach((key) => {
       const [role, accountId] = key.split(":");
+      if (role === "CLIENT") return;
       payload.push({ role, accountId: Number(accountId) });
     });
     try {
@@ -198,14 +264,23 @@ export default function ProjectTeamAssignmentSection({ projectId, onSaved, readO
       setAssignments(updated);
       setDialogOpen(false);
       onSaved?.(updated);
+      loadProjectClient();
     } catch (err) {
-      setError(err?.response?.data?.error || err?.message || "Failed to save team assignments.");
+      const data = err?.response?.data;
+      const detail =
+        data?.error ||
+        data?.message ||
+        (typeof data?.detail === "string" ? data.detail : null) ||
+        err?.message ||
+        "Failed to save team assignments.";
+      setError(detail === "Bad Request" && data?.message ? data.message : detail);
     } finally {
       setSaving(false);
     }
   };
 
-  const hasAssignments = assignments.length > 0;
+  const hasStaffAssignments = assignments.some((a) => a.role !== "CLIENT");
+  const hasAnything = hasStaffAssignments || !!seededClientDisplay;
 
   return (
     <>
@@ -225,42 +300,38 @@ export default function ProjectTeamAssignmentSection({ projectId, onSaved, readO
         <CardContent>
           {loading ? (
             <Skeleton className="h-24 w-full" />
-          ) : !hasAssignments ? (
+          ) : !hasAnything ? (
             <p className="text-center text-sm text-muted-foreground py-6">
-              No project team assigned yet. Click &quot;Assign team&quot; to add QS, project manager, site
-              engineer, finance, client contacts, and subcontractors.
+              No project team assigned yet. Click &quot;Assign team&quot; to add QS, project manager,
+              site engineer, finance, and subcontractors. The client is taken from the project.
             </p>
           ) : (
             <div className="space-y-4">
-              {PROJECT_TEAM_ROLES.map(({ key, label }) => {
+              <div>
+                <Label className="text-xs font-semibold text-muted-foreground">Client</Label>
+                <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {seededClientDisplay ? (
+                    <ClientMemberCard member={seededClientDisplay} />
+                  ) : (
+                    <p className="text-xs text-muted-foreground py-2">
+                      No client linked on this project.
+                    </p>
+                  )}
+                </div>
+              </div>
+              {ASSIGNABLE_TEAM_ROLES.map(({ key, label }) => {
                 const members = groupedAssignments[key] || [];
                 if (members.length === 0) return null;
                 return (
                   <div key={key}>
                     <Label className="text-xs font-semibold text-muted-foreground">{label}</Label>
                     <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                      {members.map((member) => {
-                        const inits = (member.displayName || "")
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")
-                          .slice(0, 2)
-                          .toUpperCase();
-                        return (
-                          <div
-                            key={member.uuid || assignmentKey(member.role, member.accountId)}
-                            className="flex items-center gap-3 rounded-xl bg-secondary/50 p-3"
-                          >
-                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                              {inits || "?"}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium truncate">{member.displayName}</p>
-                              <p className="text-xs text-muted-foreground truncate">{member.email}</p>
-                            </div>
-                          </div>
-                        );
-                      })}
+                      {members.map((member) => (
+                        <ClientMemberCard
+                          key={member.uuid || assignmentKey(member.role, member.accountId)}
+                          member={member}
+                        />
+                      ))}
                     </div>
                   </div>
                 );
@@ -275,12 +346,39 @@ export default function ProjectTeamAssignmentSection({ projectId, onSaved, readO
           <DialogHeader>
             <DialogTitle>Assign project team</DialogTitle>
             <DialogDescription>
-              Select one or more people for each position. You can assign multiple people to the same role.
+              Select staff for each position. The client is seeded from this project and cannot be
+              changed here.
             </DialogDescription>
           </DialogHeader>
 
+          <div className="rounded-lg border border-border/60 bg-secondary/30 p-3">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              Client (from project)
+            </p>
+            {projectClient || seededClientDisplay ? (
+              <div className="mt-2">
+                <ClientMemberCard
+                  member={
+                    seededClientDisplay || {
+                      displayName: projectClient.fullName,
+                      email: [projectClient.email, projectClient.companyName]
+                        .filter(Boolean)
+                        .join(" · "),
+                    }
+                  }
+                />
+              </div>
+            ) : (
+              <p className="mt-1 text-xs text-muted-foreground">
+                {projectClientId
+                  ? "Loading client…"
+                  : "No client on this project. Link a client on the project first."}
+              </p>
+            )}
+          </div>
+
           <div className="grid gap-3 sm:grid-cols-2">
-            {PROJECT_TEAM_ROLES.map(({ key, label }) => (
+            {ASSIGNABLE_TEAM_ROLES.map(({ key, label }) => (
               <RoleCheckboxGroup
                 key={key}
                 roleKey={key}

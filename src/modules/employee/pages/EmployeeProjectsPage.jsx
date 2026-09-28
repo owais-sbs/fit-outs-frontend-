@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Briefcase, CalendarDays, MapPin, Loader2 } from "lucide-react";
+import { Briefcase, CalendarDays, GanttChart, MapPin, Loader2 } from "lucide-react";
 import { PageShell, PageTitle, Surface } from "@/components/layout/PageShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { fetchAllProjects } from "@/modules/admin/api/projects.api";
+import { fetchMineAssignedProjects } from "@/modules/admin/api/projects.api";
 import { fetchMySiteVisits } from "@/modules/admin/api/site-visits.api";
 import { ROUTES } from "@/shared/constants/routes";
 
@@ -38,7 +38,7 @@ export default function EmployeeProjectsPage() {
     let cancelled = false;
     setLoading(true);
     Promise.all([
-      fetchAllProjects().catch(() => []),
+      fetchMineAssignedProjects().catch(() => []),
       fetchMySiteVisits().catch(() => []),
     ]).then(([projs, mine]) => {
       if (cancelled) return;
@@ -119,6 +119,15 @@ export default function EmployeeProjectsPage() {
                 <InfoRow label="Type" value={selected.projectType} />
                 <InfoRow label="Status" value={selected.status} />
               </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() =>
+                  navigate(ROUTES.EMPLOYEE.PROJECT_SCHEDULE.replace(":projectId", selected.id))
+                }
+              >
+                <GanttChart className="mr-1 h-4 w-4" /> View programme
+              </Button>
               <Separator className="opacity-40" />
               <div>
                 <p className="mb-2 flex items-center gap-2 text-sm font-semibold">

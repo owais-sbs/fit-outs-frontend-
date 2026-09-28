@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { AttachmentList } from "@/components/shared/AttachmentField";
 import { fetchScSnags } from "@/modules/admin/api/subcontractor.api";
 import { SC_STATUS_BADGE, formatScStatus } from "../utils/subcontractor.utils";
 
@@ -55,6 +56,7 @@ export default function SubcontractorSnagsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Title</TableHead>
+                <TableHead>Photos</TableHead>
                 <TableHead>Project</TableHead>
                 <TableHead>Location</TableHead>
                 <TableHead>Severity</TableHead>
@@ -69,6 +71,13 @@ export default function SubcontractorSnagsPage() {
                     <p className="font-medium">{s.title}</p>
                     {s.description && (
                       <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{s.description}</p>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {s.photoPaths ? (
+                      <AttachmentList paths={s.photoPaths} className="mt-0" inlinePreview={false} />
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
                     )}
                   </TableCell>
                   <TableCell className="text-sm">{s.projectName || `#${s.projectId}`}</TableCell>
