@@ -30,6 +30,8 @@ export default function StatCard({ title, value, icon: Icon, growth, growthLabel
             </span>
             {growthLabel ? <span className="text-muted-foreground">{growthLabel}</span> : null}
           </span>
+        ) : growthLabel ? (
+          <span className="text-muted-foreground">{growthLabel}</span>
         ) : null
       }
     />

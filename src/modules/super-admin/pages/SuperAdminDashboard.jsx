@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { PageShell } from "@/components/layout/PageShell";
 import {
   Building2,
   CircleDollarSign,
   CreditCard,
-  TrendingUp,
+  PauseCircle,
 } from "lucide-react";
 import DashboardHeader from "../components/DashboardHeader";
 import StatCard from "../components/StatCard";
@@ -12,15 +13,34 @@ import StatCardSkeleton from "../components/StatCardSkeleton";
 import FiltersBar from "../components/FiltersBar";
 import TenantTable from "../components/TenantTable";
 import TenantTableSkeleton from "../components/TenantTableSkeleton";
-import DashboardAnalytics from "../components/dashboard/DashboardAnalytics";
-import DashboardAnalyticsSkeleton from "../components/dashboard/DashboardAnalyticsSkeleton";
 import { useTenantManagement } from "../context/tenant-management-context";
+import { ROUTES } from "@/shared/constants/routes";
+import { formatAed } from "@/shared/utils/currency";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import axiosInstance from "@/lib/axiosInstance";
 
 const STAT_ICONS = {
   "total-tenants": Building2,
   "active-subscriptions": CreditCard,
-  "monthly-revenue": CircleDollarSign,
-  "trial-conversions": TrendingUp,
+  suspended: PauseCircle,
+  "paid-amount": CircleDollarSign,
+};
+
+const STATUS_VARIANT = {
+  PENDING: "warning",
+  PAID: "success",
+  FAILED: "destructive",
+  CANCELLED: "secondary",
 };
 
 function filterTenants(tenants, searchQuery, planFilter, statusFilter) {
@@ -44,58 +64,75 @@ function filterTenants(tenants, searchQuery, planFilter, statusFilter) {
 }
 
 export default function SuperAdminDashboard() {
-  const { tenants, stats } = useTenantManagement();
-  const [isLoading, setIsLoading] = useState(true);
+  const { tenants, tenantsLoading, stats } = useTenantManagement();
   const [searchQuery, setSearchQuery] = useState("");
   const [planFilter, setPlanFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [payments, setPayments] = useState([]);
+  const [paymentsLoading, setPaymentsLoading] = useState(true);
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 800);
-    return () => clearTimeout(timer);
+    let cancelled = false;
+    setPaymentsLoading(true);
+    axiosInstance
+      .get("/subscription-payments")
+      .then(({ data }) => {
+        if (cancelled) return;
+        setPayments(Array.isArray(data?.data) ? data.data : []);
+      })
+      .catch(() => {
+        if (!cancelled) setPayments([]);
+      })
+      .finally(() => {
+        if (!cancelled) setPaymentsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
+  const isLoading = tenantsLoading || paymentsLoading;
 
   const filteredTenants = useMemo(
     () => filterTenants(tenants, searchQuery, planFilter, statusFilter),
     [tenants, searchQuery, planFilter, statusFilter]
   );
 
+  const paymentStats = useMemo(() => {
+    const pending = payments.filter((p) => p.status === "PENDING").length;
+    const paidAmount = payments
+      .filter((p) => p.status === "PAID")
+      .reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    return { pending, paidAmount };
+  }, [payments]);
+
+  const recentPayments = useMemo(() => payments.slice(0, 8), [payments]);
+
   const dashboardStats = useMemo(
     () => [
       {
         id: "total-tenants",
-        title: "Total Tenants",
+        title: "Total companies",
         value: tenants.length.toLocaleString(),
-        growth: 8.2,
-        growthLabel: "vs last month",
       },
       {
         id: "active-subscriptions",
-        title: "Active Subscriptions",
+        title: "Active subscriptions",
         value: stats.activeSubscriptions.toLocaleString(),
-        growth: 12.5,
-        growthLabel: "vs last month",
       },
       {
-        id: "monthly-revenue",
-        title: "Monthly Revenue",
-        value: new Intl.NumberFormat("en-AU", {
-          style: "currency",
-          currency: "AED",
-          maximumFractionDigits: 0,
-        }).format(stats.totalRevenue),
-        growth: 5.7,
-        growthLabel: "vs last month",
+        id: "suspended",
+        title: "Suspended",
+        value: (stats.suspendedTenants || 0).toLocaleString(),
       },
       {
-        id: "trial-conversions",
-        title: "Trial Conversions",
-        value: stats.trialTenants.toLocaleString(),
-        growth: -3.1,
-        growthLabel: "vs last month",
+        id: "paid-amount",
+        title: "Paid amount",
+        value: formatAed(paymentStats.paidAmount),
+        growthLabel: `${paymentStats.pending} pending`,
       },
     ],
-    [tenants.length, stats]
+    [tenants.length, stats, paymentStats]
   );
 
   return (
@@ -111,19 +148,78 @@ export default function SuperAdminDashboard() {
                 title={stat.title}
                 value={stat.value}
                 icon={STAT_ICONS[stat.id]}
-                growth={stat.growth}
                 growthLabel={stat.growthLabel}
               />
             ))}
       </section>
 
-      {isLoading ? <DashboardAnalyticsSkeleton /> : <DashboardAnalytics />}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold tracking-tight">Recent payments</h2>
+            <p className="text-sm text-muted-foreground">
+              Latest SaaS subscription payment activity
+            </p>
+          </div>
+          <Button variant="outline" size="sm" asChild>
+            <Link to={ROUTES.SUPER_ADMIN.PAYMENTS}>View all</Link>
+          </Button>
+        </div>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Payment log</CardTitle>
+            <CardDescription>
+              Mark payments paid on the Payments page to activate companies.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Company</TableHead>
+                  <TableHead>Plan</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={4}>
+                      <div className="h-8 animate-pulse rounded bg-muted" />
+                    </TableCell>
+                  </TableRow>
+                ) : recentPayments.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground">
+                      No payments yet
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  recentPayments.map((row) => (
+                    <TableRow key={row.uuid}>
+                      <TableCell className="font-medium">{row.companyName}</TableCell>
+                      <TableCell>{row.planName}</TableCell>
+                      <TableCell>{formatAed(row.amount)}</TableCell>
+                      <TableCell>
+                        <Badge variant={STATUS_VARIANT[row.status] || "secondary"}>
+                          {row.status}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </section>
 
       <section className="space-y-4">
         <div>
           <h2 className="text-lg font-semibold tracking-tight">Tenant overview</h2>
           <p className="text-sm text-muted-foreground">
-            Search and filter tenants across the platform
+            Search and filter companies across the platform
           </p>
         </div>
         <FiltersBar

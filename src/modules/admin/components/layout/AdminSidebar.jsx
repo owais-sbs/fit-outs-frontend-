@@ -39,26 +39,26 @@ function canSee(role, allowed) {
 
 
 const DESIGN_OVERVIEW_SUB_ITEMS = [
-  { label: "Design Requests", href: "/admin/design-qas/requests", icon: FileText },
-  { label: "Design Options", href: "/admin/design-qas/options", icon: Grid },
-  { label: "Approvals", href: "/admin/design-qas/approvals", icon: CheckCircle },
+  { label: "Design Requests", href: "/admin/design-qas/requests", icon: FileText, feature: "DESIGN" },
+  { label: "Design Options", href: "/admin/design-qas/options", icon: Grid, feature: "DESIGN" },
+  { label: "Approvals", href: "/admin/design-qas/approvals", icon: CheckCircle, feature: "DESIGN" },
 ];
 
 const PROJECT_CONFIG_SUB_ITEMS = [
-  { label: "Room Configuration", href: ROUTES.ADMIN.ROOM_CONFIG, icon: Grid },
-  { label: "Work Item Config", href: ROUTES.ADMIN.WORK_ITEM_CONFIG, icon: Wrench },
-  { label: "Materials Master", href: ROUTES.ADMIN.MATERIAL_CONFIG, icon: Package },
-  { label: "Appendices", href: ROUTES.ADMIN.APPENDIX_CONFIG, icon: ImagePlus },
-  { label: "Cover letter", href: ROUTES.ADMIN.COVER_LETTER_CONFIG, icon: Stamp },
-  { label: "Approvals Config", href: ROUTES.ADMIN.APPROVALS_CONFIG, icon: ShieldCheck },
-  { label: "Commercial matrices", href: ROUTES.ADMIN.COMMERCIAL_MATRICES, icon: Stamp },
+  { label: "Room Configuration", href: ROUTES.ADMIN.ROOM_CONFIG, icon: Grid, feature: "PROJECT_CONFIG" },
+  { label: "Work Item Config", href: ROUTES.ADMIN.WORK_ITEM_CONFIG, icon: Wrench, feature: "PROJECT_CONFIG" },
+  { label: "Materials Master", href: ROUTES.ADMIN.MATERIAL_CONFIG, icon: Package, feature: "PROJECT_CONFIG" },
+  { label: "Appendices", href: ROUTES.ADMIN.APPENDIX_CONFIG, icon: ImagePlus, feature: "PROJECT_CONFIG" },
+  { label: "Cover letter", href: ROUTES.ADMIN.COVER_LETTER_CONFIG, icon: Stamp, feature: "PROJECT_CONFIG" },
+  { label: "Approvals Config", href: ROUTES.ADMIN.APPROVALS_CONFIG, icon: ShieldCheck, feature: "PROJECT_CONFIG" },
+  { label: "Commercial matrices", href: ROUTES.ADMIN.COMMERCIAL_MATRICES, icon: Stamp, feature: "PROJECT_CONFIG" },
 ];
 
 const PROCUREMENT_SUB_ITEMS = [
-  { label: "Stock Dashboard", href: ROUTES.ADMIN.PROCUREMENT_STOCK, icon: Warehouse },
-  { label: "Goods Receipt", href: ROUTES.ADMIN.PROCUREMENT_RECEIPT, icon: ArrowDownToLine },
-  { label: "Stock Issue", href: ROUTES.ADMIN.PROCUREMENT_ISSUE, icon: ArrowUpFromLine },
-  { label: "Movement History", href: ROUTES.ADMIN.PROCUREMENT_MOVEMENTS, icon: History },
+  { label: "Stock Dashboard", href: ROUTES.ADMIN.PROCUREMENT_STOCK, icon: Warehouse, feature: "PROCUREMENT" },
+  { label: "Goods Receipt", href: ROUTES.ADMIN.PROCUREMENT_RECEIPT, icon: ArrowDownToLine, feature: "PROCUREMENT" },
+  { label: "Stock Issue", href: ROUTES.ADMIN.PROCUREMENT_ISSUE, icon: ArrowUpFromLine, feature: "PROCUREMENT" },
+  { label: "Movement History", href: ROUTES.ADMIN.PROCUREMENT_MOVEMENTS, icon: History, feature: "PROCUREMENT" },
 ];
 
 /** Nav groups — lifecycle IA */
@@ -68,7 +68,7 @@ const NAV_GROUPS = [
     label: "Overview",
     roles: [...FULL_ACCESS, ...QS_ROLES],
     items: [
-      { type: "link", label: "Dashboard", href: ROUTES.ADMIN.DASHBOARD, icon: LayoutDashboard },
+      { type: "link", label: "Dashboard", href: ROUTES.ADMIN.DASHBOARD, icon: LayoutDashboard, feature: "DASHBOARD" },
     ],
   },
   {
@@ -76,9 +76,9 @@ const NAV_GROUPS = [
     label: "Sales",
     roles: [...FULL_ACCESS],
     items: [
-      { type: "link", label: "Leads", href: ROUTES.ADMIN.LEADS_LIST, icon: Users },
-      { type: "link", label: "Sources", href: ROUTES.ADMIN.LEAD_SOURCES, icon: PieChart },
-      { type: "link", label: "Clients", href: ROUTES.ADMIN.CLIENTS, icon: UserCheck },
+      { type: "link", label: "Leads", href: ROUTES.ADMIN.LEADS_LIST, icon: Users, feature: "LEADS" },
+      { type: "link", label: "Sources", href: ROUTES.ADMIN.LEAD_SOURCES, icon: PieChart, feature: "SOURCES" },
+      { type: "link", label: "Clients", href: ROUTES.ADMIN.CLIENTS, icon: UserCheck, feature: "CLIENTS" },
     ],
   },
   {
@@ -86,8 +86,8 @@ const NAV_GROUPS = [
     label: "Site",
     roles: [...FULL_ACCESS, ...QS_ROLES],
     items: [
-      { type: "link", label: "Site Visits", href: ROUTES.ADMIN.SITE_VISITS, icon: MapPin, roles: [...FULL_ACCESS, ...QS_ROLES] },
-      { type: "link", label: "Calendar", href: ROUTES.ADMIN.CALENDAR, icon: CalendarRange },
+      { type: "link", label: "Site Visits", href: ROUTES.ADMIN.SITE_VISITS, icon: MapPin, roles: [...FULL_ACCESS, ...QS_ROLES], feature: "SITE_VISITS" },
+      { type: "link", label: "Calendar", href: ROUTES.ADMIN.CALENDAR, icon: CalendarRange, feature: "CALENDAR" },
     ],
   },
   {
@@ -95,25 +95,27 @@ const NAV_GROUPS = [
     label: "Delivery",
     roles: [...FULL_ACCESS, ...QS_ROLES],
     items: [
-      { type: "link", label: "Projects", href: ROUTES.ADMIN.PROJECTS, icon: Briefcase },
-      { type: "link", label: "Schedule", href: ROUTES.ADMIN.SCHEDULE_HUB, icon: GanttChart },
-      { type: "link", label: "Schedule templates", href: ROUTES.ADMIN.SCHEDULE_TEMPLATES, icon: GanttChart },
-      { type: "link", label: "Approvals", href: ROUTES.ADMIN.APPROVALS_DASHBOARD, icon: Stamp },
-      { type: "link", label: "Validation Inbox", href: ROUTES.ADMIN.VALIDATION_INBOX, icon: CheckSquare },
-      { type: "link", label: "Variations inbox", href: ROUTES.ADMIN.VARIATIONS_INBOX, icon: GitBranch },
+      { type: "link", label: "Projects", href: ROUTES.ADMIN.PROJECTS, icon: Briefcase, feature: "PROJECTS" },
+      { type: "link", label: "Schedule", href: ROUTES.ADMIN.SCHEDULE_HUB, icon: GanttChart, feature: "SCHEDULE" },
+      { type: "link", label: "Schedule templates", href: ROUTES.ADMIN.SCHEDULE_TEMPLATES, icon: GanttChart, feature: "SCHEDULE_TEMPLATES" },
+      { type: "link", label: "Approvals", href: ROUTES.ADMIN.APPROVALS_DASHBOARD, icon: Stamp, feature: "APPROVALS" },
+      { type: "link", label: "Validation Inbox", href: ROUTES.ADMIN.VALIDATION_INBOX, icon: CheckSquare, feature: "VALIDATION" },
+      { type: "link", label: "Variations inbox", href: ROUTES.ADMIN.VARIATIONS_INBOX, icon: GitBranch, feature: "VARIATIONS" },
       {
         type: "link",
         label: "Quality templates",
         href: ROUTES.ADMIN.QUALITY_TEMPLATES,
         icon: ClipboardList,
+        feature: "CHECKLISTS",
       },
-      { type: "link", label: "Communications", href: ROUTES.ADMIN.COMMUNICATIONS, icon: Mail },
+      { type: "link", label: "Communications", href: ROUTES.ADMIN.COMMUNICATIONS, icon: Mail, feature: "COMMUNICATIONS" },
       {
         type: "link",
         label: "SC vendors",
         href: ROUTES.ADMIN.VENDORS,
         icon: HardHat,
         roles: [...FULL_ACCESS, ...QS_ROLES, ROLES.PROJECT_MANAGER],
+        feature: "VENDORS",
       },
     ],
   },
@@ -122,14 +124,15 @@ const NAV_GROUPS = [
     label: "Estimate",
     roles: [...FULL_ACCESS, ...QS_ROLES],
     items: [
-      { type: "submenu", label: "Design Overview", icon: PenTool, children: DESIGN_OVERVIEW_SUB_ITEMS, roles: [...FULL_ACCESS] },
-      { type: "link", label: "QAS", href: ROUTES.ADMIN.QAS, icon: ClipboardList },
+      { type: "submenu", label: "Design Overview", icon: PenTool, children: DESIGN_OVERVIEW_SUB_ITEMS, roles: [...FULL_ACCESS], feature: "DESIGN" },
+      { type: "link", label: "QAS", href: ROUTES.ADMIN.QAS, icon: ClipboardList, feature: "QAS" },
       {
         type: "link",
         label: "BOQ Inbox",
         href: ROUTES.ADMIN.BOQ_INBOX,
         icon: Inbox,
         roles: [ROLES.SENIOR_QS, ROLES.ADMIN, ROLES.SUPER_ADMIN],
+        feature: "BOQ",
       },
     ],
   },
@@ -138,9 +141,9 @@ const NAV_GROUPS = [
     label: "Supply",
     roles: [...FULL_ACCESS],
     items: [
-      { type: "link", label: "Subcontractor Apps", href: ROUTES.ADMIN.SUBCONTRACTOR_APPLICATIONS, icon: UserCheck },
-      { type: "submenu", label: "Procurement", icon: Warehouse, children: PROCUREMENT_SUB_ITEMS },
-      { type: "submenu", label: "Project Configuration", icon: Settings, children: PROJECT_CONFIG_SUB_ITEMS },
+      { type: "link", label: "Subcontractor Apps", href: ROUTES.ADMIN.SUBCONTRACTOR_APPLICATIONS, icon: UserCheck, feature: "SUBCONTRACTOR_APPS" },
+      { type: "submenu", label: "Procurement", icon: Warehouse, children: PROCUREMENT_SUB_ITEMS, feature: "PROCUREMENT" },
+      { type: "submenu", label: "Project Configuration", icon: Settings, children: PROJECT_CONFIG_SUB_ITEMS, feature: "PROJECT_CONFIG" },
     ],
   },
   {
@@ -148,12 +151,19 @@ const NAV_GROUPS = [
     label: "Team",
     roles: [...FULL_ACCESS],
     items: [
-      { type: "link", label: "Employees", href: ROUTES.ADMIN.EMPLOYEES, icon: UserSquare2 },
-      { type: "link", label: "Settings", href: ROUTES.ADMIN.SETTINGS, icon: Settings },
-      { type: "link", label: "Terms & Conditions", href: ROUTES.ADMIN.TERMS, icon: FileText },
+      { type: "link", label: "Employees", href: ROUTES.ADMIN.EMPLOYEES, icon: UserSquare2, feature: "EMPLOYEES" },
+      { type: "link", label: "Settings", href: ROUTES.ADMIN.SETTINGS, icon: Settings, feature: "SETTINGS" },
+      { type: "link", label: "Terms & Conditions", href: ROUTES.ADMIN.TERMS, icon: FileText, feature: "TERMS" },
     ],
   },
 ];
+
+function canSeeFeature(enabledFeatures, feature) {
+  // Legacy tenants with no company feature grants keep role-only navigation.
+  if (!enabledFeatures || enabledFeatures.length === 0) return true;
+  if (!feature) return true;
+  return enabledFeatures.includes(feature);
+}
 
 function Submenu({ label, icon: Icon, items }) {
   const location = useLocation();
@@ -221,14 +231,26 @@ function NavLinkItem({ label, href, icon: Icon }) {
 
 export default function AdminSidebar() {
   const { user, role } = useAuth();
+  const enabledFeatures = user?.enabledFeatures || [];
 
   const groups = useMemo(
     () =>
       NAV_GROUPS.filter((g) => canSee(role, g.roles)).map((g) => ({
         ...g,
-        items: g.items.filter((item) => canSee(role, item.roles)),
+        items: g.items
+          .filter((item) => canSee(role, item.roles) && canSeeFeature(enabledFeatures, item.feature))
+          .map((item) => {
+            if (item.type !== "submenu" || !item.children) return item;
+            return {
+              ...item,
+              children: item.children.filter((child) =>
+                canSeeFeature(enabledFeatures, child.feature || item.feature)
+              ),
+            };
+          })
+          .filter((item) => item.type !== "submenu" || (item.children && item.children.length > 0)),
       })).filter((g) => g.items.length > 0),
-    [role]
+    [role, enabledFeatures]
   );
 
   return (

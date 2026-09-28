@@ -11,6 +11,7 @@ import Login from "./modules/auth/pages/login";
 import ForgotPasswordPage from "./modules/auth/pages/forgot-password";
 import SetPasswordPage from "./modules/auth/pages/set-password";
 import RolesManagement from "./modules/auth/pages/roles-management";
+import LandingPage from "./modules/marketing/pages/LandingPage";
 
 import SuperAdminLayout from "./modules/super-admin/layouts/SuperAdminLayout";
 import SuperAdminDashboard from "./modules/super-admin/pages/SuperAdminDashboard";
@@ -18,8 +19,8 @@ import TenantsPage from "./modules/super-admin/pages/TenantsPage";
 import CreateCompanyPage from "./modules/super-admin/pages/CreateCompanyPage";
 import TenantDetailPage from "./modules/super-admin/pages/TenantDetailPage";
 import PlansPage from "./modules/super-admin/pages/PlansPage";
+import PaymentsPage from "./modules/super-admin/pages/PaymentsPage";
 import UsersPage from "./modules/super-admin/pages/UsersPage";
-import PermissionsPage from "./modules/super-admin/pages/PermissionsPage";
 import ReportsPage from "./modules/super-admin/pages/ReportsPage";
 import SettingsPage from "./modules/super-admin/pages/SettingsPage";
 import AdminPortalLayout from "./modules/admin/layouts/AdminPortalLayout";
@@ -235,8 +236,8 @@ function App() {
               <Route path="tenants/:tenantId" element={<TenantDetailPage />} />
               <Route path="tenants" element={<TenantsPage />} />
               <Route path="plans" element={<PlansPage />} />
+              <Route path="payments" element={<PaymentsPage />} />
               <Route path="users" element={<UsersPage />} />
-              <Route path="permissions" element={<PermissionsPage />} />
               <Route path="reports" element={<ReportsPage />} />
               <Route path="site-visits" element={<SiteVisitsPage />} />
               <Route path="site-visits/schedule" element={<SiteVisitSchedulePage />} />
@@ -630,8 +631,8 @@ function App() {
               <Route path="terms" element={<TermsAndConditionsPage />} />
             </Route>
 
-            {/* Fallback routes */}
-            <Route path="/" element={<Navigate to={ROUTES.AUTH.LOGIN} replace />} />
+            {/* Public landing + fallback */}
+            <Route path={ROUTES.LANDING} element={<LandingPage />} />
             <Route path="*" element={<Navigate to={ROUTES.AUTH.LOGIN} replace />} />
           </Routes>
         </div>

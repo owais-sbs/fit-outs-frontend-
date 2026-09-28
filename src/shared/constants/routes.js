@@ -1,6 +1,7 @@
 import { ROLES } from "./roles";
 
 export const ROUTES = {
+  LANDING: "/",
   AUTH: {
     LOGIN: "/login",
     REGISTER: "/register",
@@ -15,8 +16,8 @@ export const ROUTES = {
     TENANTS_CREATE: "/super-admin/tenants/new",
     TENANT_DETAIL: "/super-admin/tenants/:tenantId",
     PLANS: "/super-admin/plans",
+    PAYMENTS: "/super-admin/payments",
     USERS: "/super-admin/users",
-    PERMISSIONS: "/super-admin/permissions",
     REPORTS: "/super-admin/reports",
     SITE_VISITS: "/super-admin/site-visits",
     SITE_VISIT_SCHEDULE: "/super-admin/site-visits/schedule",

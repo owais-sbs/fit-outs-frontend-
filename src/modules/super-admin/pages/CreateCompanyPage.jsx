@@ -1,24 +1,16 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Building2, Check, Eye, EyeOff, Loader2 } from "lucide-react";
+import { ArrowLeft, Building2, Check, Loader2 } from "lucide-react";
 import { ROUTES } from "@/shared/constants/routes";
+import { FEATURE_OPTIONS } from "@/modules/admin/data/employees";
 import PageHeader from "../components/shared/PageHeader";
 import { PageShell } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
-import { formatAed } from "@/shared/utils/currency";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -27,87 +19,84 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import axiosInstance from "@/lib/axiosInstance";
-
-const FALLBACK_PLANS = [
-  { uuid: "fallback-1", planName: "Starter", priceMonthly: 299, maxUsers: 10, modulesIncluded: ["crm", "dashboard", "site-visits"], active: true },
-  { uuid: "fallback-2", planName: "Professional", priceMonthly: 990, maxUsers: 50, modulesIncluded: ["crm", "dashboard", "site-visits", "reports", "users"], active: true },
-  { uuid: "fallback-3", planName: "Enterprise", priceMonthly: 4800, maxUsers: 500, modulesIncluded: ["crm", "dashboard", "site-visits", "reports", "users", "billing"], active: true },
-];
-
-const STATUS_OPTIONS = [
-  { value: "TRIAL", label: "Trial" },
-  { value: "ACTIVE", label: "Active" },
-];
+import { cn } from "@/lib/utils";
 
 const defaultForm = {
   companyName: "",
-  domainSlug: "",
+  adminEmail: "",
   subscriptionPlanUuid: "",
-  status: "TRIAL",
-  logo: "",
-  fullName: "",
-  email: "",
-  password: "",
+  enabledFeatures: [],
+  logo: null,
+  stamp: null,
+  signature: null,
 };
+
+function formatFeatureLabel(feature) {
+  return String(feature)
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
 
 export default function CreateCompanyPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState(defaultForm);
+  const [plans, setPlans] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [successResult, setSuccessResult] = useState(null);
-  const [plans, setPlans] = useState([]);
-  const [plansLoading, setPlansLoading] = useState(true);
-  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
-    let cancelled = false;
-    setPlansLoading(true);
     axiosInstance
       .get("/subscription-plans")
       .then(({ data }) => {
-        if (cancelled) return;
         const list = Array.isArray(data?.data) ? data.data : [];
-        const activePlans = list.filter((p) => p.active !== false);
-        setPlans(activePlans.length > 0 ? activePlans : FALLBACK_PLANS);
+        setPlans(list.filter((plan) => plan?.active !== false));
       })
-      .catch((err) => {
-        if (cancelled) return;
-        console.error("Failed to fetch plans, using fallback:", err);
-        setPlans(FALLBACK_PLANS);
-      })
-      .finally(() => {
-        if (!cancelled) setPlansLoading(false);
-      });
-    return () => { cancelled = true; };
+      .catch(() => setPlans([]));
   }, []);
 
-  const handleChange = (field) => (event) => {
-    const value = event?.target?.value ?? event;
+  const handleTextChange = (field) => (event) => {
+    setForm((prev) => ({ ...prev, [field]: event.target.value }));
+    setError(null);
+  };
+
+  const handleFileChange = (field) => (event) => {
+    const file = event.target.files?.[0] || null;
+    setForm((prev) => ({ ...prev, [field]: file }));
+    setError(null);
+  };
+
+  const toggleFeature = (feature) => {
     setForm((prev) => {
-      const next = { ...prev, [field]: value };
-      if (field === "companyName") {
-        next.domainSlug = value
-          .toLowerCase()
-          .replace(/[^a-z0-9\s-]/g, "")
-          .replace(/\s+/g, "-")
-          .replace(/-+/g, "-")
-          .replace(/^-|-$/g, "");
-      }
-      return next;
+      const has = prev.enabledFeatures.includes(feature);
+      return {
+        ...prev,
+        enabledFeatures: has
+          ? prev.enabledFeatures.filter((item) => item !== feature)
+          : [...prev.enabledFeatures, feature],
+      };
     });
     setError(null);
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (!form.companyName.trim() || !form.domainSlug.trim() || !form.subscriptionPlanUuid) {
-      setError("Please fill in all required company fields");
+    if (!form.companyName.trim() || !form.adminEmail.trim()) {
+      setError("Company name and admin email are required");
       return;
     }
-    if (!form.email.trim() || !form.password.trim()) {
-      setError("Please fill in admin email and password");
+    if (!form.subscriptionPlanUuid) {
+      setError("Subscription plan is required");
       return;
     }
 
@@ -115,30 +104,27 @@ export default function CreateCompanyPage() {
     setError(null);
 
     try {
-      const companyRes = await axiosInstance.post("/companies/AddCompany", {
-        companyName: form.companyName.trim(),
-        domainSlug: form.domainSlug.trim().toLowerCase(),
-        subscriptionPlanUuid: form.subscriptionPlanUuid,
-        status: form.status,
-        logo: form.logo.trim() || undefined,
+      const body = new FormData();
+      body.append("companyName", form.companyName.trim());
+      body.append("adminEmail", form.adminEmail.trim().toLowerCase());
+      body.append("subscriptionPlanUuid", form.subscriptionPlanUuid);
+      body.append("enabledFeatures", JSON.stringify(form.enabledFeatures));
+      if (form.logo) body.append("logo", form.logo);
+      if (form.stamp) body.append("stamp", form.stamp);
+      if (form.signature) body.append("signature", form.signature);
+
+      const { data } = await axiosInstance.post("/companies/provision", body, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
 
-      const companyUuid = companyRes.data?.data?.uuid;
-      if (!companyUuid) throw new Error("Failed to get company UUID from response");
-
-      const accountRes = await axiosInstance.post("/accounts", {
-        fullName: form.fullName.trim() || form.companyName.trim(),
-        email: form.email.trim().toLowerCase(),
-        password: form.password,
-        companyUuid: companyUuid,
-        roles: ["ADMIN"],
-      });
-
+      const created = data?.data || {};
       setSuccessResult({
-        companyName: form.companyName.trim(),
-        companyUuid,
-        email: form.email.trim().toLowerCase(),
-        accountId: accountRes.data?.data?.id,
+        companyName: created.companyName || form.companyName.trim(),
+        email: created.adminEmail || form.adminEmail.trim().toLowerCase(),
+        planName: created.subscriptionPlanName,
+        featuresCount: (created.enabledFeatures || form.enabledFeatures).length,
+        status: created.status || "ACTIVE",
+        inviteEmailSent: created.inviteEmailSent !== false,
       });
     } catch (err) {
       const msg = err?.response?.data?.message || err.message || "Failed to create company";
@@ -152,12 +138,23 @@ export default function CreateCompanyPage() {
     navigate(ROUTES.SUPER_ADMIN.TENANTS);
   };
 
-  const selectedPlan = plans.find((p) => p.uuid === form.subscriptionPlanUuid);
+  const selectedPlan = plans.find((plan) => plan.uuid === form.subscriptionPlanUuid);
 
   return (
     <PageShell>
-      <Button variant="ghost" size="sm" asChild className="-ml-2 w-fit">
-        <a href={ROUTES.SUPER_ADMIN.TENANTS} onClick={(e) => { e.preventDefault(); navigate(ROUTES.SUPER_ADMIN.TENANTS); }}>
+      <Button
+        variant="ghost"
+        size="sm"
+        asChild
+        className="-ml-2 w-fit"
+      >
+        <a
+          href={ROUTES.SUPER_ADMIN.TENANTS}
+          onClick={(e) => {
+            e.preventDefault();
+            navigate(ROUTES.SUPER_ADMIN.TENANTS);
+          }}
+        >
           <ArrowLeft className="mr-2 h-4 w-4" />
           All companies
         </a>
@@ -165,7 +162,7 @@ export default function CreateCompanyPage() {
 
       <PageHeader
         title="Create company"
-        description="Provision a new company, assign a subscription plan, and create the admin account."
+        description="Invite a company admin by email. Choose a plan and the sidebar features they can access."
       />
 
       <form onSubmit={handleSubmit}>
@@ -174,7 +171,7 @@ export default function CreateCompanyPage() {
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base">Company details</CardTitle>
-                <CardDescription>Information about the company</CardDescription>
+                <CardDescription>Name, admin invite, plan, and branding</CardDescription>
               </CardHeader>
               <CardContent className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2 sm:col-span-2">
@@ -184,160 +181,92 @@ export default function CreateCompanyPage() {
                   <Input
                     id="companyName"
                     value={form.companyName}
-                    onChange={handleChange("companyName")}
+                    onChange={handleTextChange("companyName")}
                     placeholder="Apex Fitouts Pty Ltd"
                     required
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="domainSlug" className="after:ml-0.5 after:text-destructive after:content-['*']">
-                    Domain slug
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="adminEmail" className="after:ml-0.5 after:text-destructive after:content-['*']">
+                    Admin email
                   </Label>
                   <Input
-                    id="domainSlug"
-                    value={form.domainSlug}
-                    onChange={handleChange("domainSlug")}
-                    placeholder="apex-fitouts"
+                    id="adminEmail"
+                    type="email"
+                    value={form.adminEmail}
+                    onChange={handleTextChange("adminEmail")}
+                    placeholder="admin@company.com"
                     required
                   />
                   <p className="text-xs text-muted-foreground">
-                    Auto-generated from company name. Lowercase letters, numbers, and hyphens only.
+                    A set-password invite email is sent. The company is activated immediately.
                   </p>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="logo">Logo URL (optional)</Label>
-                  <Input
-                    id="logo"
-                    value={form.logo}
-                    onChange={handleChange("logo")}
-                    placeholder="https://example.com/logo.png"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Subscription plan</CardTitle>
-                <CardDescription>Select the plan and initial status</CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
+                <div className="space-y-2 sm:col-span-2">
                   <Label className="after:ml-0.5 after:text-destructive after:content-['*']">
-                    Plan
+                    Subscription plan
                   </Label>
-                  {plansLoading ? (
-                    <Skeleton className="h-10 w-full rounded-md" />
-                  ) : (
-                    <Select
-                      value={form.subscriptionPlanUuid}
-                      onValueChange={handleChange("subscriptionPlanUuid")}
-                      required
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a plan" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {plans.map((plan) => (
-                          <SelectItem key={plan.uuid} value={plan.uuid}>
-                            {plan.planName} — {formatAed(plan.priceMonthly)}/mo ({plan.maxUsers} users)
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label>Status</Label>
-                  <Select value={form.status} onValueChange={handleChange("status")}>
+                  <Select
+                    value={form.subscriptionPlanUuid}
+                    onValueChange={(value) => {
+                      setForm((prev) => ({ ...prev, subscriptionPlanUuid: value }));
+                      setError(null);
+                    }}
+                  >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Select a plan" />
                     </SelectTrigger>
                     <SelectContent>
-                      {STATUS_OPTIONS.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>
-                          {opt.label}
+                      {plans.map((plan) => (
+                        <SelectItem key={plan.uuid} value={plan.uuid}>
+                          {plan.planName}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-                {selectedPlan && (
-                  <div className="sm:col-span-2 rounded-lg border bg-muted/20 p-3">
-                    <p className="text-xs font-medium text-muted-foreground mb-2">Included modules</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {selectedPlan.modulesIncluded?.map((mod) => (
-                        <Badge key={mod} variant="secondary" className="text-xs">
-                          <Check className="mr-1 h-3 w-3" />
-                          {mod}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <div className="space-y-2">
+                  <Label htmlFor="logo">Logo</Label>
+                  <Input id="logo" type="file" accept="image/*" onChange={handleFileChange("logo")} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="stamp">Stamp</Label>
+                  <Input id="stamp" type="file" accept="image/*" onChange={handleFileChange("stamp")} />
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="signature">Signature</Label>
+                  <Input id="signature" type="file" accept="image/*" onChange={handleFileChange("signature")} />
+                </div>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-base">Admin user</CardTitle>
+                <CardTitle className="text-base">Sidebar features</CardTitle>
                 <CardDescription>
-                  Create the admin account for this company with role-based access.
+                  Choose which admin portal sidebar items this company can access.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">Full name</Label>
-                  <Input
-                    id="fullName"
-                    value={form.fullName}
-                    onChange={handleChange("fullName")}
-                    placeholder="Sarah Chen"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="after:ml-0.5 after:text-destructive after:content-['*']">
-                    Email
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={form.email}
-                    onChange={handleChange("email")}
-                    placeholder="sarah@company.com"
-                    required
-                  />
-                </div>
-                <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="password" className="after:ml-0.5 after:text-destructive after:content-['*']">
-                    Password
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      value={form.password}
-                      onChange={handleChange("password")}
-                      placeholder="Enter admin password"
-                      className="pr-10"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
-                </div>
-                <div className="sm:col-span-2">
-                  <div className="rounded-lg border bg-muted/20 p-3 text-sm">
-                    <p className="text-xs text-muted-foreground">
-                      The admin will be assigned the <Badge variant="outline" className="mx-1 text-xs">ADMIN</Badge> role
-                      and linked to this company.
-                    </p>
-                  </div>
+              <CardContent>
+                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {FEATURE_OPTIONS.map((feature) => {
+                    const checked = form.enabledFeatures.includes(feature);
+                    return (
+                      <label
+                        key={feature}
+                        className={cn(
+                          "flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition",
+                          checked ? "border-primary/40 bg-primary/5" : "border-border bg-background"
+                        )}
+                      >
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={() => toggleFeature(feature)}
+                        />
+                        <span>{formatFeatureLabel(feature)}</span>
+                      </label>
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>
@@ -355,25 +284,24 @@ export default function CreateCompanyPage() {
                     <p className="font-medium">{form.companyName || "—"}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">Domain slug</p>
-                    <p className="font-mono text-xs">{form.domainSlug || "—"}</p>
+                    <p className="text-xs text-muted-foreground">Admin email</p>
+                    <p className="font-medium">{form.adminEmail || "—"}</p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Plan</p>
                     <p className="font-medium">{selectedPlan?.planName || "—"}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">Status</p>
-                    <p className="font-medium capitalize">{form.status.toLowerCase()}</p>
-                  </div>
-                  <Separator />
-                  <div>
-                    <p className="text-xs text-muted-foreground">Admin name</p>
-                    <p className="font-medium">{form.fullName || form.companyName || "—"}</p>
+                    <p className="text-xs text-muted-foreground">Features</p>
+                    <p className="font-medium">{form.enabledFeatures.length} selected</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">Admin email</p>
-                    <p className="font-medium">{form.email || "—"}</p>
+                    <p className="text-xs text-muted-foreground">Branding</p>
+                    <p className="font-medium text-xs">
+                      {[form.logo && "Logo", form.stamp && "Stamp", form.signature && "Signature"]
+                        .filter(Boolean)
+                        .join(", ") || "None selected"}
+                    </p>
                   </div>
                 </div>
 
@@ -390,7 +318,7 @@ export default function CreateCompanyPage() {
                     ) : (
                       <Building2 className="h-4 w-4" />
                     )}
-                    {submitting ? "Creating..." : "Create company & admin"}
+                    {submitting ? "Sending invite..." : "Create company & send invite"}
                   </Button>
                   <Button
                     type="button"
@@ -410,7 +338,7 @@ export default function CreateCompanyPage() {
       <Dialog open={!!successResult} onOpenChange={(open) => { if (!open) handleDone(); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Company created successfully</DialogTitle>
+            <DialogTitle>Invite sent</DialogTitle>
             <DialogDescription className="space-y-3">
               <div className="rounded-lg border bg-muted/20 p-4 text-sm space-y-2">
                 <div className="flex items-center gap-2">
@@ -422,8 +350,20 @@ export default function CreateCompanyPage() {
                   <p className="text-xs text-muted-foreground">Admin email</p>
                   <p className="font-medium">{successResult?.email}</p>
                 </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Plan</p>
+                  <p className="font-medium">{successResult?.planName || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Features granted</p>
+                  <p className="font-medium">{successResult?.featuresCount ?? 0}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Status</p>
+                  <p className="font-medium">{successResult?.status}</p>
+                </div>
                 <p className="text-xs text-muted-foreground">
-                  The admin can sign in using the credentials you provided.
+                  The admin will receive a set-password email to access the company portal.
                 </p>
               </div>
             </DialogDescription>

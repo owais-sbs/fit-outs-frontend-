@@ -63,7 +63,7 @@ function formatDate(value) {
 
 export default function TenantsPage() {
   const navigate = useNavigate();
-  const { tenants, tenantsLoading: loading } = useTenantManagement();
+  const { tenants, tenantsLoading: loading, updateTenantStatus } = useTenantManagement();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [page, setPage] = useState(1);
@@ -207,14 +207,46 @@ export default function TenantsPage() {
                               }}>
                               View
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={(event) => event.stopPropagation()}>
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={(event) => event.stopPropagation()}
-                              className="text-destructive">
-                              Suspend
-                            </DropdownMenuItem>
+                            {tenant.status !== "active" && (
+                              <DropdownMenuItem
+                                onClick={async (event) => {
+                                  event.stopPropagation();
+                                  try {
+                                    await updateTenantStatus(tenant.id, "activate");
+                                  } catch (err) {
+                                    console.error(err);
+                                  }
+                                }}>
+                                Activate
+                              </DropdownMenuItem>
+                            )}
+                            {tenant.status !== "suspended" && tenant.status !== "terminated" && (
+                              <DropdownMenuItem
+                                onClick={async (event) => {
+                                  event.stopPropagation();
+                                  try {
+                                    await updateTenantStatus(tenant.id, "suspend");
+                                  } catch (err) {
+                                    console.error(err);
+                                  }
+                                }}>
+                                Suspend
+                              </DropdownMenuItem>
+                            )}
+                            {tenant.status !== "terminated" && (
+                              <DropdownMenuItem
+                                onClick={async (event) => {
+                                  event.stopPropagation();
+                                  try {
+                                    await updateTenantStatus(tenant.id, "terminate");
+                                  } catch (err) {
+                                    console.error(err);
+                                  }
+                                }}
+                                className="text-destructive">
+                                Cancel (terminate)
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>

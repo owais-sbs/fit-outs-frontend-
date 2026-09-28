@@ -90,10 +90,6 @@ export const REVENUE_CHART_CONFIG = {
     label: "MRR (د.إ k)",
     colors: CHART_COLORS.chart1,
   },
-  crmPipeline: {
-    label: "CRM pipeline (د.إ k)",
-    colors: CHART_COLORS.chart2,
-  },
 };
 
 /** Tenant count by subscription plan */

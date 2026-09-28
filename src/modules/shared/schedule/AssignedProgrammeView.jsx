@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { AttachmentUploadField } from "@/components/shared/AttachmentField";
 import ProgressMaterialIssuesFields, {
   toMaterialIssuesPayload,
 } from "@/modules/admin/components/progress/ProgressMaterialIssuesFields";
@@ -22,6 +23,7 @@ import {
   fetchPublishedProjectSchedule,
   postActivityProgress,
   requestDurationExtension,
+  uploadProgressAttachment,
 } from "@/modules/admin/api/schedule.api";
 
 const DELAY_REASON_PRESETS = [
@@ -60,6 +62,7 @@ export default function AssignedProgrammeView({
   const [form, setForm] = useState({ percentComplete: 0, notes: "", labourHours: "" });
   const [materialRows, setMaterialRows] = useState([]);
   const [planLines, setPlanLines] = useState([]);
+  const [pendingFiles, setPendingFiles] = useState([]);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [extForm, setExtForm] = useState({
@@ -92,6 +95,7 @@ export default function AssignedProgrammeView({
     setLoading(true);
     setError("");
     setSelected(null);
+    setPendingFiles([]);
     setMessage("");
     return fetchPublishedProjectSchedule(pid)
       .then((schedule) => {
@@ -135,6 +139,7 @@ export default function AssignedProgrammeView({
     setSelected(a);
     setForm({ percentComplete: a?.percentComplete || 0, notes: "", labourHours: "" });
     setMaterialRows([]);
+    setPendingFiles([]);
     setMessage("");
     setExtMessage("");
     const currentDays = Number(a?.durationWorkingDays) || 0;
@@ -187,24 +192,33 @@ export default function AssignedProgrammeView({
     setMessage("");
     try {
       const materialIssues = toMaterialIssuesPayload(materialRows);
-      await postActivityProgress(selected.uuid, {
+      const hadMedia = pendingFiles.length > 0;
+      const created = await postActivityProgress(selected.uuid, {
         percentComplete: Number(form.percentComplete) || 0,
         notes: form.notes || null,
         labourHours: form.labourHours !== "" ? Number(form.labourHours) : null,
         ...(materialIssues.length ? { materialIssues } : {}),
       });
+      if (created?.uuid && pendingFiles.length > 0) {
+        for (const file of pendingFiles) {
+          await uploadProgressAttachment(created.uuid, file);
+        }
+      }
+      setPendingFiles([]);
       setMessage(
         progressMode === "immediate"
-          ? "Progress applied — Gantt updated."
-          : "Submitted for PM validation — awaiting approval."
+          ? hadMedia
+            ? "Progress applied with media — Gantt updated."
+            : "Progress applied — Gantt updated."
+          : hadMedia
+            ? "Submitted with media for PM validation — awaiting approval."
+            : "Submitted for PM validation — awaiting approval."
       );
       setMaterialRows([]);
+      const nextPercent = Number(form.percentComplete) || 0;
+      const keepSelected = selected;
       await loadSchedule(projectId);
-      setSelected((prev) =>
-        prev
-          ? { ...prev, percentComplete: Number(form.percentComplete) || 0 }
-          : null
-      );
+      setSelected({ ...keepSelected, percentComplete: nextPercent });
     } catch (e) {
       setMessage(e?.response?.data?.error || e?.response?.data?.message || "Failed to post progress");
     } finally {
@@ -343,6 +357,16 @@ export default function AssignedProgrammeView({
                     rows={materialRows}
                     onChange={setMaterialRows}
                   />
+                </div>
+                <div className="sm:col-span-2">
+                  <AttachmentUploadField
+                    files={pendingFiles}
+                    onFilesChange={setPendingFiles}
+                    disabled={busy}
+                  />
+                  <p className="mt-1.5 text-[11px] text-muted-foreground">
+                    Attach site photos or documents of work done before applying progress.
+                  </p>
                 </div>
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-3">

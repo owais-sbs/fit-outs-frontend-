@@ -59,6 +59,7 @@ export function AuthProvider({ children }) {
         companyId: userData.companyId,
         companyName: userData.companyName,
         roles: normalizedRoles,
+        enabledFeatures: Array.isArray(userData.enabledFeatures) ? userData.enabledFeatures : [],
       });
       setRoles(normalizedRoles);
 
@@ -159,6 +160,7 @@ export function AuthProvider({ children }) {
         companyId: userData.companyId,
         companyName: userData.companyName,
         roles: normalizedRoles,
+        enabledFeatures: Array.isArray(userData.enabledFeatures) ? userData.enabledFeatures : [],
       });
       setRoles(normalizedRoles);
 

@@ -1,8 +1,6 @@
 import {
   Building2,
   CircleDollarSign,
-  Target,
-  Users,
 } from "lucide-react";
 import {
   EvilLineChart,
@@ -21,14 +19,6 @@ import {
   Legend as AreaLegend,
   Tooltip as AreaTooltip,
 } from "@/components/evilcharts/charts/area-chart";
-import {
-  EvilBarChart,
-  Bar,
-  XAxis as BarXAxis,
-  Grid as BarGrid,
-  Legend as BarLegend,
-  Tooltip as BarTooltip,
-} from "@/components/evilcharts/charts/bar-chart";
 import { EvilPieChart, Pie, Legend as PieLegend, Tooltip as PieTooltip } from "@/components/evilcharts/charts/pie-chart";
 import AnalyticsChartCard from "../dashboard/AnalyticsChartCard";
 import {
@@ -38,10 +28,6 @@ import {
 import {
   TENANT_GROWTH_DATA,
   TENANT_GROWTH_CONFIG,
-  CRM_PERFORMANCE_DATA,
-  CRM_PERFORMANCE_CONFIG,
-  LEAD_CONVERSION_DATA,
-  LEAD_CONVERSION_CONFIG,
   SITE_VISIT_ANALYTICS_DATA,
   SITE_VISIT_CONFIG,
   SUBSCRIPTION_REVENUE_DATA,
@@ -62,8 +48,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 const KPI_ICONS = {
   mrr: CircleDollarSign,
   tenants: Building2,
-  crm: Target,
-  conversion: Users,
 };
 
 export { KPI_ICONS };
@@ -72,7 +56,7 @@ export function RevenueAnalyticsSection() {
   return (
     <AnalyticsChartCard
       title="Revenue analytics"
-      description="MRR and CRM pipeline value (AED thousands)"
+      description="Platform MRR (AED thousands)"
       contentClassName="h-[300px] min-h-[260px] p-0">
       <EvilLineChart
         data={REVENUE_ANALYTICS_DATA}
@@ -83,10 +67,6 @@ export function RevenueAnalyticsSection() {
         <Legend isClickable />
         <Tooltip />
         <Line dataKey="mrr" strokeVariant="solid" isClickable>
-          <Dot variant="border" />
-          <ActiveDot variant="colored-border" />
-        </Line>
-        <Line dataKey="crmPipeline" strokeVariant="solid" isClickable>
           <Dot variant="border" />
           <ActiveDot variant="colored-border" />
         </Line>
@@ -113,53 +93,6 @@ export function TenantGrowthSection() {
         <Area dataKey="newTenants" variant="gradient" isClickable />
         <Area dataKey="churned" variant="gradient" isClickable />
       </EvilAreaChart>
-    </AnalyticsChartCard>
-  );
-}
-
-export function CrmPerformanceSection() {
-  return (
-    <AnalyticsChartCard
-      title="CRM performance"
-      description="Lead funnel volume by month"
-      contentClassName="h-[300px] min-h-[260px] p-0">
-      <EvilBarChart
-        data={CRM_PERFORMANCE_DATA}
-        config={CRM_PERFORMANCE_CONFIG}
-        className="h-full w-full p-4"
-        xDataKey="month">
-        <BarGrid />
-        <BarXAxis dataKey="month" />
-        <BarLegend isClickable />
-        <BarTooltip />
-        <Bar dataKey="leads" isClickable />
-        <Bar dataKey="qualified" isClickable />
-        <Bar dataKey="won" isClickable />
-      </EvilBarChart>
-    </AnalyticsChartCard>
-  );
-}
-
-export function LeadConversionSection() {
-  const pieData = LEAD_CONVERSION_DATA.map((d) => ({
-    stage: d.stage,
-    value: d.rate,
-  }));
-  return (
-    <AnalyticsChartCard
-      title="Lead conversion rates"
-      description="Stage-to-stage conversion across fit-out sales pipeline"
-      contentClassName="h-[300px] min-h-[260px] p-0">
-      <EvilPieChart
-        className="h-full w-full p-4"
-        data={pieData}
-        dataKey="value"
-        nameKey="stage"
-        config={LEAD_CONVERSION_CONFIG}>
-        <PieLegend isClickable />
-        <PieTooltip />
-        <Pie isClickable />
-      </EvilPieChart>
     </AnalyticsChartCard>
   );
 }
@@ -211,7 +144,7 @@ export function MonthlyTrendsSection() {
   return (
     <AnalyticsChartCard
       title="Monthly trends"
-      description="MRR, site visits, and lead volume combined"
+      description="MRR and site visit volume combined"
       contentClassName="h-[300px] min-h-[260px] p-0">
       <EvilLineChart
         data={MONTHLY_TRENDS_DATA}
@@ -223,7 +156,6 @@ export function MonthlyTrendsSection() {
         <Tooltip />
         <Line dataKey="mrr" strokeVariant="solid" isClickable />
         <Line dataKey="visits" strokeVariant="solid" isClickable />
-        <Line dataKey="leads" strokeVariant="solid" isClickable />
       </EvilLineChart>
     </AnalyticsChartCard>
   );

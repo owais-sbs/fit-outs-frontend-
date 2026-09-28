@@ -1,11 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Pause, Play, RefreshCw } from "lucide-react";
+import { ArrowLeft, Pause, Play, RefreshCw, Ban } from "lucide-react";
 import { ROUTES } from "@/shared/constants/routes";
 import PageHeader from "../components/shared/PageHeader";
 import { PageShell, StatTile } from "@/components/layout/PageShell";
 import { MODULES, PLAN_MODULES, TENANT_DETAIL } from "../data/tenants";
-import { PLAN_TYPES } from "../data/plans";
 import { TenantQuickActions } from "../components/tenant-management";
 import { formatAed } from "@/shared/utils/currency";
 import { Button } from "@/components/ui/button";
@@ -27,12 +26,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import { useTenantManagement } from "../context/tenant-management-context";
+import axiosInstance from "@/lib/axiosInstance";
 
-function moduleDiff(currentPlan, newPlan) {
-  const current = new Set(PLAN_MODULES[currentPlan] || []);
-  const next = new Set(PLAN_MODULES[newPlan] || []);
+function moduleDiff(currentModules, nextModules) {
+  const current = new Set(currentModules || []);
+  const next = new Set(nextModules || []);
   const added = [...next].filter((m) => !current.has(m));
   const removed = [...current].filter((m) => !next.has(m));
   const kept = [...current].filter((m) => next.has(m));
@@ -41,15 +40,45 @@ function moduleDiff(currentPlan, newPlan) {
 
 export default function TenantDetailPage() {
   const { tenantId } = useParams();
-  const { getTenantById } = useTenantManagement();
+  const { getTenantById, updateTenantStatus, changeTenantPlan } = useTenantManagement();
   const tenant = getTenantById(tenantId);
   const [planDialogOpen, setPlanDialogOpen] = useState(false);
   const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState(tenant?.plan || "Pro");
-  const [suspended, setSuspended] = useState(tenant?.status === "suspended");
+  const [terminateDialogOpen, setTerminateDialogOpen] = useState(false);
+  const [plans, setPlans] = useState([]);
+  const [selectedPlanUuid, setSelectedPlanUuid] = useState("");
+  const [actionError, setActionError] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    axiosInstance
+      .get("/subscription-plans")
+      .then(({ data }) => {
+        const list = Array.isArray(data?.data) ? data.data : [];
+        setPlans(list.filter((p) => p.active !== false));
+      })
+      .catch(() => setPlans([]));
+  }, []);
+
+  useEffect(() => {
+    if (tenant?.planUuid) {
+      setSelectedPlanUuid(tenant.planUuid);
+    }
+  }, [tenant?.planUuid]);
+
+  const selectedPlan = plans.find((p) => p.uuid === selectedPlanUuid);
+  const currentPlan = plans.find((p) => p.uuid === tenant?.planUuid);
+  const diff = useMemo(
+    () =>
+      moduleDiff(
+        currentPlan?.modulesIncluded || PLAN_MODULES[tenant?.plan] || [],
+        selectedPlan?.modulesIncluded || []
+      ),
+    [currentPlan, selectedPlan, tenant?.plan]
+  );
 
   const detail = TENANT_DETAIL[tenantId] || {
-    enabledModules: PLAN_MODULES[tenant?.plan] || [],
+    enabledModules: currentPlan?.modulesIncluded || PLAN_MODULES[tenant?.plan] || [],
     loginActivity: [{ user: "Admin User", action: "Signed in", time: "Today", ip: "-" }],
     billing: {
       lastInvoice: "-",
@@ -58,11 +87,6 @@ export default function TenantDetailPage() {
       outstanding: "د.إ 0",
     },
   };
-
-  const diff = useMemo(
-    () => (tenant ? moduleDiff(tenant.plan, selectedPlan) : { added: [], removed: [], kept: [] }),
-    [tenant, selectedPlan]
-  );
 
   if (!tenant) {
     return (
@@ -80,7 +104,37 @@ export default function TenantDetailPage() {
     );
   }
 
+  const suspended = tenant.status === "suspended";
+  const terminated = tenant.status === "terminated";
   const modLabel = (id) => MODULES.find((m) => m.id === id)?.name || id;
+
+  const runStatusAction = async (action) => {
+    setBusy(true);
+    setActionError(null);
+    try {
+      await updateTenantStatus(tenant.id, action);
+      setSuspendDialogOpen(false);
+      setTerminateDialogOpen(false);
+    } catch (err) {
+      setActionError(err?.response?.data?.message || err.message || "Action failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const confirmPlanChange = async () => {
+    if (!selectedPlanUuid) return;
+    setBusy(true);
+    setActionError(null);
+    try {
+      await changeTenantPlan(tenant, selectedPlanUuid);
+      setPlanDialogOpen(false);
+    } catch (err) {
+      setActionError(err?.response?.data?.message || err.message || "Plan change failed");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <PageShell>
@@ -95,26 +149,21 @@ export default function TenantDetailPage() {
         <div className="min-w-0 flex-1 space-y-6">
           <PageHeader
             title={tenant.company}
-            description={`${tenant.plan} plan - ${tenant.activeUsers} active users - MRR ${
-              tenant.mrr ? formatAed(tenant.mrr) : "-"
-            }`}
+            description={`${tenant.plan} plan · ${tenant.activeUsers} active users`}
             actions={<TenantQuickActions />}
           />
 
           <div className="grid gap-3 sm:grid-cols-3">
-            <StatTile
-              label="Status"
-              value={suspended ? "suspended" : tenant.status}
-            />
-            <StatTile
-              label="Renewal"
-              value={new Date(tenant.renewalDate).toLocaleDateString("en-AU")}
-            />
-            <StatTile
-              label="Revenue"
-              value={formatAed(tenant.revenue || 0)}
-            />
+            <StatTile label="Status" value={tenant.status} />
+            <StatTile label="Domain" value={tenant.domainSlug || "—"} />
+            <StatTile label="Plan" value={tenant.plan || "—"} />
           </div>
+
+          {actionError && (
+            <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+              {actionError}
+            </div>
+          )}
 
           <Tabs defaultValue="subscription">
             <TabsList>
@@ -128,7 +177,7 @@ export default function TenantDetailPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base">Subscription information</CardTitle>
-                  <CardDescription>Current plan and renewal settings</CardDescription>
+                  <CardDescription>Current plan and access status</CardDescription>
                 </CardHeader>
                 <CardContent className="grid gap-4 text-sm sm:grid-cols-2">
                   <div>
@@ -136,16 +185,20 @@ export default function TenantDetailPage() {
                     <p className="font-medium">{tenant.plan}</p>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Renewal state</span>
-                    <p className="font-medium capitalize">{tenant.renewalState}</p>
+                    <span className="text-muted-foreground">Status</span>
+                    <p className="font-medium capitalize">{tenant.status}</p>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Billing cycle</span>
-                    <p className="font-medium">Monthly</p>
+                    <span className="text-muted-foreground">Domain slug</span>
+                    <p className="font-mono text-xs">{tenant.domainSlug || "—"}</p>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Seats used</span>
-                    <p className="font-medium">{tenant.activeUsers}</p>
+                    <span className="text-muted-foreground">Created</span>
+                    <p className="font-medium">
+                      {tenant.createdAt
+                        ? new Date(tenant.createdAt).toLocaleDateString("en-AU")
+                        : "—"}
+                    </p>
                   </div>
                 </CardContent>
               </Card>
@@ -157,11 +210,14 @@ export default function TenantDetailPage() {
                   <CardTitle className="text-base">Enabled modules</CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-wrap gap-2">
-                  {detail.enabledModules.map((id) => (
+                  {(currentPlan?.modulesIncluded || detail.enabledModules || []).map((id) => (
                     <Badge key={id} variant="secondary">
                       {modLabel(id)}
                     </Badge>
                   ))}
+                  {!(currentPlan?.modulesIncluded || detail.enabledModules || []).length && (
+                    <p className="text-sm text-muted-foreground">No modules assigned yet</p>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -192,6 +248,9 @@ export default function TenantDetailPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base">Billing summary</CardTitle>
+                  <CardDescription>
+                    Use the Payments page for SaaS payment log and approvals.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="grid gap-3 text-sm sm:grid-cols-2">
                   <div>
@@ -226,13 +285,24 @@ export default function TenantDetailPage() {
                 <RefreshCw className="h-4 w-4" />
                 Change plan
               </Button>
-              <Button
-                className="w-full gap-2"
-                variant={suspended ? "default" : "destructive"}
-                onClick={() => setSuspendDialogOpen(true)}>
-                {suspended ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
-                {suspended ? "Reactivate" : "Suspend tenant"}
-              </Button>
+              {!terminated && (
+                <Button
+                  className="w-full gap-2"
+                  variant={suspended ? "default" : "destructive"}
+                  onClick={() => setSuspendDialogOpen(true)}>
+                  {suspended ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+                  {suspended ? "Activate" : "Suspend"}
+                </Button>
+              )}
+              {!terminated && (
+                <Button
+                  className="w-full gap-2"
+                  variant="outline"
+                  onClick={() => setTerminateDialogOpen(true)}>
+                  <Ban className="h-4 w-4" />
+                  Cancel (terminate)
+                </Button>
+              )}
             </CardContent>
           </Card>
         </aside>
@@ -242,18 +312,16 @@ export default function TenantDetailPage() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Change subscription plan</DialogTitle>
-            <DialogDescription>
-              Review module changes before applying to {tenant.company}.
-            </DialogDescription>
+            <DialogDescription>Assign an active plan to {tenant.company}.</DialogDescription>
           </DialogHeader>
-          <Select value={selectedPlan} onValueChange={setSelectedPlan}>
+          <Select value={selectedPlanUuid} onValueChange={setSelectedPlanUuid}>
             <SelectTrigger>
-              <SelectValue />
+              <SelectValue placeholder="Select plan" />
             </SelectTrigger>
             <SelectContent>
-              {PLAN_TYPES.map((p) => (
-                <SelectItem key={p.id} value={p.displayName}>
-                  {p.displayName}
+              {plans.map((p) => (
+                <SelectItem key={p.uuid} value={p.uuid}>
+                  {p.planName} — {formatAed(p.priceMonthly)}/mo
                 </SelectItem>
               ))}
             </SelectContent>
@@ -262,28 +330,13 @@ export default function TenantDetailPage() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm">Module comparison</CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-3 text-sm sm:grid-cols-2">
-              <div>
-                <p className="mb-1 font-medium text-muted-foreground">Current ({tenant.plan})</p>
-                {PLAN_MODULES[tenant.plan]?.map((m) => (
-                  <p key={m}>{modLabel(m)}</p>
-                ))}
-              </div>
-              <div>
-                <p className="mb-1 font-medium text-primary">New ({selectedPlan})</p>
-                {PLAN_MODULES[selectedPlan]?.map((m) => (
-                  <p key={m}>{modLabel(m)}</p>
-                ))}
-              </div>
-            </CardContent>
-            <Separator className="my-2" />
             <CardContent className="grid gap-2 text-xs sm:grid-cols-3">
               <div>
                 <p className="font-semibold text-emerald-600">Added</p>
                 {diff.added.length ? (
                   diff.added.map((m) => <p key={m}>+ {modLabel(m)}</p>)
                 ) : (
-                  <p className="text-muted-foreground">-</p>
+                  <p className="text-muted-foreground">—</p>
                 )}
               </div>
               <div>
@@ -291,14 +344,16 @@ export default function TenantDetailPage() {
                 {diff.removed.length ? (
                   diff.removed.map((m) => <p key={m}>- {modLabel(m)}</p>)
                 ) : (
-                  <p className="text-muted-foreground">-</p>
+                  <p className="text-muted-foreground">—</p>
                 )}
               </div>
               <div>
                 <p className="font-semibold">Unchanged</p>
-                {diff.kept.map((m) => (
-                  <p key={m}>{modLabel(m)}</p>
-                ))}
+                {diff.kept.length ? (
+                  diff.kept.map((m) => <p key={m}>{modLabel(m)}</p>)
+                ) : (
+                  <p className="text-muted-foreground">—</p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -306,7 +361,9 @@ export default function TenantDetailPage() {
             <Button variant="outline" onClick={() => setPlanDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={() => setPlanDialogOpen(false)}>Confirm plan change</Button>
+            <Button onClick={confirmPlanChange} disabled={busy || !selectedPlanUuid}>
+              Confirm plan change
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -314,11 +371,11 @@ export default function TenantDetailPage() {
       <Dialog open={suspendDialogOpen} onOpenChange={setSuspendDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{suspended ? "Reactivate tenant" : "Suspend tenant"}</DialogTitle>
+            <DialogTitle>{suspended ? "Activate company" : "Suspend company"}</DialogTitle>
             <DialogDescription>
               {suspended
-                ? `Restore platform access for ${tenant.company}.`
-                : `Users will lose access until reactivated.`}
+                ? `Restore login access for ${tenant.company}.`
+                : `Users of ${tenant.company} will lose access until activated.`}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -327,11 +384,28 @@ export default function TenantDetailPage() {
             </Button>
             <Button
               variant={suspended ? "default" : "destructive"}
-              onClick={() => {
-                setSuspended(!suspended);
-                setSuspendDialogOpen(false);
-              }}>
+              disabled={busy}
+              onClick={() => runStatusAction(suspended ? "activate" : "suspend")}>
               Confirm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={terminateDialogOpen} onOpenChange={setTerminateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancel company</DialogTitle>
+            <DialogDescription>
+              Mark {tenant.company} as terminated. Users will lose access.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTerminateDialogOpen(false)}>
+              Back
+            </Button>
+            <Button variant="destructive" disabled={busy} onClick={() => runStatusAction("terminate")}>
+              Confirm cancel
             </Button>
           </DialogFooter>
         </DialogContent>

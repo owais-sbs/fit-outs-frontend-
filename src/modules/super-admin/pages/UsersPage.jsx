@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { Mail, MoreHorizontal, UserPlus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { MoreHorizontal, UserPlus } from "lucide-react";
 import PageHeader from "../components/shared/PageHeader";
 import { FilterToolbar, SearchInput } from "@/components/layout/PageShell";
 import { PLATFORM_USERS, BASE_ROLES } from "../data/users";
 import { PERMISSION_MODULES, PERMISSION_ACTIONS } from "../data/permissions";
+import { ROUTES } from "@/shared/constants/routes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -19,13 +21,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   Sheet,
   SheetContent,
@@ -67,11 +62,11 @@ function normalizeUser(account) {
 }
 
 export default function UsersPage() {
+  const navigate = useNavigate();
   const [users, setUsers] = useState(PLATFORM_USERS);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
-  const [inviteOpen, setInviteOpen] = useState(false);
   const [editUser, setEditUser] = useState(null);
   const [saved, setSaved] = useState(false);
 
@@ -114,7 +109,11 @@ export default function UsersPage() {
         title="Users"
         description="Invite users, assign roles, and configure per-user module access."
         actions={
-          <Button size="sm" className="gap-2" onClick={() => setInviteOpen(true)}>
+          <Button
+            size="sm"
+            className="gap-2"
+            onClick={() => navigate(ROUTES.SUPER_ADMIN.TENANTS_CREATE)}
+          >
             <UserPlus className="h-4 w-4" />
             Invite user
           </Button>
@@ -186,27 +185,6 @@ export default function UsersPage() {
           </Table>
         </div>
       </Card>
-
-      <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Invite user</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div><Label>Email</Label><Input type="email" placeholder="name@company.com" className="mt-1" /></div>
-            <div>
-              <Label>Role</Label>
-              <Select><SelectTrigger className="mt-1"><SelectValue placeholder="Select role" /></SelectTrigger>
-                <SelectContent>{BASE_ROLES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setInviteOpen(false)}>Cancel</Button>
-            <Button className="gap-2" onClick={() => setInviteOpen(false)}><Mail className="h-4 w-4" />Send invite</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <Sheet open={!!editUser} onOpenChange={(o) => !o && setEditUser(null)}>
         <SheetContent className="w-full overflow-y-auto sm:max-w-lg">

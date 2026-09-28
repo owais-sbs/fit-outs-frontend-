@@ -1,5 +1,7 @@
-import { Download, Plus, Building2 } from "lucide-react";
+import { Plus } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { ROUTES } from "@/shared/constants/routes";
 
 function formatCurrentDate() {
   return new Intl.DateTimeFormat("en-AU", {
@@ -30,20 +32,12 @@ export default function DashboardHeader({
       </div>
       <div className="flex flex-wrap items-center gap-2">
         {children || (
-          <>
-            <Button variant="outline" size="sm" className="gap-2">
-              <Download className="h-4 w-4" />
-              Export
-            </Button>
-            <Button size="sm" className="gap-2">
+          <Button size="sm" className="gap-2" asChild>
+            <Link to={ROUTES.SUPER_ADMIN.TENANTS_CREATE}>
               <Plus className="h-4 w-4" />
               Add tenant
-            </Button>
-            <Button variant="secondary" size="sm" className="gap-2">
-              <Building2 className="h-4 w-4" />
-              View all tenants
-            </Button>
-          </>
+            </Link>
+          </Button>
         )}
       </div>
     </div>

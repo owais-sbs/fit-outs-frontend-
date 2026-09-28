@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { CalendarPlus, ClipboardList, ExternalLink } from "lucide-react";
+import { CalendarPlus, ClipboardList } from "lucide-react";
 import { ROUTES } from "@/shared/constants/routes";
 import PageHeader from "../components/shared/PageHeader";
 import AnalyticsToolbar from "@/modules/shared/components/AnalyticsToolbar";
@@ -9,8 +9,6 @@ import DashboardSection from "../components/dashboard/DashboardSection";
 import {
   RevenueAnalyticsSection,
   TenantGrowthSection,
-  CrmPerformanceSection,
-  LeadConversionSection,
   SiteVisitAnalyticsSection,
   SubscriptionRevenueSection,
   MonthlyTrendsSection,
@@ -44,7 +42,7 @@ export default function ReportsPage() {
     <div className="space-y-8 pb-8">
       <PageHeader
         title="Reports & analytics"
-        description="Platform-wide revenue, tenant growth, CRM performance, and site visit insights."
+        description="Platform-wide revenue, tenant growth, and site visit insights."
       />
 
       <AnalyticsToolbar
@@ -76,7 +74,6 @@ export default function ReportsPage() {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="revenue">Revenue</TabsTrigger>
           <TabsTrigger value="tenants">Tenant growth</TabsTrigger>
-          <TabsTrigger value="crm">CRM</TabsTrigger>
           <TabsTrigger value="visits">Site visits</TabsTrigger>
         </TabsList>
 
@@ -84,8 +81,6 @@ export default function ReportsPage() {
           <DashboardSection gridClassName="lg:grid-cols-2">
             <RevenueAnalyticsSection />
             <TenantGrowthSection />
-            <CrmPerformanceSection />
-            <LeadConversionSection />
             <SiteVisitAnalyticsSection />
             <SubscriptionRevenueSection />
           </DashboardSection>
@@ -105,13 +100,6 @@ export default function ReportsPage() {
           <TenantGrowthSection />
         </TabsContent>
 
-        <TabsContent value="crm" className="space-y-6">
-          <DashboardSection gridClassName="lg:grid-cols-2">
-            <CrmPerformanceSection />
-            <LeadConversionSection />
-          </DashboardSection>
-        </TabsContent>
-
         <TabsContent value="visits" className="space-y-6">
           <div className="flex flex-wrap gap-2">
             <Button asChild variant="outline" className="gap-2">
@@ -124,12 +112,6 @@ export default function ReportsPage() {
               <Link to={ROUTES.SUPER_ADMIN.SITE_VISIT_SCHEDULE}>
                 <CalendarPlus className="h-4 w-4" />
                 Schedule visit
-              </Link>
-            </Button>
-            <Button asChild variant="ghost" className="gap-2">
-              <Link to={ROUTES.ADMIN.SITE_VISITS}>
-                <ExternalLink className="h-4 w-4" />
-                CRM view
               </Link>
             </Button>
           </div>

@@ -3,6 +3,7 @@ export { default as TenantsPage } from "./TenantsPage";
 export { default as CreateCompanyPage } from "./CreateCompanyPage";
 export { default as TenantDetailPage } from "./TenantDetailPage";
 export { default as PlansPage } from "./PlansPage";
+export { default as PaymentsPage } from "./PaymentsPage";
 export { default as UsersPage } from "./UsersPage";
 export { default as PermissionsPage } from "./PermissionsPage";
 export { default as ReportsPage } from "./ReportsPage";

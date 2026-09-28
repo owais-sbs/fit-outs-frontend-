@@ -14,7 +14,9 @@ function normalizeTenant(tenant, planLookup) {
   const id = tenant.uuid || tenant.id;
   const status = (tenant.status || "active").toLowerCase();
   const planUuid = tenant.subscriptionPlanUuid || tenant.plan || null;
-  const planName = planLookup && planUuid ? (planLookup[planUuid] || planUuid) : (planUuid || "—");
+  const planName =
+    tenant.subscriptionPlanName ||
+    (planLookup && planUuid ? planLookup[planUuid] || planUuid : planUuid || "—");
   return {
     ...tenant,
     id,
@@ -100,18 +102,101 @@ export function TenantManagementProvider({ children }) {
   }, []);
 
   const stats = useMemo(() => {
-    const totalRevenue = 0;
     const activeSubscriptions = tenants.filter((tenant) => tenant.status === "active").length;
+    const suspendedTenants = tenants.filter((tenant) => tenant.status === "suspended").length;
     const trialTenants = tenants.filter((tenant) => tenant.status === "trial").length;
-    const expiringSoon = 0;
+    const terminatedTenants = tenants.filter((tenant) => tenant.status === "terminated").length;
 
     return {
-      totalRevenue,
+      totalRevenue: 0,
       activeSubscriptions,
+      suspendedTenants,
       trialTenants,
-      expiringSoon,
+      terminatedTenants,
+      expiringSoon: 0,
     };
   }, [tenants]);
+
+  const refreshTenants = useCallback(async () => {
+    setTenantsLoading(true);
+    setTenantsError(null);
+    try {
+      const [companiesRes, plansRes] = await Promise.all([
+        axiosInstance.get("/companies/GetAllCompanies"),
+        axiosInstance.get("/subscription-plans").catch(() => ({ data: { data: [] } })),
+      ]);
+      const companyList = Array.isArray(companiesRes.data?.data) ? companiesRes.data.data : [];
+      const planList = Array.isArray(plansRes.data?.data) ? plansRes.data.data : [];
+      const planLookup = Object.fromEntries(planList.map((p) => [p.uuid, p.planName]));
+      setTenants(buildTenantRows(companyList, planLookup));
+    } catch (err) {
+      setTenantsError(err?.response?.data?.message || err.message || "Failed to load companies");
+    } finally {
+      setTenantsLoading(false);
+    }
+  }, []);
+
+  const updateTenantStatus = useCallback(async (tenantId, action) => {
+    const endpoint =
+      action === "activate"
+        ? `/companies/ActivateCompany/${tenantId}`
+        : action === "suspend"
+          ? `/companies/SuspendCompany/${tenantId}`
+          : `/companies/TerminateCompany/${tenantId}`;
+    const { data } = await axiosInstance.post(endpoint);
+    const updated = data?.data;
+    if (updated) {
+      setTenants((prev) =>
+        prev.map((tenant) =>
+          tenant.id === tenantId
+            ? normalizeTenant(
+                {
+                  ...tenant,
+                  ...updated,
+                  status: updated.status,
+                  subscriptionPlanUuid: updated.subscriptionPlanUuid,
+                  subscriptionPlanName: updated.subscriptionPlanName,
+                },
+                null
+              )
+            : tenant
+        )
+      );
+    } else {
+      await refreshTenants();
+    }
+    return updated;
+  }, [refreshTenants]);
+
+  const changeTenantPlan = useCallback(async (tenant, planUuid) => {
+    const { data } = await axiosInstance.put(`/companies/UpdateCompany/${tenant.id}`, {
+      companyName: tenant.company,
+      domainSlug: tenant.domainSlug,
+      logo: tenant.logo || undefined,
+      subscriptionPlanUuid: planUuid,
+      status: (tenant.status || "ACTIVE").toUpperCase(),
+    });
+    const updated = data?.data;
+    if (updated) {
+      setTenants((prev) =>
+        prev.map((row) =>
+          row.id === tenant.id
+            ? normalizeTenant(
+                {
+                  ...row,
+                  ...updated,
+                  status: updated.status,
+                  subscriptionPlanUuid: updated.subscriptionPlanUuid,
+                  subscriptionPlanName: updated.subscriptionPlanName,
+                },
+                null
+              )
+            : row
+        )
+      );
+    }
+    return updated;
+  }, []);
 
   const exportTenants = useCallback(() => {
     const csv = createCsvRows(tenants);
@@ -139,8 +224,22 @@ export function TenantManagementProvider({ children }) {
       setExportOpen,
       exportTenants,
       getTenantById,
+      refreshTenants,
+      updateTenantStatus,
+      changeTenantPlan,
     }),
-    [tenants, tenantsLoading, tenantsError, stats, exportOpen, exportTenants, getTenantById]
+    [
+      tenants,
+      tenantsLoading,
+      tenantsError,
+      stats,
+      exportOpen,
+      exportTenants,
+      getTenantById,
+      refreshTenants,
+      updateTenantStatus,
+      changeTenantPlan,
+    ]
   );
 
   return (

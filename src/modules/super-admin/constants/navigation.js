@@ -2,8 +2,8 @@ import {
   LayoutDashboard,
   Building2,
   CreditCard,
+  Wallet,
   Users,
-  Shield,
   BarChart3,
   Settings,
   FileText,
@@ -17,13 +17,13 @@ export const SUPER_ADMIN_NAV_GROUPS = [
       { label: "Dashboard", href: ROUTES.SUPER_ADMIN.DASHBOARD, icon: LayoutDashboard, end: true },
       { label: "Companies", href: ROUTES.SUPER_ADMIN.TENANTS, icon: Building2 },
       { label: "Subscription Plans", href: ROUTES.SUPER_ADMIN.PLANS, icon: CreditCard },
+      { label: "Payments", href: ROUTES.SUPER_ADMIN.PAYMENTS, icon: Wallet },
     ],
   },
   {
     label: "Access",
     items: [
       { label: "Users", href: ROUTES.SUPER_ADMIN.USERS, icon: Users },
-      { label: "Permissions", href: ROUTES.SUPER_ADMIN.PERMISSIONS, icon: Shield },
     ],
   },
   {
