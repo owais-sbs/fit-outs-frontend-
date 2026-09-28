@@ -29,14 +29,18 @@ export const fetchEmployeeById = (id) =>
 
 export const createEmployee = (form) =>
   axiosInstance
-    .post("/employees", {
-      employeeName: form.employeeName.trim(),
-      email: form.email.trim(),
-      phone: form.phone?.trim() || null,
-      designation: form.designation?.trim() || null,
-      role: toBackendRole(form.role),
-      features: form.features || [],
-    })
+    .post(
+      "/employees",
+      {
+        employeeName: form.employeeName.trim(),
+        email: form.email.trim(),
+        phone: form.phone?.trim() || null,
+        designation: form.designation?.trim() || null,
+        role: toBackendRole(form.role),
+        features: form.features || [],
+      },
+      { timeout: 45000 }
+    )
     .then((r) => normalizeEmployee(r.data?.data ?? r.data));
 
 export const updateEmployee = (id, form) =>
@@ -55,4 +59,4 @@ export const deleteEmployee = (id) =>
   axiosInstance.delete(`/employees/${id}`).then((r) => r.data?.data);
 
 export const resendEmployeeInvite = (id) =>
-  axiosInstance.post(`/employees/${id}/resend-invite`).then((r) => r.data);
+  axiosInstance.post(`/employees/${id}/resend-invite`, null, { timeout: 45000 }).then((r) => r.data);
