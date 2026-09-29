@@ -17,6 +17,7 @@ import {
 } from "../../api/resource.api";
 import { fetchProjectSchedule } from "../../api/schedule.api";
 import { projectPlanningBackPath } from "@/shared/constants/routes";
+import { notify } from "@/lib/notify";
 
 function activityLabel(a) {
   if (!a) return "Activity";
@@ -83,9 +84,11 @@ export default function LabourPlanPage() {
     try {
       await fn();
       await load();
-      if (okMsg) setMessage(okMsg);
+      if (okMsg) notify.success(okMsg);
     } catch (e) {
-      setMessage(e?.response?.data?.error || e?.response?.data?.message || "Request failed");
+      const errMsg = e?.response?.data?.error || e?.response?.data?.message || "Request failed";
+      setMessage(errMsg);
+      notify.error(errMsg);
     } finally {
       setBusy(false);
     }

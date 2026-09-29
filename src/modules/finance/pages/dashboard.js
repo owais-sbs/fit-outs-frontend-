@@ -5,6 +5,8 @@ import {
 } from "lucide-react";
 import DashboardHeader from "@/modules/super-admin/components/DashboardHeader";
 import { PageShell, StatTile } from "@/components/layout/PageShell";
+import LoadingPanel from "@/components/shared/LoadingPanel";
+import { loadingMessages } from "@/components/shared/loadingMessages";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -118,10 +120,7 @@ export default function FinanceDashboard() {
       )}
 
       {loading && (
-        <div className="flex items-center justify-center gap-2 rounded-xl border border-border/60 bg-card/60 py-16 text-sm text-muted-foreground">
-          <Loader2 className="h-5 w-5 animate-spin" />
-          Loading finance dashboard…
-        </div>
+        <LoadingPanel size="section" messages={loadingMessages.finance} />
       )}
 
       {!loading && (

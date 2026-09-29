@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import {
-  ArrowLeft, Loader2, Plus, Trash2, Upload, Camera, Save, Wand2, Truck, AlertTriangle,
+  ArrowLeft, Plus, Trash2, Upload, Camera, Save, Wand2, Truck, AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,11 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { PageShell, PageTitle } from "@/components/layout/PageShell";
+import Breadcrumbs from "@/components/shared/Breadcrumbs";
+import StatusBadge from "@/components/shared/StatusBadge";
+import LoadingPanel from "@/components/shared/LoadingPanel";
+import { loadingMessages } from "@/components/shared/loadingMessages";
+import { notify } from "@/lib/notify";
 import {
   fetchProjectSchedule,
   createScheduleActivity,
@@ -284,9 +289,11 @@ export default function ProjectSchedulePage() {
     try {
       await fn();
       await load();
-      if (okMsg) setMessage(okMsg);
+      if (okMsg) notify.success(okMsg);
     } catch (e) {
-      setMessage(e?.response?.data?.error || e?.response?.data?.message || "Request failed");
+      const errMsg = e?.response?.data?.error || e?.response?.data?.message || "Request failed";
+      setMessage(errMsg);
+      notify.error(errMsg);
     } finally {
       setBusy(false);
     }
@@ -402,7 +409,7 @@ export default function ProjectSchedulePage() {
       setCpmNotes([...(result?.refusals || []), ...(result?.warnings || [])]);
       loadOrderBy();
       if (result?.finishMovedByDays) {
-        setMessage(
+        notify.success(
           result.finishMovedByDays > 0
             ? `Finish date slipped ${result.finishMovedByDays} days to ${result.projectFinish}.`
             : `Finish date pulled in ${Math.abs(result.finishMovedByDays)} days to ${result.projectFinish}.`
@@ -418,14 +425,16 @@ export default function ProjectSchedulePage() {
     setShowWizard(false);
     setPreviewGantt(null);
     setCpmNotes(result?.preview?.warnings || []);
-    setMessage(result?.note || `Programme applied (${result?.activitiesWritten ?? 0} activities)`);
+    notify.success(result?.note || `Programme applied (${result?.activitiesWritten ?? 0} activities)`);
     setLoading(true);
     try {
       const data = await fetchProjectSchedule(projectId);
       setSchedule(data);
       loadOrderBy();
     } catch {
-      setMessage("Programme was applied but could not be reloaded. Refresh the page.");
+      const errMsg = "Programme was applied but could not be reloaded. Refresh the page.";
+      setMessage(errMsg);
+      notify.error(errMsg);
     } finally {
       setLoading(false);
     }
@@ -460,8 +469,8 @@ export default function ProjectSchedulePage() {
 
   if (loading) {
     return (
-      <div className="py-24 flex justify-center text-muted-foreground">
-        <Loader2 className="h-6 w-6 animate-spin" />
+      <div className="py-8">
+        <LoadingPanel size="page" messages={loadingMessages.schedule} />
       </div>
     );
   }
@@ -480,19 +489,27 @@ export default function ProjectSchedulePage() {
 
   return (
     <PageShell className="max-w-7xl mx-auto">
+      <Breadcrumbs
+        items={[
+          { label: isPm || routes.SCHEDULE_HUB ? "Schedules" : "Projects", to: scheduleHubPath },
+          { label: schedule?.projectName || `Project #${projectId}`, to: detailPath },
+          { label: "Schedule" },
+        ]}
+      />
       <PageTitle
         title="Schedule workspace"
         subtitle="Readiness · Gantt · progress in one place"
         actions={
           <div className="flex flex-wrap gap-2 items-center">
             {isPublished ? (
-              <Badge className="bg-emerald-500/15 text-emerald-800">Published</Badge>
+              <StatusBadge status="PUBLISHED" label="Published" />
             ) : isDraftSchedule ? (
-              <Badge className="bg-amber-500/15 text-amber-800">Draft</Badge>
+              <StatusBadge status="DRAFT" label="Draft" />
             ) : null}
-            <Badge className={publishAllowed || schedule?.ganttPublishAllowed ? "bg-emerald-500/15 text-emerald-800" : "bg-amber-500/15 text-amber-800"}>
-              {publishAllowed || schedule?.ganttPublishAllowed ? "Publish allowed" : "Mark planning ready"}
-            </Badge>
+            <StatusBadge
+              status={publishAllowed || schedule?.ganttPublishAllowed ? "APPROVED" : "PENDING"}
+              label={publishAllowed || schedule?.ganttPublishAllowed ? "Publish allowed" : "Mark planning ready"}
+            />
             <div className="flex items-center gap-2 rounded-lg border border-border/60 px-2.5 py-1">
               <Switch
                 id="show-baseline"
@@ -554,15 +571,15 @@ export default function ProjectSchedulePage() {
 
       {message && <p className="text-sm text-muted-foreground">{message}</p>}
       {baselineNote && showBaseline && (
-        <p className="text-xs text-amber-700">{baselineNote}</p>
+        <p className="text-xs text-amber-700 dark:text-amber-300">{baselineNote}</p>
       )}
 
       {!!cpmNotes.length && (
         <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
-          <p className="flex items-center gap-1.5 text-sm font-semibold text-amber-900">
+          <p className="flex items-center gap-1.5 text-sm font-semibold text-amber-900 dark:text-amber-200">
             <AlertTriangle className="h-4 w-4" /> The engine has notes on this programme
           </p>
-          <ul className="mt-1 space-y-0.5 text-xs text-amber-900">
+          <ul className="mt-1 space-y-0.5 text-xs text-amber-900 dark:text-amber-200/90">
             {cpmNotes.slice(0, 8).map((n) => <li key={n}>· {n}</li>)}
             {cpmNotes.length > 8 && (
               <li className="text-muted-foreground">and {cpmNotes.length - 8} more</li>
@@ -572,7 +589,7 @@ export default function ProjectSchedulePage() {
       )}
 
       {usingPreview && (
-        <p className="text-sm text-sky-800 bg-sky-500/10 rounded-lg px-4 py-2">
+        <p className="text-sm text-sky-800 dark:text-sky-300 bg-sky-500/10 rounded-lg px-4 py-2">
           Showing a <strong>preview</strong> of the computed programme. Click{" "}
           <strong>Apply and publish</strong> in the wizard above to save it to this project.
         </p>
@@ -641,7 +658,7 @@ export default function ProjectSchedulePage() {
               });
               return (
                 <div key={`live-path-${index}-${labels.join(">")}`} className="flex items-start gap-2 text-xs">
-                  <Badge className={index === 0 ? "bg-amber-500/15 text-amber-800" : "bg-secondary text-muted-foreground"}>
+                  <Badge className={index === 0 ? "bg-amber-500/15 text-amber-800 dark:text-amber-300" : "bg-secondary text-muted-foreground"}>
                     {index === 0 ? "Critical" : `Path ${index + 1}`}
                   </Badge>
                   <span className="font-mono text-muted-foreground">{labels.join(" → ")}</span>
@@ -659,7 +676,7 @@ export default function ProjectSchedulePage() {
               <Truck className="h-4 w-4" /> Order-by dates
             </CardTitle>
             {overdueOrderBys.length > 0 && (
-              <Badge className="bg-red-500/15 text-red-800">
+              <Badge className="bg-red-500/15 text-red-800 dark:text-red-300">
                 {overdueOrderBys.length} already past
               </Badge>
             )}
@@ -686,7 +703,7 @@ export default function ProjectSchedulePage() {
                       <td className="px-4 py-2 text-xs text-muted-foreground">
                         {r.installActivityCode} · {r.installStartDate}
                       </td>
-                      <td className={`px-4 py-2 ${r.overdue ? "font-semibold text-red-700" : ""}`}>
+                      <td className={`px-4 py-2 ${r.overdue ? "font-semibold text-red-700 dark:text-red-300" : ""}`}>
                         {r.orderByDate}
                         <span className="ml-1 text-xs font-normal text-muted-foreground">
                           {r.daysToOrderBy < 0
@@ -1020,7 +1037,7 @@ export default function ProjectSchedulePage() {
               <p className="text-sm font-medium flex items-center gap-1">
                 <Camera className="h-4 w-4" /> Progress update
               </p>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Progress is applied to the schedule only after PM approval in the Validation Inbox.
               </p>
               <div>
@@ -1057,7 +1074,7 @@ export default function ProjectSchedulePage() {
                 <div className="rounded-md border border-border/50 p-2 space-y-1">
                   <p className="text-xs font-medium">Plan vs issued</p>
                   {materialSummary.map((row) => (
-                    <div key={row.materialId} className="flex justify-between gap-2 text-[11px] text-muted-foreground">
+                    <div key={row.materialId} className="flex justify-between gap-2 text-xs text-muted-foreground">
                       <span className="truncate">{row.materialName || row.materialId}</span>
                       <span className="tabular-nums whitespace-nowrap">
                         plan {Number(row.plannedQty ?? 0)} · issued {Number(row.issuedQty ?? 0)}
@@ -1075,14 +1092,14 @@ export default function ProjectSchedulePage() {
                       <div className="flex flex-wrap items-center gap-1.5">
                         <span>{u.percentComplete}% · {u.notes || "—"}</span>
                         {u.validationStatus && (
-                          <Badge variant="secondary" className="text-[10px] h-5">
+                          <Badge variant="secondary" className="text-xs h-5">
                             {u.validationStatus}
                           </Badge>
                         )}
                         <span>· {u.reportedAt ? new Date(u.reportedAt).toLocaleString() : ""}</span>
                       </div>
                       {Array.isArray(u.materialIssues) && u.materialIssues.length > 0 && (
-                        <span className="block text-[10px]">
+                        <span className="block text-xs">
                           Materials: {u.materialIssues.map((m) => `${m.materialName || m.materialId}×${m.qty}`).join(", ")}
                         </span>
                       )}

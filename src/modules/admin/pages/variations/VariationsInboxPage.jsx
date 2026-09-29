@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Loader2 } from "lucide-react";
 import { PageShell, PageTitle, Surface } from "@/components/layout/PageShell";
+import LoadingPanel from "@/components/shared/LoadingPanel";
+import { loadingMessages } from "@/components/shared/loadingMessages";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -85,7 +86,7 @@ export default function VariationsInboxPage() {
       />
       {message && <p className="text-sm text-muted-foreground mb-3">{message}</p>}
       {loading ? (
-        <div className="py-16 flex justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>
+        <LoadingPanel size="page" messages={loadingMessages.projects} />
       ) : (
         <Tabs defaultValue={canTriage ? "triage" : "matrix"}>
           <TabsList>

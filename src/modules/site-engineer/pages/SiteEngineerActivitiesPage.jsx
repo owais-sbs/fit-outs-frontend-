@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2 } from "lucide-react";
 import { PageShell, PageTitle } from "@/components/layout/PageShell";
+import LoadingPanel from "@/components/shared/LoadingPanel";
+import { loadingMessages } from "@/components/shared/loadingMessages";
 import { fetchMyScheduleActivities } from "@/modules/admin/api/schedule.api";
 import { fetchMySiteEngineerProjects } from "@/modules/site-engineer/api/projects.api";
 import AssignedProgrammeView from "@/modules/shared/schedule/AssignedProgrammeView";
@@ -47,9 +48,7 @@ export default function SiteEngineerActivitiesPage() {
   if (loading) {
     return (
       <PageShell className="mx-auto max-w-[1400px]">
-        <div className="flex justify-center py-24 text-muted-foreground">
-          <Loader2 className="h-6 w-6 animate-spin" />
-        </div>
+        <LoadingPanel size="page" messages={loadingMessages.schedule} />
       </PageShell>
     );
   }

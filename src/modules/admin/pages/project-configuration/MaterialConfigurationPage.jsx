@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from "react";
 import {
-  Search, Trash2, Edit2, Folder, X, AlertCircle, ChevronDown, ChevronRight, Package
+  Search, Trash2, Edit2, Folder, ChevronDown, ChevronRight, Package
 } from "lucide-react";
 import ConfigurationLayout from "../../components/shared/configuration/ConfigurationLayout";
 import PageHeader from "../../components/shared/configuration/PageHeader";
 import MasterFormModal from "../../components/shared/configuration/MasterFormModal";
 import DeleteConfirmationModal from "../../components/shared/configuration/DeleteConfirmationModal";
-import EmptyState from "../../components/shared/configuration/EmptyState";
+import EmptyState from "@/components/shared/EmptyState";
+import StatusBadge from "@/components/shared/StatusBadge";
+import TableSkeleton from "@/components/shared/TableSkeleton";
+import LoadingPanel from "@/components/shared/LoadingPanel";
+import { loadingMessages } from "@/components/shared/loadingMessages";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,8 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
+import { notify } from "@/lib/notify";
 import {
   fetchMaterials,
   fetchMaterialCategories,
@@ -54,7 +57,6 @@ export default function MaterialConfigurationPage() {
   const [selectedItem, setSelectedItem] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [formErrors, setFormErrors] = useState({});
-  const [toast, setToast] = useState(null);
   const [categoryForm, setCategoryForm] = useState({ name: "", code: "" });
   const [formData, setFormData] = useState({
     materialCategoryId: "",
@@ -71,8 +73,11 @@ export default function MaterialConfigurationPage() {
   });
 
   const triggerToast = (type, title, message) => {
-    setToast({ type, title, message });
-    setTimeout(() => setToast(null), 4000);
+    const opts = { description: message };
+    if (type === "success") notify.success(title, opts);
+    else if (type === "error") notify.error(title, opts);
+    else if (type === "warning") notify.warning(title, opts);
+    else notify.info(title, opts);
   };
 
   const loadCategories = async () => {
@@ -280,19 +285,6 @@ export default function MaterialConfigurationPage() {
 
   return (
     <ConfigurationLayout>
-      {toast && (
-        <div className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border ${
-          toast.type === "success" ? "bg-emerald-50 text-emerald-800 border-emerald-200" : "bg-red-50 text-red-800 border-red-200"
-        }`}>
-          <AlertCircle className="w-5 h-5" />
-          <div>
-            <h4 className="text-xs font-bold">{toast.title}</h4>
-            <p className="text-[11px]">{toast.message}</p>
-          </div>
-          <button onClick={() => setToast(null)}><X className="w-4 h-4" /></button>
-        </div>
-      )}
-
       <div className="space-y-6">
         <PageHeader
           title="Materials Master"
@@ -336,19 +328,20 @@ export default function MaterialConfigurationPage() {
         <Card>
           <CardContent className="p-0 overflow-x-auto">
             {isLoading ? (
-              <div className="p-6 space-y-4">
-                {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
+              <div className="space-y-2">
+                <LoadingPanel size="section" messages={loadingMessages.materials} />
+                <TableSkeleton rows={6} cols={7} className="p-4" />
               </div>
             ) : groupedData.length > 0 ? (
-              <Table className="min-w-[900px]">
-                <TableHeader className="bg-muted/30">
+              <Table framed className="min-w-[900px]">
+                <TableHeader>
                   <TableRow>
                     <TableHead>Category</TableHead>
                     <TableHead>Material</TableHead>
                     <TableHead>Unit</TableHead>
-                    <TableHead>Cost Price</TableHead>
-                    <TableHead>Selling (Ref)</TableHead>
-                    <TableHead>Stock</TableHead>
+                    <TableHead numeric>Cost Price</TableHead>
+                    <TableHead numeric>Selling (Ref)</TableHead>
+                    <TableHead numeric>Stock</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -392,20 +385,20 @@ export default function MaterialConfigurationPage() {
                                   </div>
                                 </TableCell>
                                 <TableCell className="text-xs">{item.unitType}</TableCell>
-                                <TableCell className="text-xs font-medium">
+                                <TableCell numeric className="text-xs font-medium">
                                   {item.costPrice != null && !Number.isNaN(Number(item.costPrice))
                                     ? formatCurrency(item.costPrice)
                                     : "—"}
                                 </TableCell>
-                                <TableCell className="text-xs">
+                                <TableCell numeric className="text-xs">
                                   {item.sellingPrice != null && !Number.isNaN(Number(item.sellingPrice))
                                     ? formatCurrency(item.sellingPrice)
                                     : "—"}
                                 </TableCell>
-                                <TableCell>
-                                  <div className="flex items-center gap-2">
+                                <TableCell numeric>
+                                  <div className="flex items-center justify-end gap-2">
                                     <span className="text-xs">{item.quantityOnHand ?? 0}</span>
-                                    {item.lowStock && <Badge variant="destructive" className="text-[10px]">Low</Badge>}
+                                    {item.lowStock && <StatusBadge status="LOW" label="Low" />}
                                   </div>
                                 </TableCell>
                                 <TableCell className="text-right">
@@ -430,10 +423,14 @@ export default function MaterialConfigurationPage() {
               </Table>
             ) : (
               <EmptyState
+                icon={Package}
                 title="No materials defined"
                 description="Add materials to build your catalog for costing and stock tracking."
-                actionLabel="Add Material"
-                onAction={handleOpenAdd}
+                action={
+                  <Button onClick={handleOpenAdd} variant="outline">
+                    Add Material
+                  </Button>
+                }
               />
             )}
           </CardContent>

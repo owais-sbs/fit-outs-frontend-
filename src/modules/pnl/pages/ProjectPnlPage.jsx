@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Download, Loader2, RefreshCw } from "lucide-react";
+import { ArrowLeft, Download, RefreshCw } from "lucide-react";
 import DashboardHeader from "@/modules/super-admin/components/DashboardHeader";
 import { PageShell, StatTile, Surface } from "@/components/layout/PageShell";
+import LoadingPanel from "@/components/shared/LoadingPanel";
+import { loadingMessages } from "@/components/shared/loadingMessages";
 import { Button } from "@/components/ui/button";
 import {
   downloadBlob,
@@ -75,9 +77,7 @@ export default function ProjectPnlPage({ backHref, backLabel = "Back to P&L" }) 
       )}
 
       {loading ? (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground py-10">
-          <Loader2 className="h-4 w-4 animate-spin" /> Loading…
-        </div>
+        <LoadingPanel size="section" messages={loadingMessages.finance} />
       ) : data ? (
         <>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

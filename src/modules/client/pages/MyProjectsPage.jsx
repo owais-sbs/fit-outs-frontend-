@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Briefcase, Sliders, CheckCircle, MapPin, Eye, Loader2, GanttChart } from "lucide-react";
+import { Briefcase, Sliders, CheckCircle, MapPin, Eye, GanttChart } from "lucide-react";
 import { PageShell, PageTitle, StatTile, Surface, SearchInput } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import LoadingPanel from "@/components/shared/LoadingPanel";
+import { loadingMessages } from "@/components/shared/loadingMessages";
 import { ROUTES } from "@/shared/constants/routes";
 import { fetchAllProjects } from "@/modules/admin/api/projects.api";
 
@@ -122,8 +124,8 @@ export default function MyProjectsPage() {
             <tbody className="divide-y divide-border/30 text-sm">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-muted-foreground">
-                    <Loader2 className="mx-auto h-6 w-6 animate-spin" />
+                  <td colSpan={8} className="py-8">
+                    <LoadingPanel size="section" messages={loadingMessages.projects} />
                   </td>
                 </tr>
               ) : filteredProjects.length === 0 ? (

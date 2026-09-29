@@ -13,6 +13,8 @@ import StatCardSkeleton from "../components/StatCardSkeleton";
 import FiltersBar from "../components/FiltersBar";
 import TenantTable from "../components/TenantTable";
 import TenantTableSkeleton from "../components/TenantTableSkeleton";
+import LoadingPanel from "@/components/shared/LoadingPanel";
+import { loadingMessages } from "@/components/shared/loadingMessages";
 import { useTenantManagement } from "../context/tenant-management-context";
 import { ROUTES } from "@/shared/constants/routes";
 import { formatAed } from "@/shared/utils/currency";
@@ -231,7 +233,10 @@ export default function SuperAdminDashboard() {
           onStatusChange={setStatusFilter}
         />
         {isLoading ? (
-          <TenantTableSkeleton />
+          <div className="space-y-2">
+            <LoadingPanel size="section" messages={loadingMessages.dashboard} />
+            <TenantTableSkeleton />
+          </div>
         ) : (
           <TenantTable tenants={filteredTenants} />
         )}

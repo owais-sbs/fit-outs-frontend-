@@ -26,6 +26,7 @@ import VariationStatusPipeline from "./VariationStatusPipeline";
 import VariationBoqAuditPanel from "./VariationBoqAuditPanel";
 import CrBadge from "./CrBadge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { notify } from "@/lib/notify";
 
 export default function VariationDetailPage() {
   const { projectId, uuid } = useParams();
@@ -64,10 +65,12 @@ export default function VariationDetailPage() {
     setMessage("");
     try {
       await fn();
-      setMessage(okMsg);
+      if (okMsg) notify.success(okMsg);
       load();
     } catch (e) {
-      setMessage(e?.response?.data?.error || e?.response?.data?.message || "Action failed");
+      const errMsg = e?.response?.data?.error || e?.response?.data?.message || "Action failed";
+      setMessage(errMsg);
+      notify.error(errMsg);
     } finally {
       setBusy(false);
     }

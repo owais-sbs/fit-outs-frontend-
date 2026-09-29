@@ -1,20 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Briefcase, MapPin, Loader2, MessageSquare, GanttChart } from "lucide-react";
+import { Briefcase, MapPin, MessageSquare, GanttChart } from "lucide-react";
 import { PageShell, PageTitle, Surface } from "@/components/layout/PageShell";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import EmptyState from "@/components/shared/EmptyState";
+import StatusBadge from "@/components/shared/StatusBadge";
+import LoadingPanel from "@/components/shared/LoadingPanel";
+import { loadingMessages } from "@/components/shared/loadingMessages";
 import { fetchMySiteEngineerProjects } from "@/modules/site-engineer/api/projects.api";
 import { ROUTES } from "@/shared/constants/routes";
-
-const STATUS_BADGE = {
-  "In Progress": "bg-blue-500/15 text-blue-700 border-none",
-  Completed: "bg-emerald-500/15 text-emerald-700 border-none",
-  Planning: "bg-amber-500/15 text-amber-700 border-none",
-  "On Hold": "bg-orange-500/15 text-orange-700 border-none",
-  Cancelled: "bg-destructive/15 text-destructive border-none",
-  Active: "bg-blue-500/15 text-blue-700 border-none",
-};
 
 export default function SiteEngineerProjectsPage() {
   const navigate = useNavigate();
@@ -55,16 +49,15 @@ export default function SiteEngineerProjectsPage() {
       />
 
       {loading && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" /> Loading…
-        </div>
+        <LoadingPanel size="inline" messages={loadingMessages.projects} />
       )}
 
       {!loading && projects.length === 0 ? (
-        <Surface className="px-4 py-16 text-center">
-          <Briefcase className="mx-auto mb-3 h-10 w-10 text-muted-foreground/30" />
-          <p className="text-sm text-muted-foreground">No projects assigned yet.</p>
-        </Surface>
+        <EmptyState
+          icon={Briefcase}
+          title="No projects assigned"
+          description="No projects assigned yet."
+        />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {projects.map((p) => (
@@ -79,9 +72,7 @@ export default function SiteEngineerProjectsPage() {
                     <p className="text-sm font-semibold leading-tight">{p.name || p.projectName}</p>
                     <p className="mt-0.5 text-xs text-muted-foreground">{p.clientName || "—"}</p>
                   </div>
-                  <Badge className={`${STATUS_BADGE[p.status] || "bg-muted border-none"} shrink-0 text-[10px]`}>
-                    {p.status || "Active"}
-                  </Badge>
+                  <StatusBadge status={p.status || "Active"} className="shrink-0" />
                 </div>
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <MapPin className="h-3 w-3 shrink-0" />

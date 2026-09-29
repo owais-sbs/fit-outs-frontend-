@@ -63,6 +63,7 @@ import { formatAed } from "@/shared/utils/currency";
 import { BillingApprovalPipeline, BillingApprovalTimeline } from "./BillingApprovalPipeline";
 import ProjectLifecycleBanner from "../../components/projects/ProjectLifecycleBanner";
 import { isCommercialFrozen } from "../../constants/project.constants";
+import { notify } from "@/lib/notify";
 
 const PAGE_SIZE = 10;
 
@@ -246,17 +247,18 @@ export default function ProjectBillingPage() {
       const result = await fn();
       await load({ silent: true });
       if (typeof result === "string" && result.trim()) {
-        setMessage(result);
+        notify.success(result);
       } else if (okMsg) {
-        setMessage(okMsg);
+        notify.success(okMsg);
       }
     } catch (err) {
-      setMessage(
+      const errMsg =
         err?.response?.data?.error ||
           err?.response?.data?.message ||
           err.message ||
-          "Operation failed."
-      );
+          "Operation failed.";
+      setMessage(errMsg);
+      notify.error(errMsg);
     } finally {
       setBusy(false);
     }
@@ -282,15 +284,16 @@ export default function ProjectBillingPage() {
     setMessage("");
     setBusy(true);
     deleteBillingMilestone(projectId, uuid)
-      .then(() => setMessage("Milestone deleted."))
+      .then(() => notify.success("Milestone deleted."))
       .catch((err) => {
         setMilestones(previous);
-        setMessage(
+        const errMsg =
           err?.response?.data?.error ||
             err?.response?.data?.message ||
             err.message ||
-            "Failed to delete milestone."
-        );
+            "Failed to delete milestone.";
+        setMessage(errMsg);
+        notify.error(errMsg);
       })
       .finally(() => setBusy(false));
   };
@@ -319,7 +322,7 @@ export default function ProjectBillingPage() {
     setBusy(true);
     Promise.all(deletable.map((m) => deleteBillingMilestone(projectId, m.uuid)))
       .then(() =>
-        setMessage(
+        notify.success(
           skipped > 0
             ? `Deleted ${deletable.length} draft milestone${deletable.length === 1 ? "" : "s"}.`
             : `Deleted all ${deletable.length} milestones.`
@@ -328,12 +331,13 @@ export default function ProjectBillingPage() {
       .catch((err) => {
         setMilestones(previous);
         load({ silent: true });
-        setMessage(
+        const errMsg =
           err?.response?.data?.error ||
             err?.response?.data?.message ||
             err.message ||
-            "Failed to delete milestones."
-        );
+            "Failed to delete milestones.";
+        setMessage(errMsg);
+        notify.error(errMsg);
       })
       .finally(() => setBusy(false));
   };
@@ -800,7 +804,7 @@ export default function ProjectBillingPage() {
                                 }}
                                 className="h-8 text-xs"
                               />
-                              <p className="text-[10px] text-muted-foreground">
+                              <p className="text-xs text-muted-foreground">
                                 {status}
                                 {m.linkedActivityUuid ? " · linked to schedule activity" : ""}
                               </p>
@@ -975,7 +979,7 @@ export default function ProjectBillingPage() {
                             {STATUS_LABELS[workflowStatus] || workflowStatus}
                           </Badge>
                           {m.setupSource && (
-                            <Badge variant="outline" className="text-[10px] font-normal">
+                            <Badge variant="outline" className="text-xs font-normal">
                               {(m.setupSource || "").toUpperCase() === "SCHEDULE_APPLY"
                                 ? "From schedule"
                                 : (m.setupSource || "").toUpperCase() === "BOQ_TEMPLATE"

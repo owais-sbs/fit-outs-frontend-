@@ -3,6 +3,8 @@ import { Link, useLocation, useParams } from "react-router-dom";
 import { AlertTriangle, ArrowLeft, Check, ClipboardCheck, HardHat, Loader2, Plus, X, ShieldAlert, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageShell, PageTitle } from "@/components/layout/PageShell";
+import LoadingPanel from "@/components/shared/LoadingPanel";
+import { loadingMessages } from "@/components/shared/loadingMessages";
 import { AttachmentList } from "@/components/shared/AttachmentField";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -260,8 +262,8 @@ export default function ValidationInboxPage() {
 
   if (loading) {
     return (
-      <PageShell className="w-full max-w-none px-3 md:px-4 flex justify-center py-24 text-muted-foreground">
-        <Loader2 className="h-6 w-6 animate-spin" />
+      <PageShell className="w-full max-w-none px-3 md:px-4">
+        <LoadingPanel size="page" messages={loadingMessages.projects} />
       </PageShell>
     );
   }

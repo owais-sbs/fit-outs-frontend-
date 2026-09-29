@@ -18,6 +18,7 @@ import {
 } from "@/modules/admin/api/variations.api";
 import { projectDetailPath } from "@/shared/constants/routes";
 import { formatCurrency } from "@/modules/admin/pages/boq/quantityCalcUtils";
+import { notify } from "@/lib/notify";
 import ProjectLifecycleBanner from "@/modules/admin/components/projects/ProjectLifecycleBanner";
 import { useProjectLifecycle } from "@/modules/admin/hooks/useProjectLifecycle";
 import VariationLinesEditor, { blankLine } from "./VariationLinesEditor";
@@ -103,10 +104,12 @@ export default function ProjectVariationsPage() {
         proposedDelayDays: "", costMode: "LUMP_SUM", lines: [blankLine()], links: [],
         applyScheduleOnApproval: false,
       });
-      setMessage("Variation draft created");
+      notify.success("Variation draft created");
       load();
     } catch (e) {
-      setMessage(e?.response?.data?.error || e?.response?.data?.message || "Failed to create");
+      const errMsg = e?.response?.data?.error || e?.response?.data?.message || "Failed to create";
+      setMessage(errMsg);
+      notify.error(errMsg);
     } finally {
       setBusy(false);
     }

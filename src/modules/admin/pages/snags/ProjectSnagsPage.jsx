@@ -27,6 +27,9 @@ import { FillDemoDataButton } from "@/components/shared/FillDemoDataButton";
 import { buildDemoSnagForm } from "@/shared/demo/formDemoData";
 import ProjectLifecycleBanner from "../../components/projects/ProjectLifecycleBanner";
 import { useProjectLifecycle } from "../../hooks/useProjectLifecycle";
+import { notify } from "@/lib/notify";
+import LoadingPanel from "@/components/shared/LoadingPanel";
+import { loadingMessages } from "@/components/shared/loadingMessages";
 
 const statusClass = {
   OPEN: "bg-amber-500/15 text-amber-700",
@@ -146,9 +149,11 @@ export default function ProjectSnagsPage() {
     try {
       await fn();
       await load();
-      if (okMsg) setMessage(okMsg);
+      if (okMsg) notify.success(okMsg);
     } catch (e) {
-      setMessage(e?.response?.data?.error || e?.response?.data?.message || e?.message || "Request failed");
+      const errMsg = e?.response?.data?.error || e?.response?.data?.message || e?.message || "Request failed";
+      setMessage(errMsg);
+      notify.error(errMsg);
     } finally {
       setBusy(false);
     }
@@ -177,8 +182,8 @@ export default function ProjectSnagsPage() {
 
   if (loading) {
     return (
-      <PageShell className="max-w-4xl mx-auto flex justify-center py-24 text-muted-foreground">
-        <Loader2 className="h-6 w-6 animate-spin" />
+      <PageShell className="max-w-4xl mx-auto">
+        <LoadingPanel size="page" messages={loadingMessages.projects} />
       </PageShell>
     );
   }
@@ -326,7 +331,7 @@ export default function ProjectSnagsPage() {
               </label>
               {form.scVisible && (
                 <div className="rounded-md border border-border/60 bg-muted/20 p-3 space-y-2">
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     Choose which appointed subcontractors can see this snag.
                   </p>
                   {projectScs.length === 0 ? (
@@ -418,10 +423,10 @@ export default function ProjectSnagsPage() {
                           </Badge>
                         )}
                         {s.clientVisible && (
-                          <Badge variant="secondary" className="text-[10px]">Client visible</Badge>
+                          <Badge variant="secondary" className="text-xs">Client visible</Badge>
                         )}
                         {s.scVisible && (
-                          <Badge variant="secondary" className="text-[10px]">
+                          <Badge variant="secondary" className="text-xs">
                             SC visible
                             {Array.isArray(s.scRecipientNames) && s.scRecipientNames.length > 0
                               ? ` · ${s.scRecipientNames.join(", ")}`
@@ -429,10 +434,10 @@ export default function ProjectSnagsPage() {
                           </Badge>
                         )}
                         {s.raisedByClient && (
-                          <Badge variant="outline" className="text-[10px]">Client raised</Badge>
+                          <Badge variant="outline" className="text-xs">Client raised</Badge>
                         )}
                         {s.clientApprovedAt && (
-                          <Badge className="border-none bg-emerald-500/15 text-emerald-700 text-[10px]">
+                          <Badge className="border-none bg-emerald-500/15 text-emerald-700 text-xs">
                             Client approved
                           </Badge>
                         )}
@@ -482,7 +487,7 @@ export default function ProjectSnagsPage() {
                           </option>
                         ))}
                       </select>
-                      <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                      <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
                         <input
                           type="checkbox"
                           checked={!!s.clientVisible}
@@ -496,7 +501,7 @@ export default function ProjectSnagsPage() {
                         />
                         Client portal
                       </label>
-                      <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                      <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
                         <input
                           type="checkbox"
                           checked={!!s.scVisible}
@@ -526,7 +531,7 @@ export default function ProjectSnagsPage() {
                               .map(Number)
                               .includes(sc.accountId);
                             return (
-                              <label key={sc.accountId} className="flex items-center gap-1.5 text-[11px]">
+                              <label key={sc.accountId} className="flex items-center gap-1.5 text-xs">
                                 <input
                                   type="checkbox"
                                   disabled={busy || archived}

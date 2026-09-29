@@ -9,13 +9,16 @@ import { fetchAllLeads, updateLeadStatus, convertLeadToClient } from "../api/lea
 import { useAuth } from "@/shared/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import EmptyState from "@/components/shared/EmptyState";
+import TableSkeleton from "@/components/shared/TableSkeleton";
+import LoadingPanel from "@/components/shared/LoadingPanel";
+import { loadingMessages } from "@/components/shared/loadingMessages";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -223,94 +226,89 @@ export default function LeadsListPage() {
 
       <Card className="overflow-hidden">
         <div className="max-h-[calc(100vh-26rem)] overflow-auto">
-          <Table>
-            <TableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur-sm">
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="pl-6">Ref No.</TableHead>
-                <TableHead>Client</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Source</TableHead>
-                <TableHead>Project Type</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead className="pr-6 text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading
-                ? Array.from({ length: 6 }).map((_, i) => (
-                    <TableRow key={i}>
-                      {Array.from({ length: 7 }).map((__, j) => (
-                        <TableCell key={j}><Skeleton className="h-4 w-full max-w-[100px]" /></TableCell>
-                      ))}
-                    </TableRow>
-                  ))
-                : paginated.length === 0
-                  ? (
-                    <TableRow>
-                      <TableCell colSpan={7} className="h-48 text-center">
-                        <Users className="mx-auto mb-3 h-10 w-10 text-muted-foreground/50" />
-                        <p className="font-medium">No leads found</p>
-                        <p className="text-sm text-muted-foreground">Adjust filters or search terms</p>
-                      </TableCell>
-                    </TableRow>
-                  )
-                  : paginated.map((lead) => (
-                    <TableRow
-                      key={lead.id}
-                      className="cursor-pointer"
-                      onClick={() => navigate(ROUTES.ADMIN.LEAD_DETAIL.replace(":leadId", lead.id))}
-                    >
-                      <TableCell className="pl-6 font-mono text-xs text-muted-foreground">
-                        {lead.referenceNo || "\u2014"}
-                      </TableCell>
-                      <TableCell className="font-medium">{lead.clientName}</TableCell>
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        <Select
-                          key={`${lead.id}-${lead.status}`}
-                          value={lead.status}
-                          onValueChange={(value) => handleStatusChange(lead, value)}
-                          disabled={statusSavingId === lead.id || converting}
+          {loading ? (
+            <div className="space-y-2">
+              <LoadingPanel size="section" messages={loadingMessages.leads} />
+              <TableSkeleton rows={6} cols={7} className="p-4" />
+            </div>
+          ) : paginated.length === 0 ? (
+            <EmptyState
+              icon={Users}
+              title="No leads found"
+              description="Adjust filters or search terms"
+            />
+          ) : (
+            <Table framed>
+              <TableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur-sm">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="pl-6">Ref No.</TableHead>
+                  <TableHead>Client</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Source</TableHead>
+                  <TableHead>Project Type</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead className="pr-6 text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginated.map((lead) => (
+                  <TableRow
+                    key={lead.id}
+                    className="cursor-pointer"
+                    onClick={() => navigate(ROUTES.ADMIN.LEAD_DETAIL.replace(":leadId", lead.id))}
+                  >
+                    <TableCell className="pl-6 font-mono text-xs text-muted-foreground">
+                      {lead.referenceNo || "\u2014"}
+                    </TableCell>
+                    <TableCell className="font-medium">{lead.clientName}</TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Select
+                        key={`${lead.id}-${lead.status}`}
+                        value={lead.status}
+                        onValueChange={(value) => handleStatusChange(lead, value)}
+                        disabled={statusSavingId === lead.id || converting}
+                      >
+                        <SelectTrigger className="h-8 w-[180px] text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(STATUS_LABELS).map(([key, label]) => (
+                            <SelectItem key={key} value={key}>{label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {lead.status === "CLIENT" && !lead.accountCreated && (
+                        <button
+                          type="button"
+                          className="mt-1 block text-[11px] text-amber-700 underline"
+                          onClick={() => openConvertDialog(lead)}
                         >
-                          <SelectTrigger className="h-8 w-[180px] text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {Object.entries(STATUS_LABELS).map(([key, label]) => (
-                              <SelectItem key={key} value={key}>{label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {lead.status === "CLIENT" && !lead.accountCreated && (
-                          <button
-                            type="button"
-                            className="mt-1 block text-[11px] text-amber-700 underline"
-                            onClick={() => openConvertDialog(lead)}
-                          >
-                            Finish client setup
-                          </button>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">{lead.source}</TableCell>
-                      <TableCell className="text-muted-foreground">{lead.projectType || "\u2014"}</TableCell>
-                      <TableCell className="text-muted-foreground max-w-[160px] truncate">
-                        {lead.email || "\u2014"}
-                      </TableCell>
-                      <TableCell className="pr-6 text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(ROUTES.ADMIN.LEAD_DETAIL.replace(":leadId", lead.id)); }}>View</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-            </TableBody>
-          </Table>
+                          Finish client setup
+                        </button>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{lead.source}</TableCell>
+                    <TableCell className="text-muted-foreground">{lead.projectType || "\u2014"}</TableCell>
+                    <TableCell className="text-muted-foreground max-w-[160px] truncate">
+                      {lead.email || "\u2014"}
+                    </TableCell>
+                    <TableCell className="pr-6 text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(ROUTES.ADMIN.LEAD_DETAIL.replace(":leadId", lead.id)); }}>View</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </div>
         {!loading && filtered.length > 0 && (
           <div className="flex items-center justify-between border-t px-4 py-3">

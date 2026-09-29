@@ -23,16 +23,18 @@ import { useAuth } from "@/shared/context/auth-context";
 import useDirectorDashboard from "../hooks/useDirectorDashboard";
 import { formatAed } from "../utils/directorDashboardUtils";
 import { BoqStatusBadge } from "@/modules/admin/pages/boq/BoqApprovalTimeline";
+import LoadingPanel from "@/components/shared/LoadingPanel";
+import { loadingMessages } from "@/components/shared/loadingMessages";
 
 const KPI_CONFIG = [
-  { key: "activeProjects", label: "Active projects", icon: Briefcase, accent: "from-[#18181B]/[0.06] text-[#18181B]" },
-  { key: "contractValue", label: "Contract value", icon: DollarSign, accent: "from-[#C4845A]/[0.10] text-[#C4845A]", format: formatAed },
-  { key: "totalCost", label: "Total cost (P&L)", icon: FileText, accent: "from-[#18181B]/[0.07] text-[#18181B]", format: formatAed },
-  { key: "margin", label: "Portfolio margin", icon: TrendingUp, accent: "from-[#C4845A]/[0.12] text-[#C4845A]", format: formatAed },
-  { key: "avgProgress", label: "Avg progress", icon: TrendingUp, accent: "from-[#C4845A]/[0.12] text-[#C4845A]", suffix: "%" },
-  { key: "stockValue", label: "Stock on hand", icon: Warehouse, accent: "from-[#18181B]/[0.07] text-[#18181B]", format: formatAed },
-  { key: "lowStockCount", label: "Low-stock alerts", icon: AlertTriangle, accent: "from-[#C4845A]/[0.10] text-[#C4845A]" },
-  { key: "pendingApprovals", label: "BOQ pending approval", icon: Inbox, accent: "from-amber-500/[0.07] text-amber-600" },
+  { key: "activeProjects", label: "Active projects", icon: Briefcase },
+  { key: "contractValue", label: "Contract value", icon: DollarSign, format: formatAed },
+  { key: "totalCost", label: "Total cost (P&L)", icon: FileText, format: formatAed },
+  { key: "margin", label: "Portfolio margin", icon: TrendingUp, format: formatAed },
+  { key: "avgProgress", label: "Avg progress", icon: TrendingUp, suffix: "%" },
+  { key: "stockValue", label: "Stock on hand", icon: Warehouse, format: formatAed },
+  { key: "lowStockCount", label: "Low-stock alerts", icon: AlertTriangle },
+  { key: "pendingApprovals", label: "BOQ pending approval", icon: Inbox },
 ];
 
 const STATUS_COLORS = {
@@ -97,6 +99,10 @@ export default function DirectorDashboard() {
           <Button size="sm" variant="ghost" onClick={reload}>Refresh</Button>
         </div>
       </DashboardHeader>
+
+      {loading && (
+        <LoadingPanel size="page" messages={loadingMessages.dashboard} />
+      )}
 
       {/* KPI row */}
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

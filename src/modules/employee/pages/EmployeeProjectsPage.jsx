@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Briefcase, CalendarDays, GanttChart, MapPin, Loader2 } from "lucide-react";
+import { Briefcase, CalendarDays, GanttChart, MapPin } from "lucide-react";
 import { PageShell, PageTitle, Surface } from "@/components/layout/PageShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import LoadingPanel from "@/components/shared/LoadingPanel";
+import { loadingMessages } from "@/components/shared/loadingMessages";
 import { fetchMineAssignedProjects } from "@/modules/admin/api/projects.api";
 import { fetchMySiteVisits } from "@/modules/admin/api/site-visits.api";
 import { ROUTES } from "@/shared/constants/routes";
@@ -63,9 +65,7 @@ export default function EmployeeProjectsPage() {
       />
 
       {loading && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" /> Loading…
-        </div>
+        <LoadingPanel size="inline" messages={loadingMessages.projects} />
       )}
 
       <div className="grid gap-6 xl:grid-cols-[320px_1fr]">

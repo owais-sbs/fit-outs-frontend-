@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { 
-  Search, Filter, X, 
+  Search, Filter, 
   Trash2, AlertCircle, Edit2, Folder, ChevronRight, ChevronDown
 } from "lucide-react";
 import ConfigurationLayout from "../../components/shared/configuration/ConfigurationLayout";
@@ -18,7 +18,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
+import { notify } from "@/lib/notify";
+import LoadingPanel from "@/components/shared/LoadingPanel";
+import { loadingMessages } from "@/components/shared/loadingMessages";
 
 import { 
   fetchRoomTypes, 
@@ -82,7 +84,14 @@ export default function RoomConfigurationPage() {
 
   // Validation States
   const [formErrors, setFormErrors] = useState({});
-  const [toast, setToast] = useState(null);
+
+  const triggerToast = (type, title, message) => {
+    const opts = { description: message };
+    if (type === "success") notify.success(title, opts);
+    else if (type === "error") notify.error(title, opts);
+    else if (type === "warning") notify.warning(title, opts);
+    else notify.info(title, opts);
+  };
 
   // Load Room Masters
   const loadRoomMasters = async () => {
@@ -139,18 +148,6 @@ export default function RoomConfigurationPage() {
     loadRooms();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm, roomMasterIdFilter]);
-
-  // Toast timer
-  useEffect(() => {
-    if (toast) {
-      const timer = setTimeout(() => setToast(null), 4000);
-      return () => clearTimeout(timer);
-    }
-  }, [toast]);
-
-  const triggerToast = (type, title, message) => {
-    setToast({ type, title, message });
-  };
 
   // Group Rooms by Parent Category
   const getGroupedData = () => {
@@ -325,7 +322,7 @@ export default function RoomConfigurationPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateStep2()) {
-      triggerToast("error", "Validation Failed", "Please correct the highlighted errors.");
+      triggerToast("warning", "Validation Failed", "Please correct the highlighted errors.");
       return;
     }
 
@@ -385,7 +382,7 @@ export default function RoomConfigurationPage() {
   const handleParentEditSubmit = async (e) => {
     e.preventDefault();
     if (!parentEditData.name.trim() || !parentEditData.code.trim()) {
-      triggerToast("error", "Validation Error", "All fields are required.");
+      triggerToast("warning", "Validation Error", "All fields are required.");
       return;
     }
 
@@ -474,23 +471,6 @@ export default function RoomConfigurationPage() {
 
   return (
     <ConfigurationLayout>
-      {/* Toast System */}
-      {toast && (
-        <div className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border transition-all animate-in slide-in-from-top-5 duration-300 ${
-          toast.type === "success" ? "bg-emerald-50 text-emerald-800 border-emerald-200" :
-          toast.type === "error" ? "bg-red-50 text-red-800 border-red-200" : "bg-blue-50 text-blue-800 border-blue-200"
-        }`}>
-          <AlertCircle className="w-5 h-5 shrink-0" />
-          <div>
-            <h4 className="text-xs font-bold">{toast.title}</h4>
-            <p className="text-[11px] opacity-90">{toast.message}</p>
-          </div>
-          <button onClick={() => setToast(null)} className="p-1 rounded-full hover:bg-black/5">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
-
       <div className="space-y-6">
         <PageHeader 
           title="Room Configurations" 
@@ -532,11 +512,7 @@ export default function RoomConfigurationPage() {
         <Card>
           <CardContent className="p-0 overflow-x-auto">
             {isLoading ? (
-              <div className="p-6 space-y-4">
-                {[1, 2, 3].map(i => (
-                  <Skeleton key={i} className="h-12 w-full" />
-                ))}
-              </div>
+              <LoadingPanel size="section" messages={loadingMessages.materials} />
             ) : groupedData.length > 0 ? (
               <Table className="min-w-[800px]">
                 <TableHeader className="bg-muted/30">

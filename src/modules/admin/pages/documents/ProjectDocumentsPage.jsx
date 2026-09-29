@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageShell, PageTitle } from "@/components/layout/PageShell";
+import LoadingPanel from "@/components/shared/LoadingPanel";
+import { loadingMessages } from "@/components/shared/loadingMessages";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -192,8 +194,8 @@ export default function ProjectDocumentsPage() {
 
   if (loading) {
     return (
-      <PageShell className="max-w-4xl mx-auto flex justify-center py-24 text-muted-foreground">
-        <Loader2 className="h-6 w-6 animate-spin" />
+      <PageShell className="max-w-4xl mx-auto">
+        <LoadingPanel size="page" messages={loadingMessages.documents} />
       </PageShell>
     );
   }

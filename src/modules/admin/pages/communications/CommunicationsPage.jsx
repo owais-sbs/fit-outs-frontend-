@@ -4,6 +4,8 @@ import { MessageSquare, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import LoadingPanel from "@/components/shared/LoadingPanel";
+import { loadingMessages } from "@/components/shared/loadingMessages";
 import { useAuth } from "@/shared/context/auth-context";
 import { useCommunicationsSocket } from "@/shared/hooks/useCommunicationsSocket";
 import {
@@ -202,7 +204,7 @@ export default function CommunicationsPage({ clientMode = false }) {
       <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[320px_1fr]">
         <div className="surface-panel overflow-y-auto">
           {loading ? (
-            <p className="p-4 text-sm text-muted-foreground">Loading…</p>
+            <LoadingPanel size="inline" messages={loadingMessages.generic} className="p-4" />
           ) : inbox.length === 0 ? (
             <p className="p-4 text-sm text-muted-foreground">No conversations yet.</p>
           ) : (

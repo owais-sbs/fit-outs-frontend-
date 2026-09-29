@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { ArrowLeft, Loader2, RefreshCw, CheckCircle2, Package, Download, Save } from "lucide-react";
+import { ArrowLeft, RefreshCw, CheckCircle2, Package, Download, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageShell, PageTitle } from "@/components/layout/PageShell";
+import LoadingPanel from "@/components/shared/LoadingPanel";
+import { loadingMessages } from "@/components/shared/loadingMessages";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -342,8 +344,8 @@ export default function MaterialPlanPage() {
 
   if (loading) {
     return (
-      <PageShell className="max-w-5xl mx-auto flex justify-center py-24 text-muted-foreground">
-        <Loader2 className="h-6 w-6 animate-spin" />
+      <PageShell className="max-w-5xl mx-auto">
+        <LoadingPanel size="page" messages={loadingMessages.materials} />
       </PageShell>
     );
   }

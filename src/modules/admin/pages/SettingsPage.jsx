@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2, Save, Stamp } from "lucide-react";
+import { notify } from "@/lib/notify";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -96,7 +97,9 @@ export default function AdminSettingsPage() {
   }, [loadGates]);
 
   const handleSave = () => {
+    notify.success("Settings saved successfully.");
     setSaved(true);
+    setMessage("");
     setTimeout(() => setSaved(false), 2500);
   };
 
@@ -114,11 +117,14 @@ export default function AdminSettingsPage() {
           requirePlanningReady: updated.requirePlanningReady !== false,
         });
       }
-      setMessage("Planning gates saved.");
+      notify.success("Planning gates saved.");
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch (e) {
-      setMessage(e?.response?.data?.error || e?.response?.data?.message || "Failed to save planning gates");
+      const detail =
+        e?.response?.data?.error || e?.response?.data?.message || "Failed to save planning gates";
+      setMessage(detail);
+      notify.error("Failed to save planning gates", { description: detail });
     } finally {
       setGatesSaving(false);
     }
@@ -131,9 +137,9 @@ export default function AdminSettingsPage() {
         description="Manage your account profile, notification preferences, CRM defaults, and planning gates."
       />
 
-      {(saved || message) && (
-        <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-2 text-sm text-primary">
-          {message || "Settings saved successfully."}
+      {message && !saved && (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">
+          {message}
         </div>
       )}
 

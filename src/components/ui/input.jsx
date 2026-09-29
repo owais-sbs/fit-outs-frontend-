@@ -8,6 +8,8 @@ const Input = React.forwardRef(({ className, type, ...props }, ref) => {
       type={type}
       className={cn(
         "flex h-10 w-full rounded-sm px-3.5 py-2 text-base text-foreground file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none md:text-sm",
+        "aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/30",
+        "focus-visible:aria-invalid:border-destructive focus-visible:aria-invalid:ring-destructive/30",
         fieldControlClasses,
         className
       )}

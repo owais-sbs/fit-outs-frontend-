@@ -13,6 +13,9 @@ const SelectTrigger = React.forwardRef(({ className, children, ...props }, ref) 
     ref={ref}
     className={cn(
       "flex h-10 w-full items-center justify-between whitespace-nowrap rounded-sm px-3.5 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none [&>span]:line-clamp-1",
+      "aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/30",
+      "focus:aria-invalid:border-destructive focus:aria-invalid:ring-destructive/30",
+      "data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50",
       fieldControlClasses,
       className
     )}

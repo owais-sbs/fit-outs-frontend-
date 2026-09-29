@@ -17,6 +17,7 @@ import { ROUTES } from "@/shared/constants/routes";
 import NotificationDropdown from "@/modules/client/components/design/NotificationDropdown";
 import useNotifications from "@/shared/hooks/useNotifications";
 import ThemeToggle from "@/shared/theme/ThemeToggle";
+import DensityToggle from "@/components/shared/DensityToggle";
 
 export default function AdminNavbar() {
   const { user, logout } = useAuth();
@@ -32,12 +33,13 @@ export default function AdminNavbar() {
     .toUpperCase();
 
   return (
-    <header data-boq-chrome className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-sidebar-border bg-background/75 px-4 backdrop-blur-xl md:px-6">
+    <header data-boq-chrome className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-border/60 bg-background/90 px-4 backdrop-blur-xl md:px-6">
       <SidebarTrigger className="-ml-1" />
       <Separator orientation="vertical" className="mr-1 hidden h-5 md:block" />
       <div className="flex-1" />
 
       <div className="ml-auto flex items-center gap-1">
+        <DensityToggle />
         <ThemeToggle />
         <NotificationDropdown
           notifications={notifications}

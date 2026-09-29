@@ -8,7 +8,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -20,6 +19,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { PageShell, PageTitle, StatTile } from "@/components/layout/PageShell";
+import Breadcrumbs from "@/components/shared/Breadcrumbs";
+import LoadingPanel from "@/components/shared/LoadingPanel";
+import { loadingMessages } from "@/components/shared/loadingMessages";
 import { cn } from "@/lib/utils";
 import { fetchProjectById, updateProject } from "../api/projects.api";
 import { fetchAllClients } from "../api/clients.api";
@@ -347,7 +349,11 @@ export default function ProjectDetailPage() {
   if (loading) {
     return (
       <PageShell className="max-w-6xl mx-auto">
-        <Card><CardContent className="py-24"><Skeleton className="h-8 w-48 mx-auto" /></CardContent></Card>
+        <Card>
+          <CardContent className="py-8">
+            <LoadingPanel size="page" messages={loadingMessages.projects} />
+          </CardContent>
+        </Card>
       </PageShell>
     );
   }
@@ -365,6 +371,12 @@ export default function ProjectDetailPage() {
 
   return (
     <PageShell className="max-w-6xl mx-auto">
+      <Breadcrumbs
+        items={[
+          { label: "Projects", to: projectsListPath },
+          { label: project.projectName || "Project" },
+        ]}
+      />
       <Link
         to={projectsListPath}
         className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"

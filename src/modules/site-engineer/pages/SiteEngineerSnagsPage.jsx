@@ -3,6 +3,8 @@ import { AlertTriangle, Loader2 } from "lucide-react";
 import { PageShell, PageTitle, Surface } from "@/components/layout/PageShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import LoadingPanel from "@/components/shared/LoadingPanel";
+import { loadingMessages } from "@/components/shared/loadingMessages";
 import {
   Select,
   SelectContent,
@@ -50,9 +52,7 @@ export default function SiteEngineerSnagsPage() {
       <PageTitle title="Snags" subtitle="Defects and snags assigned to you" />
 
       {loading && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" /> Loading…
-        </div>
+        <LoadingPanel size="inline" messages={loadingMessages.projects} />
       )}
       {error && <p className="text-sm text-destructive">{error}</p>}
 

@@ -5,13 +5,14 @@ import {
   ChevronRight,
   ExternalLink,
   List,
-  Loader2,
   MapPin,
   CalendarDays,
 } from "lucide-react";
 import { PageShell, PageTitle, Surface } from "@/components/layout/PageShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import LoadingPanel from "@/components/shared/LoadingPanel";
+import { loadingMessages } from "@/components/shared/loadingMessages";
 import { fetchMySiteVisits } from "@/modules/admin/api/site-visits.api";
 import { ROUTES } from "@/shared/constants/routes";
 
@@ -219,9 +220,7 @@ export default function SiteEngineerSiteVisitsPage() {
       />
 
       {loading && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" /> Loading…
-        </div>
+        <LoadingPanel size="inline" messages={loadingMessages.siteVisits} />
       )}
       {error && <p className="text-sm text-destructive">{error}</p>}
 

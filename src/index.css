@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,500;600&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -23,6 +23,22 @@
     --accent-foreground: 0.32 0.1 255;
     --destructive: 0.55 0.2 25;
     --destructive-foreground: 0.99 0 0;
+    /* Semantic status tokens — AA contrast on tinted badge backgrounds */
+    --success: 0.52 0.14 155;
+    --success-foreground: 0.32 0.1 155;
+    --warning: 0.72 0.14 75;
+    --warning-foreground: 0.38 0.1 55;
+    --info: 0.55 0.12 230;
+    --info-foreground: 0.35 0.1 230;
+    /* Solid toast fills — AA white/dark text on fills (light) */
+    --toast-success: 0.48 0.14 155;
+    --toast-success-foreground: 0.99 0.01 155;
+    --toast-warning: 0.82 0.14 85;
+    --toast-warning-foreground: 0.28 0.08 55;
+    --toast-info: 0.5 0.14 250;
+    --toast-info-foreground: 0.99 0.01 250;
+    --toast-error: 0.52 0.2 25;
+    --toast-error-foreground: 0.99 0 0;
     --border: 0.88 0.01 250;
     --input: 0.98 0.005 250;
     --ring: 0.55 0.14 255;
@@ -32,6 +48,36 @@
     --chart-4: 0.7 0.14 50;
     --chart-5: 0.55 0.08 160;
     --radius: 1.05rem;
+
+    /* Elevation scale (subtler than prior Card / surface-panel stacks) */
+    --shadow-sm: 0 1px 0 oklch(var(--border) / 0.7), 0 1px 2px -1px oklch(0.2 0.02 285 / 0.08);
+    --shadow-md: 0 1px 0 oklch(var(--border) / 0.75), 0 8px 24px -16px oklch(0.2 0.02 285 / 0.14);
+    --shadow-lg: 0 1px 0 oklch(var(--border) / 0.8), 0 16px 40px -20px oklch(0.2 0.02 285 / 0.18);
+
+    /*
+      Type scale (documented sizes + line-heights):
+      caption    12px / 16px
+      body-sm    13px / 18px
+      body       14px / 20px
+      subheading 16px / 24px
+      heading    20px / 28px
+      title      24px / 32px
+      display    30px / 36px
+    */
+    --text-caption: 12px;
+    --leading-caption: 16px;
+    --text-body-sm: 13px;
+    --leading-body-sm: 18px;
+    --text-body: 14px;
+    --leading-body: 20px;
+    --text-subheading: 16px;
+    --leading-subheading: 24px;
+    --text-heading: 20px;
+    --leading-heading: 28px;
+    --text-title: 24px;
+    --leading-title: 32px;
+    --text-display: 30px;
+    --leading-display: 36px;
 
     --sidebar: 0.99 0.01 250;
     --sidebar-foreground: 0.32 0.04 255;
@@ -47,7 +93,7 @@
     --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
     --font-mono: "JetBrains Mono", ui-monospace, monospace;
     --font-serif: "Source Serif 4", Georgia, serif;
-    --tracking-normal: -0.015em;
+    --tracking-normal: 0;
 
     --color-accent-copper: #3b82f6;
     --color-accent-gold: #60a5fa;
@@ -56,6 +102,8 @@
     --color-accent-pink: #60a5fa;
     --color-accent-blue: #3b82f6;
     --color-ink: #18181B;
+    /* Alias of current primary (tracks light/dark) */
+    --color-brand: oklch(var(--primary));
   }
 
   .dark {
@@ -76,6 +124,22 @@
     --accent-foreground: 0.92 0.04 250;
     --destructive: 0.62 0.2 25;
     --destructive-foreground: 0.99 0 0;
+    /* Dark-safe semantic foregrounds (readable on tinted badge bgs) */
+    --success: 0.7 0.14 155;
+    --success-foreground: 0.85 0.1 155;
+    --warning: 0.78 0.12 75;
+    --warning-foreground: 0.9 0.08 80;
+    --info: 0.72 0.1 230;
+    --info-foreground: 0.88 0.06 230;
+    /* Solid toast fills — AA on dark canvas */
+    --toast-success: 0.45 0.12 155;
+    --toast-success-foreground: 0.98 0.02 155;
+    --toast-warning: 0.75 0.12 85;
+    --toast-warning-foreground: 0.22 0.06 55;
+    --toast-info: 0.48 0.12 250;
+    --toast-info-foreground: 0.98 0.02 250;
+    --toast-error: 0.48 0.18 25;
+    --toast-error-foreground: 0.99 0 0;
     --border: 0.28 0.02 280;
     --input: 0.22 0.015 280;
     --ring: 0.7 0.12 255;
@@ -84,6 +148,9 @@
     --chart-3: 0.7 0.14 285;
     --chart-4: 0.78 0.14 75;
     --chart-5: 0.72 0.16 25;
+    --shadow-sm: 0 1px 0 oklch(var(--border) / 0.45), 0 1px 3px -1px oklch(0 0 0 / 0.35);
+    --shadow-md: 0 1px 0 oklch(var(--border) / 0.5), 0 10px 28px -18px oklch(0 0 0 / 0.5);
+    --shadow-lg: 0 1px 0 oklch(var(--border) / 0.55), 0 16px 40px -20px oklch(0 0 0 / 0.55);
     --sidebar: 0.24 0.03 170;
     --sidebar-foreground: 0.96 0.01 160;
     --sidebar-primary: 0.78 0.08 160;
@@ -144,7 +211,7 @@
       radial-gradient(900px 500px at 100% 0%, oklch(0.94 0.03 250 / 0.7), transparent 50%);
   }
 
-  h1, .font-display {
+  h1, h2, .font-display {
     font-family: var(--font-serif);
     letter-spacing: -0.02em;
   }
@@ -154,14 +221,15 @@
   .page-enter {
     animation: page-enter 0.35s ease-out both;
   }
+  .tabular {
+    font-feature-settings: "tnum";
+    font-variant-numeric: tabular-nums;
+  }
   .surface-panel {
-    border-radius: 1.25rem;
+    border-radius: calc(var(--radius) + 0.25rem);
     background-color: oklch(var(--card) / 0.92);
     color: oklch(var(--card-foreground));
-    box-shadow: 0 1px 0 oklch(var(--border) / 0.8), 0 12px 40px -24px oklch(0.2 0.02 285 / 0.18);
-  }
-  .dark .surface-panel {
-    box-shadow: 0 1px 0 oklch(var(--border) / 0.5), 0 16px 48px -28px oklch(0 0 0 / 0.55);
+    box-shadow: var(--shadow-md);
   }
   .stat-tile {
     border-radius: 1rem;
@@ -173,7 +241,7 @@
     background-color: oklch(var(--secondary));
   }
   .field-control {
-    @apply rounded-sm border border-border bg-background px-3 py-2 text-sm shadow-sm transition-colors hover:border-muted-foreground/40 focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply rounded-sm border border-border bg-background px-3 py-2 text-sm shadow-sm transition-colors hover:border-muted-foreground/40 focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/30;
   }
 }
 
@@ -205,6 +273,42 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* Indeterminate loading bar (LoadingPanel) — token-based primary fill */
+@keyframes loading-bar-indeterminate {
+  0% {
+    left: -40%;
+    width: 40%;
+  }
+  50% {
+    left: 20%;
+    width: 60%;
+  }
+  100% {
+    left: 100%;
+    width: 40%;
+  }
+}
+
+.loading-bar-indeterminate {
+  left: -40%;
+  width: 40%;
+  animation: loading-bar-indeterminate 1.4s ease-in-out infinite;
+}
+
+.loading-bar-static {
+  left: 0 !important;
+  width: 35% !important;
+  animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-bar-indeterminate {
+    left: 0;
+    width: 35%;
+    animation: none;
   }
 }
 

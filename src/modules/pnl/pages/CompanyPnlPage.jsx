@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Download, Loader2, RefreshCw, Save } from "lucide-react";
+import { Download, RefreshCw, Save } from "lucide-react";
 import DashboardHeader from "@/modules/super-admin/components/DashboardHeader";
 import { PageShell, StatTile, Surface } from "@/components/layout/PageShell";
+import LoadingPanel from "@/components/shared/LoadingPanel";
+import { loadingMessages } from "@/components/shared/loadingMessages";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -128,9 +130,7 @@ export default function CompanyPnlPage({
       )}
 
       {loading ? (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground py-10">
-          <Loader2 className="h-4 w-4 animate-spin" /> Loading P&L…
-        </div>
+        <LoadingPanel size="section" messages={loadingMessages.finance} />
       ) : (
         <>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

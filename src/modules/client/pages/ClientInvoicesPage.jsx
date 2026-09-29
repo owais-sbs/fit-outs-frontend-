@@ -1,6 +1,8 @@
 import { CreditCard, Download, Printer, Search, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { PageShell, PageTitle, StatTile, Surface } from "@/components/layout/PageShell";
+import LoadingPanel from "@/components/shared/LoadingPanel";
+import { loadingMessages } from "@/components/shared/loadingMessages";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -194,9 +196,7 @@ export default function ClientInvoicesPage() {
   if (loading) {
     return (
       <PageShell>
-        <div className="flex justify-center py-24 text-muted-foreground">
-          <Loader2 className="h-6 w-6 animate-spin" />
-        </div>
+        <LoadingPanel size="page" messages={loadingMessages.billing} />
       </PageShell>
     );
   }

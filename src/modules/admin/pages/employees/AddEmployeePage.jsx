@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
+import { notify } from "@/lib/notify";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import { PageShell } from "@/components/layout/PageShell";
 import {
@@ -113,8 +114,6 @@ function featuresForSave(role, features) {
 export default function AddEmployeePage() {
   const navigate = useNavigate();
   const [errors, setErrors] = useState({});
-  const [saved, setSaved] = useState(false);
-  const [inviteSent, setInviteSent] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [apiError, setApiError] = useState(null);
   const [form, setForm] = useState(emptyForm);
@@ -159,13 +158,15 @@ export default function AddEmployeePage() {
         features: featuresForSave(form.role, form.features),
       };
       const created = await createEmployee(payload);
-      setInviteSent(created?.inviteEmailSent !== false);
-      setSaved(true);
+      const sent = created?.inviteEmailSent !== false;
+      notify.success(
+        sent
+          ? "Employee created. An invite was emailed so they can set their password."
+          : "Employee created, but the invite email could not be sent. Use Resend invite from the employees list."
+      );
       setTimeout(() => {
         if (andAnother) {
           setForm(emptyForm());
-          setSaved(false);
-          setInviteSent(true);
           setSubmitting(false);
         } else {
           navigate(ROUTES.ADMIN.EMPLOYEES);
@@ -175,6 +176,7 @@ export default function AddEmployeePage() {
       const data = err.response?.data;
       const detail = data?.error || data?.message || err.message || "Failed to create employee";
       setApiError(detail);
+      notify.error("Failed to create employee", { description: detail });
       setSubmitting(false);
     }
   };
@@ -202,15 +204,6 @@ export default function AddEmployeePage() {
         <div className="flex items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           <AlertCircle className="h-4 w-4 shrink-0" />
           {apiError}
-        </div>
-      )}
-
-      {saved && (
-        <div className="flex items-center gap-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-400">
-          <CheckCircle2 className="h-4 w-4 shrink-0" />
-          {inviteSent
-            ? "Employee created. An invite was emailed so they can set their password."
-            : "Employee created, but the invite email could not be sent. Use Resend invite from the employees list."}
         </div>
       )}
 

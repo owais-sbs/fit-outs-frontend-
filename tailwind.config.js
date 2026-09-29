@@ -12,6 +12,9 @@ module.exports = {
           DEFAULT: "var(--color-accent-copper)",
           foreground: "#3D2418",
         },
+        brand: {
+          DEFAULT: "var(--color-brand)",
+        },
         ink: {
           DEFAULT: "var(--color-ink)",
         },
@@ -31,6 +34,18 @@ module.exports = {
         destructive: {
           DEFAULT: "oklch(var(--destructive))",
           foreground: "oklch(var(--destructive-foreground))",
+        },
+        success: {
+          DEFAULT: "oklch(var(--success))",
+          foreground: "oklch(var(--success-foreground))",
+        },
+        warning: {
+          DEFAULT: "oklch(var(--warning))",
+          foreground: "oklch(var(--warning-foreground))",
+        },
+        info: {
+          DEFAULT: "oklch(var(--info))",
+          foreground: "oklch(var(--info-foreground))",
         },
         muted: {
           DEFAULT: "oklch(var(--muted))",
@@ -71,6 +86,20 @@ module.exports = {
         md: "calc(var(--radius) - 4px)",
         sm: "calc(var(--radius) - 8px)",
         "2xl": "calc(var(--radius) + 0.25rem)",
+      },
+      boxShadow: {
+        "elevation-sm": "var(--shadow-sm)",
+        "elevation-md": "var(--shadow-md)",
+        "elevation-lg": "var(--shadow-lg)",
+      },
+      fontSize: {
+        caption: ["var(--text-caption)", { lineHeight: "var(--leading-caption)" }],
+        "body-sm": ["var(--text-body-sm)", { lineHeight: "var(--leading-body-sm)" }],
+        body: ["var(--text-body)", { lineHeight: "var(--leading-body)" }],
+        subheading: ["var(--text-subheading)", { lineHeight: "var(--leading-subheading)" }],
+        heading: ["var(--text-heading)", { lineHeight: "var(--leading-heading)" }],
+        title: ["var(--text-title)", { lineHeight: "var(--leading-title)" }],
+        display: ["var(--text-display)", { lineHeight: "var(--leading-display)" }],
       },
       fontFamily: {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],

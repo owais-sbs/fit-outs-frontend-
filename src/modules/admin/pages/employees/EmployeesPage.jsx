@@ -11,10 +11,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import EmptyState from "@/components/shared/EmptyState";
+import StatusBadge from "@/components/shared/StatusBadge";
+import TableSkeleton from "@/components/shared/TableSkeleton";
+import LoadingPanel from "@/components/shared/LoadingPanel";
+import { loadingMessages } from "@/components/shared/loadingMessages";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuTrigger,
@@ -178,120 +182,116 @@ export default function EmployeesPage() {
 
       <Card className="overflow-hidden">
         <div className="overflow-auto">
-          <Table>
-            <TableHeader className="bg-muted/60">
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="pl-6" />
-                <TableHead>Name</TableHead>
-                <TableHead>Designation</TableHead>
-                <TableHead>Features</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="pr-6 text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading
-                ? Array.from({ length: 6 }).map((_, i) => (
-                    <TableRow key={i}>
-                      {Array.from({ length: 8 }).map((__, j) => (
-                        <TableCell key={j}><Skeleton className="h-4 w-20" /></TableCell>
-                      ))}
-                    </TableRow>
-                  ))
-                : paginated.length === 0
-                  ? (
-                    <TableRow>
-                      <TableCell colSpan={8} className="h-40 text-center">
-                        <Users className="mx-auto mb-2 h-8 w-8 text-muted-foreground/40" />
-                        <p className="text-sm font-medium">No employees found</p>
-                        <p className="text-xs text-muted-foreground">Try adjusting your filters</p>
-                      </TableCell>
-                    </TableRow>
-                  )
-                  : paginated.map((emp) => (
-                    <TableRow
-                      key={emp.id}
-                      className="cursor-pointer"
-                      onClick={() => goToDetail(emp.id)}
-                    >
-                      <TableCell className="pl-6">
-                        <Avatar className="h-9 w-9">
-                          <AvatarFallback className={`text-xs font-bold ${avatarPalette(emp.employeeName).tw}`}>
-                            {initials(emp.employeeName)}
-                          </AvatarFallback>
-                        </Avatar>
-                      </TableCell>
-                      <TableCell>
-                        <p className="font-medium leading-tight">{emp.employeeName}</p>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        <div className="space-y-1">
-                          <p>{emp.designation}</p>
-                          {emp.roleLabel && emp.roleLabel !== "—" && (
-                            <Badge variant="outline" className="text-[10px] font-medium">
-                              {emp.roleLabel}
-                            </Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {(emp.features || []).map((f) => (
-                            <span
-                              key={f}
-                              className="rounded-full border border-primary/20 bg-primary/5 px-2 py-0.5 text-[10px] font-medium text-primary"
-                            >
-                              {f}
-                            </span>
-                          ))}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground max-w-[180px] truncate">
-                        {emp.email}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                        {emp.phone}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={emp.isActive ? "success" : "secondary"} className="capitalize">
-                          {emp.isActive ? "Active" : "Inactive"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="pr-6 text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                            <DropdownMenuItem onClick={() => goToDetail(emp.id)}>
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              disabled={resendingId === emp.id}
-                              onClick={() => handleResendInvite(emp)}
-                            >
-                              {resendingId === emp.id ? "Sending invite…" : "Resend invite"}
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-destructive focus:text-destructive">
-                              {emp.isActive ? "Deactivate" : "Activate"}
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-            </TableBody>
-          </Table>
+          {loading ? (
+            <div className="space-y-2">
+              <LoadingPanel size="section" messages={loadingMessages.employees} />
+              <TableSkeleton rows={6} cols={8} className="p-4" />
+            </div>
+          ) : paginated.length === 0 ? (
+            <EmptyState
+              icon={Users}
+              title="No employees found"
+              description="Try adjusting your filters"
+            />
+          ) : (
+            <Table framed>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="pl-6" />
+                  <TableHead>Name</TableHead>
+                  <TableHead>Designation</TableHead>
+                  <TableHead>Features</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="pr-6 text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginated.map((emp) => (
+                  <TableRow
+                    key={emp.id}
+                    className="cursor-pointer"
+                    onClick={() => goToDetail(emp.id)}
+                  >
+                    <TableCell className="pl-6">
+                      <Avatar className="h-9 w-9">
+                        <AvatarFallback className={`text-xs font-bold ${avatarPalette(emp.employeeName).tw}`}>
+                          {initials(emp.employeeName)}
+                        </AvatarFallback>
+                      </Avatar>
+                    </TableCell>
+                    <TableCell>
+                      <p className="font-medium leading-tight">{emp.employeeName}</p>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      <div className="space-y-1">
+                        <p>{emp.designation}</p>
+                        {emp.roleLabel && emp.roleLabel !== "—" && (
+                          <Badge variant="outline" className="text-[10px] font-medium">
+                            {emp.roleLabel}
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {(emp.features || []).map((f) => (
+                          <span
+                            key={f}
+                            className="rounded-full border border-primary/20 bg-primary/5 px-2 py-0.5 text-[10px] font-medium text-primary"
+                          >
+                            {f}
+                          </span>
+                        ))}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground max-w-[180px] truncate">
+                      {emp.email}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                      {emp.phone}
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge
+                        status={emp.isActive}
+                        label={emp.isActive ? "Active" : "Inactive"}
+                      />
+                    </TableCell>
+                    <TableCell className="pr-6 text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                          <DropdownMenuItem onClick={() => goToDetail(emp.id)}>
+                            View Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            disabled={resendingId === emp.id}
+                            onClick={() => handleResendInvite(emp)}
+                          >
+                            {resendingId === emp.id ? "Sending invite…" : "Resend invite"}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem className="text-destructive focus:text-destructive">
+                            {emp.isActive ? "Deactivate" : "Activate"}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </div>
 
         {!loading && filtered.length > 0 && (

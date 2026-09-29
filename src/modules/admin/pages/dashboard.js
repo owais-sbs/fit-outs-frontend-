@@ -8,6 +8,9 @@ import AnalyticsToolbar from "@/modules/shared/components/AnalyticsToolbar";
 import AnalyticsChartCard from "@/modules/super-admin/components/dashboard/AnalyticsChartCard";
 import DashboardSection from "@/modules/super-admin/components/dashboard/DashboardSection";
 import { PageShell, StatTile } from "@/components/layout/PageShell";
+import PageSkeleton from "@/components/shared/PageSkeleton";
+import LoadingPanel from "@/components/shared/LoadingPanel";
+import { loadingMessages } from "@/components/shared/loadingMessages";
 import {
   EvilLineChart, Line, XAxis, Legend, Tooltip,
 } from "@/components/evilcharts/charts/line-chart";
@@ -226,10 +229,10 @@ function AdminCrmDashboard() {
       )}
 
       {loading && (
-        <div className="flex items-center justify-center gap-2 rounded-xl border border-border/60 bg-card/60 py-16 text-sm text-muted-foreground">
-          <Loader2 className="h-5 w-5 animate-spin" />
-          Loading live dashboard…
-        </div>
+        <>
+          <LoadingPanel size="page" messages={loadingMessages.dashboard} />
+          <PageSkeleton />
+        </>
       )}
 
       {!loading && emptyCharts && (

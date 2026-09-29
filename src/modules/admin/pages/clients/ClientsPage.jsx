@@ -8,7 +8,6 @@ import { PageShell, StatTile, FilterToolbar, SearchInput } from "@/components/la
 import { ROUTES } from "@/shared/constants/routes";
 import { fetchAllClients } from "../../api/clients.api";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import {
@@ -21,13 +20,13 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Skeleton } from "@/components/ui/skeleton";
+import EmptyState from "@/components/shared/EmptyState";
+import StatusBadge from "@/components/shared/StatusBadge";
+import TableSkeleton from "@/components/shared/TableSkeleton";
+import LoadingPanel from "@/components/shared/LoadingPanel";
+import { loadingMessages } from "@/components/shared/loadingMessages";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-const STATUS_VARIANT = {
-  Active: "success", Inactive: "secondary",
-};
-
 function getClientStatus(client) {
   return client.active ? "Active" : "Inactive";
 }
@@ -111,87 +110,77 @@ export default function ClientsPage() {
 
       <Card className="overflow-hidden">
         <div className="overflow-auto">
-          <Table>
-            <TableHeader className="bg-muted/60">
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="pl-6 w-12" />
-                <TableHead>Name</TableHead>
-                <TableHead>Company</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="pr-6 text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <TableRow key={i}>
-                    <TableCell className="pl-6"><Skeleton className="h-9 w-9 rounded-full" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-28" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-40" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                    <TableCell><Skeleton className="h-5 w-16 rounded-full" /></TableCell>
-                    <TableCell className="pr-6 text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
-                  </TableRow>
-                ))
-              ) : filtered.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="h-40 text-center">
-                    <Users className="mx-auto mb-2 h-8 w-8 text-muted-foreground/40" />
-                    <p className="text-sm font-medium">No clients found</p>
-                  </TableCell>
+          {loading ? (
+            <div className="space-y-2">
+              <LoadingPanel size="section" messages={loadingMessages.clients} />
+              <TableSkeleton rows={5} cols={7} className="p-4" />
+            </div>
+          ) : filtered.length === 0 ? (
+            <EmptyState icon={Users} title="No clients found" />
+          ) : (
+            <Table framed>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="pl-6 w-12" />
+                  <TableHead>Name</TableHead>
+                  <TableHead>Company</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="pr-6 text-right">Actions</TableHead>
                 </TableRow>
-              ) : filtered.map((client) => {
-                const status = getClientStatus(client);
-                return (
-                  <TableRow
-                    key={client.id}
-                    className="cursor-pointer"
-                    onClick={() => navigate(ROUTES.ADMIN.CLIENT_DETAIL.replace(":clientId", client.id))}
-                  >
-                    <TableCell className="pl-6">
-                      <Avatar className="h-9 w-9">
-                        <img src={avatarUrl(client.fullName)} alt={client.fullName} className="h-full w-full rounded-full object-cover" />
-                        <AvatarFallback className="bg-primary/10 text-xs font-bold text-primary">
-                          {initials(client.fullName)}
-                        </AvatarFallback>
-                      </Avatar>
-                    </TableCell>
-                    <TableCell className="font-medium">{client.fullName}</TableCell>
-                    <TableCell className="text-muted-foreground">{client.companyName || "—"}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{client.email}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{client.phone || "—"}</TableCell>
-                    <TableCell>
-                      <Badge variant={STATUS_VARIANT[status]}>{status}</Badge>
-                    </TableCell>
-                    <TableCell className="pr-6 text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                          <DropdownMenuItem onClick={() => navigate(ROUTES.ADMIN.CLIENT_DETAIL.replace(":clientId", client.id))}>
-                            View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => navigate(ROUTES.ADMIN.CLIENT_EMAIL + `?to=${client.email}&name=${client.fullName}`)}>
-                            Send Email
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive focus:text-destructive">
-                            Deactivate
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filtered.map((client) => {
+                  const status = getClientStatus(client);
+                  return (
+                    <TableRow
+                      key={client.id}
+                      className="cursor-pointer"
+                      onClick={() => navigate(ROUTES.ADMIN.CLIENT_DETAIL.replace(":clientId", client.id))}
+                    >
+                      <TableCell className="pl-6">
+                        <Avatar className="h-9 w-9">
+                          <img src={avatarUrl(client.fullName)} alt={client.fullName} className="h-full w-full rounded-full object-cover" />
+                          <AvatarFallback className="bg-primary/10 text-xs font-bold text-primary">
+                            {initials(client.fullName)}
+                          </AvatarFallback>
+                        </Avatar>
+                      </TableCell>
+                      <TableCell className="font-medium">{client.fullName}</TableCell>
+                      <TableCell className="text-muted-foreground">{client.companyName || "—"}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{client.email}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{client.phone || "—"}</TableCell>
+                      <TableCell>
+                        <StatusBadge status={status} label={status} />
+                      </TableCell>
+                      <TableCell className="pr-6 text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                            <DropdownMenuItem onClick={() => navigate(ROUTES.ADMIN.CLIENT_DETAIL.replace(":clientId", client.id))}>
+                              View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => navigate(ROUTES.ADMIN.CLIENT_EMAIL + `?to=${client.email}&name=${client.fullName}`)}>
+                              Send Email
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="text-destructive focus:text-destructive">
+                              Deactivate
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
         </div>
         <div className="border-t px-4 py-3">
           <p className="text-xs text-muted-foreground">

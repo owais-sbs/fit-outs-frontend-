@@ -19,6 +19,7 @@ import { ROLE_LABELS } from "@/shared/constants/roles";
 import NotificationDropdown from "@/modules/client/components/design/NotificationDropdown";
 import useNotifications from "@/shared/hooks/useNotifications";
 import ThemeToggle from "@/shared/theme/ThemeToggle";
+import DensityToggle from "@/components/shared/DensityToggle";
 
 export default function DirectorNavbar() {
   const { user, logout, role } = useAuth();
@@ -34,12 +35,13 @@ export default function DirectorNavbar() {
     .toUpperCase();
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-border/40 bg-background/75 px-4 backdrop-blur-xl md:px-6">
+    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-border/60 bg-background/90 px-4 backdrop-blur-xl md:px-6">
       <SidebarTrigger className="-ml-1" />
       <Separator orientation="vertical" className="mr-1 hidden h-5 md:block" />
       <div className="flex-1" />
 
       <div className="ml-auto flex items-center gap-2">
+        <DensityToggle />
         <ThemeToggle />
         <Badge variant="outline" className="hidden sm:inline-flex border-primary/35 bg-accent text-accent-foreground">
           {ROLE_LABELS[role] || "Director"}

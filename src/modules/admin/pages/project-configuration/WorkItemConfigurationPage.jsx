@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { 
-  Search, Trash2, Copy, Filter, X, AlertCircle,
+  Search, Trash2, Copy, Filter, AlertCircle,
   ChevronLeft, ChevronDown, ChevronRight, Edit2, Folder, Plus
 } from "lucide-react";
 import ConfigurationLayout from "../../components/shared/configuration/ConfigurationLayout";
@@ -15,9 +15,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { notify } from "@/lib/notify";
+import LoadingPanel from "@/components/shared/LoadingPanel";
+import { loadingMessages } from "@/components/shared/loadingMessages";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -166,7 +168,14 @@ export default function WorkItemConfigurationPage() {
 
   // Validation States
   const [formErrors, setFormErrors] = useState({});
-  const [toast, setToast] = useState(null);
+
+  const triggerToast = (type, title, message) => {
+    const opts = { description: message };
+    if (type === "success") notify.success(title, opts);
+    else if (type === "error") notify.error(title, opts);
+    else if (type === "warning") notify.warning(title, opts);
+    else notify.info(title, opts);
+  };
 
   const loadMaterials = async () => {
     try {
@@ -242,7 +251,7 @@ export default function WorkItemConfigurationPage() {
       console.error("Error fetching work items", e);
       hasMoreRef.current = false;
       setHasMore(false);
-      setToast({ type: "error", title: "Fetch Failed", message: "Could not retrieve work items catalog." });
+      triggerToast("error", "Fetch Failed", "Could not retrieve work items catalog.");
     } finally {
       if (requestId === requestIdRef.current) {
         loadingRef.current = false;
@@ -285,18 +294,6 @@ export default function WorkItemConfigurationPage() {
     observer.observe(el);
     return () => observer.disconnect();
   }, [hasMore, loadData, isLoading, workItems.length]);
-
-  // Toast auto-dismissal
-  useEffect(() => {
-    if (toast) {
-      const timer = setTimeout(() => setToast(null), 4000);
-      return () => clearTimeout(timer);
-    }
-  }, [toast]);
-
-  const triggerToast = (type, title, message) => {
-    setToast({ type, title, message });
-  };
 
   // Group Work Items by Parent Category
   const getGroupedData = () => {
@@ -601,7 +598,7 @@ export default function WorkItemConfigurationPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateStep2()) {
-      triggerToast("error", "Validation Failed", "Please fix highlighted fields.");
+      triggerToast("warning", "Validation Failed", "Please fix highlighted fields.");
       return;
     }
 
@@ -769,7 +766,7 @@ export default function WorkItemConfigurationPage() {
   const handleParentEditSubmit = async (e) => {
     e.preventDefault();
     if (!parentEditData.name.trim() || !parentEditData.code.trim()) {
-      triggerToast("error", "Validation Error", "All fields are required.");
+      triggerToast("warning", "Validation Error", "All fields are required.");
       return;
     }
 
@@ -817,23 +814,6 @@ export default function WorkItemConfigurationPage() {
 
   return (
     <ConfigurationLayout>
-      {/* Toast Alert Banner */}
-      {toast && (
-        <div className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border transition-all animate-in slide-in-from-top-5 duration-300 ${
-          toast.type === "success" ? "bg-emerald-50 text-emerald-800 border-emerald-200" :
-          toast.type === "error" ? "bg-red-50 text-red-800 border-red-200" : "bg-blue-50 text-blue-800 border-blue-200"
-        }`}>
-          <AlertCircle className="w-5 h-5 shrink-0" />
-          <div>
-            <h4 className="text-xs font-bold">{toast.title}</h4>
-            <p className="text-[11px] opacity-90">{toast.message}</p>
-          </div>
-          <button onClick={() => setToast(null)} className="p-1 rounded-full hover:bg-black/5">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
-
       <div className="space-y-6">
         <PageHeader 
           title="Work Item Catalog" 
@@ -875,11 +855,7 @@ export default function WorkItemConfigurationPage() {
         <Card>
           <CardContent className="p-0 overflow-x-auto">
             {isLoading && workItems.length === 0 ? (
-              <div className="p-6 space-y-4">
-                {[1, 2, 3].map(i => (
-                  <Skeleton key={i} className="h-12 w-full" />
-                ))}
-              </div>
+              <LoadingPanel size="section" messages={loadingMessages.materials} />
             ) : groupedData.length > 0 ? (
               <>
               <Table className="min-w-[1180px]">

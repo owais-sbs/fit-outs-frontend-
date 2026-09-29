@@ -1,4 +1,4 @@
-import { CHART_COLORS } from "@/modules/super-admin/data/analytics-dashboard";
+import { chartPair } from "@/lib/chartPalette";
 import { formatCurrencyCompact } from "@/shared/utils/currency";
 
 const OPEN_STATUSES = new Set([
@@ -24,71 +24,38 @@ const SOURCE_KEYS = {
 };
 
 const SOURCE_CONFIG = {
-  website: {
-    label: "Website",
-    colors: { light: ["#2563eb", "#1d4ed8"], dark: ["#38bdf8", "#0ea5e9"] },
-  },
-  referral: {
-    label: "Referral",
-    colors: { light: ["#c026d3", "#a21caf"], dark: ["#e879f9", "#d946ef"] },
-  },
-  walkIn: {
-    label: "Walk-in",
-    colors: { light: ["#059669", "#047857"], dark: ["#34d399", "#10b981"] },
-  },
-  social: {
-    label: "Social",
-    colors: { light: ["#ea580c", "#c2410c"], dark: ["#fb923c", "#f97316"] },
-  },
-  other: {
-    label: "Other",
-    colors: { light: ["#64748b", "#475569"], dark: ["#94a3b8", "#64748b"] },
-  },
+  website: { label: "Website", colors: chartPair(0) },
+  referral: { label: "Referral", colors: chartPair(2) },
+  walkIn: { label: "Walk-in", colors: chartPair(3) },
+  social: { label: "Social", colors: chartPair(1) },
+  other: { label: "Other", colors: chartPair(4) },
 };
 
 const TYPE_COLORS = [
-  { light: ["#2563eb", "#1d4ed8"], dark: ["#38bdf8", "#0ea5e9"] },
-  { light: ["#059669", "#047857"], dark: ["#34d399", "#10b981"] },
-  { light: ["#c026d3", "#a21caf"], dark: ["#e879f9", "#d946ef"] },
-  { light: ["#ea580c", "#c2410c"], dark: ["#fb923c", "#f97316"] },
-  { light: ["#e11d48", "#be123c"], dark: ["#fb7185", "#f43f5e"] },
+  chartPair(0),
+  chartPair(3),
+  chartPair(2),
+  chartPair(1),
+  chartPair(5),
 ];
 
 /** Distinct pie hues — easy to tell apart in dark and light mode. */
 const PROJECT_TYPE_COLORS = {
-  residential: {
-    light: ["#2563eb", "#1d4ed8"],
-    dark: ["#38bdf8", "#0ea5e9"],
-  },
-  commercial: {
-    light: ["#059669", "#047857"],
-    dark: ["#34d399", "#10b981"],
-  },
-  interior: {
-    light: ["#c026d3", "#a21caf"],
-    dark: ["#e879f9", "#d946ef"],
-  },
-  renovation: {
-    light: ["#ea580c", "#c2410c"],
-    dark: ["#fb923c", "#f97316"],
-  },
-  construction: {
-    light: ["#e11d48", "#be123c"],
-    dark: ["#fb7185", "#f43f5e"],
-  },
-  unspecified: {
-    light: ["#64748b", "#475569"],
-    dark: ["#cbd5e1", "#94a3b8"],
-  },
+  residential: chartPair(0),
+  commercial: chartPair(3),
+  interior: chartPair(2),
+  renovation: chartPair(1),
+  construction: chartPair(5),
+  unspecified: chartPair(4),
 };
 
 const WON_LOST_CONFIG = {
-  won: { label: "Won", colors: { light: ["#18181B", "#3f3f46"], dark: ["#18181B", "#3f3f46"] } },
-  lost: { label: "Lost", colors: { light: ["#C4845A", "#a66b45"], dark: ["#C4845A", "#a66b45"] } },
+  won: { label: "Won", colors: chartPair(4) },
+  lost: { label: "Lost", colors: chartPair(5) },
 };
 
 const PIPELINE_PERF_CONFIG = {
-  value: { label: "Leads created", colors: CHART_COLORS.chart1 },
+  value: { label: "Leads created", colors: chartPair(0) },
 };
 
 function parseDate(value) {

@@ -1,6 +1,8 @@
 import { AlertTriangle, Check, Loader2, Plus, Search } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { PageShell, PageTitle, Surface } from "@/components/layout/PageShell";
+import LoadingPanel from "@/components/shared/LoadingPanel";
+import { loadingMessages } from "@/components/shared/loadingMessages";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -155,9 +157,7 @@ export default function ClientSnagsPage() {
   if (loading) {
     return (
       <PageShell>
-        <div className="flex justify-center py-24 text-muted-foreground">
-          <Loader2 className="h-6 w-6 animate-spin" />
-        </div>
+        <LoadingPanel size="page" messages={loadingMessages.projects} />
       </PageShell>
     );
   }

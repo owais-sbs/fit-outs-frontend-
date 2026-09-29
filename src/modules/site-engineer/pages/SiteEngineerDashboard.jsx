@@ -7,27 +7,21 @@ import {
   Clock,
   MapPin,
   ArrowRight,
-  Loader2,
   ClipboardList,
   AlertTriangle,
 } from "lucide-react";
 import { PageShell, PageTitle, StatTile, Surface } from "@/components/layout/PageShell";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import EmptyState from "@/components/shared/EmptyState";
+import StatusBadge from "@/components/shared/StatusBadge";
+import LoadingPanel from "@/components/shared/LoadingPanel";
+import { loadingMessages } from "@/components/shared/loadingMessages";
 import { ROUTES } from "@/shared/constants/routes";
 import { useAuth } from "@/shared/context/auth-context";
 import { fetchMySiteVisits } from "@/modules/admin/api/site-visits.api";
 import { fetchMySiteEngineerTasks } from "@/modules/site-engineer/api/site-engineer-tasks.api";
 import { fetchMySnags } from "@/modules/site-engineer/api/snags.api";
 import { fetchMySiteEngineerProjects } from "@/modules/site-engineer/api/projects.api";
-
-const STATUS_BADGE = {
-  SCHEDULED: "bg-amber-500/15 text-amber-700 border-none",
-  IN_PROGRESS: "bg-blue-500/15 text-blue-700 border-none",
-  COMPLETED: "bg-emerald-500/15 text-emerald-700 border-none",
-  TODO: "bg-amber-500/15 text-amber-700 border-none",
-  DONE: "bg-emerald-500/15 text-emerald-700 border-none",
-};
 
 function fmtDate(d) {
   if (!d) return "—";
@@ -111,9 +105,7 @@ export default function SiteEngineerDashboard() {
       />
 
       {loading && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" /> Loading…
-        </div>
+        <LoadingPanel size="inline" messages={loadingMessages.dashboard} />
       )}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
@@ -134,8 +126,13 @@ export default function SiteEngineerDashboard() {
             </Button>
           </div>
           <div className="space-y-2">
-            {upcomingVisits.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">No upcoming visits assigned.</p>
+            {!loading && upcomingVisits.length === 0 ? (
+              <EmptyState
+                icon={MapPin}
+                title="No upcoming visits"
+                description="No upcoming visits assigned."
+                className="py-6"
+              />
             ) : (
               upcomingVisits.map((v) => (
                 <button
@@ -155,7 +152,7 @@ export default function SiteEngineerDashboard() {
                       {fmtDate(v.scheduledDate)} · {v.scheduledTime || "—"}
                     </p>
                   </div>
-                  <Badge className={STATUS_BADGE[v.status] || ""}>{v.status}</Badge>
+                  <StatusBadge status={v.status} />
                 </button>
               ))
             )}
@@ -170,8 +167,13 @@ export default function SiteEngineerDashboard() {
             </Button>
           </div>
           <div className="space-y-2">
-            {urgentTasks.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">No open tasks.</p>
+            {!loading && urgentTasks.length === 0 ? (
+              <EmptyState
+                icon={ClipboardList}
+                title="No open tasks"
+                description="No open tasks."
+                className="py-6"
+              />
             ) : (
               urgentTasks.map((t) => (
                 <button
@@ -187,7 +189,7 @@ export default function SiteEngineerDashboard() {
                       {isOverdue(t.deadline, t.status) ? " · Overdue" : ""}
                     </p>
                   </div>
-                  <Badge className={STATUS_BADGE[t.status] || "bg-muted border-none"}>{t.status}</Badge>
+                  <StatusBadge status={t.status} />
                 </button>
               ))
             )}

@@ -2,25 +2,18 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Briefcase, CalendarDays, CheckCircle2, Clock,
-  MapPin, ArrowRight, Loader2,
+  MapPin, ArrowRight,
 } from "lucide-react";
 import { PageShell, PageTitle, StatTile, Surface } from "@/components/layout/PageShell";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import EmptyState from "@/components/shared/EmptyState";
+import StatusBadge from "@/components/shared/StatusBadge";
+import LoadingPanel from "@/components/shared/LoadingPanel";
+import { loadingMessages } from "@/components/shared/loadingMessages";
 import { ROUTES } from "@/shared/constants/routes";
 import { useAuth } from "@/shared/context/auth-context";
 import { fetchMySiteVisits } from "@/modules/admin/api/site-visits.api";
 import { fetchMineAssignedProjects } from "@/modules/admin/api/projects.api";
-
-const STATUS_BADGE = {
-  SCHEDULED: "bg-amber-500/15 text-amber-700 border-none",
-  IN_PROGRESS: "bg-blue-500/15 text-blue-700 border-none",
-  COMPLETED: "bg-emerald-500/15 text-emerald-700 border-none",
-  "In Progress": "bg-blue-500/15 text-blue-700 border-none",
-  Completed: "bg-emerald-500/15 text-emerald-700 border-none",
-  Planning: "bg-amber-500/15 text-amber-700 border-none",
-  Scheduled: "bg-amber-500/15 text-amber-700 border-none",
-};
 
 function fmtDate(d) {
   if (!d) return "—";
@@ -81,9 +74,7 @@ export default function EmployeeDashboard() {
       />
 
       {loading && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" /> Loading…
-        </div>
+        <LoadingPanel size="inline" messages={loadingMessages.dashboard} />
       )}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -102,8 +93,13 @@ export default function EmployeeDashboard() {
             </Button>
           </div>
           <div className="space-y-2">
-            {upcomingVisits.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">No upcoming visits assigned.</p>
+            {!loading && upcomingVisits.length === 0 ? (
+              <EmptyState
+                icon={MapPin}
+                title="No upcoming visits"
+                description="No upcoming visits assigned."
+                className="py-6"
+              />
             ) : (
               upcomingVisits.map((v) => (
                 <button
@@ -123,7 +119,7 @@ export default function EmployeeDashboard() {
                       {fmtDate(v.scheduledDate)} · {v.scheduledTime || "—"}
                     </p>
                   </div>
-                  <Badge className={STATUS_BADGE[v.status] || ""}>{v.status}</Badge>
+                  <StatusBadge status={v.status} />
                 </button>
               ))
             )}
@@ -138,8 +134,13 @@ export default function EmployeeDashboard() {
             </Button>
           </div>
           <div className="space-y-2">
-            {projects.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">No projects available.</p>
+            {!loading && projects.length === 0 ? (
+              <EmptyState
+                icon={Briefcase}
+                title="No projects"
+                description="No projects available."
+                className="py-6"
+              />
             ) : (
               projects.slice(0, 4).map((p) => (
                 <div
@@ -150,9 +151,7 @@ export default function EmployeeDashboard() {
                     <p className="text-sm font-medium">{p.name || p.projectName}</p>
                     <p className="text-xs text-muted-foreground">{p.clientName || p.location || "—"}</p>
                   </div>
-                  <Badge className={STATUS_BADGE[p.status] || "bg-muted text-muted-foreground border-none"}>
-                    {p.status || "Active"}
-                  </Badge>
+                  <StatusBadge status={p.status || "Active"} />
                 </div>
               ))
             )}
