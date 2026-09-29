@@ -49,7 +49,7 @@ const STATUS_VARIANT = {
 };
 
 function formatDate(value) {
-  if (!value) return "—";
+  if (!value) return "N/A";
   try {
     return new Intl.DateTimeFormat("en-AU", {
       day: "numeric",
@@ -57,7 +57,7 @@ function formatDate(value) {
       year: "numeric",
     }).format(new Date(value));
   } catch {
-    return "—";
+    return "N/A";
   }
 }
 
@@ -71,10 +71,14 @@ export default function TenantsPage() {
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
     return tenants.filter((tenant) => {
-      if (query &&
-        !tenant.company.toLowerCase().includes(query) &&
-        !tenant.domainSlug.toLowerCase().includes(query)) {
-        return false;
+      if (query) {
+        const adminHaystack = (tenant.adminEmails || tenant.adminEmail || "").toLowerCase();
+        if (
+          !tenant.company.toLowerCase().includes(query) &&
+          !adminHaystack.includes(query)
+        ) {
+          return false;
+        }
       }
       if (status !== "all" && tenant.status !== status) return false;
       return true;
@@ -85,14 +89,14 @@ export default function TenantsPage() {
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const goDetail = (id) =>
-    navigate(ROUTES.SUPER_ADMIN.TENANT_DETAIL.replace(":tenantId", id));
+    navigate(ROUTES.SUPER_ADMIN.COMPANY_DETAIL.replace(":companyId", id));
 
   return (
     <PageShell>
       <PageHeader
         title="Companies"
         description="Manage fit-out companies, subscriptions, and renewal status across the platform."
-        actions={<TenantQuickActions />}
+        actions={<TenantQuickActions variant="list" />}
       />
 
       <div className="grid gap-3 sm:grid-cols-3">
@@ -142,7 +146,7 @@ export default function TenantsPage() {
                 <TableHead className="pl-6">Company</TableHead>
                 <TableHead>Plan</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Domain</TableHead>
+                <TableHead>Admin email</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead className="pr-6 text-right">Actions</TableHead>
               </TableRow>
@@ -182,8 +186,8 @@ export default function TenantsPage() {
                           {tenant.status}
                         </Badge>
                       </TableCell>
-                      <TableCell className="font-mono text-xs text-muted-foreground">
-                        {tenant.domainSlug || "—"}
+                      <TableCell className="text-sm text-muted-foreground">
+                        {tenant.adminEmails || tenant.adminEmail || "N/A"}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {formatDate(tenant.createdAt)}

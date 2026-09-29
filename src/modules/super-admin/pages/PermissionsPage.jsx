@@ -46,7 +46,7 @@ export default function PermissionsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Permission matrix"
-        description="Visual grid for user vs module permissions — view, create, edit, delete, export, manage."
+        description="Visual grid for user vs module permissions - view, create, edit, delete, export, manage."
         actions={
           <Button size="sm" onClick={() => setPerms({ ...DEFAULT_PERMISSIONS })}>
             Reset defaults
@@ -59,7 +59,7 @@ export default function PermissionsPage() {
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
             <div>
               <CardTitle className="text-base">Permission grid</CardTitle>
-              <CardDescription>Toggle permissions inline — sticky headers on scroll</CardDescription>
+              <CardDescription>Toggle permissions inline - sticky headers on scroll</CardDescription>
             </div>
             <Select value={roleFilter} onValueChange={setRoleFilter}>
               <SelectTrigger className="w-[160px]"><SelectValue placeholder="Filter role" /></SelectTrigger>

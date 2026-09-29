@@ -223,10 +223,45 @@
     z-index: 35;
   }
 
+  /* Icon-collapsed: --sidebar-width still holds expanded px; align to visible edge */
+  [data-slot="sidebar-wrapper"]:has(
+      [data-slot="sidebar"][data-state="collapsed"][data-collapsible="icon"]
+    ):has([data-slot="sidebar-rail"]:hover)::before,
+  [data-slot="sidebar-wrapper"]:has(
+      [data-slot="sidebar"][data-state="collapsed"][data-collapsible="icon"]
+    )[data-resizing="true"]::before {
+    left: calc(var(--sidebar-width-icon) - 0.5px);
+  }
+
+  [data-slot="sidebar-wrapper"]:has(
+      [data-slot="sidebar"][data-state="collapsed"][data-collapsible="icon"][data-variant="floating"]
+    ):has([data-slot="sidebar-rail"]:hover)::before,
+  [data-slot="sidebar-wrapper"]:has(
+      [data-slot="sidebar"][data-state="collapsed"][data-collapsible="icon"][data-variant="floating"]
+    )[data-resizing="true"]::before,
+  [data-slot="sidebar-wrapper"]:has(
+      [data-slot="sidebar"][data-state="collapsed"][data-collapsible="icon"][data-variant="inset"]
+    ):has([data-slot="sidebar-rail"]:hover)::before,
+  [data-slot="sidebar-wrapper"]:has(
+      [data-slot="sidebar"][data-state="collapsed"][data-collapsible="icon"][data-variant="inset"]
+    )[data-resizing="true"]::before {
+    left: calc(var(--sidebar-width-icon) + 1rem - 0.5px);
+  }
+
   [data-slot="sidebar-wrapper"]:has([data-side="right"] [data-slot="sidebar-rail"]:hover)::before,
   [data-slot="sidebar-wrapper"]:has([data-side="right"])[data-resizing="true"]::before {
     left: auto;
     right: calc(var(--sidebar-width) - 0.5px);
+  }
+
+  [data-slot="sidebar-wrapper"]:has(
+      [data-slot="sidebar"][data-side="right"][data-state="collapsed"][data-collapsible="icon"]
+    ):has([data-slot="sidebar-rail"]:hover)::before,
+  [data-slot="sidebar-wrapper"]:has(
+      [data-slot="sidebar"][data-side="right"][data-state="collapsed"][data-collapsible="icon"]
+    )[data-resizing="true"]::before {
+    left: auto;
+    right: calc(var(--sidebar-width-icon) - 0.5px);
   }
 }
 

@@ -15,9 +15,15 @@ export const ROUTES = {
   },
   SUPER_ADMIN: {
     DASHBOARD: "/super-admin",
-    TENANTS: "/super-admin/tenants",
-    TENANTS_CREATE: "/super-admin/tenants/new",
-    TENANT_DETAIL: "/super-admin/tenants/:tenantId",
+    COMPANIES: "/super-admin/companies",
+    COMPANIES_CREATE: "/super-admin/companies/new",
+    COMPANY_DETAIL: "/super-admin/companies/:companyId",
+    /** @deprecated Use COMPANIES */
+    TENANTS: "/super-admin/companies",
+    /** @deprecated Use COMPANIES_CREATE */
+    TENANTS_CREATE: "/super-admin/companies/new",
+    /** @deprecated Use COMPANY_DETAIL */
+    TENANT_DETAIL: "/super-admin/companies/:companyId",
     PLANS: "/super-admin/plans",
     PAYMENTS: "/super-admin/payments",
     USERS: "/super-admin/users",

@@ -3,9 +3,6 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import AppSidebar from "./layout/AppSidebar";
 import SuperAdminNavbar from "./layout/SuperAdminNavbar";
-import {
-  TenantManagementPanels,
-} from "./tenant-management";
 import { TenantManagementProvider } from "../context/tenant-management-context";
 
 export default function SuperAdminShell() {
@@ -23,7 +20,6 @@ export default function SuperAdminShell() {
             </div>
           </SidebarInset>
         </SidebarProvider>
-        <TenantManagementPanels />
       </TenantManagementProvider>
     </TooltipProvider>
   );

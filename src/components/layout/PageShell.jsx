@@ -43,7 +43,7 @@ export function FilterToolbar({ className, children, ...props }) {
   return (
     <div
       className={cn(
-        "flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center",
+        "flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4",
         className
       )}
       {...props}
@@ -56,7 +56,7 @@ export function FilterToolbar({ className, children, ...props }) {
 /** Page search field sized to the query, not the full layout width. */
 export function SearchInput({ className, containerClassName, ...props }) {
   return (
-    <div className={cn("relative w-full max-w-sm", containerClassName)}>
+    <div className={cn("relative w-full max-w-sm sm:w-80 sm:shrink-0", containerClassName)}>
       <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
       <Input
         className={cn(

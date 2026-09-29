@@ -104,7 +104,7 @@ export default function PlansPage() {
           seats: item.maxUsers ?? 0,
           modules: Array.isArray(item.modulesIncluded) ? item.modulesIncluded : [],
           features: Array.isArray(item.features) ? item.features : [],
-          limits: { projects: "—", storage: "—", apiCalls: "—" },
+          limits: { projects: "N/A", storage: "N/A", apiCalls: "N/A" },
           published: item.active ?? true,
           _accentKey: ACCENT_KEYS[index % ACCENT_KEYS.length],
         }));
@@ -446,7 +446,7 @@ export default function PlansPage() {
                         {p.modules.includes(m.id) ? (
                           <Check className="h-4 w-4 text-primary" />
                         ) : (
-                          "—"
+                          "N/A"
                         )}
                       </TableCell>
                     ))}

@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Pause, Play, RefreshCw, Ban } from "lucide-react";
+import { ArrowLeft, Loader2, Pause, Play, RefreshCw, Ban } from "lucide-react";
 import { ROUTES } from "@/shared/constants/routes";
 import PageHeader from "../components/shared/PageHeader";
 import { PageShell, StatTile } from "@/components/layout/PageShell";
 import { MODULES, PLAN_MODULES, TENANT_DETAIL } from "../data/tenants";
-import { TenantQuickActions } from "../components/tenant-management";
 import { formatAed } from "@/shared/utils/currency";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,9 +38,11 @@ function moduleDiff(currentModules, nextModules) {
 }
 
 export default function TenantDetailPage() {
-  const { tenantId } = useParams();
-  const { getTenantById, updateTenantStatus, changeTenantPlan } = useTenantManagement();
-  const tenant = getTenantById(tenantId);
+  const { companyId, tenantId } = useParams();
+  const resolvedId = companyId || tenantId;
+  const { getTenantById, tenantsLoading, updateTenantStatus, changeTenantPlan } =
+    useTenantManagement();
+  const tenant = getTenantById(resolvedId);
   const [planDialogOpen, setPlanDialogOpen] = useState(false);
   const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
   const [terminateDialogOpen, setTerminateDialogOpen] = useState(false);
@@ -77,9 +78,8 @@ export default function TenantDetailPage() {
     [currentPlan, selectedPlan, tenant?.plan]
   );
 
-  const detail = TENANT_DETAIL[tenantId] || {
+  const detail = TENANT_DETAIL[resolvedId] || {
     enabledModules: currentPlan?.modulesIncluded || PLAN_MODULES[tenant?.plan] || [],
-    loginActivity: [{ user: "Admin User", action: "Signed in", time: "Today", ip: "-" }],
     billing: {
       lastInvoice: "-",
       nextBilling: "-",
@@ -88,17 +88,42 @@ export default function TenantDetailPage() {
     },
   };
 
-  if (!tenant) {
+  const companyAdmins = tenant?.companyAdmins?.length
+    ? tenant.companyAdmins
+    : tenant?.adminEmail
+      ? [{ fullName: "", email: tenant.adminEmail, phone: "" }]
+      : [];
+
+  if (tenantsLoading) {
     return (
       <div className="space-y-4">
         <Button variant="ghost" size="sm" asChild>
-          <Link to={ROUTES.SUPER_ADMIN.TENANTS}>
+          <Link to={ROUTES.SUPER_ADMIN.COMPANIES}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back
           </Link>
         </Button>
         <Card>
-          <CardContent className="py-12 text-center">Tenant not found</CardContent>
+          <CardContent className="flex min-h-[min(28rem,calc(100vh-12rem))] flex-col items-center justify-center gap-3">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">Loading company details...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!tenant) {
+    return (
+      <div className="space-y-4">
+        <Button variant="ghost" size="sm" asChild>
+          <Link to={ROUTES.SUPER_ADMIN.COMPANIES}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </Link>
+        </Button>
+        <Card>
+          <CardContent className="py-12 text-center">Company not found</CardContent>
         </Card>
       </div>
     );
@@ -139,9 +164,9 @@ export default function TenantDetailPage() {
   return (
     <PageShell>
       <Button variant="ghost" size="sm" asChild className="-ml-2 w-fit">
-        <Link to={ROUTES.SUPER_ADMIN.TENANTS}>
+        <Link to={ROUTES.SUPER_ADMIN.COMPANIES}>
           <ArrowLeft className="mr-2 h-4 w-4" />
-          All tenants
+          All companies
         </Link>
       </Button>
 
@@ -149,15 +174,48 @@ export default function TenantDetailPage() {
         <div className="min-w-0 flex-1 space-y-6">
           <PageHeader
             title={tenant.company}
-            description={`${tenant.plan} plan · ${tenant.activeUsers} active users`}
-            actions={<TenantQuickActions />}
+            description={`${tenant.plan} plan`}
           />
 
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <StatTile label="Status" value={tenant.status} />
-            <StatTile label="Domain" value={tenant.domainSlug || "—"} />
-            <StatTile label="Plan" value={tenant.plan || "—"} />
+            <StatTile label="Plan" value={tenant.plan || "N/A"} />
           </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Company admin</CardTitle>
+              <CardDescription>Primary administrator contact for this company</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {companyAdmins.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No company admin assigned</p>
+              ) : (
+                companyAdmins.map((admin, index) => (
+                  <div
+                    key={`${admin.email || "admin"}-${index}`}
+                    className="grid gap-3 text-sm sm:grid-cols-2">
+                    <div>
+                      <span className="text-muted-foreground">Company</span>
+                      <p className="font-medium">{tenant.company}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Name</span>
+                      <p className="font-medium">{admin.fullName || "N/A"}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Email</span>
+                      <p className="font-medium">{admin.email || "N/A"}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Mobile</span>
+                      <p className="font-medium">{admin.phone || "N/A"}</p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
 
           {actionError && (
             <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
@@ -169,7 +227,6 @@ export default function TenantDetailPage() {
             <TabsList>
               <TabsTrigger value="subscription">Subscription</TabsTrigger>
               <TabsTrigger value="modules">Modules</TabsTrigger>
-              <TabsTrigger value="activity">Login activity</TabsTrigger>
               <TabsTrigger value="billing">Billing</TabsTrigger>
             </TabsList>
 
@@ -189,15 +246,11 @@ export default function TenantDetailPage() {
                     <p className="font-medium capitalize">{tenant.status}</p>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Domain slug</span>
-                    <p className="font-mono text-xs">{tenant.domainSlug || "—"}</p>
-                  </div>
-                  <div>
                     <span className="text-muted-foreground">Created</span>
                     <p className="font-medium">
                       {tenant.createdAt
                         ? new Date(tenant.createdAt).toLocaleDateString("en-AU")
-                        : "—"}
+                        : "N/A"}
                     </p>
                   </div>
                 </CardContent>
@@ -218,28 +271,6 @@ export default function TenantDetailPage() {
                   {!(currentPlan?.modulesIncluded || detail.enabledModules || []).length && (
                     <p className="text-sm text-muted-foreground">No modules assigned yet</p>
                   )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="activity">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Login activity</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {detail.loginActivity.map((ev, i) => (
-                    <div key={i} className="flex gap-4 border-l-2 border-primary/30 pl-4">
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">{ev.user}</p>
-                        <p className="text-sm text-muted-foreground">{ev.action}</p>
-                      </div>
-                      <div className="text-right text-xs text-muted-foreground">
-                        <p>{ev.time}</p>
-                        <p>{ev.ip}</p>
-                      </div>
-                    </div>
-                  ))}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -321,7 +352,7 @@ export default function TenantDetailPage() {
             <SelectContent>
               {plans.map((p) => (
                 <SelectItem key={p.uuid} value={p.uuid}>
-                  {p.planName} — {formatAed(p.priceMonthly)}/mo
+                  {p.planName} - {formatAed(p.priceMonthly)}/mo
                 </SelectItem>
               ))}
             </SelectContent>
@@ -336,7 +367,7 @@ export default function TenantDetailPage() {
                 {diff.added.length ? (
                   diff.added.map((m) => <p key={m}>+ {modLabel(m)}</p>)
                 ) : (
-                  <p className="text-muted-foreground">—</p>
+                  <p className="text-muted-foreground">N/A</p>
                 )}
               </div>
               <div>
@@ -344,7 +375,7 @@ export default function TenantDetailPage() {
                 {diff.removed.length ? (
                   diff.removed.map((m) => <p key={m}>- {modLabel(m)}</p>)
                 ) : (
-                  <p className="text-muted-foreground">—</p>
+                  <p className="text-muted-foreground">N/A</p>
                 )}
               </div>
               <div>
@@ -352,7 +383,7 @@ export default function TenantDetailPage() {
                 {diff.kept.length ? (
                   diff.kept.map((m) => <p key={m}>{modLabel(m)}</p>)
                 ) : (
-                  <p className="text-muted-foreground">—</p>
+                  <p className="text-muted-foreground">N/A</p>
                 )}
               </div>
             </CardContent>

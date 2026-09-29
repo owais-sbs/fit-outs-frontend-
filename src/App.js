@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import { AuthProvider } from "./shared/context/auth-context";
 import { ROLES } from "./shared/constants/roles";
@@ -204,6 +204,16 @@ const SC_ESTIMATOR = [SC_ROLES.ADMIN, SC_ROLES.ESTIMATOR];
 const SC_SUPERVISOR = [SC_ROLES.ADMIN, SC_ROLES.SUPERVISOR];
 const SC_QS = [SC_ROLES.ADMIN, SC_ROLES.QS];
 
+function LegacyTenantDetailRedirect() {
+  const { tenantId } = useParams();
+  return (
+    <Navigate
+      to={ROUTES.SUPER_ADMIN.COMPANY_DETAIL.replace(":companyId", tenantId)}
+      replace
+    />
+  );
+}
+
 function LazyDrawingPage({ children }) {
   return (
     <Suspense fallback={<div className="flex min-h-[40vh] items-center justify-center text-sm text-muted-foreground">Loading…</div>}>
@@ -241,9 +251,12 @@ function App() {
                 </ProtectedRoute>
               }>
               <Route index element={<SuperAdminDashboard />} />
-              <Route path="tenants/new" element={<CreateCompanyPage />} />
-              <Route path="tenants/:tenantId" element={<TenantDetailPage />} />
-              <Route path="tenants" element={<TenantsPage />} />
+              <Route path="companies/new" element={<CreateCompanyPage />} />
+              <Route path="companies/:companyId" element={<TenantDetailPage />} />
+              <Route path="companies" element={<TenantsPage />} />
+              <Route path="tenants/new" element={<Navigate to={ROUTES.SUPER_ADMIN.COMPANIES_CREATE} replace />} />
+              <Route path="tenants/:tenantId" element={<LegacyTenantDetailRedirect />} />
+              <Route path="tenants" element={<Navigate to={ROUTES.SUPER_ADMIN.COMPANIES} replace />} />
               <Route path="plans" element={<PlansPage />} />
               <Route path="payments" element={<PaymentsPage />} />
               <Route path="users" element={<UsersPage />} />
@@ -252,7 +265,6 @@ function App() {
               <Route path="site-visits/schedule" element={<SiteVisitSchedulePage />} />
               <Route path="site-visits/:visitId/report" element={<SiteVisitReportPage />} />
               <Route path="settings" element={<SettingsPage />} />
-              <Route path="terms" element={<TermsAndConditionsPage />} />
             </Route>
 
             {/* ADMIN — leads & site visits only */}
