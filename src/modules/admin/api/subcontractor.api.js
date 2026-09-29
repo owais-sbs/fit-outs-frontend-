@@ -625,6 +625,8 @@ export function mapAwardPackToContract(pack) {
     adminSignerName: pack.adminSignerName,
     adminSignerTitle: pack.adminSignerTitle,
     adminSignatureAuditJson: pack.adminSignatureAuditJson,
+    adminSignatureUrl: pack.adminSignatureUrl,
+    awardedBoqLines: pack.awardedBoqLines ?? [],
     subcontractorSignatureUploaded: Boolean(pack.subcontractorSignatureUploaded),
     subcontractorSignatureUrl: pack.subcontractorSignatureUrl,
     signed,

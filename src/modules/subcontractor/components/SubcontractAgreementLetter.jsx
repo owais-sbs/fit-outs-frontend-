@@ -102,7 +102,37 @@ const styles = {
     fontWeight: 600,
     width: "32%",
   },
+  thBoq: {
+    textAlign: "left",
+    padding: "8px 10px",
+    borderBottom: "1px solid #E5E1DA",
+    color: "#6B6B6B",
+    fontWeight: 600,
+    fontSize: 11,
+    whiteSpace: "nowrap",
+  },
+  thBoqRight: {
+    textAlign: "right",
+    padding: "8px 10px",
+    borderBottom: "1px solid #E5E1DA",
+    color: "#6B6B6B",
+    fontWeight: 600,
+    fontSize: 11,
+    whiteSpace: "nowrap",
+  },
   td: { padding: "8px 10px", borderBottom: "1px solid #F0EEE9", color: "#1F2937", verticalAlign: "top" },
+  tdBoq: { padding: "8px 10px", borderBottom: "1px solid #F0EEE9", color: "#1F2937", verticalAlign: "top", fontSize: 11 },
+  tdBoqRight: {
+    padding: "8px 10px",
+    borderBottom: "1px solid #F0EEE9",
+    color: "#1F2937",
+    verticalAlign: "top",
+    fontSize: 11,
+    textAlign: "right",
+    fontVariantNumeric: "tabular-nums",
+  },
+  tdBoqMuted: { padding: "8px 10px", borderBottom: "1px solid #F0EEE9", color: "#9CA3AF", fontSize: 11, fontStyle: "italic" },
+  boqTotalRow: { background: "#F7F5F2", fontWeight: 600 },
   clauseList: { margin: "8px 0 0", paddingLeft: 18, fontSize: 12, color: "#374151", lineHeight: 1.55 },
   signGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 8 },
   signBox: {
@@ -135,6 +165,33 @@ function refCode(packageUuid) {
   return `SC-${String(packageUuid).slice(0, 8).toUpperCase()}`;
 }
 
+function formatQty(value) {
+  if (value == null || value === "") return "—";
+  const n = Number(value);
+  if (Number.isNaN(n)) return String(value);
+  return n.toLocaleString(undefined, { maximumFractionDigits: 4 });
+}
+
+function formatRate(value) {
+  if (value == null || value === "") return "—";
+  const n = Number(value);
+  if (Number.isNaN(n)) return String(value);
+  return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function isIncludedBoqLine(line) {
+  const status = String(line?.lineStatus || "QUOTED").toUpperCase();
+  return status === "QUOTED" || status === "CLARIFICATION" || status === "ALTERNATIVE";
+}
+
+function boqLinesTotal(lines) {
+  return (lines || []).reduce((sum, line) => {
+    if (!isIncludedBoqLine(line)) return sum;
+    const amount = Number(line.amount);
+    return sum + (Number.isNaN(amount) ? 0 : amount);
+  }, 0);
+}
+
 /**
  * Official JCT-style subcontract award letter (same look as BOQ cover letter).
  * @param {{ contract: object, adminSignatureUrl?: string|null, subSignatureUrl?: string|null }} props
@@ -160,6 +217,11 @@ export default function SubcontractAgreementLetter({
     : contract.adminSigned
       ? "PENDING SUBCONTRACTOR"
       : "PENDING ADMIN";
+
+  const awardedBoqLines = Array.isArray(contract.awardedBoqLines) ? contract.awardedBoqLines : [];
+  const includedBoqLines = awardedBoqLines.filter(isIncludedBoqLine);
+  const excludedBoqLines = awardedBoqLines.filter((line) => !isIncludedBoqLine(line));
+  const boqSubtotal = boqLinesTotal(awardedBoqLines);
 
   const commercialRows = [
     ["Payment terms", contract.paymentTerms || "Per JCT standard payment schedule"],
@@ -250,6 +312,74 @@ export default function SubcontractAgreementLetter({
           <p style={styles.totalAmount}>{money(contract.awardedValue)}</p>
           <p style={styles.totalNote}>Exclusive of Value Added Tax · from agreed BOQ / award</p>
         </div>
+
+        {awardedBoqLines.length > 0 ? (
+          <div style={styles.block}>
+            <p style={styles.sectionLabel}>Agreed priced BOQ — awarded lines</p>
+            <p style={{ ...styles.totalNote, margin: "4px 0 10px" }}>
+              Frozen snapshot from the winning quote. Included lines below form the priced subcontract scope.
+            </p>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ ...styles.termsTable, minWidth: 640 }}>
+                <thead>
+                  <tr>
+                    <th style={styles.thBoq}>Code</th>
+                    <th style={styles.thBoq}>Description</th>
+                    <th style={styles.thBoq}>Unit</th>
+                    <th style={styles.thBoqRight}>Qty</th>
+                    <th style={styles.thBoqRight}>Rate (AED)</th>
+                    <th style={styles.thBoqRight}>Amount (AED)</th>
+                    <th style={styles.thBoq}>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {includedBoqLines.map((line) => (
+                    <tr key={line.uuid || line.boqLineId}>
+                      <td style={{ ...styles.tdBoq, fontFamily: "Consolas, Monaco, monospace" }}>
+                        {line.sectionCode || "—"}
+                      </td>
+                      <td style={styles.tdBoq}>{line.description || "—"}</td>
+                      <td style={styles.tdBoq}>{line.unit || "—"}</td>
+                      <td style={styles.tdBoqRight}>{formatQty(line.quantity)}</td>
+                      <td style={styles.tdBoqRight}>{formatRate(line.rate)}</td>
+                      <td style={styles.tdBoqRight}>{money(line.amount)}</td>
+                      <td style={styles.tdBoq}>{line.lineStatus || "QUOTED"}</td>
+                    </tr>
+                  ))}
+                  {includedBoqLines.length > 0 ? (
+                    <tr style={styles.boqTotalRow}>
+                      <td colSpan={5} style={{ ...styles.tdBoq, textAlign: "right", fontWeight: 600 }}>
+                        Priced BOQ subtotal (included lines)
+                      </td>
+                      <td style={{ ...styles.tdBoqRight, fontWeight: 700, color: "#1F3A34" }}>
+                        {money(boqSubtotal)}
+                      </td>
+                      <td style={styles.tdBoq} />
+                    </tr>
+                  ) : null}
+                  {excludedBoqLines.map((line) => (
+                    <tr key={`ex-${line.uuid || line.boqLineId}`}>
+                      <td style={{ ...styles.tdBoqMuted, fontFamily: "Consolas, Monaco, monospace" }}>
+                        {line.sectionCode || "—"}
+                      </td>
+                      <td style={styles.tdBoqMuted}>{line.description || "—"}</td>
+                      <td colSpan={4} style={styles.tdBoqMuted}>
+                        {line.remarks ? line.remarks : "Not included in awarded scope"}
+                      </td>
+                      <td style={styles.tdBoqMuted}>{line.lineStatus || "EXCLUDED"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {contract.awardedValue != null && Math.abs(Number(contract.awardedValue) - boqSubtotal) > 0.01 ? (
+              <p style={{ ...styles.totalNote, marginTop: 8 }}>
+                Award value AED {Number(contract.awardedValue).toLocaleString()} may differ from line subtotal due to
+                rounding, negotiated adjustments, or award-value reason recorded at award.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
 
         <div style={styles.block}>
           <p style={styles.sectionLabel}>Package commercial terms</p>

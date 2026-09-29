@@ -137,6 +137,9 @@ export default function ContractSection({ packageUuid, projectId }) {
       return;
     }
     setContract(data);
+    if (data.adminSignatureUrl) {
+      setAdminSigUrl(resolveFileUrl(data.adminSignatureUrl));
+    }
     if (data.subcontractorSignatureUploaded || data.subcontractorSignatureUrl) {
       setSubSignatureUploaded(Boolean(data.subcontractorSignatureUploaded) || Boolean(data.subcontractorSignatureUrl));
       setSubSignatureUrl(data.subcontractorSignatureUrl ? resolveFileUrl(data.subcontractorSignatureUrl) : null);
