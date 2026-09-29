@@ -28,13 +28,13 @@ export default function SiteEngineerProjectSchedulePage() {
 
       <PageTitle
         title="Programme"
-        subtitle="Published schedule · select a bar to update progress"
+        subtitle="Published schedule · select a bar to submit progress for PM validation"
       />
 
       <AssignedProgrammeView
         projectOptions={[{ id: projectId, name: `Project #${projectId}` }]}
         initialProjectId={projectId}
-        progressMode="immediate"
+        progressMode="validation"
         allowProgress
         emptyMessage="Ask your project manager to publish the schedule. Once published, the Gantt appears here and you can update activity progress."
       />

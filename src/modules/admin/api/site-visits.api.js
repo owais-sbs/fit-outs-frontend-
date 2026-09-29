@@ -56,8 +56,13 @@ export function normalizeSiteVisit(item = {}) {
   return {
     uuid: item.uuid || null,
     leadId: item.leadId ?? null,
-    assignedTo: item.assignedTo ?? null,
-    employeeIds: item.employeeIds ?? (item.assignedTo ? [item.assignedTo] : []),
+    employeeIds: Array.isArray(item.employeeIds) && item.employeeIds.length
+      ? item.employeeIds
+      : (item.assignedToAccountId || item.assignedTo
+        ? [item.assignedToAccountId ?? item.assignedTo]
+        : []),
+    assignedTo: item.assignedTo ?? item.assignedToAccountId ?? null,
+    assignedToAccountId: item.assignedToAccountId ?? item.assignedTo ?? null,
     employeeNames: item.employeeNames || [],
     scheduledDate: item.scheduledDate || null,
     scheduledTime: item.scheduledTime || null,

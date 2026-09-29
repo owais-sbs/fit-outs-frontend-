@@ -38,7 +38,7 @@ const DELAY_REASON_PRESETS = [
 
 /**
  * Published programme Gantt for assigned staff / site engineers.
- * @param {"immediate"|"validation"} progressMode — SE applies live; employees wait for PM approval.
+ * @param {"immediate"|"validation"} progressMode — immediate applies live; validation waits for PM approval.
  * @param {boolean} allowProgress — when false, Gantt is view-only (e.g. team staff programme page).
  * @param {(activity) => boolean} [canUpdateActivity] — optional gate for which bars open the progress form.
  */
@@ -85,7 +85,7 @@ export default function AssignedProgrammeView({
     }
   }, [initialProjectId]);
 
-  const loadSchedule = (pid) => {
+  const loadSchedule = (pid, { clearMessage = true } = {}) => {
     if (!pid) {
       setActivities([]);
       setDependencies([]);
@@ -96,7 +96,7 @@ export default function AssignedProgrammeView({
     setError("");
     setSelected(null);
     setPendingFiles([]);
-    setMessage("");
+    if (clearMessage) setMessage("");
     return fetchPublishedProjectSchedule(pid)
       .then((schedule) => {
         const acts = Array.isArray(schedule?.activities) ? schedule.activities : [];
@@ -205,20 +205,20 @@ export default function AssignedProgrammeView({
         }
       }
       setPendingFiles([]);
-      setMessage(
+      setMaterialRows([]);
+      const nextPercent = Number(form.percentComplete) || 0;
+      const keepSelected = selected;
+      const successMsg =
         progressMode === "immediate"
           ? hadMedia
             ? "Progress applied with media — Gantt updated."
             : "Progress applied — Gantt updated."
           : hadMedia
             ? "Submitted with media for PM validation — awaiting approval."
-            : "Submitted for PM validation — awaiting approval."
-      );
-      setMaterialRows([]);
-      const nextPercent = Number(form.percentComplete) || 0;
-      const keepSelected = selected;
-      await loadSchedule(projectId);
+            : "Submitted for PM validation — awaiting approval.";
+      await loadSchedule(projectId, { clearMessage: false });
       setSelected({ ...keepSelected, percentComplete: nextPercent });
+      setMessage(successMsg);
     } catch (e) {
       setMessage(e?.response?.data?.error || e?.response?.data?.message || "Failed to post progress");
     } finally {
@@ -380,7 +380,7 @@ export default function AssignedProgrammeView({
                 <p className="text-[11px] text-muted-foreground">
                   {progressMode === "immediate"
                     ? "Updates the Gantt immediately for you and the client programme."
-                    : "Your update applies to the schedule after PM approval."}
+                    : "Your update and media go to the PM Validation Inbox. Gantt % updates after approval."}
                 </p>
               </div>
               {message && <p className="mt-2 text-sm text-muted-foreground">{message}</p>}

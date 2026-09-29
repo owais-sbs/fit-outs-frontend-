@@ -58,11 +58,11 @@ export default function SiteEngineerActivitiesPage() {
     <PageShell className="mx-auto max-w-[1400px]">
       <PageTitle
         title="Construction programme"
-        subtitle="Published Gantt for your assigned projects — click a bar to update progress"
+        subtitle="Published Gantt for your assigned projects — click a bar to submit progress for PM validation"
       />
       <AssignedProgrammeView
         projectOptions={projectOptions}
-        progressMode="immediate"
+        progressMode="validation"
         allowProgress
         emptyMessage="No published activities on your assigned projects yet. Ask your PM to publish the schedule and assign you as Site Engineer on the project team."
       />

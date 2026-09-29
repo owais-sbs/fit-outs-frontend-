@@ -27,6 +27,7 @@ import {
   fetchOrderByDates,
   rescheduleProject,
   saveScheduleAsTemplate,
+  uploadProgressAttachment,
 } from "../../api/schedule.api";
 import { fetchMaterialPlan } from "../../api/material-plan.api";
 import { fetchProjectRooms, fetchProjectRoomTasks } from "../../api/room-collab.api";
@@ -34,6 +35,7 @@ import { fetchAllEmployees } from "../../api/employees.api";
 import ProgressMaterialIssuesFields, {
   toMaterialIssuesPayload,
 } from "../../components/progress/ProgressMaterialIssuesFields";
+import { AttachmentList, AttachmentUploadField } from "@/components/shared/AttachmentField";
 import ScheduleReadinessStrip from "./ScheduleReadinessStrip";
 import ScheduleActivityList from "./ScheduleActivityList";
 import BaselineVarianceTable from "./BaselineVarianceTable";
@@ -136,6 +138,7 @@ export default function ProjectSchedulePage() {
   const [depLag, setDepLag] = useState(0);
   const [progressForm, setProgressForm] = useState({ percentComplete: 0, notes: "", labourHours: "" });
   const [materialRows, setMaterialRows] = useState([]);
+  const [pendingProgressFiles, setPendingProgressFiles] = useState([]);
   const [planLines, setPlanLines] = useState([]);
   const [materialSummary, setMaterialSummary] = useState([]);
   const [publishAllowed, setPublishAllowed] = useState(false);
@@ -245,6 +248,7 @@ export default function ProjectSchedulePage() {
       setProgressHistory([]);
       setMaterialSummary([]);
       setMaterialRows([]);
+      setPendingProgressFiles([]);
       return;
     }
     setProgressForm({
@@ -253,6 +257,7 @@ export default function ProjectSchedulePage() {
       labourHours: "",
     });
     setMaterialRows([]);
+    setPendingProgressFiles([]);
     fetchActivityProgress(selected.uuid)
       .then((list) => setProgressHistory(Array.isArray(list) ? list : []))
       .catch(() => setProgressHistory([]));
@@ -430,20 +435,27 @@ export default function ProjectSchedulePage() {
 
   const handleProgress = () => {
     if (!selected) return;
+    const filesToUpload = [...pendingProgressFiles];
     run(async () => {
       const materialIssues = toMaterialIssuesPayload(materialRows);
-      await postActivityProgress(selected.uuid, {
+      const created = await postActivityProgress(selected.uuid, {
         percentComplete: Number(progressForm.percentComplete) || 0,
         notes: progressForm.notes || null,
         labourHours: progressForm.labourHours !== "" ? Number(progressForm.labourHours) : null,
         ...(materialIssues.length ? { materialIssues } : {}),
       });
+      if (created?.uuid && filesToUpload.length > 0) {
+        for (const file of filesToUpload) {
+          await uploadProgressAttachment(created.uuid, file);
+        }
+      }
+      setPendingProgressFiles([]);
       setMaterialRows([]);
       const list = await fetchActivityProgress(selected.uuid);
       setProgressHistory(Array.isArray(list) ? list : []);
       const summary = await fetchActivityMaterialSummary(selected.uuid).catch(() => []);
       setMaterialSummary(Array.isArray(summary) ? summary : []);
-    }, "Submitted for PM validation");
+    }, filesToUpload.length ? "Submitted with photos for PM validation" : "Submitted for PM validation");
   };
 
   if (loading) {
@@ -1031,7 +1043,16 @@ export default function ProjectSchedulePage() {
                 rows={materialRows}
                 onChange={setMaterialRows}
               />
-              <Button size="sm" disabled={busy} onClick={handleProgress}>Submit for validation</Button>
+              <AttachmentUploadField
+                label="Photos / documents"
+                hint="Attach site photos or documents before submitting. Files upload with this progress log."
+                files={pendingProgressFiles}
+                onFilesChange={setPendingProgressFiles}
+                disabled={busy || archived}
+              />
+              <Button size="sm" disabled={busy || archived} onClick={handleProgress}>
+                Submit for validation
+              </Button>
               {materialSummary.length > 0 && (
                 <div className="rounded-md border border-border/50 p-2 space-y-1">
                   <p className="text-xs font-medium">Plan vs issued</p>
@@ -1048,21 +1069,24 @@ export default function ProjectSchedulePage() {
                 </div>
               )}
               {progressHistory.length > 0 && (
-                <ul className="text-xs text-muted-foreground space-y-1 max-h-32 overflow-auto">
+                <ul className="text-xs text-muted-foreground space-y-2 max-h-40 overflow-auto">
                   {progressHistory.map((u) => (
-                    <li key={u.uuid} className="flex flex-wrap items-center gap-1.5">
-                      <span>{u.percentComplete}% · {u.notes || "—"}</span>
-                      {u.validationStatus && (
-                        <Badge variant="secondary" className="text-[10px] h-5">
-                          {u.validationStatus}
-                        </Badge>
-                      )}
-                      <span>· {u.reportedAt ? new Date(u.reportedAt).toLocaleString() : ""}</span>
+                    <li key={u.uuid} className="space-y-1">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span>{u.percentComplete}% · {u.notes || "—"}</span>
+                        {u.validationStatus && (
+                          <Badge variant="secondary" className="text-[10px] h-5">
+                            {u.validationStatus}
+                          </Badge>
+                        )}
+                        <span>· {u.reportedAt ? new Date(u.reportedAt).toLocaleString() : ""}</span>
+                      </div>
                       {Array.isArray(u.materialIssues) && u.materialIssues.length > 0 && (
-                        <span className="w-full text-[10px]">
+                        <span className="block text-[10px]">
                           Materials: {u.materialIssues.map((m) => `${m.materialName || m.materialId}×${m.qty}`).join(", ")}
                         </span>
                       )}
+                      <AttachmentList paths={u.photoPaths || u.attachmentPaths} />
                     </li>
                   ))}
                 </ul>

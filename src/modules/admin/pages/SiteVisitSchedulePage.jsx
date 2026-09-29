@@ -10,7 +10,7 @@ import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import { PageShell } from "@/components/layout/PageShell";
 import { fetchAllLeads } from "../api/leads.api";
 import { fetchAllEmployees } from "../api/employees.api";
-import { createSiteVisit, addLocationDetails } from "../api/site-visits.api";
+import { createSiteVisit, addLocationDetails, fetchAllSiteVisits } from "../api/site-visits.api";
 import { googleMapsShareUrl, isMapsShareUrl, resolveLocationQuery } from "../api/geocode.api";
 import { fetchAllClients } from "../api/clients.api";
 import {
@@ -46,6 +46,110 @@ import {
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
+
+const MIN_ASSIGNEE_GAP_MS = 3 * 60 * 60 * 1000;
+
+function parseVisitDateTime(dateStr, timeStr) {
+  if (!dateStr || !timeStr) return null;
+  let date = String(dateStr).trim();
+  // Support yyyy-mm-dd and dd-mm-yyyy
+  const dmy = date.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  if (dmy) date = `${dmy[3]}-${dmy[2]}-${dmy[1]}`;
+  else date = date.slice(0, 10);
+  let time = String(timeStr).trim();
+  if (/^\d{2}:\d{2}$/.test(time)) time = `${time}:00`;
+  if (/^\d{2}:\d{2}:\d{2}/.test(time)) time = time.slice(0, 8);
+  const ms = Date.parse(`${date}T${time}`);
+  return Number.isNaN(ms) ? null : ms;
+}
+
+function normalizeDayKey(dateStr) {
+  if (!dateStr) return null;
+  let date = String(dateStr).trim();
+  const dmy = date.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  if (dmy) return `${dmy[3]}-${dmy[2]}-${dmy[1]}`;
+  if (/^\d{4}-\d{2}-\d{2}/.test(date)) return date.slice(0, 10);
+  const ms = Date.parse(date);
+  if (Number.isNaN(ms)) return null;
+  const d = new Date(ms);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function formatClock(timeStr) {
+  if (!timeStr) return "—";
+  const t = String(timeStr).slice(0, 5);
+  return t;
+}
+
+/** Map employeeId (number) -> conflicting visit info when within 3h on same day. */
+function buildStaffConflicts(visits, date, time) {
+  const proposed = parseVisitDateTime(date, time);
+  const day = normalizeDayKey(date);
+  const map = new Map();
+  if (!proposed || !day) return map;
+
+  for (const visit of visits || []) {
+    const status = String(visit.status || "").toUpperCase();
+    if (status === "CANCELLED" || status === "COMPLETED") continue;
+    const visitDay = normalizeDayKey(visit.scheduledDate);
+    if (!visitDay || visitDay !== day) continue;
+
+    const existing = parseVisitDateTime(visit.scheduledDate, visit.scheduledTime || "00:00");
+    if (existing == null) continue;
+    // If visit has no real time, treat as all-day busy for that date.
+    const hasTime = Boolean(visit.scheduledTime);
+    if (hasTime && Math.abs(existing - proposed) >= MIN_ASSIGNEE_GAP_MS) continue;
+
+    const ids = [];
+    if (Array.isArray(visit.employeeIds)) {
+      for (const rawId of visit.employeeIds) {
+        const id = Number(rawId);
+        if (Number.isFinite(id)) ids.push(id);
+      }
+    }
+    // Fallback: some payloads only expose assignedTo / assignedToAccountId
+    const assignedAccountId = visit.assignedToAccountId != null
+      ? Number(visit.assignedToAccountId)
+      : (visit.assignedTo != null ? Number(visit.assignedTo) : null);
+
+    const reason = hasTime
+      ? `Busy — visit at ${formatClock(visit.scheduledTime)} (needs 3+ hours gap)`
+      : `Busy — already has a visit on ${visitDay}`;
+
+    for (const id of ids) {
+      if (!map.has(id)) {
+        map.set(id, { scheduledTime: visit.scheduledTime, scheduledDate: visit.scheduledDate, status: visit.status, reason, assignedAccountId });
+      }
+    }
+    if (ids.length === 0 && Number.isFinite(assignedAccountId)) {
+      // Store under a special key space for account-based lookup
+      map.set(`account:${assignedAccountId}`, {
+        scheduledTime: visit.scheduledTime,
+        scheduledDate: visit.scheduledDate,
+        status: visit.status,
+        reason,
+        assignedAccountId,
+      });
+    }
+  }
+  return map;
+}
+
+function getEmployeeConflict(staffConflicts, emp) {
+  const empId = Number(emp?.id);
+  if (Number.isFinite(empId) && staffConflicts.has(empId)) return staffConflicts.get(empId);
+  const accountId = Number(emp?.accountId);
+  if (Number.isFinite(accountId) && staffConflicts.has(`account:${accountId}`)) {
+    return staffConflicts.get(`account:${accountId}`);
+  }
+  // Also scan values for account match when employeeIds were resolved
+  if (Number.isFinite(accountId)) {
+    for (const value of staffConflicts.values()) {
+      if (Number(value?.assignedAccountId) === accountId) return value;
+    }
+  }
+  return null;
+}
 
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: markerIcon2x,
@@ -193,6 +297,7 @@ export default function SiteVisitSchedulePage() {
   const [leads, setLeads] = useState([]);
   const [clients, setClients] = useState([]);
   const [employees, setEmployees] = useState([]);
+  const [existingVisits, setExistingVisits] = useState([]);
   const [targetType, setTargetType] = useState("lead"); // "lead" or "client"
   const [loadingOptions, setLoadingOptions] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -256,7 +361,15 @@ export default function SiteVisitSchedulePage() {
         if (!cancelled) setClients([]);
       });
 
-    Promise.allSettled([loadLeads, loadEmployees, loadClients]).finally(() => {
+    const loadVisits = fetchAllSiteVisits()
+      .then((list) => {
+        if (!cancelled) setExistingVisits(Array.isArray(list) ? list : []);
+      })
+      .catch(() => {
+        if (!cancelled) setExistingVisits([]);
+      });
+
+    Promise.allSettled([loadLeads, loadEmployees, loadClients, loadVisits]).finally(() => {
       if (!cancelled) setLoadingOptions(false);
     });
 
@@ -296,6 +409,35 @@ export default function SiteVisitSchedulePage() {
       return name.includes(query) || role.includes(query) || designation.includes(query);
     });
   }, [employees, staffSearchQuery]);
+
+  const staffConflicts = useMemo(
+    () => buildStaffConflicts(existingVisits, form.date, form.time),
+    [existingVisits, form.date, form.time]
+  );
+
+  useEffect(() => {
+    if (!form.date || !form.time) return;
+    let cancelled = false;
+    fetchAllSiteVisits()
+      .then((list) => {
+        if (!cancelled) setExistingVisits(Array.isArray(list) ? list : []);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [form.date, form.time]);
+
+  useEffect(() => {
+    if (!form.date || !form.time || form.employeeIds.length === 0) return;
+    const next = form.employeeIds.filter((id) => {
+      const emp = employees.find((e) => Number(e.id) === Number(id));
+      return !getEmployeeConflict(staffConflicts, emp || { id });
+    });
+    if (next.length !== form.employeeIds.length) {
+      setForm((f) => ({ ...f, employeeIds: next }));
+    }
+  }, [form.date, form.time, form.employeeIds, staffConflicts, employees]);
 
   const summaryItems = useMemo(
     () => [
@@ -742,6 +884,11 @@ export default function SiteVisitSchedulePage() {
 
               <div className="space-y-2 md:col-span-2">
                 <Label>Assigned staff *</Label>
+                {(!form.date || !form.time) && (
+                  <p className="text-xs text-muted-foreground">
+                    Set date and time first — staff already booked within 3 hours that day will be blocked.
+                  </p>
+                )}
                 <div className="relative">
                   {/* Selected staff chips */}
                   {form.employeeIds.length > 0 && (
@@ -790,22 +937,27 @@ export default function SiteVisitSchedulePage() {
                       }}
                       placeholder={form.employeeIds.length > 0 ? "Search to add more staff..." : "Search and select staff..."}
                       className="pl-9 pr-4 bg-background/50 border-border focus-visible:ring-primary"
+                      disabled={!form.date || !form.time}
                     />
                   </div>
 
                   {/* Dropdown list */}
-                  {staffDropdownOpen && (
+                  {staffDropdownOpen && form.date && form.time && (
                     <div className="absolute z-30 mt-1 max-h-52 w-full overflow-y-auto rounded-md border border-border bg-popover p-1 shadow-md">
                       {filteredEmployees.length > 0 ? (
                         filteredEmployees.map((emp) => {
                           const isSelected = form.employeeIds.includes(Number(emp.id));
+                          const conflict = getEmployeeConflict(staffConflicts, emp);
+                          const blocked = Boolean(conflict) && !isSelected;
                           return (
                             <button
                               key={emp.id}
                               type="button"
+                              disabled={blocked}
                               onMouseDown={(e) => {
                                 // Use onMouseDown to trigger before onBlur closes dropdown
                                 e.preventDefault();
+                                if (blocked) return;
                                 if (isSelected) {
                                   update("employeeIds", form.employeeIds.filter((id) => id !== Number(emp.id)));
                                 } else {
@@ -813,7 +965,11 @@ export default function SiteVisitSchedulePage() {
                                 }
                                 setStaffSearchQuery("");
                               }}
-                              className="flex w-full items-center justify-between rounded-sm px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
+                              className={`flex w-full items-center justify-between rounded-sm px-3 py-2 text-left text-sm ${
+                                blocked
+                                  ? "cursor-not-allowed opacity-60"
+                                  : "hover:bg-accent hover:text-accent-foreground"
+                              }`}
                             >
                               <span className={isSelected ? "font-semibold text-primary" : ""}>
                                 <span className="block">{emp.employeeName || emp.fullName}</span>
@@ -822,8 +978,13 @@ export default function SiteVisitSchedulePage() {
                                     {emp.roleLabel || ROLE_LABELS[emp.role] || emp.designation}
                                   </span>
                                 )}
+                                {conflict && (
+                                  <span className="mt-0.5 block text-[11px] font-medium text-amber-700 dark:text-amber-400">
+                                    {conflict.reason}
+                                  </span>
+                                )}
                               </span>
-                              {isSelected && <Check className="h-4 w-4 text-primary shrink-0" />}
+                              {isSelected && !blocked && <Check className="h-4 w-4 text-primary shrink-0" />}
                             </button>
                           );
                         })
