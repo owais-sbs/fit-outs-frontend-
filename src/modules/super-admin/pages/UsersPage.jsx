@@ -1,18 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { MoreHorizontal, UserPlus } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Loader2, MoreHorizontal, UserRound } from "lucide-react";
 import PageHeader from "../components/shared/PageHeader";
-import { FilterToolbar, SearchInput } from "@/components/layout/PageShell";
-import { PLATFORM_USERS, BASE_ROLES } from "../data/users";
-import { PERMISSION_MODULES, PERMISSION_ACTIONS } from "../data/permissions";
-import { ROUTES } from "@/shared/constants/routes";
+import { PageShell, FilterToolbar, SearchInput } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -22,11 +18,19 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -35,189 +39,512 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import axiosInstance from "@/lib/axiosInstance";
 
-// Map API account shape → UI user shape
-function normalizeUser(account) {
+const PAGE_SIZE = 8;
+const FILTERS = {
+  ALL: "all",
+  SUBSCRIBERS: "subscribers",
+  DELETION_QUEUE: "deletion_queue",
+  DEVELOPER_SEED: "developer_seed",
+};
+
+const ROLE_LABELS = {
+  SUPER_ADMIN: "Super Admin",
+  ADMIN: "Admin",
+  BUSINESS_OWNER: "Business Owner",
+  PROJECT_MANAGER: "Project Manager",
+  DESIGNER: "Designer",
+  QAS: "QAS",
+  QS: "QS",
+  SENIOR_QS: "Senior QS",
+  FINANCE: "Finance",
+  SUBCONTRACTOR: "Subcontractor",
+  CLIENT: "Client",
+  SALES: "Sales",
+  EMPLOYEE: "Employee",
+  SITE_ENGINEER: "Site Engineer",
+  SC_ESTIMATOR: "SC Estimator",
+  SC_SUPERVISOR: "SC Supervisor",
+  SC_QS: "SC QS",
+  SC_DOC_CONTROLLER: "SC Doc Controller",
+};
+
+function formatRoles(roles) {
+  if (!Array.isArray(roles) || roles.length === 0) return "N/A";
+  return roles.map((role) => ROLE_LABELS[role] || role.replaceAll("_", " ")).join(", ");
+}
+
+function formatDate(value) {
+  if (!value) return "N/A";
+  try {
+    return new Intl.DateTimeFormat("en-AU", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    }).format(new Date(value));
+  } catch {
+    return "N/A";
+  }
+}
+
+function normalizeUser(row) {
   return {
-    id: account.id,
-    name: account.fullName || account.email,
-    email: account.email,
-    phone: account.phone || "—",
-    role: Array.isArray(account.roles) && account.roles.length > 0
-      ? account.roles[0].replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
-      : "—",
-    modules: ["CRM", "Dashboard"],
-    status: account.active ? "active" : "inactive",
-    lastActive: "—",
-    tenant: account.companyName || "—",
-    tenantUuid: account.tenantUuid || "",
+    id: row.id,
+    name: row.fullName || row.email,
+    email: row.email,
+    company: row.companyName || "",
+    companyUuid: row.companyUuid,
+    createdAt: row.createdAt,
+    subscriber: Boolean(row.subscriber),
+    latestPaymentStatus: row.latestPaymentStatus,
+    deletionScheduledAt: row.deletionScheduledAt,
+    purgeAt: row.purgeAt,
+    daysUntilPurge: row.daysUntilPurge,
+    affectedAccountCount: row.affectedAccountCount ?? 1,
+    roles: Array.isArray(row.roles) ? row.roles : [],
+    deletable: Boolean(row.deletable),
   };
 }
 
 export default function UsersPage() {
-  const navigate = useNavigate();
-  const [users, setUsers] = useState(PLATFORM_USERS);
+  const [filter, setFilter] = useState(FILTERS.ALL);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [roleFilter, setRoleFilter] = useState("all");
-  const [editUser, setEditUser] = useState(null);
-  const [saved, setSaved] = useState(false);
+  const [page, setPage] = useState(1);
+  const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(false);
 
-  // Fetch users from API on mount
-  useEffect(() => {
-    let cancelled = false;
-    axiosInstance
-      .get("/accounts")
-      .then(({ data }) => {
-        if (cancelled) return;
-        const list = Array.isArray(data?.data) ? data.data : [];
-        if (list.length > 0) {
-          setUsers(list.map(normalizeUser));
-        }
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        console.error("Failed to fetch accounts:", err);
-        // keep mock data as fallback
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteStep, setDeleteStep] = useState(0);
+  const [confirmEmail, setConfirmEmail] = useState("");
+  const [ackDataLoss, setAckDataLoss] = useState(false);
+  const [ackGracePeriod, setAckGracePeriod] = useState(false);
+
+  const [reactivateTarget, setReactivateTarget] = useState(null);
+
+  const loadUsers = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data } = await axiosInstance.get("/platform-users", {
+        params: { filter },
       });
+      const list = Array.isArray(data?.data) ? data.data : [];
+      setUsers(list.map(normalizeUser));
+    } catch (err) {
+      setUsers([]);
+      setError(err?.response?.data?.message || err.message || "Failed to load users");
+    } finally {
+      setLoading(false);
+    }
+  }, [filter]);
 
-    return () => { cancelled = true; };
-  }, []);
+  useEffect(() => {
+    setUsers([]);
+    setPage(1);
+    loadUsers();
+  }, [loadUsers]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return users.filter((u) => {
-      const matchQ = !q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
-      const matchRole = roleFilter === "all" || u.role === roleFilter;
-      return matchQ && matchRole;
+    const query = search.trim().toLowerCase();
+    if (!query) return users;
+    return users.filter((user) => {
+      const companyLabel = user.company || "no company";
+      return (
+        user.name.toLowerCase().includes(query) ||
+        user.email.toLowerCase().includes(query) ||
+        companyLabel.toLowerCase().includes(query)
+      );
     });
-  }, [users, search, roleFilter]);
+  }, [users, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const isDeletionQueue = filter === FILTERS.DELETION_QUEUE;
+  const isDeveloperSeed = filter === FILTERS.DEVELOPER_SEED;
+  const tableColumnCount = isDeletionQueue ? 7 : isDeveloperSeed ? 5 : 6;
+
+  const openDeleteFlow = (user) => {
+    setDeleteTarget(user);
+    setDeleteStep(0);
+    setConfirmEmail("");
+    setAckDataLoss(false);
+    setAckGracePeriod(false);
+  };
+
+  const closeDeleteFlow = () => {
+    setDeleteTarget(null);
+    setDeleteStep(0);
+    setConfirmEmail("");
+    setAckDataLoss(false);
+    setAckGracePeriod(false);
+  };
+
+  const runScheduleDeletion = async () => {
+    if (!deleteTarget) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await axiosInstance.post(`/platform-users/${deleteTarget.id}/schedule-deletion`);
+      closeDeleteFlow();
+      await loadUsers();
+    } catch (err) {
+      setError(err?.response?.data?.message || err.message || "Failed to schedule deletion");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const runReactivate = async () => {
+    if (!reactivateTarget) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await axiosInstance.post(`/platform-users/${reactivateTarget.id}/reactivate`);
+      setReactivateTarget(null);
+      await loadUsers();
+    } catch (err) {
+      setError(err?.response?.data?.message || err.message || "Failed to reactivate account");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const canProceedDeleteStep2 =
+    ackDataLoss &&
+    ackGracePeriod &&
+    confirmEmail.trim().toLowerCase() === (deleteTarget?.email || "").toLowerCase();
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <PageHeader
         title="Users"
-        description="Invite users, assign roles, and configure per-user module access."
-        actions={
-          <Button
-            size="sm"
-            className="gap-2"
-            onClick={() => navigate(ROUTES.SUPER_ADMIN.TENANTS_CREATE)}
-          >
-            <UserPlus className="h-4 w-4" />
-            Invite user
-          </Button>
-        }
+        description="Company administrators across the platform, including landing signups and provisioned admins."
       />
 
-      {saved && (
-        <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-2 text-sm text-primary">
-          Permissions saved successfully.
+      <FilterToolbar>
+        <SearchInput
+          placeholder="Search users..."
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+        <div className="shrink-0">
+          <Select
+            value={filter}
+            onValueChange={setFilter}>
+            <SelectTrigger className="h-8 w-[180px] rounded-sm border-border bg-card shadow-sm">
+              <SelectValue placeholder="Filter users" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={FILTERS.ALL}>All</SelectItem>
+              <SelectItem value={FILTERS.SUBSCRIBERS}>Subscribers</SelectItem>
+              <SelectItem value={FILTERS.DEVELOPER_SEED}>Developer seed</SelectItem>
+              <SelectItem value={FILTERS.DELETION_QUEUE}>Deletion queue</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </FilterToolbar>
+
+      {error && (
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+          {error}
         </div>
       )}
 
-      <FilterToolbar>
-          <SearchInput placeholder="Search users..." value={search} onChange={(e) => setSearch(e.target.value)} />
-          <Select value={roleFilter} onValueChange={setRoleFilter}>
-            <SelectTrigger className="h-8 w-[180px] rounded-sm"><SelectValue placeholder="Role" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All roles</SelectItem>
-              {BASE_ROLES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-            </SelectContent>
-          </Select>
-      </FilterToolbar>
-
-      <Card className="overflow-hidden border-border/60">
-        <div className="overflow-auto">
+      <Card className="overflow-hidden">
+        <div className="max-h-[calc(100vh-22rem)] overflow-auto">
           <Table>
             <TableHeader className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm">
-              <TableRow>
-                <TableHead className="pl-6">User</TableHead>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="pl-6">Name</TableHead>
                 <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Modules</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Last active</TableHead>
-                <TableHead className="pr-6 text-right">Actions</TableHead>
+                <TableHead>Company</TableHead>
+                <TableHead>Created</TableHead>
+                {!isDeletionQueue && !isDeveloperSeed && <TableHead>Subscriber</TableHead>}
+                {!isDeletionQueue && isDeveloperSeed && <TableHead>Role</TableHead>}
+                {isDeletionQueue && <TableHead>Scheduled</TableHead>}
+                {isDeletionQueue && <TableHead>Deletes in</TableHead>}
+                {!isDeveloperSeed && (
+                  <TableHead className="pr-6 text-right">Actions</TableHead>
+                )}
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading
-                ? Array.from({ length: 5 }).map((_, i) => (
-                    <TableRow key={i}>{Array.from({ length: 7 }).map((__, j) => (
-                      <TableCell key={j}><Skeleton className="h-4 w-20" /></TableCell>
-                    ))}</TableRow>
+                ? Array.from({ length: 6 }).map((_, rowIndex) => (
+                    <TableRow key={rowIndex}>
+                      {Array.from({ length: tableColumnCount }).map((__, cellIndex) => (
+                        <TableCell key={cellIndex}>
+                          <Skeleton className="h-4 w-full max-w-[120px]" />
+                        </TableCell>
+                      ))}
+                    </TableRow>
                   ))
-                : filtered.map((u) => (
-                    <TableRow key={u.id} className="cursor-pointer" onClick={() => setEditUser(u)}>
-                      <TableCell className="pl-6 font-medium">{u.name}</TableCell>
-                      <TableCell className="text-muted-foreground">{u.email}</TableCell>
-                      <TableCell><Badge variant="outline">{u.role}</Badge></TableCell>
-                      <TableCell className="max-w-[180px] truncate text-sm">{u.modules.join(", ")}</TableCell>
-                      <TableCell><Badge variant={u.status === "active" ? "success" : "secondary"}>{u.status}</Badge></TableCell>
-                      <TableCell className="text-muted-foreground text-sm">{u.lastActive}</TableCell>
-                      <TableCell className="pr-6 text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setEditUser(u); }}>Edit</DropdownMenuItem>
-                            <DropdownMenuItem onClick={(e) => e.stopPropagation()}>Deactivate</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                : paginated.length === 0
+                  ? (
+                    <TableRow>
+                      <TableCell colSpan={tableColumnCount} className="h-48 text-center">
+                        <UserRound className="mx-auto mb-3 h-10 w-10 text-muted-foreground/50" />
+                        <p className="font-medium">No users found</p>
+                        <p className="text-sm text-muted-foreground">
+                          Adjust filters or search terms
+                        </p>
                       </TableCell>
+                    </TableRow>
+                  )
+                  : paginated.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell className="pl-6 font-medium">{user.name}</TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {user.company || "No company"}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {formatDate(user.createdAt)}
+                      </TableCell>
+                      {!isDeletionQueue && !isDeveloperSeed && (
+                        <TableCell>
+                          <Badge variant={user.subscriber ? "success" : "secondary"}>
+                            {user.subscriber ? "Yes" : "No"}
+                          </Badge>
+                        </TableCell>
+                      )}
+                      {!isDeletionQueue && isDeveloperSeed && (
+                        <TableCell className="text-muted-foreground">
+                          {formatRoles(user.roles)}
+                        </TableCell>
+                      )}
+                      {isDeletionQueue && (
+                        <TableCell className="text-muted-foreground">
+                          {formatDate(user.deletionScheduledAt)}
+                        </TableCell>
+                      )}
+                      {isDeletionQueue && (
+                        <TableCell>
+                          {user.daysUntilPurge == null ? (
+                            <span className="text-muted-foreground">—</span>
+                          ) : (
+                            <Badge variant="warning">
+                              {user.daysUntilPurge} day{user.daysUntilPurge === 1 ? "" : "s"}
+                            </Badge>
+                          )}
+                        </TableCell>
+                      )}
+                      {!isDeveloperSeed && (
+                        <TableCell className="pr-6 text-right">
+                          {(isDeletionQueue || user.deletable) && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                {isDeletionQueue ? (
+                                  <DropdownMenuItem onClick={() => setReactivateTarget(user)}>
+                                    Reactivate
+                                  </DropdownMenuItem>
+                                ) : (
+                                  <DropdownMenuItem
+                                    className="text-destructive focus:text-destructive"
+                                    onClick={() => openDeleteFlow(user)}>
+                                    Delete account
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
             </TableBody>
           </Table>
         </div>
+
+        {!loading && filtered.length > 0 && (
+          <div className="flex items-center justify-between border-t px-4 py-3">
+            <p className="text-xs text-muted-foreground">
+              {filtered.length} user{filtered.length !== 1 ? "s" : ""} · Page {page} of {totalPages}
+            </p>
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    onClick={() => setPage((current) => Math.max(1, current - 1))}
+                    className={page <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+                {Array.from({ length: totalPages }).map((_, index) => (
+                  <PaginationItem key={index}>
+                    <PaginationLink
+                      isActive={page === index + 1}
+                      onClick={() => setPage(index + 1)}
+                      className="cursor-pointer">
+                      {index + 1}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+                <PaginationItem>
+                  <PaginationNext
+                    onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                    className={page >= totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        )}
       </Card>
 
-      <Sheet open={!!editUser} onOpenChange={(o) => !o && setEditUser(null)}>
-        <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
-          <SheetHeader><SheetTitle>Edit {editUser?.name}</SheetTitle></SheetHeader>
-          {editUser && (
-            <Tabs defaultValue="access" className="mt-6">
-              <TabsList><TabsTrigger value="access">Module access</TabsTrigger><TabsTrigger value="profile">Profile</TabsTrigger></TabsList>
-              <TabsContent value="access" className="space-y-4">
-                {PERMISSION_MODULES.map((mod) => (
-                  <div key={mod.id} className="rounded-lg border border-border/60 p-3">
-                    <p className="mb-2 text-sm font-medium">{mod.label}</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      {PERMISSION_ACTIONS.slice(0, 4).map((action) => (
-                        <label key={action} className="flex items-center gap-2 text-xs">
-                          <Checkbox defaultChecked={action === "view" || action === "edit"} />
-                          <span className="capitalize">{action}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-                <Button className="w-full" onClick={() => { setSaved(true); setEditUser(null); setTimeout(() => setSaved(false), 3000); }}>
-                  Save permissions
+      <Dialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && closeDeleteFlow()}>
+        <DialogContent className="max-w-lg">
+          {deleteStep === 0 && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Delete {deleteTarget?.name}?</DialogTitle>
+                <DialogDescription>
+                  This schedules permanent deletion of this admin account
+                  {deleteTarget?.company ? ` and the entire "${deleteTarget.company}" tenant` : ""}.
+                  {deleteTarget?.affectedAccountCount > 1 && (
+                    <>
+                      {" "}
+                      <strong>
+                        {deleteTarget.affectedAccountCount} accounts
+                      </strong>{" "}
+                      linked to this company will lose access immediately.
+                    </>
+                  )}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+                All company data (projects, leads, payments, files, and staff accounts) will be
+                permanently wiped after a 7-day grace period. Super admins can reactivate during
+                that window from the Deletion queue tab.
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={closeDeleteFlow}>Cancel</Button>
+                <Button variant="destructive" onClick={() => setDeleteStep(1)}>
+                  Continue
                 </Button>
-              </TabsContent>
-              <TabsContent value="profile" className="space-y-3 text-sm">
-                <p><span className="text-muted-foreground">Tenant:</span> {editUser.tenant}</p>
-                <p><span className="text-muted-foreground">Email:</span> {editUser.email}</p>
-              </TabsContent>
-            </Tabs>
+              </DialogFooter>
+            </>
           )}
-        </SheetContent>
-      </Sheet>
-    </div>
+
+          {deleteStep === 1 && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Confirm you understand the impact</DialogTitle>
+                <DialogDescription>
+                  Review the warnings below, then type the admin email to continue.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm space-y-1">
+                <p>
+                  <span className="text-muted-foreground">Company: </span>
+                  <span className="font-medium">{deleteTarget?.company || "No company"}</span>
+                </p>
+                <p>
+                  <span className="text-muted-foreground">Admin email: </span>
+                  <span className="font-medium">{deleteTarget?.email}</span>
+                </p>
+              </div>
+              <div className="space-y-4 text-sm">
+                <div className="flex items-start gap-2">
+                  <Checkbox
+                    id="ack-data-loss"
+                    checked={ackDataLoss}
+                    onCheckedChange={(checked) => setAckDataLoss(checked === true)}
+                  />
+                  <Label htmlFor="ack-data-loss" className="leading-snug">
+                    I understand all data for this company will be permanently deleted after 7 days.
+                  </Label>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Checkbox
+                    id="ack-grace"
+                    checked={ackGracePeriod}
+                    onCheckedChange={(checked) => setAckGracePeriod(checked === true)}
+                  />
+                  <Label htmlFor="ack-grace" className="leading-snug">
+                    I understand this action cannot be undone after the grace period ends.
+                  </Label>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-email">Type admin email to confirm</Label>
+                  <Input
+                    id="confirm-email"
+                    className="rounded-sm"
+                    value={confirmEmail}
+                    onChange={(event) => setConfirmEmail(event.target.value)}
+                    placeholder={deleteTarget?.email}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setDeleteStep(0)}>Back</Button>
+                <Button
+                  variant="destructive"
+                  disabled={!canProceedDeleteStep2}
+                  onClick={() => setDeleteStep(2)}>
+                  Continue
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+
+          {deleteStep === 2 && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Final confirmation</DialogTitle>
+                <DialogDescription>
+                  You are about to schedule deletion for <strong>{deleteTarget?.email}</strong>.
+                  The account will be deactivated immediately and purged in 7 days.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setDeleteStep(1)}>Back</Button>
+                <Button variant="destructive" disabled={busy} onClick={runScheduleDeletion}>
+                  {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Schedule deletion
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(reactivateTarget)} onOpenChange={(open) => !open && setReactivateTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reactivate account</DialogTitle>
+            <DialogDescription>
+              Restore access for {reactivateTarget?.name} and cancel the scheduled purge
+              {reactivateTarget?.company ? ` for "${reactivateTarget.company}"` : ""}.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReactivateTarget(null)}>Cancel</Button>
+            <Button disabled={busy} onClick={runReactivate}>
+              {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Reactivate
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </PageShell>
   );
 }

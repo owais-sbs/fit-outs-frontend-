@@ -141,7 +141,7 @@ export default function CreateCompanyPage() {
   };
 
   const handleDone = () => {
-    navigate(ROUTES.SUPER_ADMIN.TENANTS);
+    navigate(ROUTES.SUPER_ADMIN.COMPANIES);
   };
 
   const selectedPlan = plans.find((plan) => plan.uuid === form.subscriptionPlanUuid);
@@ -155,10 +155,10 @@ export default function CreateCompanyPage() {
         className="-ml-2 w-fit"
       >
         <a
-          href={ROUTES.SUPER_ADMIN.TENANTS}
+          href={ROUTES.SUPER_ADMIN.COMPANIES}
           onClick={(e) => {
             e.preventDefault();
-            navigate(ROUTES.SUPER_ADMIN.TENANTS);
+            navigate(ROUTES.SUPER_ADMIN.COMPANIES);
           }}
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
@@ -288,15 +288,15 @@ export default function CreateCompanyPage() {
                 <div className="rounded-lg border bg-muted/20 p-4 text-sm space-y-3">
                   <div>
                     <p className="text-xs text-muted-foreground">Company</p>
-                    <p className="font-medium">{form.companyName || "—"}</p>
+                    <p className="font-medium">{form.companyName || "N/A"}</p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Admin email</p>
-                    <p className="font-medium">{form.adminEmail || "—"}</p>
+                    <p className="font-medium">{form.adminEmail || "N/A"}</p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Plan</p>
-                    <p className="font-medium">{selectedPlan?.planName || "—"}</p>
+                    <p className="font-medium">{selectedPlan?.planName || "N/A"}</p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Features</p>
@@ -331,7 +331,7 @@ export default function CreateCompanyPage() {
                     type="button"
                     variant="outline"
                     className="w-full"
-                    onClick={() => navigate(ROUTES.SUPER_ADMIN.TENANTS)}
+                    onClick={() => navigate(ROUTES.SUPER_ADMIN.COMPANIES)}
                   >
                     Cancel
                   </Button>
@@ -361,7 +361,7 @@ export default function CreateCompanyPage() {
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Plan</p>
-                  <p className="font-medium">{successResult?.planName || "—"}</p>
+                  <p className="font-medium">{successResult?.planName || "N/A"}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Features granted</p>
@@ -376,7 +376,7 @@ export default function CreateCompanyPage() {
                   <p className="font-medium">
                     {successResult?.inviteEmailSent
                       ? "Accepted by mail server"
-                      : "Not sent — ask the admin to use “Forgot password”, or check SMTP"}
+                      : "Not sent - ask the admin to use Forgot password, or check SMTP"}
                   </p>
                 </div>
                 <p className="text-xs text-muted-foreground">

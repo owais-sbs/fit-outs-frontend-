@@ -1,12 +1,11 @@
 import {
   LayoutDashboard,
   Building2,
+  Users,
   CreditCard,
   Wallet,
-  Users,
   BarChart3,
   Settings,
-  FileText,
 } from "lucide-react";
 import { ROUTES } from "@/shared/constants/routes";
 
@@ -15,15 +14,15 @@ export const SUPER_ADMIN_NAV_GROUPS = [
     label: "Platform",
     items: [
       { label: "Dashboard", href: ROUTES.SUPER_ADMIN.DASHBOARD, icon: LayoutDashboard, end: true },
-      { label: "Companies", href: ROUTES.SUPER_ADMIN.TENANTS, icon: Building2 },
-      { label: "Subscription Plans", href: ROUTES.SUPER_ADMIN.PLANS, icon: CreditCard },
-      { label: "Payments", href: ROUTES.SUPER_ADMIN.PAYMENTS, icon: Wallet },
+      { label: "Companies", href: ROUTES.SUPER_ADMIN.COMPANIES, icon: Building2 },
+      { label: "Users", href: ROUTES.SUPER_ADMIN.USERS, icon: Users },
     ],
   },
   {
-    label: "Access",
+    label: "Commerce",
     items: [
-      { label: "Users", href: ROUTES.SUPER_ADMIN.USERS, icon: Users },
+      { label: "Subscription Plans", href: ROUTES.SUPER_ADMIN.PLANS, icon: CreditCard },
+      { label: "Payments", href: ROUTES.SUPER_ADMIN.PAYMENTS, icon: Wallet },
     ],
   },
   {
@@ -31,7 +30,6 @@ export const SUPER_ADMIN_NAV_GROUPS = [
     items: [
       { label: "Reports", href: ROUTES.SUPER_ADMIN.REPORTS, icon: BarChart3 },
       { label: "Settings", href: ROUTES.SUPER_ADMIN.SETTINGS, icon: Settings },
-      { label: "Terms & Conditions", href: ROUTES.SUPER_ADMIN.TERMS, icon: FileText },
     ],
   },
 ];

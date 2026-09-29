@@ -37,7 +37,7 @@ function formatDate(dateStr) {
 }
 
 function getTenantDetailPath(tenantId) {
-  return ROUTES.SUPER_ADMIN.TENANT_DETAIL.replace(":tenantId", tenantId);
+  return ROUTES.SUPER_ADMIN.COMPANY_DETAIL.replace(":companyId", tenantId);
 }
 
 export default function TenantTable({ tenants }) {

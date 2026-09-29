@@ -250,7 +250,7 @@ export default function PaymentsPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-muted-foreground text-xs">
-                      {row.createdAt ? new Date(row.createdAt).toLocaleString() : "—"}
+                      {row.createdAt ? new Date(row.createdAt).toLocaleString() : "N/A"}
                     </TableCell>
                     <TableCell className="pr-6 text-right">
                       {row.status === "PENDING" ? (
@@ -289,7 +289,7 @@ export default function PaymentsPage() {
                           </Button>
                         </div>
                       ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
+                        <span className="text-xs text-muted-foreground">N/A</span>
                       )}
                     </TableCell>
                   </TableRow>
@@ -331,7 +331,7 @@ export default function PaymentsPage() {
                 <SelectContent>
                   {plans.map((p) => (
                     <SelectItem key={p.uuid} value={p.uuid}>
-                      {p.planName} — {formatAed(p.priceMonthly)}
+                      {p.planName} - {formatAed(p.priceMonthly)}
                     </SelectItem>
                   ))}
                 </SelectContent>

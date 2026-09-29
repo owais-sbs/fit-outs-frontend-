@@ -14,7 +14,7 @@ function formatCurrentDate() {
 
 export default function DashboardHeader({
   title = "Super Admin",
-  description = "Platform overview \u2014 monitor tenants, subscriptions, and revenue at a glance.",
+  description = "Platform overview - monitor companies, subscriptions, and revenue at a glance.",
   children
 }) {
   const currentDate = formatCurrentDate();
@@ -33,9 +33,9 @@ export default function DashboardHeader({
       <div className="flex flex-wrap items-center gap-2">
         {children || (
           <Button size="sm" className="gap-2" asChild>
-            <Link to={ROUTES.SUPER_ADMIN.TENANTS_CREATE}>
+            <Link to={ROUTES.SUPER_ADMIN.COMPANIES_CREATE}>
               <Plus className="h-4 w-4" />
-              Add tenant
+              Add company
             </Link>
           </Button>
         )}

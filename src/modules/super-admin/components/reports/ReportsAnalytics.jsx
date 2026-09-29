@@ -35,16 +35,6 @@ import {
   MONTHLY_TRENDS_DATA,
   MONTHLY_TRENDS_CONFIG,
 } from "../../data/reports-analytics";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
 const KPI_ICONS = {
   mrr: CircleDollarSign,
   tenants: Building2,
@@ -161,32 +151,3 @@ export function MonthlyTrendsSection() {
   );
 }
 
-export function ReportsMetricsTable({ rows }) {
-  return (
-    <Card className="border-border/60">
-      <CardHeader>
-        <CardTitle className="text-base">Key metrics summary</CardTitle>
-      </CardHeader>
-      <CardContent className="p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="pl-6">Metric</TableHead>
-              <TableHead>Value</TableHead>
-              <TableHead className="pr-6">Change</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((row) => (
-              <TableRow key={row.metric}>
-                <TableCell className="pl-6 font-medium">{row.metric}</TableCell>
-                <TableCell>{row.value}</TableCell>
-                <TableCell className="pr-6 text-primary">{row.change}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
-  );
-}

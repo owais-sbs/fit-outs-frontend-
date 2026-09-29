@@ -12,10 +12,9 @@ import {
   SiteVisitAnalyticsSection,
   SubscriptionRevenueSection,
   MonthlyTrendsSection,
-  ReportsMetricsTable,
   KPI_ICONS,
 } from "../components/reports/ReportsAnalytics";
-import { REPORTS_KPIS, REPORTS_TABLE_ROWS } from "../data/reports-analytics";
+import { REPORTS_KPIS } from "../data/reports-analytics";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -85,7 +84,6 @@ export default function ReportsPage() {
             <SubscriptionRevenueSection />
           </DashboardSection>
           <MonthlyTrendsSection />
-          {!loading && <ReportsMetricsTable rows={REPORTS_TABLE_ROWS} />}
         </TabsContent>
 
         <TabsContent value="revenue" className="space-y-6">

@@ -9,6 +9,23 @@ import React, {
 import { TENANTS_LIST } from "../data/tenants";
 import axiosInstance from "@/lib/axiosInstance";
 
+function normalizeCompanyAdmins(tenant) {
+  if (Array.isArray(tenant.companyAdmins) && tenant.companyAdmins.length > 0) {
+    return tenant.companyAdmins;
+  }
+  if (tenant.adminEmail) {
+    return [{ fullName: "", email: tenant.adminEmail, phone: "" }];
+  }
+  return [];
+}
+
+function formatAdminEmails(companyAdmins) {
+  const emails = companyAdmins
+    .map((admin) => admin.email)
+    .filter(Boolean);
+  return emails.length > 0 ? emails.join(", ") : "";
+}
+
 function normalizeTenant(tenant, planLookup) {
   const company = tenant.companyName || tenant.company || tenant.name || "Untitled company";
   const id = tenant.uuid || tenant.id;
@@ -16,7 +33,8 @@ function normalizeTenant(tenant, planLookup) {
   const planUuid = tenant.subscriptionPlanUuid || tenant.plan || null;
   const planName =
     tenant.subscriptionPlanName ||
-    (planLookup && planUuid ? planLookup[planUuid] || planUuid : planUuid || "—");
+    (planLookup && planUuid ? planLookup[planUuid] || planUuid : planUuid || "N/A");
+  const companyAdmins = normalizeCompanyAdmins(tenant);
   return {
     ...tenant,
     id,
@@ -36,31 +54,14 @@ function normalizeTenant(tenant, planLookup) {
     domainSlug: tenant.domainSlug || "",
     logo: tenant.logo || "",
     createdAt: tenant.createdAt || "",
+    companyAdmins,
+    adminEmails: formatAdminEmails(companyAdmins),
+    adminEmail: tenant.adminEmail || companyAdmins[0]?.email || "",
   };
 }
 
 function buildTenantRows(tenants, planLookup) {
   return tenants.map((t) => normalizeTenant(t, planLookup));
-}
-
-function createCsvRows(tenants) {
-  const headers = ["ID", "Company", "Plan", "Status", "Domain", "Created"];
-  const rows = tenants.map((tenant) => [
-    tenant.id,
-    tenant.company,
-    tenant.plan,
-    tenant.status,
-    tenant.domainSlug,
-    tenant.createdAt || "",
-  ]);
-
-  return [headers, ...rows]
-    .map((row) =>
-      row
-        .map((cell) => `"${String(cell ?? "").replaceAll('"', '""')}"`)
-        .join(",")
-    )
-    .join("\n");
 }
 
 const TenantManagementContext = createContext(null);
@@ -69,8 +70,6 @@ export function TenantManagementProvider({ children }) {
   const [tenants, setTenants] = useState(() => buildTenantRows(TENANTS_LIST));
   const [tenantsLoading, setTenantsLoading] = useState(true);
   const [tenantsError, setTenantsError] = useState(null);
-  const [exportOpen, setExportOpen] = useState(false);
-
   useEffect(() => {
     let cancelled = false;
     setTenantsLoading(true);
@@ -198,17 +197,6 @@ export function TenantManagementProvider({ children }) {
     return updated;
   }, []);
 
-  const exportTenants = useCallback(() => {
-    const csv = createCsvRows(tenants);
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `companies-export-${new Date().toISOString().slice(0, 10)}.csv`;
-    anchor.click();
-    URL.revokeObjectURL(url);
-  }, [tenants]);
-
   const getTenantById = useCallback(
     (id) => tenants.find((tenant) => tenant.id === id),
     [tenants]
@@ -220,9 +208,6 @@ export function TenantManagementProvider({ children }) {
       tenantsLoading,
       tenantsError,
       stats,
-      exportOpen,
-      setExportOpen,
-      exportTenants,
       getTenantById,
       refreshTenants,
       updateTenantStatus,
@@ -233,8 +218,6 @@ export function TenantManagementProvider({ children }) {
       tenantsLoading,
       tenantsError,
       stats,
-      exportOpen,
-      exportTenants,
       getTenantById,
       refreshTenants,
       updateTenantStatus,
