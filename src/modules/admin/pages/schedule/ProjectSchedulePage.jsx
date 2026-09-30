@@ -40,6 +40,7 @@ import { fetchAllEmployees } from "../../api/employees.api";
 import ProgressMaterialIssuesFields, {
   toMaterialIssuesPayload,
 } from "../../components/progress/ProgressMaterialIssuesFields";
+import { DELAY_REASON_PRESETS, formatDelayReason } from "@/modules/shared/schedule/delayReasonPresets";
 import { AttachmentList, AttachmentUploadField } from "@/components/shared/AttachmentField";
 import ScheduleReadinessStrip from "./ScheduleReadinessStrip";
 import ScheduleActivityList from "./ScheduleActivityList";
@@ -141,7 +142,13 @@ export default function ProjectSchedulePage() {
   const [depSucc, setDepSucc] = useState("");
   const [depType, setDepType] = useState("FS");
   const [depLag, setDepLag] = useState(0);
-  const [progressForm, setProgressForm] = useState({ percentComplete: 0, notes: "", labourHours: "" });
+  const [progressForm, setProgressForm] = useState({
+    percentComplete: 0,
+    notes: "",
+    labourHours: "",
+    delayReasonCode: "WEATHER",
+    delayReasonText: "",
+  });
   const [materialRows, setMaterialRows] = useState([]);
   const [pendingProgressFiles, setPendingProgressFiles] = useState([]);
   const [planLines, setPlanLines] = useState([]);
@@ -260,6 +267,8 @@ export default function ProjectSchedulePage() {
       percentComplete: selected.percentComplete || 0,
       notes: "",
       labourHours: "",
+      delayReasonCode: "WEATHER",
+      delayReasonText: "",
     });
     setMaterialRows([]);
     setPendingProgressFiles([]);
@@ -444,6 +453,10 @@ export default function ProjectSchedulePage() {
 
   const handleProgress = () => {
     if (!selected) return;
+    if (progressForm.delayReasonCode === "OTHER" && !String(progressForm.delayReasonText || "").trim()) {
+      notify.error("Please describe the custom delay reason.");
+      return;
+    }
     const filesToUpload = [...pendingProgressFiles];
     run(async () => {
       const materialIssues = toMaterialIssuesPayload(materialRows);
@@ -451,6 +464,7 @@ export default function ProjectSchedulePage() {
         percentComplete: Number(progressForm.percentComplete) || 0,
         notes: progressForm.notes || null,
         labourHours: progressForm.labourHours !== "" ? Number(progressForm.labourHours) : null,
+        delayReason: formatDelayReason(progressForm.delayReasonCode, progressForm.delayReasonText),
         ...(materialIssues.length ? { materialIssues } : {}),
       });
       if (created?.uuid && filesToUpload.length > 0) {
@@ -1055,6 +1069,28 @@ export default function ProjectSchedulePage() {
                 <Textarea rows={2} value={progressForm.notes}
                   onChange={(e) => setProgressForm((f) => ({ ...f, notes: e.target.value }))} />
               </div>
+              <div>
+                <Label className="text-xs">Delay reason</Label>
+                <select
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                  value={progressForm.delayReasonCode}
+                  onChange={(e) => setProgressForm((f) => ({ ...f, delayReasonCode: e.target.value }))}
+                >
+                  {DELAY_REASON_PRESETS.map((r) => (
+                    <option key={r.code} value={r.code}>{r.label}</option>
+                  ))}
+                </select>
+              </div>
+              {progressForm.delayReasonCode === "OTHER" && (
+                <div>
+                  <Label className="text-xs">Custom delay reason</Label>
+                  <Input
+                    value={progressForm.delayReasonText}
+                    onChange={(e) => setProgressForm((f) => ({ ...f, delayReasonText: e.target.value }))}
+                    placeholder="Describe the delay"
+                  />
+                </div>
+              )}
               <ProgressMaterialIssuesFields
                 planLines={planLines}
                 rows={materialRows}

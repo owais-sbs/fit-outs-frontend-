@@ -72,6 +72,7 @@ export const ROUTES = {
     PROJECT_VARIATION_DETAIL: "/admin/projects/:projectId/variations/:uuid",
     VARIATIONS_INBOX: "/admin/variations/inbox",
     COMMERCIAL_MATRICES: "/admin/commercial-approvals/matrices",
+    CREDIT_NOTES: "/admin/commercial-approvals/credit-notes",
     PROJECT_DOCUMENTS: "/admin/projects/:projectId/documents",
     PROJECT_REPORTING: "/admin/projects/:projectId/reporting",
     PROJECT_BILLING: "/admin/projects/:projectId/billing",
@@ -115,11 +116,13 @@ export const ROUTES = {
     PROJECTS: "/business-owner/projects",
     PROJECT_DETAIL: "/business-owner/projects/:projectId",
     PROJECT_SCHEDULE: "/business-owner/projects/:projectId/schedule",
+    PROJECT_REPORTING: "/business-owner/projects/:projectId/reporting",
     PROJECT_BILLING: "/business-owner/projects/:projectId/billing",
     PROCUREMENT: "/business-owner/procurement",
     COMMERCIAL: "/business-owner/commercial",
     VARIATIONS_INBOX: "/business-owner/variations/inbox",
     COMMERCIAL_MATRICES: "/business-owner/commercial-approvals/matrices",
+    CREDIT_NOTES: "/business-owner/commercial-approvals/credit-notes",
     CRM: "/business-owner/crm",
     FINANCE: "/business-owner/finance",
     PROJECT_PNL: "/business-owner/projects/:projectId/pnl",
@@ -147,6 +150,7 @@ export const ROUTES = {
     PROJECT_VARIATIONS: "/project-manager/projects/:projectId/variations",
     PROJECT_VARIATION_DETAIL: "/project-manager/projects/:projectId/variations/:uuid",
     VARIATIONS_INBOX: "/project-manager/variations/inbox",
+    CREDIT_NOTES: "/project-manager/commercial-approvals/credit-notes",
     PROJECT_DOCUMENTS: "/project-manager/projects/:projectId/documents",
     PROJECT_REPORTING: "/project-manager/projects/:projectId/reporting",
     PROJECT_BILLING: "/project-manager/projects/:projectId/billing",
@@ -238,6 +242,7 @@ export const ROUTES = {
     PROJECTS_REQUEST: "/client/projects/request",
     PROJECT_DETAIL: "/client/projects/:projectId",
     PROJECT_SCHEDULE: "/client/projects/:projectId/schedule",
+    PROJECT_REPORTING: "/client/projects/:projectId/reporting",
     PROJECT_ROOM_TASK: "/client/projects/:projectId/room-tasks/:taskId",
     PROJECT_ROOM_CHAT: "/client/projects/:projectId/rooms/:roomId/chat",
     DOCUMENTS: "/client/documents",
@@ -289,11 +294,12 @@ export const ROUTES = {
   },
 };
 
-/** Resolve admin / PM / finance route set from the current URL. */
+/** Resolve admin / PM / finance / director / client route set from the current URL. */
 export function portalRoutesFromPath(pathname = "") {
   if (pathname.startsWith("/project-manager")) return ROUTES.PROJECT_MANAGER;
   if (pathname.startsWith("/finance")) return ROUTES.FINANCE;
   if (pathname.startsWith("/business-owner")) return ROUTES.BUSINESS_OWNER;
+  if (pathname.startsWith("/client")) return ROUTES.CLIENT;
   return ROUTES.ADMIN;
 }
 

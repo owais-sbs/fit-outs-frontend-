@@ -25,16 +25,8 @@ import {
   requestDurationExtension,
   uploadProgressAttachment,
 } from "@/modules/admin/api/schedule.api";
-
-const DELAY_REASON_PRESETS = [
-  { code: "WEATHER", label: "Adverse weather" },
-  { code: "MATERIAL_DELAY", label: "Material / delivery delay" },
-  { code: "CLIENT_CHANGE", label: "Client instruction / scope change" },
-  { code: "ACCESS_CONSTRAINT", label: "Site access / permit constraint" },
-  { code: "LABOUR_SHORTAGE", label: "Labour shortage" },
-  { code: "DESIGN_HOLD", label: "Design / drawing hold" },
-  { code: "OTHER", label: "Custom" },
-];
+import { DELAY_REASON_PRESETS, formatDelayReason } from "@/modules/shared/schedule/delayReasonPresets";
+import { notify } from "@/lib/notify";
 
 /**
  * Published programme Gantt for assigned staff / site engineers.
@@ -59,7 +51,13 @@ export default function AssignedProgrammeView({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [selected, setSelected] = useState(null);
-  const [form, setForm] = useState({ percentComplete: 0, notes: "", labourHours: "" });
+  const [form, setForm] = useState({
+    percentComplete: 0,
+    notes: "",
+    labourHours: "",
+    delayReasonCode: "WEATHER",
+    delayReasonText: "",
+  });
   const [materialRows, setMaterialRows] = useState([]);
   const [planLines, setPlanLines] = useState([]);
   const [pendingFiles, setPendingFiles] = useState([]);
@@ -137,7 +135,13 @@ export default function AssignedProgrammeView({
       return;
     }
     setSelected(a);
-    setForm({ percentComplete: a?.percentComplete || 0, notes: "", labourHours: "" });
+    setForm({
+      percentComplete: a?.percentComplete || 0,
+      notes: "",
+      labourHours: "",
+      delayReasonCode: "WEATHER",
+      delayReasonText: "",
+    });
     setMaterialRows([]);
     setPendingFiles([]);
     setMessage("");
@@ -188,6 +192,10 @@ export default function AssignedProgrammeView({
 
   const submit = async () => {
     if (!selected?.uuid || !allowProgress) return;
+    if (form.delayReasonCode === "OTHER" && !String(form.delayReasonText || "").trim()) {
+      setMessage("Please describe the custom delay reason.");
+      return;
+    }
     setBusy(true);
     setMessage("");
     try {
@@ -197,6 +205,7 @@ export default function AssignedProgrammeView({
         percentComplete: Number(form.percentComplete) || 0,
         notes: form.notes || null,
         labourHours: form.labourHours !== "" ? Number(form.labourHours) : null,
+        delayReason: formatDelayReason(form.delayReasonCode, form.delayReasonText),
         ...(materialIssues.length ? { materialIssues } : {}),
       });
       if (created?.uuid && pendingFiles.length > 0) {
@@ -219,8 +228,11 @@ export default function AssignedProgrammeView({
       await loadSchedule(projectId, { clearMessage: false });
       setSelected({ ...keepSelected, percentComplete: nextPercent });
       setMessage(successMsg);
+      notify.success(successMsg);
     } catch (e) {
-      setMessage(e?.response?.data?.error || e?.response?.data?.message || "Failed to post progress");
+      const errMsg = e?.response?.data?.error || e?.response?.data?.message || "Failed to post progress";
+      setMessage(errMsg);
+      notify.error(errMsg);
     } finally {
       setBusy(false);
     }
@@ -351,6 +363,32 @@ export default function AssignedProgrammeView({
                     onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
                   />
                 </div>
+                <div>
+                  <Label className="text-xs">Delay reason</Label>
+                  <Select
+                    value={form.delayReasonCode}
+                    onValueChange={(v) => setForm((f) => ({ ...f, delayReasonCode: v }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DELAY_REASON_PRESETS.map((r) => (
+                        <SelectItem key={r.code} value={r.code}>{r.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {form.delayReasonCode === "OTHER" && (
+                  <div>
+                    <Label className="text-xs">Custom delay reason</Label>
+                    <Input
+                      value={form.delayReasonText}
+                      onChange={(e) => setForm((f) => ({ ...f, delayReasonText: e.target.value }))}
+                      placeholder="Describe the delay"
+                    />
+                  </div>
+                )}
                 <div className="sm:col-span-2">
                   <ProgressMaterialIssuesFields
                     planLines={planLines}

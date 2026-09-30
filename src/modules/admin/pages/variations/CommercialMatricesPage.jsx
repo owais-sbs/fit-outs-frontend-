@@ -30,40 +30,55 @@ export default function CommercialMatricesPage() {
   const [name, setName] = useState("Variation approvals");
   const [bands, setBands] = useState([emptyBand()]);
 
-  const load = useCallback(() => {
+  const applyMatrix = useCallback((match, type) => {
+    if (!match) {
+      setName(`${type} approvals`);
+      setBands([emptyBand()]);
+      return;
+    }
+    setName(match.name || `${type} approvals`);
+    const nextBands = (match.bands || []).map((b) => ({
+      minAmount: String(b.minAmount ?? 0),
+      maxAmount: b.maxAmount != null ? String(b.maxAmount) : "",
+      steps: (b.steps || []).map((s) => ({
+        stepOrder: s.stepOrder,
+        mode: s.mode || "SEQUENTIAL",
+        slaHours: s.slaHours ?? 48,
+        escalateToRole: s.escalateToRole || "BUSINESS_OWNER",
+        roles: s.roles?.length ? s.roles : ["PROJECT_MANAGER"],
+      })),
+    }));
+    setBands(nextBands.length ? nextBands : [emptyBand()]);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
     setLoading(true);
     fetchCommercialMatrices()
       .then((list) => {
-        const arr = Array.isArray(list) ? list : [];
-        setMatrices(arr);
-        const match = arr.find((m) => m.eventType === eventType) || arr[0];
-        if (match) {
-          setEventType(match.eventType);
-          setName(match.name);
-          setBands((match.bands || []).map((b) => ({
-            minAmount: String(b.minAmount ?? 0),
-            maxAmount: b.maxAmount != null ? String(b.maxAmount) : "",
-            steps: (b.steps || []).map((s) => ({
-              stepOrder: s.stepOrder,
-              mode: s.mode || "SEQUENTIAL",
-              slaHours: s.slaHours ?? 48,
-              escalateToRole: s.escalateToRole || "BUSINESS_OWNER",
-              roles: s.roles?.length ? s.roles : ["PROJECT_MANAGER"],
-            })),
-          })) || [emptyBand()]);
-        }
+        if (!cancelled) setMatrices(Array.isArray(list) ? list : []);
       })
-      .catch(() => setMatrices([]))
-      .finally(() => setLoading(false));
-  }, [eventType]);
+      .catch(() => {
+        if (!cancelled) setMatrices([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    if (loading) return;
+    applyMatrix(matrices.find((m) => m.eventType === eventType), eventType);
+  }, [applyMatrix, eventType, loading, matrices]);
 
   const save = async () => {
     setBusy(true);
     setMessage("");
     try {
-      await upsertCommercialMatrix({
+      const saved = await upsertCommercialMatrix({
         eventType,
         name,
         active: true,
@@ -80,8 +95,11 @@ export default function CommercialMatricesPage() {
           })),
         })),
       });
+      setMatrices((list) => {
+        const rest = list.filter((m) => m.eventType !== eventType);
+        return saved ? [...rest, saved] : rest;
+      });
       setMessage("Matrix saved");
-      load();
     } catch (e) {
       setMessage(e?.response?.data?.error || e?.response?.data?.message || "Save failed");
     } finally {
@@ -109,16 +127,17 @@ export default function CommercialMatricesPage() {
         )}
       />
       {message && <p className="text-sm text-muted-foreground mb-3">{message}</p>}
+      {!matrices.some((m) => m.eventType === eventType) && (
+        <p className="text-sm text-muted-foreground mb-3">
+          No saved matrix for {eventType} yet. Save one to turn this approval chain on.
+        </p>
+      )}
 
       <Surface className="p-4 space-y-4 mb-4">
         <div className="grid md:grid-cols-2 gap-3">
           <div>
             <Label>Event type</Label>
-            <Select value={eventType} onValueChange={(v) => {
-              setEventType(v);
-              const match = matrices.find((m) => m.eventType === v);
-              setName(match?.name || `${v} approvals`);
-            }}>
+            <Select value={eventType} onValueChange={setEventType}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 {EVENT_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}

@@ -52,6 +52,7 @@ const PROJECT_CONFIG_SUB_ITEMS = [
   { label: "Cover letter", href: ROUTES.ADMIN.COVER_LETTER_CONFIG, icon: Stamp, feature: "PROJECT_CONFIG" },
   { label: "Approvals Config", href: ROUTES.ADMIN.APPROVALS_CONFIG, icon: ShieldCheck, feature: "PROJECT_CONFIG" },
   { label: "Commercial matrices", href: ROUTES.ADMIN.COMMERCIAL_MATRICES, icon: Stamp, feature: "PROJECT_CONFIG" },
+  { label: "Credit notes", href: ROUTES.ADMIN.CREDIT_NOTES, icon: FileText, feature: "PROJECT_CONFIG" },
 ];
 
 const PROCUREMENT_SUB_ITEMS = [

@@ -164,8 +164,10 @@ export default function ValidationInboxPage() {
     load();
   }, [load]);
 
-  const run = async (fn, okMsg) => {
-    if (projectId && archived) {
+  const run = async (fn, okMsg, { allowWhenArchived = false } = {}) => {
+    // Site-report acknowledge/resolve may clear the inbox on archived projects;
+    // other validation actions stay read-only.
+    if (projectId && archived && !allowWhenArchived) {
       setMessage("This project is archived and read-only.");
       return;
     }
@@ -175,6 +177,30 @@ export default function ValidationInboxPage() {
       await fn();
       await load();
       if (okMsg) setMessage(okMsg);
+    } catch (e) {
+      setMessage(e?.response?.data?.error || e?.response?.data?.message || "Request failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const clearOneHoldPoint = async (uuid) => {
+    if (projectId && archived) {
+      setMessage("This project is archived and read-only.");
+      return;
+    }
+    setBusy(true);
+    setMessage("");
+    try {
+      const updated = await clearHoldPoint(projectId, uuid);
+      setHoldPoints((list) =>
+        list.map((hp) =>
+          hp.uuid === uuid
+            ? { ...hp, ...updated, status: updated?.status || "CLEARED" }
+            : hp
+        )
+      );
+      setMessage("Hold point cleared");
     } catch (e) {
       setMessage(e?.response?.data?.error || e?.response?.data?.message || "Request failed");
     } finally {
@@ -900,7 +926,8 @@ export default function ValidationInboxPage() {
                                       onClick={() =>
                                         run(
                                           () => acknowledgeScSiteReport(item.projectId, item.uuid),
-                                          "Site report acknowledged"
+                                          "Site report acknowledged",
+                                          { allowWhenArchived: true }
                                         )
                                       }
                                     >
@@ -919,7 +946,8 @@ export default function ValidationInboxPage() {
                                               item.uuid,
                                               rejectReasons[`sr-${item.uuid}`]
                                             ),
-                                          "Site report resolved"
+                                          "Site report resolved",
+                                          { allowWhenArchived: true }
                                         )
                                       }
                                     >
@@ -1095,12 +1123,11 @@ export default function ValidationInboxPage() {
                       </div>
                       {!hp.clearedAt && hp.status !== "CLEARED" && (
                         <Button
+                          type="button"
                           size="sm"
                           variant="outline"
                           disabled={busy}
-                          onClick={() =>
-                            run(() => clearHoldPoint(projectId, hp.uuid), "Hold point cleared")
-                          }
+                          onClick={() => clearOneHoldPoint(hp.uuid)}
                         >
                           Clear
                         </Button>

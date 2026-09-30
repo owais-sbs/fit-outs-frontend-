@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  ArrowLeft, Briefcase, Building2, CalendarDays,
+  ArrowLeft, BarChart3, Briefcase, Building2, CalendarDays,
   Clock, DollarSign, GanttChart, TrendingUp, Users,
 } from "lucide-react";
 import { PageShell, PageTitle, StatTile, Surface } from "@/components/layout/PageShell";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { fetchProjectById } from "@/modules/admin/api/projects.api";
+import { fetchProgressReport } from "@/modules/admin/api/reporting.api";
 import { fetchIssuedEstimatesForClient } from "@/modules/admin/api/site-visits.api";
 import { ROUTES } from "@/shared/constants/routes";
 import { formatAed } from "@/shared/utils/currency";
@@ -41,15 +42,19 @@ export default function ClientProjectDetailPage() {
   const [project, setProject] = useState(null);
   const [estimates, setEstimates] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [weightedProgress, setWeightedProgress] = useState(null);
 
   const load = useCallback(() => {
     setLoading(true);
     Promise.all([
       fetchProjectById(projectId),
       fetchIssuedEstimatesForClient().catch(() => []),
+      fetchProgressReport(projectId).catch(() => null),
     ])
-      .then(([apiProj, issued]) => {
+      .then(([apiProj, issued, report]) => {
         if (!apiProj) throw new Error("empty");
+        const reportPct = report?.weightedCompletionPercent ?? report?.completionPercent;
+        setWeightedProgress(reportPct != null && reportPct !== "" ? Number(reportPct) : null);
         setProject({
           id: apiProj.id,
           projectName: apiProj.name || apiProj.projectName,
@@ -70,6 +75,7 @@ export default function ClientProjectDetailPage() {
       .catch(() => {
         setProject(null);
         setEstimates([]);
+        setWeightedProgress(null);
       })
       .finally(() => setLoading(false));
   }, [projectId]);
@@ -87,6 +93,9 @@ export default function ClientProjectDetailPage() {
   }
 
   const budget = Number(project?.budget) || 0;
+  const displayProgress = Number(project?.progress) > 0
+    ? Number(project.progress)
+    : (weightedProgress != null && Number.isFinite(weightedProgress) ? weightedProgress : 0);
 
   if (!project) {
     return (
@@ -126,6 +135,16 @@ export default function ClientProjectDetailPage() {
               <GanttChart className="mr-1.5 h-4 w-4" />
               View programme
             </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() =>
+                navigate(ROUTES.CLIENT.PROJECT_REPORTING.replace(":projectId", projectId))
+              }
+            >
+              <BarChart3 className="mr-1.5 h-4 w-4" />
+              Progress report
+            </Button>
           </div>
         }
       />
@@ -142,7 +161,7 @@ export default function ClientProjectDetailPage() {
         />
         <StatTile
           label="Overall Progress"
-          value={`${project.progress}%`}
+          value={`${Math.round(displayProgress)}%`}
           icon={TrendingUp}
         />
         <StatTile
@@ -160,13 +179,13 @@ export default function ClientProjectDetailPage() {
       <Surface className="p-5">
         <div className="mb-2 flex items-center justify-between">
           <p className="text-sm font-semibold">Execution Progress</p>
-          <span className="text-sm font-bold text-primary">{project.progress}%</span>
-        </div>
-        <div className="h-3 w-full overflow-hidden rounded-full bg-muted">
-          <div
-            className="h-full rounded-full bg-primary transition-all duration-700"
-            style={{ width: `${project.progress}%` }}
-          />
+          <span className="text-sm font-bold text-primary">{Math.round(displayProgress)}%</span>
+          </div>
+          <div className="h-3 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-primary transition-all duration-700"
+              style={{ width: `${Math.min(100, Math.max(0, displayProgress))}%` }}
+            />
         </div>
         <div className="mt-2 flex justify-between text-[11px] text-muted-foreground">
           <span>Planning</span><span>Design</span><span>Build</span><span>Handover</span>
@@ -193,7 +212,7 @@ export default function ClientProjectDetailPage() {
               <InfoItem label="Status"    value={project.status} />
               <InfoItem label="Manager"   value={project.assignedManager || "Unassigned"} />
               <InfoItem label="Budget"    value={formatAed(budget)} />
-              <InfoItem label="Progress"  value={`${project.progress}%`} />
+              <InfoItem label="Progress"  value={`${Math.round(displayProgress)}%`} />
             </div>
           </div>
         </Surface>
@@ -218,9 +237,9 @@ export default function ClientProjectDetailPage() {
             <div className="rounded-xl bg-secondary/50 p-3">
               <p className="mb-1.5 text-[11px] font-semibold text-muted-foreground">Project Health</p>
               <div className="flex items-center gap-2">
-                <span className={`h-2 w-2 rounded-full ${project.progress >= 70 ? "bg-emerald-500" : project.progress >= 30 ? "bg-amber-500" : "bg-primary"}`} />
+                <span className={`h-2 w-2 rounded-full ${displayProgress >= 70 ? "bg-emerald-500" : displayProgress >= 30 ? "bg-amber-500" : "bg-primary"}`} />
                 <span className="text-xs font-medium">
-                  {project.progress >= 70 ? "On Track" : project.progress >= 30 ? "In Progress" : "Early Stage"}
+                  {displayProgress >= 70 ? "On Track" : displayProgress >= 30 ? "In Progress" : "Early Stage"}
                 </span>
               </div>
             </div>

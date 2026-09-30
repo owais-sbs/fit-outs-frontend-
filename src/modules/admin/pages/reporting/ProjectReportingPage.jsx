@@ -6,7 +6,7 @@ import { PageShell, PageTitle, StatTile } from "@/components/layout/PageShell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { fetchProgressReport } from "../../api/reporting.api";
-import { ROUTES } from "@/shared/constants/routes";
+import { portalRoutesFromPath, ROUTES } from "@/shared/constants/routes";
 import ProjectLifecycleBanner from "../../components/projects/ProjectLifecycleBanner";
 import { useProjectLifecycle } from "../../hooks/useProjectLifecycle";
 
@@ -14,8 +14,9 @@ export default function ProjectReportingPage() {
   const { projectId } = useParams();
   const location = useLocation();
   const { commercialStage } = useProjectLifecycle(projectId);
-  const isPm = location.pathname.startsWith("/project-manager");
-  const detailPath = (isPm ? ROUTES.PROJECT_MANAGER.PROJECT_DETAIL : ROUTES.ADMIN.PROJECT_DETAIL)
+  const isClient = location.pathname.startsWith("/client");
+  const routes = portalRoutesFromPath(location.pathname);
+  const detailPath = (routes.PROJECT_DETAIL || ROUTES.ADMIN.PROJECT_DETAIL)
     .replace(":projectId", projectId);
 
   const [report, setReport] = useState(null);
@@ -54,6 +55,8 @@ export default function ProjectReportingPage() {
   const activities = report?.activities || [];
   const delayCodes = report?.delayReasonCodes || [];
   const activityDelays = activities.filter((a) => a.delayReason);
+  const materialVariance = Array.isArray(report?.materialVariance) ? report.materialVariance : [];
+  const showMaterialVariance = !isClient && materialVariance.length > 0;
 
   return (
     <PageShell className="max-w-4xl mx-auto print:max-w-none">
@@ -158,14 +161,14 @@ export default function ProjectReportingPage() {
             </Card>
           )}
 
-          {Array.isArray(report.materialVariance) && report.materialVariance.length > 0 && (
+          {showMaterialVariance && (
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-semibold">Material plan vs issued</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="divide-y divide-border/40">
-                  {report.materialVariance.map((row) => (
+                  {materialVariance.map((row) => (
                     <div
                       key={row.materialId || row.materialName}
                       className="flex items-center justify-between gap-3 py-2 text-sm"

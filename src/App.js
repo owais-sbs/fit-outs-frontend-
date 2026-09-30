@@ -16,6 +16,7 @@ import RolesManagement from "./modules/auth/pages/roles-management";
 import LandingPage from "./modules/marketing/pages/LandingPage";
 import SubscribePage from "./modules/onboarding/pages/SubscribePage";
 import OnboardingPage from "./modules/onboarding/pages/OnboardingPage";
+import NotFoundPage from "./pages/NotFoundPage";
 
 import SuperAdminLayout from "./modules/super-admin/layouts/SuperAdminLayout";
 import SuperAdminDashboard from "./modules/super-admin/pages/SuperAdminDashboard";
@@ -184,6 +185,7 @@ import ProjectVariationsPage from "./modules/admin/pages/variations/ProjectVaria
 import VariationDetailPage from "./modules/admin/pages/variations/VariationDetailPage";
 import VariationsInboxPage from "./modules/admin/pages/variations/VariationsInboxPage";
 import CommercialMatricesPage from "./modules/admin/pages/variations/CommercialMatricesPage";
+import CreditNotesPage from "./modules/admin/pages/variations/CreditNotesPage";
 import ClientVariationsPage from "./modules/client/pages/ClientVariationsPage";
 import ClientVariationDetailPage from "./modules/client/pages/ClientVariationDetailPage";
 import ProjectDocumentsPage from "./modules/admin/pages/documents/ProjectDocumentsPage";
@@ -316,6 +318,7 @@ function App() {
               <Route path="projects/:projectId/variations/:uuid" element={<VariationDetailPage />} />
               <Route path="variations/inbox" element={<VariationsInboxPage />} />
               <Route path="commercial-approvals/matrices" element={<CommercialMatricesPage />} />
+              <Route path="commercial-approvals/credit-notes" element={<CreditNotesPage />} />
               <Route path="projects/:projectId/documents" element={<ProjectDocumentsPage />} />
               <Route path="projects/:projectId/reporting" element={<ProjectReportingPage />} />
               <Route path="projects/:projectId/billing" element={<ProjectBillingPage />} />
@@ -378,10 +381,12 @@ function App() {
               <Route path="projects" element={<DirectorProjectsPage />} />
               <Route path="projects/:projectId" element={<ProjectDetailPage />} />
               <Route path="projects/:projectId/schedule" element={<ProjectSchedulePage />} />
+              <Route path="projects/:projectId/reporting" element={<ProjectReportingPage />} />
               <Route path="projects/:projectId/billing" element={<ProjectBillingPage />} />
               <Route path="commercial" element={<DirectorCommercialPage />} />
               <Route path="variations/inbox" element={<VariationsInboxPage />} />
               <Route path="commercial-approvals/matrices" element={<CommercialMatricesPage />} />
+              <Route path="commercial-approvals/credit-notes" element={<CreditNotesPage />} />
               <Route path="crm" element={<DirectorCrmPage />} />
               <Route
                 path="finance"
@@ -433,6 +438,7 @@ function App() {
               <Route path="projects/:projectId/variations/:uuid" element={<VariationDetailPage />} />
               <Route path="variations/inbox" element={<VariationsInboxPage />} />
               <Route path="commercial-approvals/matrices" element={<CommercialMatricesPage />} />
+              <Route path="commercial-approvals/credit-notes" element={<CreditNotesPage />} />
               <Route path="projects/:projectId/documents" element={<ProjectDocumentsPage />} />
               <Route path="projects/:projectId/reporting" element={<ProjectReportingPage />} />
               <Route path="projects/:projectId/billing" element={<ProjectBillingPage />} />
@@ -594,6 +600,7 @@ function App() {
               <Route path="projects/request" element={<NewProjectRequestPage />} />
               <Route path="projects/:projectId" element={<ClientProjectDetailPage />} />
               <Route path="projects/:projectId/schedule" element={<ClientProjectSchedulePage />} />
+              <Route path="projects/:projectId/reporting" element={<ProjectReportingPage />} />
               <Route path="projects/:projectId/room-tasks/:taskId" element={<ClientRoomTaskPage />} />
               <Route path="projects/:projectId/rooms/:roomId/chat" element={<RoomChatPage clientMode />} />
             </Route>
@@ -656,7 +663,7 @@ function App() {
 
             {/* Public landing + fallback */}
             <Route path={ROUTES.LANDING} element={<LandingPage />} />
-            <Route path="*" element={<Navigate to={ROUTES.AUTH.LOGIN} replace />} />
+            <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </div>
       </BrowserRouter>

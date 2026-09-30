@@ -1,5 +1,5 @@
 /**
- * Usage: route to this component for unknown paths (not registered yet — wire in App/routes when ready).
+ * Catch-all 404 for unknown paths. Wired via App.js path="*".
  * Polished 404 page; token/dark-mode safe.
  */
 import { Link } from "react-router-dom"

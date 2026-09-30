@@ -24,6 +24,15 @@ export const rejectCommercialTask = (taskUuid, comment) =>
     .post(`/commercial-approvals/tasks/${taskUuid}/reject`, { comment })
     .then(unwrap);
 
+export const fetchCreditNotes = (projectId) =>
+  axiosInstance.get(`/projects/${projectId}/credit-notes`).then(unwrap);
+
+export const createCreditNote = (projectId, payload) =>
+  axiosInstance.post(`/projects/${projectId}/credit-notes`, payload).then(unwrap);
+
+export const submitCreditNote = (projectId, uuid) =>
+  axiosInstance.post(`/projects/${projectId}/credit-notes/${uuid}/submit`).then(unwrap);
+
 export const exportCommercialApprovalsCsv = async (params = {}) => {
   const res = await axiosInstance.get("/commercial-approvals/export", {
     params,

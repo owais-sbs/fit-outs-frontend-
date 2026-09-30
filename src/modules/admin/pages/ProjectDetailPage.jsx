@@ -29,6 +29,10 @@ import { fetchAllEmployees } from "../api/employees.api";
 import { fetchCrewAssignments } from "../api/resource.api";
 import { fetchProjectTeamAssignments } from "../api/project-team.api";
 import { fetchBoqsByProject } from "../api/boq.api";
+import { fetchProjectCommercial } from "../api/variations.api";
+import { fetchProjectSchedule } from "../api/schedule.api";
+import { fetchCompanySummary } from "../api/billing.api";
+import { fetchProgressReport } from "../api/reporting.api";
 import { ROUTES, PROJECT_DETAIL_NAV_STATE, boqViewPath, portalRoutesFromPath } from "@/shared/constants/routes";
 import { useAuth } from "@/shared/context/auth-context";
 import { BoqStatusBadge } from "./boq/BoqApprovalTimeline";
@@ -58,6 +62,55 @@ function toDateInput(value) {
   if (!value) return "";
   const text = String(value);
   return text.length >= 10 ? text.slice(0, 10) : text;
+}
+
+function formatDisplayDate(value) {
+  if (!value) return "—";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "—" : date.toLocaleDateString();
+}
+
+function scheduleActivitiesFromResponse(data) {
+  if (Array.isArray(data?.activities)) return data.activities;
+  if (Array.isArray(data)) return data;
+  return [];
+}
+
+function averageScheduleProgress(activities) {
+  if (!activities?.length) return 0;
+  const total = activities.reduce((sum, activity) => {
+    const pct = Number(activity?.percentComplete);
+    return sum + (Number.isFinite(pct) ? pct : 0);
+  }, 0);
+  return Math.round(total / activities.length);
+}
+
+function earliestActivityDate(activities, fields) {
+  let best = null;
+  for (const activity of activities || []) {
+    for (const field of fields) {
+      const raw = activity?.[field];
+      if (!raw) continue;
+      const date = new Date(raw);
+      if (Number.isNaN(date.getTime())) continue;
+      if (!best || date < best) best = date;
+    }
+  }
+  return best;
+}
+
+function latestActivityDate(activities, fields) {
+  let best = null;
+  for (const activity of activities || []) {
+    for (const field of fields) {
+      const raw = activity?.[field];
+      if (!raw) continue;
+      const date = new Date(raw);
+      if (Number.isNaN(date.getTime())) continue;
+      if (!best || date > best) best = date;
+    }
+  }
+  return best;
 }
 
 function InfoItem({ label, value, mono = false }) {
@@ -164,6 +217,14 @@ export default function ProjectDetailPage() {
     assignedManager: "",
     clientId: "",
   });
+  const [commercial, setCommercial] = useState(null);
+  const [scheduleActivities, setScheduleActivities] = useState([]);
+  const [weightedCompletionPercent, setWeightedCompletionPercent] = useState(null);
+  const [paymentSummary, setPaymentSummary] = useState({
+    billedAmount: 0,
+    paidAmount: 0,
+    outstandingAmount: 0,
+  });
 
   const load = useCallback(() => {
     setLoading(true);
@@ -181,9 +242,37 @@ export default function ProjectDetailPage() {
       .finally(() => setBoqsLoading(false));
   }, [projectId]);
 
+  const loadDisplaySources = useCallback(() => {
+    fetchProjectCommercial(projectId)
+      .then((data) => setCommercial(data || null))
+      .catch(() => setCommercial(null));
+    fetchProjectSchedule(projectId)
+      .then((data) => setScheduleActivities(scheduleActivitiesFromResponse(data)))
+      .catch(() => setScheduleActivities([]));
+    fetchProgressReport(projectId)
+      .then((report) => {
+        const pct = report?.weightedCompletionPercent ?? report?.completionPercent;
+        setWeightedCompletionPercent(pct != null && pct !== "" ? Number(pct) : null);
+      })
+      .catch(() => setWeightedCompletionPercent(null));
+    fetchCompanySummary()
+      .then((list) => {
+        const row = (Array.isArray(list) ? list : []).find(
+          (item) => String(item.projectId) === String(projectId)
+        );
+        setPaymentSummary({
+          billedAmount: Number(row?.billedAmount || 0),
+          paidAmount: Number(row?.paidAmount || 0),
+          outstandingAmount: Number(row?.outstandingAmount || 0),
+        });
+      })
+      .catch(() => setPaymentSummary({ billedAmount: 0, paidAmount: 0, outstandingAmount: 0 }));
+  }, [projectId]);
+
   useEffect(() => {
     load();
     loadBoqs();
+    loadDisplaySources();
     fetchAllClients()
       .then((list) => setClients(Array.isArray(list) ? list : []))
       .catch(() => setClients([]));
@@ -210,7 +299,7 @@ export default function ProjectDetailPage() {
         setProjectNatures(Array.isArray(catalog?.projectNatures) ? catalog.projectNatures : []);
       })
       .catch(() => setProjectNatures([]));
-  }, [load, loadBoqs, projectId]);
+  }, [load, loadBoqs, loadDisplaySources, projectId]);
 
   const managerDisplay = useMemo(
     () => resolveManagerDisplay(project, teamAssignments, employees),
@@ -257,6 +346,47 @@ export default function ProjectDetailPage() {
     () => splitProjectBoqs(boqs),
     [boqs]
   );
+
+  const displayMetrics = useMemo(() => {
+    const contractValue =
+      commercial?.currentContractValue
+      || commercial?.originalContractValue
+      || liveBoq?.grandTotal
+      || project?.budget
+      || 0;
+
+    const projectProgress = Number(project?.progress);
+    let progress;
+    if (projectProgress > 0) {
+      progress = projectProgress;
+    } else if (weightedCompletionPercent != null && Number.isFinite(Number(weightedCompletionPercent))) {
+      progress = Number(weightedCompletionPercent);
+    } else {
+      progress = averageScheduleProgress(scheduleActivities);
+    }
+
+    const startDate =
+      project?.startDate
+      || earliestActivityDate(scheduleActivities, ["startDate", "earlyStart", "baselineStart", "baselineStartDate"]);
+
+    const expectedCompletionDate =
+      project?.expectedCompletionDate
+      || latestActivityDate(scheduleActivities, ["endDate", "earlyFinish", "baselineEnd", "baselineEndDate"]);
+
+    return {
+      contractValue: Number(contractValue) || 0,
+      progress: Math.min(100, Math.max(0, Number(progress) || 0)),
+      startDate,
+      expectedCompletionDate,
+    };
+  }, [commercial, liveBoq, project, scheduleActivities, weightedCompletionPercent]);
+
+  const paymentCollectedPct = useMemo(() => {
+    const billed = Number(paymentSummary.billedAmount) || 0;
+    const paid = Number(paymentSummary.paidAmount) || 0;
+    if (billed <= 0) return 0;
+    return Math.min(100, Math.max(0, Math.round((paid / billed) * 100)));
+  }, [paymentSummary]);
 
   const archived = isProjectArchived(project?.commercialStage);
   const commercialFrozen = isCommercialFrozen(project?.commercialStage);
@@ -501,22 +631,22 @@ export default function ProjectDetailPage() {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile
           label="Contract Value"
-          value={formatAed(project.budget || 0)}
+          value={formatAed(displayMetrics.contractValue)}
           icon={DollarSign}
         />
         <StatTile
           label="Overall Progress"
-          value={`${project.progress}%`}
+          value={`${displayMetrics.progress}%`}
           icon={TrendingUp}
         />
         <StatTile
           label="Start Date"
-          value={project.startDate ? new Date(project.startDate).toLocaleDateString() : "—"}
+          value={formatDisplayDate(displayMetrics.startDate)}
           icon={CalendarDays}
         />
         <StatTile
           label="Target Completion"
-          value={project.expectedCompletionDate ? new Date(project.expectedCompletionDate).toLocaleDateString() : "—"}
+          value={formatDisplayDate(displayMetrics.expectedCompletionDate)}
           icon={Clock}
         />
       </div>
@@ -525,12 +655,12 @@ export default function ProjectDetailPage() {
         <CardContent className="p-5 pt-5 md:p-6 md:pt-6">
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm font-semibold">Execution Progress</p>
-            <span className="text-sm font-bold text-primary">{project.progress}%</span>
+            <span className="text-sm font-bold text-primary">{displayMetrics.progress}%</span>
           </div>
           <div className="h-3 w-full overflow-hidden rounded-full bg-muted">
             <div
               className="h-full rounded-full bg-primary transition-all duration-700"
-              style={{ width: `${project.progress}%` }}
+              style={{ width: `${displayMetrics.progress}%` }}
             />
           </div>
           <div className="mt-2 flex justify-between text-[11px] text-muted-foreground">
@@ -782,9 +912,9 @@ export default function ProjectDetailPage() {
             <CardContent className="space-y-3">
               <div className="grid grid-cols-3 gap-2 text-center">
                 {[
-                  { label: "Total",       value: formatAed(project.budget),                     c: "text-foreground" },
-                  { label: "Paid",        value: formatAed(Math.round(project.budget * 0.45)),   c: "text-emerald-600" },
-                  { label: "Outstanding", value: formatAed(Math.round(project.budget * 0.55)),   c: "text-amber-600" },
+                  { label: "Total",       value: formatAed(paymentSummary.billedAmount),       c: "text-foreground" },
+                  { label: "Paid",        value: formatAed(paymentSummary.paidAmount),         c: "text-emerald-600" },
+                  { label: "Outstanding", value: formatAed(paymentSummary.outstandingAmount),  c: "text-amber-600" },
                 ].map(({ label, value, c }) => (
                   <div key={label} className="rounded-lg bg-muted/30 p-2">
                     <p className={`text-sm font-bold ${c}`}>{value}</p>
@@ -793,9 +923,12 @@ export default function ProjectDetailPage() {
                 ))}
               </div>
               <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                <div className="h-full bg-emerald-500 rounded-full" style={{ width: "45%" }} />
+                <div
+                  className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                  style={{ width: `${paymentCollectedPct}%` }}
+                />
               </div>
-              <p className="text-[11px] text-muted-foreground">45% collected</p>
+              <p className="text-[11px] text-muted-foreground">{paymentCollectedPct}% collected</p>
             </CardContent>
           </Card>
         </div>
@@ -833,7 +966,8 @@ export default function ProjectDetailPage() {
         </Card>
       )}
 
-      {/* Site visits summary */}
+      {/* Site visits summary — hidden for Finance portal */}
+      {!isFinance && (
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-sm font-semibold">
@@ -857,6 +991,7 @@ export default function ProjectDetailPage() {
           <p className="text-center text-sm text-muted-foreground py-4">No site visits scheduled yet.</p>
         </CardContent>
       </Card>
+      )}
 
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
         <DialogContent className="max-w-lg">
