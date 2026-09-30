@@ -303,18 +303,49 @@ export default function SubcontractorOrganizationExtrasPage() {
               <Input placeholder="Advance required" value={extForm.advancePaymentRequired} onChange={(e) => setExtForm((f) => ({ ...f, advancePaymentRequired: e.target.value }))} />
             </div>
             <Button disabled={busy} size="sm" variant="secondary" onClick={() => run(() => updateScOrganizationExtension(extForm), "Terms saved")}>Save terms</Button>
+            <p className="text-xs text-muted-foreground">
+              IBAN is required before you can raise invoices. Enter details below and click <strong>Save bank</strong>
+              (uploading a letter alone is not enough).
+            </p>
             <div className="grid gap-3 sm:grid-cols-2 pt-2">
-              <Input placeholder="Bank name" value={bankForm.bankName} onChange={(e) => setBankForm((f) => ({ ...f, bankName: e.target.value }))} />
-              <Input placeholder="Account name" value={bankForm.accountName} onChange={(e) => setBankForm((f) => ({ ...f, accountName: e.target.value }))} />
-              <Input placeholder="IBAN" value={bankForm.iban} onChange={(e) => setBankForm((f) => ({ ...f, iban: e.target.value }))} />
+              <Input placeholder="Bank name *" value={bankForm.bankName} onChange={(e) => setBankForm((f) => ({ ...f, bankName: e.target.value }))} />
+              <Input placeholder="Account name *" value={bankForm.accountName} onChange={(e) => setBankForm((f) => ({ ...f, accountName: e.target.value }))} />
+              <Input placeholder="IBAN *" value={bankForm.iban} onChange={(e) => setBankForm((f) => ({ ...f, iban: e.target.value }))} />
               <Input placeholder="SWIFT" value={bankForm.swiftCode} onChange={(e) => setBankForm((f) => ({ ...f, swiftCode: e.target.value }))} />
             </div>
             {ext?.bankDetail?.verificationStatus && (
               <Badge variant="outline">Bank: {ext.bankDetail.verificationStatus.replace(/_/g, " ")}</Badge>
             )}
+            {!bankForm.iban?.trim() && (
+              <p className="text-xs text-amber-800">IBAN missing — invoices cannot be submitted until this is saved.</p>
+            )}
             {ext?.bankDetail?.bankLetterFilePath && <AttachmentList paths={[ext.bankDetail.bankLetterFilePath]} />}
             <div className="flex flex-wrap gap-2">
-              <Button disabled={busy} size="sm" onClick={() => run(() => updateScBankDetail(bankForm), "Bank details saved")}>Save bank</Button>
+              <FillDemoDataButton
+                onClick={() => setBankForm({
+                  bankName: DEMO.scBankDetail.bankName,
+                  accountName: DEMO.scBankDetail.accountName,
+                  iban: DEMO.scBankDetail.iban,
+                  swiftCode: DEMO.scBankDetail.swiftCode,
+                })}
+              />
+              <Button
+                disabled={busy}
+                size="sm"
+                onClick={() => {
+                  if (!bankForm.iban?.trim()) {
+                    setMessage("IBAN is required to save bank details for invoicing.");
+                    return;
+                  }
+                  if (!bankForm.bankName?.trim()) {
+                    setMessage("Bank name is required.");
+                    return;
+                  }
+                  run(() => updateScBankDetail(bankForm), "Bank details saved");
+                }}
+              >
+                Save bank
+              </Button>
               <label className="inline-flex">
                 <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" disabled={busy}
                   onChange={(e) => { const f = e.target.files?.[0]; if (f) run(() => uploadScBankLetter(f), "Bank letter uploaded"); e.target.value = ""; }} />
