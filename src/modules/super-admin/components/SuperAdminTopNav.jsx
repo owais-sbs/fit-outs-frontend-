@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, LogOut, Menu, Settings, User } from "lucide-react";
+import { LogOut, Menu, Settings, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -18,9 +18,9 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/shared/context/auth-context";
 import { ROUTES } from "@/shared/constants/routes";
+import { BRAND_NAME } from "@/components/brand/BrandMark";
 import { SuperAdminMobileNav } from "./SuperAdminSidebar";
 
 export default function SuperAdminTopNav() {
@@ -58,7 +58,7 @@ export default function SuperAdminTopNav() {
           className="w-72 border-sidebar-border bg-sidebar p-0 text-sidebar-foreground">
           <SheetHeader className="border-b border-sidebar-border px-4 py-4 text-left">
             <SheetTitle className="text-sidebar-foreground">
-              JCT Contracting
+              {BRAND_NAME}
             </SheetTitle>
           </SheetHeader>
           <SuperAdminMobileNav onNavigate={() => setMobileOpen(false)} />
@@ -68,13 +68,6 @@ export default function SuperAdminTopNav() {
       <div className="flex-1" />
 
       <div className="ml-auto flex items-center gap-2">
-        <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">
-          <Bell className="h-5 w-5" />
-          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary" />
-        </Button>
-
-        <Separator orientation="vertical" className="hidden h-6 sm:block" />
-
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button

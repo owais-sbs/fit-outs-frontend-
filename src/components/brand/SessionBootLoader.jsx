@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { JctLogoTile } from "@/components/brand/BrandMark";
+import { BRAND_NAME, PLATFORM_ICON_URL } from "@/components/brand/BrandMark";
 
 const STATUS_LINES = [
   "Loading session…",
@@ -53,7 +53,11 @@ export function SessionBootLoader() {
             className="text-[var(--color-accent-blue)]"
           />
         </svg>
-        <JctLogoTile className="h-14 w-14 rounded-2xl" imgClassName="h-8 w-8" />
+        <img
+          src={PLATFORM_ICON_URL}
+          alt={BRAND_NAME}
+          className="relative h-14 w-14 object-contain"
+        />
       </div>
       <p
         key={STATUS_LINES[index]}

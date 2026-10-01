@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Bell, LogOut, Settings, User } from "lucide-react";
+import { LogOut, Settings, User } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -35,10 +35,6 @@ export default function SuperAdminNavbar() {
 
       <div className="ml-auto flex items-center gap-1">
         <ThemeToggle />
-        <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">
-          <Bell className="h-4 w-4" />
-          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary" />
-        </Button>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
