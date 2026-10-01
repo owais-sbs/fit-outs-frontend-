@@ -63,9 +63,11 @@ export const ROUTES = {
     PROJECT_ROOM_TASK: "/admin/projects/:projectId/room-tasks/:taskId",
     PROJECT_ROOM_CHAT: "/admin/projects/:projectId/rooms/:roomId/chat",
     PROJECT_SCHEDULE: "/admin/projects/:projectId/schedule",
-    PROJECT_MATERIAL_PLAN: "/admin/projects/:projectId/material-plan",
-    PROJECT_RESOURCE_PLAN: "/admin/projects/:projectId/resource-plan",
-    PROJECT_LABOUR_PLAN: "/admin/projects/:projectId/labour-plan",
+    PROJECT_PLANNING: "/admin/projects/:projectId/planning",
+    PROJECT_MATERIAL_PLAN: "/admin/projects/:projectId/planning/material",
+    PROJECT_RESOURCE_PLAN: "/admin/projects/:projectId/planning/resource",
+    PROJECT_LABOUR_PLAN: "/admin/projects/:projectId/planning/labour",
+    PROJECT_PLANNING_AUDIT: "/admin/projects/:projectId/planning/audit",
     PROJECT_VALIDATION: "/admin/projects/:projectId/validation",
     PROJECT_SNAGS: "/admin/projects/:projectId/snags",
     PROJECT_VARIATIONS: "/admin/projects/:projectId/variations",
@@ -77,7 +79,7 @@ export const ROUTES = {
     PROJECT_REPORTING: "/admin/projects/:projectId/reporting",
     PROJECT_BILLING: "/admin/projects/:projectId/billing",
     PROJECT_COMPLETION: "/admin/projects/:projectId/completion",
-    PROJECT_SUBCONTRACTORS: "/admin/projects/:projectId/subcontractors",
+    PROJECT_SUBCONTRACTORS: "/admin/projects/:projectId/planning/subcontractors",
     VENDORS: "/admin/subcontractors/vendors",
     VALIDATION_INBOX: "/admin/validation/inbox",
     QUALITY_TEMPLATES: "/admin/quality-templates",
@@ -142,9 +144,11 @@ export const ROUTES = {
     PROJECT_DRAWINGS: "/project-manager/projects/:projectId/drawings",
     PROJECT_QTO: "/project-manager/projects/:projectId/drawings/:drawingId/qto",
     PROJECT_SCHEDULE: "/project-manager/projects/:projectId/schedule",
-    PROJECT_MATERIAL_PLAN: "/project-manager/projects/:projectId/material-plan",
-    PROJECT_RESOURCE_PLAN: "/project-manager/projects/:projectId/resource-plan",
-    PROJECT_LABOUR_PLAN: "/project-manager/projects/:projectId/labour-plan",
+    PROJECT_PLANNING: "/project-manager/projects/:projectId/planning",
+    PROJECT_MATERIAL_PLAN: "/project-manager/projects/:projectId/planning/material",
+    PROJECT_RESOURCE_PLAN: "/project-manager/projects/:projectId/planning/resource",
+    PROJECT_LABOUR_PLAN: "/project-manager/projects/:projectId/planning/labour",
+    PROJECT_PLANNING_AUDIT: "/project-manager/projects/:projectId/planning/audit",
     PROJECT_VALIDATION: "/project-manager/projects/:projectId/validation",
     PROJECT_SNAGS: "/project-manager/projects/:projectId/snags",
     PROJECT_VARIATIONS: "/project-manager/projects/:projectId/variations",
@@ -155,7 +159,7 @@ export const ROUTES = {
     PROJECT_REPORTING: "/project-manager/projects/:projectId/reporting",
     PROJECT_BILLING: "/project-manager/projects/:projectId/billing",
     PROJECT_COMPLETION: "/project-manager/projects/:projectId/completion",
-    PROJECT_SUBCONTRACTORS: "/project-manager/projects/:projectId/subcontractors",
+    PROJECT_SUBCONTRACTORS: "/project-manager/projects/:projectId/planning/subcontractors",
     VENDORS: "/project-manager/subcontractors/vendors",
     VALIDATION_INBOX: "/project-manager/validation/inbox",
     DURATION_EXTENSION_INBOX: "/project-manager/schedule/duration-extensions",
@@ -362,4 +366,25 @@ export function projectPlanningBackPath(location, projectId) {
     return projectDetailPath(location.pathname, projectId);
   }
   return projectSchedulePath(location.pathname, projectId);
+}
+
+export function projectPlanningPath(pathname, projectId, section = "material") {
+  const routes = projectRoutesForPath(pathname);
+  const base = (routes.PROJECT_PLANNING || "").replace(":projectId", projectId);
+  if (!section || section === "material") {
+    return (routes.PROJECT_MATERIAL_PLAN || `${base}/material`).replace(":projectId", projectId);
+  }
+  if (section === "resource") {
+    return (routes.PROJECT_RESOURCE_PLAN || `${base}/resource`).replace(":projectId", projectId);
+  }
+  if (section === "labour") {
+    return (routes.PROJECT_LABOUR_PLAN || `${base}/labour`).replace(":projectId", projectId);
+  }
+  if (section === "subcontractors") {
+    return (routes.PROJECT_SUBCONTRACTORS || `${base}/subcontractors`).replace(":projectId", projectId);
+  }
+  if (section === "audit") {
+    return (routes.PROJECT_PLANNING_AUDIT || `${base}/audit`).replace(":projectId", projectId);
+  }
+  return base;
 }

@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { AlertTriangle, ArrowLeft, Check, ClipboardCheck, HardHat, Loader2, Plus, X, ShieldAlert, Trash2 } from "lucide-react";
+import { AlertTriangle, Check, ClipboardCheck, HardHat, Loader2, Plus, X, ShieldAlert, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { PageShell, PageTitle } from "@/components/layout/PageShell";
+import { PageShell, PageHeader } from "@/components/layout/PageShell";
+import ProjectPageFrame from "@/components/layout/ProjectPageFrame";
+import ProjectPathLine from "@/components/shared/ProjectPathLine";
+import { useProjectName } from "../../hooks/useProjectName";
 import LoadingPanel from "@/components/shared/LoadingPanel";
 import { loadingMessages } from "@/components/shared/loadingMessages";
 import { AttachmentList } from "@/components/shared/AttachmentField";
@@ -91,6 +94,7 @@ function siteReportTypeLabel(type) {
 
 export default function ValidationInboxPage() {
   const { projectId } = useParams();
+  const { name: projectName } = useProjectName(projectId);
   const location = useLocation();
   const { commercialStage, archived } = useProjectLifecycle(projectId || null);
   const backPath = projectPlanningBackPath(location, projectId);
@@ -288,28 +292,34 @@ export default function ValidationInboxPage() {
 
   if (loading) {
     return (
-      <PageShell className="w-full max-w-none px-3 md:px-4">
+      <PageShell className="w-full max-w-none">
         <LoadingPanel size="page" messages={loadingMessages.projects} />
       </PageShell>
     );
   }
 
   return (
-    <PageShell className="w-full max-w-none px-3 md:px-4">
-      <div className="flex items-center gap-2">
-        <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" title={`Back to ${backLabel}`}>
-          <Link to={backPath}><ArrowLeft className="h-4 w-4" /></Link>
-        </Button>
-        <span className="text-sm text-muted-foreground hidden sm:inline">Back to {backLabel}</span>
-        <PageTitle
-          title={projectId ? "Project Validations" : "Validation Inbox"}
-          subtitle={
-            projectId
-              ? `Project #${projectId} · ${totalPending} pending`
-              : `${totalPending} pending approvals across progress and subcontractor claims`
-          }
+    <PageShell className="w-full max-w-none">
+      <ProjectPageFrame className={projectId ? undefined : "max-w-none"}>
+      {projectId ? (
+        <ProjectPathLine
+          projectId={projectId}
+          initialName={projectName}
+          backTo={backPath}
+          backTitle={`Back to ${backLabel}`}
         />
-      </div>
+      ) : null}
+      <PageHeader
+        title={projectId ? "Project Validations" : "Validation Inbox"}
+        subtitle={
+          projectId
+            ? `${projectName} · ${totalPending} pending`
+            : `${totalPending} pending approvals across progress and subcontractor claims`
+        }
+        {...(!projectId
+          ? { backTo: backPath, backTitle: `Back to ${backLabel}` }
+          : {})}
+      />
 
       {projectId ? <ProjectLifecycleBanner commercialStage={commercialStage} /> : null}
 
@@ -1140,6 +1150,7 @@ export default function ValidationInboxPage() {
           </CardContent>
         </Card>
       )}
+      </ProjectPageFrame>
     </PageShell>
   );
 }

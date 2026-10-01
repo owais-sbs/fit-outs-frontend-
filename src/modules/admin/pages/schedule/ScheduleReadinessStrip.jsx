@@ -1,15 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { CheckCircle2, ChevronDown, ChevronRight, ClipboardList, Loader2, Package, Users, Wrench } from "lucide-react";
+import { CheckCircle2, ChevronRight, HardHat, Loader2, Package, Users, Wrench } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
   fetchPlanningStatus,
   updatePlanningStatus,
   fetchPlanningGates,
-  fetchPlanningAudit,
 } from "../../api/planning.api";
 import { ROUTES, SCHEDULE_NAV_STATE } from "@/shared/constants/routes";
 
@@ -17,7 +16,7 @@ const AREAS = [
   { key: "materialStatus", label: "Material", routeKey: "PROJECT_MATERIAL_PLAN", icon: Package, gateKey: "requireMaterial" },
   { key: "resourceStatus", label: "Resource", routeKey: "PROJECT_RESOURCE_PLAN", icon: Wrench, gateKey: "requireResource" },
   { key: "labourStatus", label: "Labour", routeKey: "PROJECT_LABOUR_PLAN", icon: Users, gateKey: "requireLabour" },
-  { key: "subcontractorStatus", label: "Subcontractor", routeKey: "PROJECT_SUBCONTRACTORS", icon: null, gateKey: "requireSubcontractor" },
+  { key: "subcontractorStatus", label: "Subcontractor", routeKey: "PROJECT_SUBCONTRACTORS", icon: HardHat, gateKey: "requireSubcontractor" },
 ];
 
 function chip(status) {
@@ -46,9 +45,6 @@ export default function ScheduleReadinessStrip({ projectId, onChanged }) {
 
   const [planning, setPlanning] = useState(null);
   const [gates, setGates] = useState(null);
-  const [audit, setAudit] = useState([]);
-  const [auditOpen, setAuditOpen] = useState(false);
-  const [auditLoading, setAuditLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -84,134 +80,90 @@ export default function ScheduleReadinessStrip({ projectId, onChanged }) {
     }
   };
 
-  const toggleAudit = async () => {
-    const next = !auditOpen;
-    setAuditOpen(next);
-    if (!next || audit.length > 0) return;
-    setAuditLoading(true);
-    try {
-      const list = await fetchPlanningAudit(projectId);
-      setAudit(Array.isArray(list) ? list : list?.items || []);
-    } catch {
-      setAudit([]);
-    } finally {
-      setAuditLoading(false);
-    }
-  };
-
   if (loading) {
     return (
-      <div className="flex items-center gap-2 rounded-2xl bg-secondary/50 px-4 py-3 text-sm text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" /> Loading planning readiness…
-      </div>
+      <Card>
+        <CardContent className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" /> Loading planning readiness…
+        </CardContent>
+      </Card>
     );
   }
 
   const requireReady = gates?.requirePlanningReady !== false;
 
   return (
-    <div className="rounded-2xl bg-secondary/50 px-4 py-3 space-y-3">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex items-start gap-2 min-w-0">
-          <CheckCircle2
-            className={`h-5 w-5 mt-0.5 shrink-0 ${planning?.planningReady ? "text-emerald-600" : "text-muted-foreground"}`}
-          />
-          <div>
-            <Label htmlFor="schedule-planning-ready" className="text-sm font-semibold">
-              Planning ready
-              {requireReady && (
-                <span className="ml-2 text-[10px] font-normal uppercase tracking-wide text-amber-700">
-                  Required gate
-                </span>
-              )}
-            </Label>
-            <p className="text-xs text-muted-foreground">
-              Unlock publish when the plan is set. Open material/resource plans from the chips.
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <Switch
-            id="schedule-planning-ready"
-            checked={!!planning?.planningReady}
-            onCheckedChange={toggleReady}
-            disabled={saving}
-          />
-          {planning?.ganttPublishAllowed ? (
-            <Badge className="bg-emerald-500/15 text-emerald-800">Publish unlocked</Badge>
-          ) : (
-            <Badge className="bg-amber-500/15 text-amber-800">Publish locked</Badge>
-          )}
-        </div>
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        {AREAS.map(({ key, label, routeKey, icon: Icon, gateKey }) => {
-          const required = !!gates?.[gateKey];
-          const body = (
-            <span className="inline-flex items-center gap-1.5 rounded-xl bg-card px-2.5 py-1.5 text-xs font-medium">
-              {Icon ? <Icon className="h-3.5 w-3.5 text-muted-foreground" /> : null}
-              {label}
-              {required && (
-                <Badge className="border-none bg-amber-500/15 text-amber-800 text-[9px] px-1.5 py-0">
-                  Required
-                </Badge>
-              )}
-              {chip(planning?.[key])}
-            </span>
-          );
-          if (!routeKey || !routes[routeKey]) return <span key={key}>{body}</span>;
-          return (
-            <Link
-              key={key}
-              to={routes[routeKey].replace(":projectId", projectId)}
-              state={SCHEDULE_NAV_STATE}
-              className="hover:opacity-90"
-            >
-              {body}
-            </Link>
-          );
-        })}
-      </div>
-
-      <div className="border-t border-border/40 pt-2">
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-7 px-2 text-xs text-muted-foreground"
-          onClick={toggleAudit}
-        >
-          <ClipboardList className="h-3.5 w-3.5 mr-1" />
-          Audit
-          {auditOpen ? <ChevronDown className="h-3.5 w-3.5 ml-1" /> : <ChevronRight className="h-3.5 w-3.5 ml-1" />}
-        </Button>
-        {auditOpen && (
-          <div className="mt-2 max-h-40 overflow-auto rounded-xl bg-card/80 px-3 py-2 text-xs space-y-1.5">
-            {auditLoading ? (
-              <p className="flex items-center gap-1.5 text-muted-foreground">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading audit…
+    <Card className="bg-card">
+      <CardContent className="space-y-4 pt-5 md:pt-6">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-start gap-2 min-w-0">
+            <CheckCircle2
+              className={`h-5 w-5 mt-0.5 shrink-0 ${planning?.planningReady ? "text-emerald-600" : "text-muted-foreground"}`}
+            />
+            <div>
+              <Label htmlFor="schedule-planning-ready" className="text-sm font-semibold">
+                Planning ready
+                {requireReady && (
+                  <span className="ml-2 text-[10px] font-normal uppercase tracking-wide text-amber-700">
+                    Required gate
+                  </span>
+                )}
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Unlock publish when the plan is set. Open material/resource plans from the chips.
               </p>
-            ) : audit.length === 0 ? (
-              <p className="text-muted-foreground">No planning decisions recorded yet.</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Switch
+              id="schedule-planning-ready"
+              checked={!!planning?.planningReady}
+              onCheckedChange={toggleReady}
+              disabled={saving}
+            />
+            {planning?.ganttPublishAllowed ? (
+              <Badge className="bg-emerald-500/15 text-emerald-800">Publish unlocked</Badge>
             ) : (
-              audit.map((row) => (
-                <div key={row.uuid || `${row.decisionType}-${row.decidedAt}`} className="flex flex-wrap gap-x-2 gap-y-0.5 border-b border-border/30 pb-1.5 last:border-0">
-                  <span className="font-medium">{row.decisionType || "UPDATE"}</span>
-                  <span className="text-muted-foreground">
-                    {row.fromValue ?? "—"} → {row.toValue ?? "—"}
-                  </span>
-                  <span className="text-muted-foreground ml-auto">
-                    {row.decidedAt ? new Date(row.decidedAt).toLocaleString() : ""}
-                    {row.decidedBy != null ? ` · #${row.decidedBy}` : ""}
-                  </span>
-                  {row.notes && <p className="w-full text-muted-foreground">{row.notes}</p>}
-                </div>
-              ))
+              <Badge className="bg-amber-500/15 text-amber-800">Publish locked</Badge>
             )}
           </div>
-        )}
-      </div>
-    </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 w-full">
+          {AREAS.map(({ key, label, routeKey, icon: Icon, gateKey }) => {
+            const required = !!gates?.[gateKey];
+            const to = routes[routeKey]?.replace(":projectId", projectId);
+            const body = (
+              <span className="flex w-full items-center justify-between gap-3 rounded-xl border border-border/50 bg-background px-3 py-3 text-sm font-medium transition-colors hover:bg-secondary/60">
+                <span className="min-w-0 flex-1 flex flex-col gap-1.5">
+                  <span className="inline-flex items-center gap-2 min-w-0">
+                    {Icon ? <Icon className="h-4 w-4 shrink-0 text-muted-foreground" /> : null}
+                    <span className="truncate">{label}</span>
+                    {required && (
+                      <Badge className="border-none bg-amber-500/15 text-amber-800 text-[9px] px-1.5 py-0 shrink-0">
+                        Required
+                      </Badge>
+                    )}
+                  </span>
+                  <span className="pl-6">{chip(planning?.[key])}</span>
+                </span>
+                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+              </span>
+            );
+            if (!to) return <span key={key}>{body}</span>;
+            return (
+              <Link
+                key={key}
+                to={to}
+                state={SCHEDULE_NAV_STATE}
+                className="block w-full hover:opacity-95"
+              >
+                {body}
+              </Link>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
   );
 }

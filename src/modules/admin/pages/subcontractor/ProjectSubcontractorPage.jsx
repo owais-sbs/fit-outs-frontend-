@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link, useLocation, useParams } from "react-router-dom";
+import { Link, useLocation, useOutletContext, useParams } from "react-router-dom";
 import {
-  ArrowLeft, Check, Loader2, Plus, X, FileImage,
+  Check, Loader2, Plus, X, FileImage,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { PageShell, PageTitle } from "@/components/layout/PageShell";
+import { PageShell, PageHeader } from "@/components/layout/PageShell";
+import ProjectPageFrame from "@/components/layout/ProjectPageFrame";
+import ProjectPathLine from "@/components/shared/ProjectPathLine";
+import { useProjectName } from "../../hooks/useProjectName";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,6 +34,8 @@ import ProjectLifecycleBanner from "../../components/projects/ProjectLifecycleBa
 import { useProjectLifecycle } from "../../hooks/useProjectLifecycle";
 import { FillDemoDataButton } from "@/components/shared/FillDemoDataButton";
 import { DEMO } from "@/shared/demo/formDemoData";
+import PlanAreaReadyActions from "../planning/PlanAreaReadyActions";
+import PlanningHubSkeleton from "../planning/PlanningHubSkeleton";
 
 function PackageScopeBuilder({ projectId, busy, onCreated, onMessage, existingPackage }) {
   const [open, setOpen] = useState(false);
@@ -163,7 +168,7 @@ function PackageScopeBuilder({ projectId, busy, onCreated, onMessage, existingPa
   };
 
   return (
-    <Card className="border-primary/20">
+    <Card className="rounded-xl border border-slate-200 border-primary/20 bg-white shadow-sm">
       <CardHeader className="pb-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle className="text-sm font-semibold">{existingPackage ? "Edit package scope and details" : "Create package from approved BOQ"}</CardTitle>
@@ -318,8 +323,11 @@ function PackageScopeBuilder({ projectId, busy, onCreated, onMessage, existingPa
 
 export default function ProjectSubcontractorPage() {
   const { projectId } = useParams();
+  const { name: projectName } = useProjectName(projectId);
   const { commercialStage, archived } = useProjectLifecycle(projectId);
   const location = useLocation();
+  const hubCtx = useOutletContext();
+  const inHub = !!hubCtx?.inPlanningHub;
   const backPath = projectPlanningBackPath(location, projectId);
   const backLabel = location.state?.from === "detail" ? "Project" : "Schedule";
 
@@ -372,33 +380,62 @@ export default function ProjectSubcontractorPage() {
   };
 
   if (loading) {
+    if (inHub) {
+      return <PlanningHubSkeleton />;
+    }
     return (
-      <PageShell className="max-w-5xl mx-auto flex justify-center py-24 text-muted-foreground">
-        <Loader2 className="h-6 w-6 animate-spin" />
+      <PageShell>
+        <PlanningHubSkeleton />
       </PageShell>
     );
   }
 
+  const Shell = inHub ? "div" : PageShell;
+  const Frame = inHub ? "div" : ProjectPageFrame;
+  const frameClass = inHub ? "space-y-6" : undefined;
+
   return (
-    <PageShell className="max-w-5xl mx-auto">
-      <div className="flex items-center gap-2">
-        <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" title={`Back to ${backLabel}`}>
-          <Link to={backPath}><ArrowLeft className="h-4 w-4" /></Link>
-        </Button>
-        <span className="text-sm text-muted-foreground hidden sm:inline">Back to {backLabel}</span>
-        <PageTitle
+    <Shell>
+      <Frame className={frameClass}>
+      {!inHub && (
+        <ProjectPathLine
+          projectId={projectId}
+          initialName={projectName}
+          backTo={backPath}
+          backTitle={`Back to ${backLabel}`}
+        />
+      )}
+      {!inHub && (
+        <PageHeader
           title="Subcontractors"
-          subtitle={`Project #${projectId}`}
-          className="flex-1"
+          subtitle={projectName}
           actions={
-            <Button asChild size="sm" variant="outline">
-              <Link to={ROUTES.ADMIN.PROJECT_DRAWINGS.replace(":projectId", projectId)}>
-                <FileImage className="w-4 h-4 mr-1" /> Drawings
-              </Link>
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <PlanAreaReadyActions
+                projectId={projectId}
+                statusKey="subcontractorStatus"
+                archived={archived}
+                className="ml-0"
+              />
+              <Button asChild size="sm" variant="outline">
+                <Link to={ROUTES.ADMIN.PROJECT_DRAWINGS.replace(":projectId", projectId)}>
+                  <FileImage className="w-4 h-4 mr-1" /> Drawings
+                </Link>
+              </Button>
+            </div>
           }
         />
-      </div>
+      )}
+      {inHub && (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm font-semibold">Subcontractors</p>
+          <PlanAreaReadyActions
+            projectId={projectId}
+            statusKey="subcontractorStatus"
+            archived={archived}
+          />
+        </div>
+      )}
 
       <ProjectLifecycleBanner commercialStage={commercialStage} />
 
@@ -426,29 +463,33 @@ export default function ProjectSubcontractorPage() {
 
       <ScInspectionReviewPanel projectId={projectId} />
 
-      <Card>
+      <Card className="rounded-xl border border-slate-200 bg-white shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold">All packages ({packages.length})</CardTitle>
         </CardHeader>
         <CardContent>
           {packages.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-8 text-center">No packages yet</p>
+            <p className="py-8 text-center text-sm text-muted-foreground">No packages yet</p>
           ) : (
             <div className="divide-y divide-border/40">
               {packages.map((p) => (
                 <div key={p.uuid} className="flex flex-wrap items-center gap-2 py-3">
                   <p className="text-sm font-medium">{p.name}</p>
-                  <Badge variant="secondary">{p.status || "DRAFT"}</Badge>
+                  <Badge variant="secondary" className="rounded-full px-2.5 py-0.5 text-xs font-medium">
+                    {p.status || "DRAFT"}
+                  </Badge>
                   {p.boqSectionCode && (
-                    <span className="text-xs text-muted-foreground font-mono">{p.boqSectionCode}</span>
+                    <span className="font-mono text-xs text-muted-foreground">{p.boqSectionCode}</span>
                   )}
                   {p.appointedCompanyName ? (
                     <span className="text-xs text-emerald-700">· {p.appointedCompanyName}</span>
                   ) : (
-                    <span className="text-xs text-amber-700">· Unassigned</span>
+                    <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">
+                      Unassigned
+                    </span>
                   )}
                   {p.tenderStatus == null && (
-                    <Button size="sm" variant="ghost" className="ml-auto h-7 text-xs" onClick={() => setEditingPackage(p)}>
+                    <Button size="sm" variant="ghost" className="ml-auto h-11 text-xs md:h-7" onClick={() => setEditingPackage(p)}>
                       Edit package
                     </Button>
                   )}
@@ -459,7 +500,7 @@ export default function ProjectSubcontractorPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="rounded-xl border border-slate-200 bg-white shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold">Claims ({claims.length})</CardTitle>
         </CardHeader>
@@ -491,7 +532,7 @@ export default function ProjectSubcontractorPage() {
                           <Badge className="bg-emerald-500/15 text-emerald-700 border-none text-[10px]">Cert paid</Badge>
                         )}
                       </div>
-                      <div className="mt-2 grid grid-cols-2 gap-2 max-w-md sm:grid-cols-4">
+                    <div className="mt-2 grid max-w-md grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-4">
                         <div className="rounded-lg bg-secondary/60 px-3 py-2">
                           <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Planned</p>
                           <p className="text-sm font-semibold tabular-nums">{planned}</p>
@@ -658,6 +699,7 @@ export default function ProjectSubcontractorPage() {
           )}
         </CardContent>
       </Card>
-    </PageShell>
+      </Frame>
+    </Shell>
   );
 }

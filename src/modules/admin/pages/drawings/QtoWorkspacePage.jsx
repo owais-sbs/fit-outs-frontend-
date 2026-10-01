@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Plus, Save, CheckCircle, FileText } from "lucide-react";
+import { Plus, Save, CheckCircle, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { PageShell, PageTitle } from "@/components/layout/PageShell";
+import ProjectPageFrame from "@/components/layout/ProjectPageFrame";
+import ProjectPathLine from "@/components/shared/ProjectPathLine";
 import { boqViewPath } from "@/shared/constants/routes";
 import { useAuth } from "@/shared/context/auth-context";
 import { fetchDrawingPreviewBlob, reconvertProjectDrawing } from "../../api/drawing.api";
@@ -208,18 +210,19 @@ export default function QtoWorkspacePage() {
   };
 
   return (
-    <PageShell className="max-w-7xl mx-auto">
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2 min-w-0">
-          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <PageTitle
-            title="Quantity Take-Off"
-            subtitle="Calibrate scale, measure on drawing, review quantities"
-            className="min-w-0"
-          />
-        </div>
+    <PageShell>
+      <ProjectPageFrame>
+      <ProjectPathLine
+        projectId={projectId}
+        backOnClick={() => navigate(-1)}
+        backTitle="Back"
+      />
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <PageTitle
+          title="Quantity Take-Off"
+          subtitle="Calibrate scale, measure on drawing, review quantities"
+          className="min-w-0"
+        />
         <div className="flex shrink-0 gap-2">
           <Button variant="outline" size="sm" onClick={saveLines} disabled={saving || qtoLocked}>
             <Save className="w-4 h-4 mr-1" /> Save
@@ -367,6 +370,7 @@ export default function QtoWorkspacePage() {
           <CheckCircle className="w-4 h-4" /> QTO approved
         </div>
       )}
+      </ProjectPageFrame>
     </PageShell>
   );
 }

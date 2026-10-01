@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import {
-  ArrowLeft, Plus, Trash2, Upload, Camera, Save, Wand2, Truck, AlertTriangle,
+  Plus, Trash2, Upload, Camera, Save, Wand2, Truck, AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,8 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { PageShell, PageTitle } from "@/components/layout/PageShell";
-import Breadcrumbs from "@/components/shared/Breadcrumbs";
+import { PageShell, PageHeader } from "@/components/layout/PageShell";
+import ProjectPageFrame from "@/components/layout/ProjectPageFrame";
+import ProjectPathLine from "@/components/shared/ProjectPathLine";
 import StatusBadge from "@/components/shared/StatusBadge";
 import LoadingPanel from "@/components/shared/LoadingPanel";
 import { loadingMessages } from "@/components/shared/loadingMessages";
@@ -48,7 +49,6 @@ import BaselineVarianceTable from "./BaselineVarianceTable";
 import CpmGantt from "./CpmGantt";
 import ScheduleApplyWizard from "./ScheduleApplyWizard";
 import { ROUTES, portalRoutesFromPath } from "@/shared/constants/routes";
-import { Switch } from "@/components/ui/switch";
 import ProjectLifecycleBanner from "../../components/projects/ProjectLifecycleBanner";
 import { useProjectLifecycle } from "../../hooks/useProjectLifecycle";
 
@@ -502,15 +502,15 @@ export default function ProjectSchedulePage() {
     hasActivities && persistedActivities.some((a) => a.publishStatus !== "PUBLISHED");
 
   return (
-    <PageShell className="max-w-7xl mx-auto">
-      <Breadcrumbs
-        items={[
-          { label: isPm || routes.SCHEDULE_HUB ? "Schedules" : "Projects", to: scheduleHubPath },
-          { label: schedule?.projectName || `Project #${projectId}`, to: detailPath },
-          { label: "Schedule" },
-        ]}
+    <PageShell>
+      <ProjectPageFrame>
+      <ProjectPathLine
+        projectId={projectId}
+        initialName={schedule?.projectName || ""}
+        backTo={scheduleHubPath}
+        backTitle={isPm || routes.SCHEDULE_HUB ? "All schedules" : "All projects"}
       />
-      <PageTitle
+      <PageHeader
         title="Schedule workspace"
         subtitle="Readiness · Gantt · progress in one place"
         actions={
@@ -524,17 +524,6 @@ export default function ProjectSchedulePage() {
               status={publishAllowed || schedule?.ganttPublishAllowed ? "APPROVED" : "PENDING"}
               label={publishAllowed || schedule?.ganttPublishAllowed ? "Publish allowed" : "Mark planning ready"}
             />
-            <div className="flex items-center gap-2 rounded-lg border border-border/60 px-2.5 py-1">
-              <Switch
-                id="show-baseline"
-                checked={showBaseline}
-                onCheckedChange={setShowBaseline}
-                disabled={!baselineActivities.length && !(schedule?.baselines || []).length}
-              />
-              <Label htmlFor="show-baseline" className="text-xs cursor-pointer">
-                Show baseline
-              </Label>
-            </div>
             <Button size="sm" variant="outline" disabled={busy || archived} onClick={() => setShowWizard((v) => !v)}>
               <Wand2 className="h-4 w-4 mr-1" /> {showWizard ? "Close wizard" : "Apply template"}
             </Button>
@@ -557,17 +546,6 @@ export default function ProjectSchedulePage() {
       />
 
       <ProjectLifecycleBanner commercialStage={commercialStage} />
-
-      <div className="flex flex-wrap items-center gap-2 -mt-2">
-        <Button asChild variant="ghost" size="sm" className="-ml-2 text-muted-foreground">
-          <Link to={scheduleHubPath}>
-            <ArrowLeft className="h-4 w-4 mr-1" /> {isPm || routes.SCHEDULE_HUB ? "All schedules" : "All projects"}
-          </Link>
-        </Button>
-        <Button asChild variant="ghost" size="sm" className="text-muted-foreground">
-          <Link to={detailPath}>Project detail</Link>
-        </Button>
-      </div>
 
       <ScheduleReadinessStrip projectId={projectId} onChanged={onPlanningChanged} />
 
@@ -623,6 +601,8 @@ export default function ProjectSchedulePage() {
         selectedUuid={selected?.uuid}
         baselineActivities={baselineActivities}
         showBaseline={showBaseline}
+        onShowBaselineChange={setShowBaseline}
+        baselineToggleDisabled={!baselineActivities.length && !(schedule?.baselines || []).length}
         onBarMove={usingPreview ? undefined : handleBarMove}
         emptyMessage={
           usingPreview
@@ -1187,6 +1167,7 @@ export default function ProjectSchedulePage() {
           </CardContent>
         </Card>
       )}
+      </ProjectPageFrame>
     </PageShell>
   );
 }

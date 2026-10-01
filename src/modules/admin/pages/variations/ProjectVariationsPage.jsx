@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { GitBranch, Loader2, Plus } from "lucide-react";
-import { PageShell, PageTitle, Surface } from "@/components/layout/PageShell";
+import { PageShell, PageHeader, Surface } from "@/components/layout/PageShell";
+import ProjectPageFrame from "@/components/layout/ProjectPageFrame";
+import ProjectPathLine from "@/components/shared/ProjectPathLine";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -117,20 +119,21 @@ export default function ProjectVariationsPage() {
 
   return (
     <PageShell>
-      <PageTitle
+      <ProjectPageFrame>
+      <ProjectPathLine
+        projectId={projectId}
+        backTo={projectDetailPath(window.location.pathname, projectId)}
+        backTitle="Back to project"
+      />
+      <PageHeader
         title="Variations"
-        description="Client contract change requests for this project"
+        subtitle="Client contract change requests for this project"
         actions={(
-          <div className="flex gap-2">
-            <Button variant="outline" asChild>
-              <Link to={projectDetailPath(window.location.pathname, projectId)}>Back to project</Link>
+          !commercialFrozen ? (
+            <Button onClick={() => setShowForm((v) => !v)}>
+              <Plus className="h-4 w-4 mr-1" /> New variation
             </Button>
-            {!commercialFrozen && (
-              <Button onClick={() => setShowForm((v) => !v)}>
-                <Plus className="h-4 w-4 mr-1" /> New variation
-              </Button>
-            )}
-          </div>
+          ) : null
         )}
       />
 
@@ -257,6 +260,7 @@ export default function ProjectVariationsPage() {
           </Table>
         )}
       </Surface>
+      </ProjectPageFrame>
     </PageShell>
   );
 }

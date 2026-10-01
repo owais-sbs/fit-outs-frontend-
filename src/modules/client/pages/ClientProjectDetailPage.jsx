@@ -187,8 +187,12 @@ export default function ClientProjectDetailPage() {
               style={{ width: `${Math.min(100, Math.max(0, displayProgress))}%` }}
             />
         </div>
-        <div className="mt-2 flex justify-between text-[11px] text-muted-foreground">
-          <span>Planning</span><span>Design</span><span>Build</span><span>Handover</span>
+        <div className="mt-2 flex justify-between text-[11px] tabular-nums text-muted-foreground">
+          <span>0%</span>
+          <span>25%</span>
+          <span>50%</span>
+          <span>75%</span>
+          <span>100%</span>
         </div>
       </Surface>
 

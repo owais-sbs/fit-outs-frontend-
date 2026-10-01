@@ -858,11 +858,11 @@ export default function WorkItemConfigurationPage() {
               <LoadingPanel size="section" messages={loadingMessages.materials} />
             ) : groupedData.length > 0 ? (
               <>
-              <Table className="min-w-[1180px]">
+              <Table className="min-w-[960px]">
                 <TableHeader className="bg-muted/30">
                   <TableRow>
-                    <TableHead className="w-[20%]">Work Category (Parent)</TableHead>
-                    <TableHead className="w-[20%]">Work Items (Child)</TableHead>
+                    <TableHead className="w-[12%] max-w-[160px]">Work Category (Parent)</TableHead>
+                    <TableHead className="w-[28%]">Work Items (Child)</TableHead>
                     <TableHead className="w-[14%]">Scope tags</TableHead>
                     <TableHead className="w-[8%]">Unit Type</TableHead>
                     <TableHead className="w-[10%]">Cost Price</TableHead>
@@ -881,13 +881,13 @@ export default function WorkItemConfigurationPage() {
                       <React.Fragment key={group.masterId}>
                         {items.length === 0 ? (
                           <TableRow className="hover:bg-transparent border-b">
-                            <TableCell className="align-middle border-r bg-muted/5 font-semibold text-foreground">
-                              <div className="flex items-center justify-between group">
-                                <div className="flex items-center gap-2">
-                                  <Folder className="w-4 h-4 text-primary" />
-                                  <span>{group.masterName}</span>
+                            <TableCell className="w-[12%] max-w-[160px] align-middle border-r bg-muted/5 font-semibold text-foreground">
+                              <div className="flex items-center justify-between gap-1 group">
+                                <div className="flex min-w-0 items-center gap-2">
+                                  <Folder className="w-4 h-4 shrink-0 text-primary" />
+                                  <span className="break-words">{group.masterName}</span>
                                 </div>
-                                <div className="opacity-0 group-hover:opacity-100 flex gap-1 transition-opacity">
+                                <div className="opacity-0 group-hover:opacity-100 flex shrink-0 gap-1 transition-opacity">
                                   <Button 
                                     variant="ghost" 
                                     size="icon" 
@@ -920,19 +920,19 @@ export default function WorkItemConfigurationPage() {
                                 {index === 0 && (
                                   <TableCell 
                                     rowSpan={rowSpanVal} 
-                                    className="align-middle border-r bg-muted/5 font-semibold text-foreground"
+                                    className="w-[12%] max-w-[160px] align-middle border-r bg-muted/5 font-semibold text-foreground"
                                   >
-                                    <div className="flex items-center justify-between group">
+                                    <div className="flex items-center justify-between gap-1 group">
                                       <div 
-                                        className="flex items-center gap-2 cursor-pointer select-none"
+                                        className="flex min-w-0 items-center gap-2 cursor-pointer select-none"
                                         onClick={() => toggleCollapseMaster(group.masterId)}
                                       >
-                                        {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                                        <Folder className="w-4 h-4 text-primary" />
-                                        <span>{group.masterName}</span>
+                                        {isCollapsed ? <ChevronRight className="w-4 h-4 shrink-0" /> : <ChevronDown className="w-4 h-4 shrink-0" />}
+                                        <Folder className="w-4 h-4 shrink-0 text-primary" />
+                                        <span className="break-words">{group.masterName}</span>
                                       </div>
                                       
-                                      <div className="opacity-0 group-hover:opacity-100 flex gap-1 transition-opacity">
+                                      <div className="opacity-0 group-hover:opacity-100 flex shrink-0 gap-1 transition-opacity">
                                         <Button 
                                           variant="ghost" 
                                           size="icon" 

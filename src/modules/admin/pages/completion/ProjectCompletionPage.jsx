@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { PageShell, PageTitle } from "@/components/layout/PageShell";
+import { PageShell, PageHeader } from "@/components/layout/PageShell";
+import ProjectPageFrame from "@/components/layout/ProjectPageFrame";
+import ProjectPathLine from "@/components/shared/ProjectPathLine";
+import { rememberProjectName } from "../../hooks/useProjectName";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fetchProjectById } from "../../api/projects.api";
 import { portalRoutesFromPath, PROJECT_DETAIL_NAV_STATE } from "@/shared/constants/routes";
@@ -49,6 +52,7 @@ export default function ProjectCompletionPage() {
     ])
       .then(([p, cl]) => {
         setProject(p);
+        rememberProjectName(projectId, p?.projectName || p?.name);
         setCommercialStage(cl?.commercialStage || p?.commercialStage || null);
       })
       .catch(() => setProject(null))
@@ -81,19 +85,17 @@ export default function ProjectCompletionPage() {
   }
 
   return (
-    <PageShell className="max-w-4xl mx-auto">
-      <div className="flex items-center gap-2">
-        <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
-          <Link to={detailPath} state={PROJECT_DETAIL_NAV_STATE}>
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
-        <PageTitle
-          title="Project Completion"
-          subtitle={project?.projectName ? `${project.projectName} · #${projectId}` : `Project #${projectId}`}
-          actions={commercialStage ? <CommercialLifecycleBadge stage={commercialStage} /> : null}
-        />
-      </div>
+    <PageShell>
+      <ProjectPageFrame>
+      <ProjectPathLine
+        projectId={projectId}
+        initialName={project?.projectName || project?.name || ""}
+      />
+      <PageHeader
+        title="Project Completion"
+        subtitle={project?.projectName || project?.name || "Project"}
+        actions={commercialStage ? <CommercialLifecycleBadge stage={commercialStage} /> : null}
+      />
 
       <ProjectLifecycleBanner commercialStage={commercialStage} />
 
@@ -118,6 +120,7 @@ export default function ProjectCompletionPage() {
           />
         </TabsContent>
       </Tabs>
+      </ProjectPageFrame>
     </PageShell>
   );
 }

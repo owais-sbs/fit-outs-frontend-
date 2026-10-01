@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import {
-  ArrowLeft,
   Check,
   ChevronDown,
   ChevronUp,
@@ -14,7 +13,10 @@ import {
   Mail,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { PageShell, PageTitle } from "@/components/layout/PageShell";
+import { PageShell, PageHeader } from "@/components/layout/PageShell";
+import ProjectPageFrame from "@/components/layout/ProjectPageFrame";
+import ProjectPathLine from "@/components/shared/ProjectPathLine";
+import { useProjectName } from "../../hooks/useProjectName";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -130,6 +132,7 @@ function resolveBoqGrandTotal(boq) {
 
 export default function ProjectBillingPage() {
   const { projectId } = useParams();
+  const { name: projectName } = useProjectName(projectId);
   const location = useLocation();
   const { role } = useAuth();
   const portalRoutes = portalRoutesFromPath(location.pathname);
@@ -545,13 +548,10 @@ export default function ProjectBillingPage() {
   const commercialFrozen = isCommercialFrozen(projectMeta?.commercialStage);
 
   return (
-    <PageShell className="max-w-4xl mx-auto">
-      <div className="flex items-center gap-2">
-        <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
-          <Link to={detailPath}><ArrowLeft className="h-4 w-4" /></Link>
-        </Button>
-        <PageTitle title="Milestone Billing" subtitle={`Project #${projectId}`} />
-      </div>
+    <PageShell>
+      <ProjectPageFrame>
+      <ProjectPathLine projectId={projectId} initialName={projectName} />
+      <PageHeader title="Milestone Billing" subtitle={projectName} />
 
       <ProjectLifecycleBanner commercialStage={projectMeta?.commercialStage} />
 
@@ -1150,6 +1150,7 @@ export default function ProjectBillingPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </ProjectPageFrame>
     </PageShell>
   );
 }

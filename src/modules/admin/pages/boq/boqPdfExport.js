@@ -426,7 +426,8 @@ function addCanvasToPdf(pdf, canvas) {
   return pageIndex;
 }
 
-export async function downloadBoqPdf(elementId, filename = "BOQ-Invoice.pdf") {
+export async function downloadBoqPdf(elementId, filename = "BOQ-Invoice.pdf", options = {}) {
+  const { hideChrome = true } = options;
   const element = document.getElementById(elementId);
   if (!element) {
     printBoqDocument(elementId);
@@ -436,7 +437,9 @@ export async function downloadBoqPdf(elementId, filename = "BOQ-Invoice.pdf") {
   let iframeMount = null;
 
   try {
-    document.body.classList.add("boq-export-active");
+    if (hideChrome) {
+      document.body.classList.add("boq-export-active");
+    }
 
     const fullHeight = measureElementHeight(element);
     if (fullHeight < 50) {
@@ -480,7 +483,8 @@ export async function downloadBoqPdf(elementId, filename = "BOQ-Invoice.pdf") {
   }
 }
 
-export async function exportBoqPdfBlob(elementId) {
+export async function exportBoqPdfBlob(elementId, options = {}) {
+  const { hideChrome = true } = options;
   const element = document.getElementById(elementId);
   if (!element) {
     throw new Error("Export element not found");
@@ -489,7 +493,9 @@ export async function exportBoqPdfBlob(elementId) {
   let iframeMount = null;
 
   try {
-    document.body.classList.add("boq-export-active");
+    if (hideChrome) {
+      document.body.classList.add("boq-export-active");
+    }
 
     const fullHeight = measureElementHeight(element);
     if (fullHeight < 50) {

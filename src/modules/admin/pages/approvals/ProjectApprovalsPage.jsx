@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { AlertTriangle, ArrowLeft, ChevronRight, FileText, Loader2, Plus, Search, Sparkles, Trash2 } from "lucide-react";
-import { PageShell, PageTitle } from "@/components/layout/PageShell";
+import { AlertTriangle, ChevronRight, FileText, Loader2, Plus, Search, Sparkles, Trash2 } from "lucide-react";
+import { PageShell, PageHeader } from "@/components/layout/PageShell";
+import ProjectPageFrame from "@/components/layout/ProjectPageFrame";
+import ProjectPathLine from "@/components/shared/ProjectPathLine";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -244,17 +246,16 @@ export default function ProjectApprovalsPage() {
 
   return (
     <PageShell>
-      <div className="flex items-start gap-2">
-        <Button asChild variant="ghost" size="icon" className="mt-0.5 h-8 w-8 shrink-0 text-muted-foreground" title="Back to project">
-          <Link to={detailPath}>
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
-        <PageTitle
-          title="Approvals"
-          subtitle="Authority, community and building permits for this project."
-        />
-      </div>
+      <ProjectPageFrame>
+      <ProjectPathLine
+        projectId={projectId}
+        backTo={detailPath}
+        backTitle="Back to project"
+      />
+      <PageHeader
+        title="Approvals"
+        subtitle="Authority, community and building permits for this project."
+      />
 
       <ProjectLifecycleBanner commercialStage={commercialStage} />
 
@@ -577,6 +578,7 @@ export default function ProjectApprovalsPage() {
           </div>
         </div>
       )}
+      </ProjectPageFrame>
     </PageShell>
   );
 }

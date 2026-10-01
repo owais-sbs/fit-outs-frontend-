@@ -183,7 +183,7 @@ export default function ProjectRoomsSection({ projectId, projectName }) {
       <CardHeader className="pb-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <CardTitle className="flex items-center gap-2 text-sm font-semibold">
           <DoorOpen className="h-4 w-4 text-primary" />
-          Rooms &amp; approvals
+          Tasks
         </CardTitle>
         <div className="flex flex-wrap gap-2">
           <Button size="sm" variant="outline" onClick={handleSync} disabled={syncing}>
