@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { ArrowLeft, Loader2, Printer } from "lucide-react";
+import { Loader2, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { PageShell, PageTitle, StatTile } from "@/components/layout/PageShell";
+import { PageShell, PageHeader, StatTile } from "@/components/layout/PageShell";
+import ProjectPageFrame from "@/components/layout/ProjectPageFrame";
+import ProjectPathLine from "@/components/shared/ProjectPathLine";
+import { useProjectName } from "../../hooks/useProjectName";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { fetchProgressReport } from "../../api/reporting.api";
@@ -12,6 +15,7 @@ import { useProjectLifecycle } from "../../hooks/useProjectLifecycle";
 
 export default function ProjectReportingPage() {
   const { projectId } = useParams();
+  const { name: projectName } = useProjectName(projectId);
   const location = useLocation();
   const { commercialStage } = useProjectLifecycle(projectId);
   const isClient = location.pathname.startsWith("/client");
@@ -59,7 +63,7 @@ export default function ProjectReportingPage() {
   const showMaterialVariance = !isClient && materialVariance.length > 0;
 
   return (
-    <PageShell className="max-w-4xl mx-auto print:max-w-none">
+    <PageShell className="print:max-w-none">
       <style>{`
         @media print {
           body * { visibility: hidden !important; }
@@ -75,23 +79,20 @@ export default function ProjectReportingPage() {
         }
       `}</style>
 
-      <div className="flex items-center gap-2 no-print">
-        <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
-          <Link to={detailPath}><ArrowLeft className="h-4 w-4" /></Link>
-        </Button>
-        <PageTitle
-          className="flex-1"
-          title="Progress Report"
-          subtitle={`Project #${projectId}`}
-          actions={
-            report ? (
-              <Button size="sm" variant="outline" onClick={handlePrint}>
-                <Printer className="h-4 w-4 mr-1" /> Print / PDF
-              </Button>
-            ) : null
-          }
-        />
-      </div>
+      <ProjectPageFrame className="print:max-w-none">
+      <ProjectPathLine projectId={projectId} initialName={projectName} className="no-print" />
+      <PageHeader
+        className="no-print"
+        title="Progress Report"
+        subtitle={projectName}
+        actions={
+          report ? (
+            <Button size="sm" variant="outline" onClick={handlePrint}>
+              <Printer className="h-4 w-4 mr-1" /> Print / PDF
+            </Button>
+          ) : null
+        }
+      />
 
       <ProjectLifecycleBanner commercialStage={commercialStage} className="no-print" />
 
@@ -106,7 +107,7 @@ export default function ProjectReportingPage() {
       ) : (
         <div id="progress-report-print" className="space-y-4">
           <div className="hidden print:block mb-4">
-            <h1 className="text-xl font-semibold">Progress Report — Project #{projectId}</h1>
+            <h1 className="text-xl font-semibold">Progress Report — {projectName}</h1>
             <p className="text-sm text-muted-foreground">
               Generated {new Date().toLocaleString()}
             </p>
@@ -222,6 +223,7 @@ export default function ProjectReportingPage() {
           </Card>
         </div>
       )}
+      </ProjectPageFrame>
     </PageShell>
   );
 }

@@ -14,6 +14,9 @@ export const updateMaterialPlan = (projectId, payload) =>
 export const reserveMaterialPlan = (projectId) =>
   axiosInstance.post(`/projects/${projectId}/material-plan/reserve`).then(unwrap);
 
+export const unreserveMaterialPlan = (projectId) =>
+  axiosInstance.post(`/projects/${projectId}/material-plan/unreserve`).then(unwrap);
+
 /** Download CSV export as a blob (falls back to window.open if needed). */
 export const exportMaterialPlanCsv = async (projectId) => {
   const res = await axiosInstance.get(`/projects/${projectId}/material-plan/export.csv`, {

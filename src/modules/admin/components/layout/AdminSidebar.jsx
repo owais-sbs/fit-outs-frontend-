@@ -62,6 +62,16 @@ const PROCUREMENT_SUB_ITEMS = [
   { label: "Movement History", href: ROUTES.ADMIN.PROCUREMENT_MOVEMENTS, icon: History, feature: "PROCUREMENT" },
 ];
 
+const TEMPLATES_SUB_ITEMS = [
+  { label: "Schedule templates", href: ROUTES.ADMIN.SCHEDULE_TEMPLATES, icon: GanttChart, feature: "SCHEDULE_TEMPLATES" },
+  { label: "Quality templates", href: ROUTES.ADMIN.QUALITY_TEMPLATES, icon: ClipboardList, feature: "CHECKLISTS" },
+];
+
+const INBOX_SUB_ITEMS = [
+  { label: "Validation Inbox", href: ROUTES.ADMIN.VALIDATION_INBOX, icon: CheckSquare, feature: "VALIDATION" },
+  { label: "Variations inbox", href: ROUTES.ADMIN.VARIATIONS_INBOX, icon: GitBranch, feature: "VARIATIONS" },
+];
+
 /** Nav groups — lifecycle IA */
 const NAV_GROUPS = [
   {
@@ -97,18 +107,8 @@ const NAV_GROUPS = [
     roles: [...FULL_ACCESS, ...QS_ROLES],
     items: [
       { type: "link", label: "Projects", href: ROUTES.ADMIN.PROJECTS, icon: Briefcase, feature: "PROJECTS" },
-      { type: "link", label: "Schedule", href: ROUTES.ADMIN.SCHEDULE_HUB, icon: GanttChart, feature: "SCHEDULE" },
-      { type: "link", label: "Schedule templates", href: ROUTES.ADMIN.SCHEDULE_TEMPLATES, icon: GanttChart, feature: "SCHEDULE_TEMPLATES" },
-      { type: "link", label: "Approvals", href: ROUTES.ADMIN.APPROVALS_DASHBOARD, icon: Stamp, feature: "APPROVALS" },
-      { type: "link", label: "Validation Inbox", href: ROUTES.ADMIN.VALIDATION_INBOX, icon: CheckSquare, feature: "VALIDATION" },
-      { type: "link", label: "Variations inbox", href: ROUTES.ADMIN.VARIATIONS_INBOX, icon: GitBranch, feature: "VARIATIONS" },
-      {
-        type: "link",
-        label: "Quality templates",
-        href: ROUTES.ADMIN.QUALITY_TEMPLATES,
-        icon: ClipboardList,
-        feature: "CHECKLISTS",
-      },
+      { type: "submenu", label: "Inbox", icon: Inbox, children: INBOX_SUB_ITEMS },
+      { type: "submenu", label: "Templates", icon: ClipboardList, children: TEMPLATES_SUB_ITEMS },
       { type: "link", label: "Communications", href: ROUTES.ADMIN.COMMUNICATIONS, icon: Mail, feature: "COMMUNICATIONS" },
       {
         type: "link",
@@ -142,7 +142,6 @@ const NAV_GROUPS = [
     label: "Supply",
     roles: [...FULL_ACCESS],
     items: [
-      { type: "link", label: "Subcontractor Apps", href: ROUTES.ADMIN.SUBCONTRACTOR_APPLICATIONS, icon: UserCheck, feature: "SUBCONTRACTOR_APPS" },
       { type: "submenu", label: "Procurement", icon: Warehouse, children: PROCUREMENT_SUB_ITEMS, feature: "PROCUREMENT" },
       { type: "submenu", label: "Project Configuration", icon: Settings, children: PROJECT_CONFIG_SUB_ITEMS, feature: "PROJECT_CONFIG" },
     ],
@@ -205,19 +204,11 @@ function Submenu({ label, icon: Icon, items }) {
   );
 }
 
-function isSchedulePath(pathname, hubHref) {
-  if (pathname === hubHref) return true;
-  // Project schedule workspace: /…/projects/:id/schedule
-  return /\/projects\/[^/]+\/schedule\/?$/.test(pathname);
-}
-
 function NavLinkItem({ label, href, icon: Icon }) {
   const location = useLocation();
   const isActive =
-    href === ROUTES.ADMIN.SCHEDULE_HUB
-      ? isSchedulePath(location.pathname, href)
-      : location.pathname === href ||
-        (href !== ROUTES.ADMIN.DASHBOARD && location.pathname.startsWith(`${href}/`));
+    location.pathname === href ||
+    (href !== ROUTES.ADMIN.DASHBOARD && location.pathname.startsWith(`${href}/`));
   return (
     <SidebarMenuItem>
       <SidebarMenuButton asChild isActive={isActive} tooltip={label}>

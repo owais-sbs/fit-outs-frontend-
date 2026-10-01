@@ -1,12 +1,78 @@
-import { Search } from "lucide-react";
+import { ArrowLeft, Search } from "lucide-react";
+import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 
 /** Soft page wrapper with enter motion. */
 export function PageShell({ className, children, ...props }) {
   return (
-    <div className={cn("page-enter space-y-6", className)} {...props}>
+    <div className={cn("page-enter relative space-y-6", className)} {...props}>
       {children}
+    </div>
+  );
+}
+
+/**
+ * Inline back control — sits on the content left edge (aligned with path line / title).
+ */
+export function PageBackLink({ to, state, onClick, title = "Back", className }) {
+  const classes = cn(
+    "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md",
+    "text-muted-foreground transition-colors cursor-pointer",
+    "hover:bg-accent hover:text-accent-foreground",
+    className
+  );
+
+  const icon = <ArrowLeft className="h-4 w-4" aria-hidden />;
+
+  if (typeof onClick === "function" && to == null) {
+    return (
+      <button type="button" className={classes} title={title} aria-label={title} onClick={onClick}>
+        {icon}
+      </button>
+    );
+  }
+
+  return (
+    <Link to={to} state={state} className={classes} title={title} aria-label={title}>
+      {icon}
+    </Link>
+  );
+}
+
+/**
+ * Page title with optional back control on the content left edge
+ * (aligned with ProjectPathLine / breadcrumbs above).
+ */
+export function PageHeader({
+  title,
+  subtitle,
+  actions,
+  className,
+  backTo,
+  backState,
+  backOnClick,
+  backTitle = "Back",
+  backClassName,
+}) {
+  const hasBack = backTo != null || typeof backOnClick === "function";
+  return (
+    <div className={cn("flex items-start gap-1 sm:gap-2", className)}>
+      {hasBack ? (
+        <PageBackLink
+          to={backTo}
+          state={backState}
+          onClick={backOnClick}
+          title={backTitle}
+          className={cn("mt-0.5 sm:mt-1", backClassName)}
+        />
+      ) : null}
+      <PageTitle
+        className="min-w-0 flex-1"
+        title={title}
+        subtitle={subtitle}
+        actions={actions}
+      />
     </div>
   );
 }

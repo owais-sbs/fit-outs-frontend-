@@ -84,6 +84,8 @@ export default function CpmGantt({
   onBarMove,
   baselineActivities = [],
   showBaseline = false,
+  onShowBaselineChange,
+  baselineToggleDisabled = false,
   nonWorkingWeekdays,
   holidays = [],
   emptyMessage = "No activities yet. Apply a template to generate the programme.",
@@ -464,6 +466,17 @@ export default function CpmGantt({
                 <Switch id="wd-axis" checked={workingDayAxis} onCheckedChange={setWorkingDayAxis} />
                 <Label htmlFor="wd-axis" className="text-xs cursor-pointer">Working-day axis</Label>
               </div>
+              {typeof onShowBaselineChange === "function" && (
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="show-baseline"
+                    checked={showBaseline}
+                    onCheckedChange={onShowBaselineChange}
+                    disabled={baselineToggleDisabled}
+                  />
+                  <Label htmlFor="show-baseline" className="text-xs cursor-pointer">Show baseline</Label>
+                </div>
+              )}
               <div className="flex items-center gap-2">
                 <Switch id="show-float" checked={showFloat} onCheckedChange={setShowFloat} />
                 <Label htmlFor="show-float" className="text-xs cursor-pointer">Float</Label>
@@ -515,7 +528,7 @@ export default function CpmGantt({
             <div
               ref={scrollRef}
               className={cn(
-                expanded ? "min-h-0 flex-1 overflow-auto" : "overflow-auto",
+                expanded ? "min-h-0 flex-1 overflow-auto" : "overflow-auto max-h-[min(55vh,calc(100dvh-14rem))]",
                 panning && "cursor-grabbing select-none",
                 resizingLabel && "select-none"
               )}

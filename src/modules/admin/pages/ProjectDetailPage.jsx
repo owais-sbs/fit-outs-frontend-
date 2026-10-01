@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, Link, useLocation } from "react-router-dom";
 import {
-  ArrowLeft, DollarSign, CalendarDays, Clock, Calendar, Pencil,
+  DollarSign, CalendarDays, Clock, Calendar, Pencil,
   TrendingUp, Building2, Briefcase, MapPin, FileImage, FileText, GanttChart,
-  AlertTriangle, BarChart3, CreditCard, HardHat, ClipboardCheck, Stamp, GitBranch, CheckCircle2,
+  AlertTriangle, BarChart3, CreditCard, HardHat, ClipboardCheck, ClipboardList, Stamp, GitBranch, CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,7 +19,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { PageShell, PageTitle, StatTile } from "@/components/layout/PageShell";
-import Breadcrumbs from "@/components/shared/Breadcrumbs";
+import ProjectPageFrame from "@/components/layout/ProjectPageFrame";
+import ProjectPathLine from "@/components/shared/ProjectPathLine";
+import { rememberProjectName } from "../hooks/useProjectName";
 import LoadingPanel from "@/components/shared/LoadingPanel";
 import { loadingMessages } from "@/components/shared/loadingMessages";
 import { cn } from "@/lib/utils";
@@ -38,7 +40,6 @@ import { useAuth } from "@/shared/context/auth-context";
 import { BoqStatusBadge } from "./boq/BoqApprovalTimeline";
 import { PROJECT_STATUS_LIST, PROJECT_STATUS_COLORS, isProjectArchived, isCommercialFrozen } from "../constants/project.constants";
 import ProjectStatusBadge from "../components/projects/ProjectStatusBadge";
-import CommercialLifecycleBadge from "../components/projects/CommercialLifecycleBadge";
 import ProjectLifecycleBanner from "../components/projects/ProjectLifecycleBanner";
 import BoqApprovalPipeline from "./boq/BoqApprovalPipeline";
 import { formatCurrency, formatAed } from "@/shared/utils/currency";
@@ -49,8 +50,6 @@ import ProjectTeamAssignmentSection from "./ProjectTeamAssignmentSection";
 import SiteEngineerTaskAssignSection from "./SiteEngineerTaskAssignSection";
 import ProjectApprovalsSection from "./ProjectApprovalsSection";
 import ProjectDeveloperInfo from "./ProjectDeveloperInfo";
-import { fetchPlanningStatus } from "../api/planning.api";
-import { fetchCloseoutChecklist } from "../api/closeout.api";
 import { fetchJurisdictionPacks, fetchApprovalsCatalog } from "../api/approvals-config.api";
 import { PROJECT_TYPES } from "../constants/project.constants";
 import { ROLES } from "@/shared/constants/roles";
@@ -181,6 +180,7 @@ export default function ProjectDetailPage() {
       ? ROUTES.BUSINESS_OWNER.PROJECTS
       : routes.PROJECTS;
   const drawingsPath = projectSubPath(routes, "PROJECT_DRAWINGS", projectId);
+  const planningPath = projectSubPath(routes, "PROJECT_MATERIAL_PLAN", projectId);
   const schedulePath = projectSubPath(routes, "PROJECT_SCHEDULE", projectId);
   const approvalsPath = projectSubPath(routes, "PROJECT_APPROVALS", projectId);
   const snagsPath = projectSubPath(routes, "PROJECT_SNAGS", projectId);
@@ -197,8 +197,6 @@ export default function ProjectDetailPage() {
   const [saveMessage, setSaveMessage] = useState("");
   const [boqs, setBoqs] = useState([]);
   const [boqsLoading, setBoqsLoading] = useState(true);
-  const [planningReady, setPlanningReady] = useState(null);
-  const [closeout, setCloseout] = useState(null);
   const [clients, setClients] = useState([]);
   const [clientSaving, setClientSaving] = useState(false);
   const [employees, setEmployees] = useState([]);
@@ -229,7 +227,10 @@ export default function ProjectDetailPage() {
   const load = useCallback(() => {
     setLoading(true);
     fetchProjectById(projectId)
-      .then(setProject)
+      .then((p) => {
+        setProject(p);
+        rememberProjectName(projectId, p?.projectName || p?.name);
+      })
       .catch(() => setProject(null))
       .finally(() => setLoading(false));
   }, [projectId]);
@@ -276,12 +277,6 @@ export default function ProjectDetailPage() {
     fetchAllClients()
       .then((list) => setClients(Array.isArray(list) ? list : []))
       .catch(() => setClients([]));
-    fetchPlanningStatus(projectId)
-      .then((p) => setPlanningReady(!!p?.planningReady || !!p?.ganttPublishAllowed))
-      .catch(() => setPlanningReady(null));
-    fetchCloseoutChecklist(projectId)
-      .then(setCloseout)
-      .catch(() => setCloseout(null));
     fetchAllEmployees()
       .then((list) => setEmployees(Array.isArray(list) ? list.filter((e) => e.isActive !== false) : []))
       .catch(() => setEmployees([]));
@@ -500,39 +495,28 @@ export default function ProjectDetailPage() {
   }
 
   return (
-    <PageShell className="max-w-6xl mx-auto">
-      <Breadcrumbs
-        items={[
-          { label: "Projects", to: projectsListPath },
-          { label: project.projectName || "Project" },
-        ]}
+    <PageShell>
+      <ProjectPageFrame>
+      <ProjectPathLine
+        projectId={projectId}
+        initialName={project.projectName || project.name}
       />
-      <Link
-        to={projectsListPath}
-        className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to projects
-      </Link>
-
       <PageTitle
         title={project.projectName}
-        subtitle={`${project.id} · ${project.clientName} · ${project.location}`}
+        subtitle={[project.clientName, project.location]
+          .map((v) => String(v || "").trim())
+          .filter((v) => v && v !== "—")
+          .join(" · ") || undefined}
         actions={
-          <div className="flex flex-wrap items-center gap-2">
-            {project.commercialStage ? (
-              <CommercialLifecycleBadge stage={project.commercialStage} />
-            ) : null}
-            {isFinance ? (
-              <ProjectStatusBadge status={project.status} />
-            ) : (
-              <StatusSelect
-                value={project.status}
-                onValueChange={handleStatusChange}
-                disabled={saving || archived}
-              />
-            )}
-          </div>
+          isFinance ? (
+            <ProjectStatusBadge status={project.status} />
+          ) : (
+            <StatusSelect
+              value={project.status}
+              onValueChange={handleStatusChange}
+              disabled={saving || archived}
+            />
+          )
         }
       />
 
@@ -545,6 +529,13 @@ export default function ProjectDetailPage() {
               <Button asChild size="sm" variant="outline">
                 <Link to={drawingsPath}>
                   <FileImage className="w-4 h-4 mr-1" /> Drawings
+                </Link>
+              </Button>
+            )}
+            {planningPath && (
+              <Button asChild size="sm" variant="outline">
+                <Link to={planningPath} state={PROJECT_DETAIL_NAV_STATE}>
+                  <ClipboardList className="w-4 h-4 mr-1" /> Planning
                 </Link>
               </Button>
             )}
@@ -663,53 +654,15 @@ export default function ProjectDetailPage() {
               style={{ width: `${displayMetrics.progress}%` }}
             />
           </div>
-          <div className="mt-2 flex justify-between text-[11px] text-muted-foreground">
-            <span>Planning</span><span>Design</span><span>Build</span><span>Handover</span>
+          <div className="mt-2 flex justify-between text-[11px] tabular-nums text-muted-foreground">
+            <span>0%</span>
+            <span>25%</span>
+            <span>50%</span>
+            <span>75%</span>
+            <span>100%</span>
           </div>
         </CardContent>
       </Card>
-
-      {!isFinance && (
-      <div className="flex flex-col gap-3 rounded-2xl bg-secondary/50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-sm font-semibold">Schedule workspace</p>
-          <p className="text-xs text-muted-foreground">
-            Planning readiness, Gantt, and progress live in one place.
-            {planningReady === true && " Planning is ready to publish."}
-            {planningReady === false && " Planning not marked ready yet."}
-          </p>
-        </div>
-        <Button asChild size="sm" disabled={!schedulePath}>
-          <Link to={schedulePath || "#"}>
-            <GanttChart className="h-4 w-4 mr-1" /> Open schedule
-          </Link>
-        </Button>
-      </div>
-      )}
-
-      {completionPath && closeout && (
-      <div className="flex flex-col gap-3 rounded-2xl bg-secondary/50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-sm font-semibold flex flex-wrap items-center gap-2">
-            Commercial close-out
-            {closeout.commercialStage ? (
-              <CommercialLifecycleBadge stage={closeout.commercialStage} />
-            ) : project.commercialStage ? (
-              <CommercialLifecycleBadge stage={project.commercialStage} />
-            ) : null}
-          </p>
-          <p className="text-xs text-muted-foreground">{closeout.summary}</p>
-        </div>
-        <Button asChild size="sm" variant={closeout.allSatisfied ? "default" : "outline"}>
-          <Link
-            to={`${completionPath}${closeout.commercialStage && closeout.commercialStage !== "NOT_READY" && closeout.commercialStage !== "READY_FOR_COMMERCIAL_CLOSE" ? "?tab=post-completion" : ""}`}
-            state={PROJECT_DETAIL_NAV_STATE}
-          >
-            <CheckCircle2 className="h-4 w-4 mr-1" /> Open completion
-          </Link>
-        </Button>
-      </div>
-      )}
 
       {/* BOQ documents */}
       <Card>
@@ -1132,6 +1085,7 @@ export default function ProjectDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </ProjectPageFrame>
     </PageShell>
   );
 }

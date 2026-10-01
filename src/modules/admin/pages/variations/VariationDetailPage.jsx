@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Calendar, Loader2 } from "lucide-react";
 import { PageShell, PageTitle, Surface } from "@/components/layout/PageShell";
+import ProjectPageFrame from "@/components/layout/ProjectPageFrame";
+import ProjectPathLine from "@/components/shared/ProjectPathLine";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -116,6 +118,8 @@ export default function VariationDetailPage() {
 
   return (
     <PageShell>
+      <ProjectPageFrame>
+      <ProjectPathLine projectId={projectId} />
       <PageTitle
         title={<span className="flex items-center gap-2"><CrBadge number={item.crNumber} /> {item.title}</span>}
         description={`${item.origin} · ${item.status?.replace(/_/g, " ")}`}
@@ -383,6 +387,7 @@ export default function VariationDetailPage() {
           </ul>
         </Surface>
       )}
+      </ProjectPageFrame>
     </PageShell>
   );
 }

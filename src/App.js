@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams, useLocation } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import { AuthProvider } from "./shared/context/auth-context";
 import { ROLES } from "./shared/constants/roles";
@@ -173,6 +173,8 @@ import ScheduleTemplateLibraryPage from "./modules/admin/pages/schedule/Schedule
 import MaterialPlanPage from "./modules/admin/pages/planning/MaterialPlanPage";
 import ResourcePlanPage from "./modules/admin/pages/planning/ResourcePlanPage";
 import LabourPlanPage from "./modules/admin/pages/planning/LabourPlanPage";
+import PlanningHubLayout from "./modules/admin/pages/planning/PlanningHubLayout";
+import PlanningAuditPage from "./modules/admin/pages/planning/PlanningAuditPage";
 import ValidationInboxPage from "./modules/admin/pages/validation/ValidationInboxPage";
 import DurationExtensionInboxPage from "./modules/project-manager/pages/schedule/DurationExtensionInboxPage";
 import QualityTemplatesPage from "./modules/admin/pages/validation/QualityTemplatesPage";
@@ -212,6 +214,22 @@ function LegacyTenantDetailRedirect() {
     <Navigate
       to={ROUTES.SUPER_ADMIN.COMPANY_DETAIL.replace(":companyId", tenantId)}
       replace
+    />
+  );
+}
+
+/** Redirect legacy plan URLs into the Project Planning Hub. */
+function LegacyPlanningRedirect({ section }) {
+  const { projectId } = useParams();
+  const location = useLocation();
+  const base = location.pathname.startsWith("/project-manager")
+    ? "/project-manager"
+    : "/admin";
+  return (
+    <Navigate
+      to={`${base}/projects/${projectId}/planning/${section}`}
+      replace
+      state={location.state}
     />
   );
 }
@@ -309,9 +327,17 @@ function App() {
               <Route path="projects/new" element={<CreateProjectPage />} />
               <Route path="projects/:projectId" element={<ProjectDetailPage />} />
               <Route path="projects/:projectId/schedule" element={<ProjectSchedulePage />} />
-              <Route path="projects/:projectId/material-plan" element={<MaterialPlanPage />} />
-              <Route path="projects/:projectId/resource-plan" element={<ResourcePlanPage />} />
-              <Route path="projects/:projectId/labour-plan" element={<LabourPlanPage />} />
+              <Route path="projects/:projectId/planning" element={<PlanningHubLayout />}>
+                <Route index element={<Navigate to="material" replace />} />
+                <Route path="material" element={<MaterialPlanPage />} />
+                <Route path="resource" element={<ResourcePlanPage />} />
+                <Route path="labour" element={<LabourPlanPage />} />
+                <Route path="subcontractors" element={<ProjectSubcontractorPage />} />
+                <Route path="audit" element={<PlanningAuditPage />} />
+              </Route>
+              <Route path="projects/:projectId/material-plan" element={<LegacyPlanningRedirect section="material" />} />
+              <Route path="projects/:projectId/resource-plan" element={<LegacyPlanningRedirect section="resource" />} />
+              <Route path="projects/:projectId/labour-plan" element={<LegacyPlanningRedirect section="labour" />} />
               <Route path="projects/:projectId/validation" element={<ValidationInboxPage />} />
               <Route path="projects/:projectId/snags" element={<ProjectSnagsPage />} />
               <Route path="projects/:projectId/variations" element={<ProjectVariationsPage />} />
@@ -323,7 +349,7 @@ function App() {
               <Route path="projects/:projectId/reporting" element={<ProjectReportingPage />} />
               <Route path="projects/:projectId/billing" element={<ProjectBillingPage />} />
               <Route path="projects/:projectId/completion" element={<ProjectCompletionPage />} />
-              <Route path="projects/:projectId/subcontractors" element={<ProjectSubcontractorPage />} />
+              <Route path="projects/:projectId/subcontractors" element={<LegacyPlanningRedirect section="subcontractors" />} />
               <Route path="subcontractors/applications" element={<JctAdminSubcontractorApplicationsPage />} />
               <Route path="subcontractors/applications/:id" element={<JctAdminSubcontractorApplicationDetailPage />} />
               <Route path="subcontractors/vendors" element={<VendorListPage />} />
@@ -429,9 +455,17 @@ function App() {
               <Route path="projects/new" element={<CreateProjectPage />} />
               <Route path="projects/:projectId" element={<ProjectDetailPage />} />
               <Route path="projects/:projectId/schedule" element={<ProjectSchedulePage />} />
-              <Route path="projects/:projectId/material-plan" element={<MaterialPlanPage />} />
-              <Route path="projects/:projectId/resource-plan" element={<ResourcePlanPage />} />
-              <Route path="projects/:projectId/labour-plan" element={<LabourPlanPage />} />
+              <Route path="projects/:projectId/planning" element={<PlanningHubLayout />}>
+                <Route index element={<Navigate to="material" replace />} />
+                <Route path="material" element={<MaterialPlanPage />} />
+                <Route path="resource" element={<ResourcePlanPage />} />
+                <Route path="labour" element={<LabourPlanPage />} />
+                <Route path="subcontractors" element={<ProjectSubcontractorPage />} />
+                <Route path="audit" element={<PlanningAuditPage />} />
+              </Route>
+              <Route path="projects/:projectId/material-plan" element={<LegacyPlanningRedirect section="material" />} />
+              <Route path="projects/:projectId/resource-plan" element={<LegacyPlanningRedirect section="resource" />} />
+              <Route path="projects/:projectId/labour-plan" element={<LegacyPlanningRedirect section="labour" />} />
               <Route path="projects/:projectId/validation" element={<ValidationInboxPage />} />
               <Route path="projects/:projectId/snags" element={<ProjectSnagsPage />} />
               <Route path="projects/:projectId/variations" element={<ProjectVariationsPage />} />
@@ -443,7 +477,7 @@ function App() {
               <Route path="projects/:projectId/reporting" element={<ProjectReportingPage />} />
               <Route path="projects/:projectId/billing" element={<ProjectBillingPage />} />
               <Route path="projects/:projectId/completion" element={<ProjectCompletionPage />} />
-              <Route path="projects/:projectId/subcontractors" element={<ProjectSubcontractorPage />} />
+              <Route path="projects/:projectId/subcontractors" element={<LegacyPlanningRedirect section="subcontractors" />} />
               <Route path="subcontractors/vendors" element={<VendorListPage />} />
               <Route path="validation/inbox" element={<ValidationInboxPage />} />
               <Route path="schedule/duration-extensions" element={<DurationExtensionInboxPage />} />

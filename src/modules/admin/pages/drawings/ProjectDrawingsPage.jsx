@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams, Link, useLocation } from "react-router-dom";
-import { ArrowLeft, Upload, FileImage, Trash2, AlertCircle, Lock, History, CheckCircle2 } from "lucide-react";
+import { Upload, FileImage, Trash2, AlertCircle, Lock, History, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +10,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PageShell, PageTitle } from "@/components/layout/PageShell";
+import { PageShell, PageHeader } from "@/components/layout/PageShell";
+import ProjectPageFrame from "@/components/layout/ProjectPageFrame";
+import ProjectPathLine from "@/components/shared/ProjectPathLine";
 import ProjectLifecycleBanner from "../../components/projects/ProjectLifecycleBanner";
 import { useProjectLifecycle } from "../../hooks/useProjectLifecycle";
 import {
@@ -150,17 +152,17 @@ export default function ProjectDrawingsPage() {
   };
 
   return (
-    <PageShell className="max-w-6xl mx-auto space-y-4">
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => navigate(-1)}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <PageTitle
-          title="Project Drawings"
-          subtitle="Upload PDF or DWG drawings with revision control and superseded lockout"
-          className="flex-1"
-        />
-      </div>
+    <PageShell>
+      <ProjectPageFrame className="space-y-4">
+      <ProjectPathLine
+        projectId={projectId}
+        backOnClick={() => navigate(-1)}
+        backTitle="Back"
+      />
+      <PageHeader
+        title="Project Drawings"
+        subtitle="Upload PDF or DWG drawings with revision control and superseded lockout"
+      />
 
       <ProjectLifecycleBanner commercialStage={commercialStage} />
 
@@ -264,7 +266,11 @@ export default function ProjectDrawingsPage() {
       {loading ? (
         <div className="space-y-3">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-16 w-full" />)}</div>
       ) : drawings.length === 0 ? (
-        <Card><CardContent className="py-12 text-center text-muted-foreground text-sm">No drawings uploaded yet.</CardContent></Card>
+        <Card>
+          <CardContent className="flex min-h-[7.5rem] w-full items-center justify-center px-12 py-12 text-center text-sm text-muted-foreground md:px-12 md:py-12">
+            No drawings uploaded yet.
+          </CardContent>
+        </Card>
       ) : (
         <div className="grid gap-3">
           {drawings.map((d) => {
@@ -402,6 +408,7 @@ export default function ProjectDrawingsPage() {
           </div>
         </DialogContent>
       </Dialog>
+      </ProjectPageFrame>
     </PageShell>
   );
 }

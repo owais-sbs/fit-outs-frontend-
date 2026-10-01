@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -12,6 +13,7 @@ import {
   HardHat,
   GitBranch,
   Timer,
+  ChevronRight,
 } from "lucide-react";
 import { SidebarBrand } from "@/components/brand/BrandMark";
 import {
@@ -25,46 +27,57 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
 import { ROUTES } from "@/shared/constants/routes";
 import { useAuth } from "@/shared/context/auth-context";
 
+const TEMPLATES_SUB_ITEMS = [
+  { label: "Schedule templates", href: ROUTES.PROJECT_MANAGER.SCHEDULE_TEMPLATES, icon: GanttChart },
+  { label: "Quality templates", href: ROUTES.PROJECT_MANAGER.QUALITY_TEMPLATES, icon: ClipboardList },
+];
+
+const INBOX_SUB_ITEMS = [
+  { label: "Validation Inbox", href: ROUTES.PROJECT_MANAGER.VALIDATION_INBOX, icon: ClipboardCheck },
+  { label: "Variations inbox", href: ROUTES.PROJECT_MANAGER.VARIATIONS_INBOX, icon: GitBranch },
+];
+
 const GROUPS = [
   {
     label: "Overview",
     items: [
-      { label: "Dashboard", href: ROUTES.PROJECT_MANAGER.DASHBOARD, icon: LayoutDashboard },
+      { type: "link", label: "Dashboard", href: ROUTES.PROJECT_MANAGER.DASHBOARD, icon: LayoutDashboard },
     ],
   },
   {
     label: "Delivery",
     items: [
-      { label: "Projects", href: ROUTES.PROJECT_MANAGER.PROJECTS, icon: Briefcase },
-      { label: "Schedule", href: ROUTES.PROJECT_MANAGER.SCHEDULE_HUB, icon: GanttChart },
-      { label: "Schedule templates", href: ROUTES.PROJECT_MANAGER.SCHEDULE_TEMPLATES, icon: GanttChart },
-      { label: "Approvals", href: ROUTES.PROJECT_MANAGER.APPROVALS_DASHBOARD, icon: Stamp },
-      { label: "Validation Inbox", href: ROUTES.PROJECT_MANAGER.VALIDATION_INBOX, icon: ClipboardCheck },
-      { label: "Duration extensions", href: ROUTES.PROJECT_MANAGER.DURATION_EXTENSION_INBOX, icon: Timer },
-      { label: "Variations inbox", href: ROUTES.PROJECT_MANAGER.VARIATIONS_INBOX, icon: GitBranch },
-      { label: "Quality templates", href: ROUTES.PROJECT_MANAGER.QUALITY_TEMPLATES, icon: ClipboardList },
-      { label: "Communications", href: ROUTES.PROJECT_MANAGER.COMMUNICATIONS, icon: Mail },
-      { label: "SC vendors", href: ROUTES.PROJECT_MANAGER.VENDORS, icon: HardHat },
+      { type: "link", label: "Projects", href: ROUTES.PROJECT_MANAGER.PROJECTS, icon: Briefcase },
+      { type: "link", label: "Schedule", href: ROUTES.PROJECT_MANAGER.SCHEDULE_HUB, icon: GanttChart },
+      { type: "submenu", label: "Inbox", icon: Inbox, children: INBOX_SUB_ITEMS },
+      { type: "submenu", label: "Templates", icon: ClipboardList, children: TEMPLATES_SUB_ITEMS },
+      { type: "link", label: "Approvals", href: ROUTES.PROJECT_MANAGER.APPROVALS_DASHBOARD, icon: Stamp },
+      { type: "link", label: "Duration extensions", href: ROUTES.PROJECT_MANAGER.DURATION_EXTENSION_INBOX, icon: Timer },
+      { type: "link", label: "Communications", href: ROUTES.PROJECT_MANAGER.COMMUNICATIONS, icon: Mail },
+      { type: "link", label: "SC vendors", href: ROUTES.PROJECT_MANAGER.VENDORS, icon: HardHat },
     ],
   },
   {
     label: "Commercial",
     items: [
-      { label: "BOQ Inbox", href: ROUTES.PROJECT_MANAGER.BOQ_INBOX, icon: Inbox },
-      { label: "Billing milestone approval", href: ROUTES.PROJECT_MANAGER.BILLING_MILESTONE_INBOX, icon: Stamp },
-      { label: "Credit notes", href: ROUTES.PROJECT_MANAGER.CREDIT_NOTES, icon: Stamp },
+      { type: "link", label: "BOQ Inbox", href: ROUTES.PROJECT_MANAGER.BOQ_INBOX, icon: Inbox },
+      { type: "link", label: "Billing milestone approval", href: ROUTES.PROJECT_MANAGER.BILLING_MILESTONE_INBOX, icon: Stamp },
+      { type: "link", label: "Credit notes", href: ROUTES.PROJECT_MANAGER.CREDIT_NOTES, icon: Stamp },
     ],
   },
   {
     label: "Field",
     items: [
-      { label: "Site Visits", href: ROUTES.PROJECT_MANAGER.SITE_VISITS, icon: MapPin },
-      { label: "Terms & Conditions", href: ROUTES.PROJECT_MANAGER.TERMS, icon: ClipboardList },
+      { type: "link", label: "Site Visits", href: ROUTES.PROJECT_MANAGER.SITE_VISITS, icon: MapPin },
+      { type: "link", label: "Terms & Conditions", href: ROUTES.PROJECT_MANAGER.TERMS, icon: ClipboardList },
     ],
   },
 ];
@@ -76,6 +89,42 @@ function isActivePath(pathname, href) {
     return pathname === href || /\/projects\/[^/]+\/schedule\/?$/.test(pathname);
   }
   return pathname.startsWith(`${href}/`);
+}
+
+function Submenu({ label, icon: Icon, items }) {
+  const location = useLocation();
+  const isAnyActive = items.some((i) => isActivePath(location.pathname, i.href));
+  const [open, setOpen] = useState(isAnyActive);
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton onClick={() => setOpen((o) => !o)} isActive={isAnyActive} tooltip={label}>
+        <Icon className="h-4 w-4" />
+        <span>{label}</span>
+        <ChevronRight
+          className={`ml-auto h-3 w-3 transition-transform duration-200 ${open ? "rotate-90" : ""}`}
+        />
+      </SidebarMenuButton>
+      {open && (
+        <SidebarMenuSub>
+          {items.map((item) => {
+            const ItemIcon = item.icon;
+            const active = isActivePath(location.pathname, item.href);
+            return (
+              <SidebarMenuSubItem key={item.href}>
+                <SidebarMenuSubButton asChild isActive={active}>
+                  <NavLink to={item.href}>
+                    <ItemIcon className="h-4 w-4" />
+                    <span>{item.label}</span>
+                  </NavLink>
+                </SidebarMenuSubButton>
+              </SidebarMenuSubItem>
+            );
+          })}
+        </SidebarMenuSub>
+      )}
+    </SidebarMenuItem>
+  );
 }
 
 export default function PmSidebar() {
@@ -107,6 +156,16 @@ export default function PmSidebar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 {group.items.map((item) => {
+                  if (item.type === "submenu") {
+                    return (
+                      <Submenu
+                        key={item.label}
+                        label={item.label}
+                        icon={item.icon}
+                        items={item.children}
+                      />
+                    );
+                  }
                   const Icon = item.icon;
                   const active = isActivePath(location.pathname, item.href);
                   return (

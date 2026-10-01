@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import {
-  ArrowLeft,
   Download,
   FolderOpen,
   History,
@@ -11,7 +10,10 @@ import {
   Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { PageShell, PageTitle } from "@/components/layout/PageShell";
+import { PageShell, PageHeader } from "@/components/layout/PageShell";
+import ProjectPageFrame from "@/components/layout/ProjectPageFrame";
+import ProjectPathLine from "@/components/shared/ProjectPathLine";
+import { useProjectName } from "../../hooks/useProjectName";
 import LoadingPanel from "@/components/shared/LoadingPanel";
 import { loadingMessages } from "@/components/shared/loadingMessages";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -93,6 +95,7 @@ function groupLibrary(docs) {
 
 export default function ProjectDocumentsPage() {
   const { projectId } = useParams();
+  const { name: projectName } = useProjectName(projectId);
   const { commercialStage, archived } = useProjectLifecycle(projectId);
   const location = useLocation();
   const isPm = location.pathname.startsWith("/project-manager");
@@ -201,13 +204,10 @@ export default function ProjectDocumentsPage() {
   }
 
   return (
-    <PageShell className="max-w-4xl mx-auto">
-      <div className="flex items-center gap-2">
-        <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
-          <Link to={detailPath}><ArrowLeft className="h-4 w-4" /></Link>
-        </Button>
-        <PageTitle title="Documents" subtitle={`Project #${projectId}`} />
-      </div>
+    <PageShell>
+      <ProjectPageFrame>
+      <ProjectPathLine projectId={projectId} initialName={projectName} />
+      <PageHeader title="Documents" subtitle={projectName} />
 
       <ProjectLifecycleBanner commercialStage={commercialStage} />
 
@@ -542,6 +542,7 @@ export default function ProjectDocumentsPage() {
           </CardContent>
         </Card>
       )}
+      </ProjectPageFrame>
     </PageShell>
   );
 }
