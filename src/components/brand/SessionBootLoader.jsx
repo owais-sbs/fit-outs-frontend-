@@ -26,7 +26,7 @@ export function SessionBootLoader() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
-      <div className="relative flex h-28 w-28 items-center justify-center">
+      <div className="relative flex h-[10.5rem] w-[10.5rem] items-center justify-center">
         <svg
           className="absolute inset-0 h-full w-full animate-[boot-ring_1.1s_linear_infinite]"
           viewBox="0 0 100 100"
@@ -56,7 +56,7 @@ export function SessionBootLoader() {
         <img
           src={PLATFORM_ICON_URL}
           alt={BRAND_NAME}
-          className="relative h-14 w-14 object-contain"
+          className="relative h-[5.25rem] w-[5.25rem] object-contain"
         />
       </div>
       <p

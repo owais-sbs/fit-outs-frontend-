@@ -42,7 +42,7 @@ export default function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" className="pointer-events-none">
-              <SidebarBrand portal="Super Admin" />
+              <SidebarBrand portal="Super Admin" framed={false} />
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

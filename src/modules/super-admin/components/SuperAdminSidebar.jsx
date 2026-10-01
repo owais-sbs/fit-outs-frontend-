@@ -59,7 +59,7 @@ export default function SuperAdminSidebar({ collapsed, onToggle }) {
           )}>
           {!collapsed && (
             <div className="flex items-center gap-2.5 min-w-0">
-              <JctLogoTile className="h-9 w-9 rounded-lg" />
+              <JctLogoTile className="h-9 w-9" framed={false} />
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold">{BRAND_NAME}</p>
                 <p className="truncate text-xs text-sidebar-foreground/60">
@@ -68,7 +68,7 @@ export default function SuperAdminSidebar({ collapsed, onToggle }) {
               </div>
             </div>
           )}
-          {collapsed && <JctLogoTile className="h-9 w-9 rounded-lg" />}
+          {collapsed && <JctLogoTile className="h-9 w-9" framed={false} />}
         </div>
 
         <ScrollArea className="flex-1 px-3 py-4">

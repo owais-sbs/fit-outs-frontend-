@@ -49,6 +49,7 @@ export function JctLogoTile({
   imgClassName = "h-5 w-5",
   logoUrl,
   companyName,
+  framed = true,
 }) {
   const [err, setErr] = useState(false);
   const trimmedName = companyName?.trim() || "";
@@ -66,7 +67,11 @@ export function JctLogoTile({
 
   return (
     <div
-      className={`flex shrink-0 items-center justify-center overflow-hidden bg-white text-foreground ring-1 ring-border/60 dark:bg-white dark:ring-white/40 ${className}`}
+      className={`flex shrink-0 items-center justify-center overflow-hidden text-foreground ${
+        framed
+          ? "bg-white ring-1 ring-border/60 dark:bg-white dark:ring-white/40"
+          : "bg-transparent"
+      } ${className}`}
     >
       {showInitials ? (
         <span className="text-[11px] font-bold tracking-tight">
@@ -78,7 +83,9 @@ export function JctLogoTile({
           alt={alt}
           className={
             isPlatform
-              ? "h-[88%] w-[88%] object-contain"
+              ? framed
+                ? "h-[88%] w-[88%] object-contain"
+                : "h-full w-full object-contain"
               : `${imgClassName} object-contain`
           }
           onError={() => setErr(true)}
@@ -89,7 +96,7 @@ export function JctLogoTile({
 }
 
 /** Full sidebar brand block: tenant logo + company name + portal label. */
-export function SidebarBrand({ portal, companyName, logoUrl }) {
+export function SidebarBrand({ portal, companyName, logoUrl, framed = true }) {
   const trimmedCompany = companyName?.trim() || "";
   const isPlatform = !trimmedCompany && !logoUrl;
   const name = trimmedCompany || BRAND_NAME;
@@ -98,6 +105,7 @@ export function SidebarBrand({ portal, companyName, logoUrl }) {
       <JctLogoTile
         logoUrl={logoUrl}
         companyName={trimmedCompany || undefined}
+        framed={framed}
         className={isPlatform ? "h-11 w-11 rounded-xl" : "h-9 w-9 rounded-xl"}
       />
       <div className="grid min-w-0 flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
