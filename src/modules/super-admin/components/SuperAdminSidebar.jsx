@@ -1,7 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { JctLogoTile } from "@/components/brand/BrandMark";
+import { BRAND_NAME, JctLogoTile } from "@/components/brand/BrandMark";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -59,16 +59,16 @@ export default function SuperAdminSidebar({ collapsed, onToggle }) {
           )}>
           {!collapsed && (
             <div className="flex items-center gap-2.5 min-w-0">
-              <JctLogoTile className="h-9 w-9 rounded-lg" />
+              <JctLogoTile className="h-9 w-9" framed={false} />
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold">JCT Contracting</p>
+                <p className="truncate text-sm font-semibold">{BRAND_NAME}</p>
                 <p className="truncate text-xs text-sidebar-foreground/60">
                   Super Admin
                 </p>
               </div>
             </div>
           )}
-          {collapsed && <JctLogoTile className="h-9 w-9 rounded-lg" />}
+          {collapsed && <JctLogoTile className="h-9 w-9" framed={false} />}
         </div>
 
         <ScrollArea className="flex-1 px-3 py-4">

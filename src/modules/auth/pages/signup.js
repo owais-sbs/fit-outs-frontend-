@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertCircle } from "lucide-react";
-import { BRAND_NAME, JctLogoTile } from "@/components/brand/BrandMark";
+import { PlatformBrandHeader } from "@/components/brand/BrandMark";
 import { SessionBootLoader } from "@/components/brand/SessionBootLoader";
 
 const ROLE_ROUTES = {
@@ -115,12 +115,7 @@ export default function SignupPage() {
         </div>
 
         <div className="relative bg-background px-10 py-14 sm:px-12 sm:py-16">
-          <div className="mb-12 flex items-center justify-center gap-3.5">
-            <JctLogoTile className="h-[2.6rem] w-[2.6rem] rounded-xl" imgClassName="h-[1.625rem] w-[1.625rem]" />
-            <span className="text-[1.4625rem] font-semibold tracking-tight text-foreground">
-              {BRAND_NAME}
-            </span>
-          </div>
+          <PlatformBrandHeader />
 
           <div className="mb-8 text-center">
             <h1 className="text-xl font-semibold tracking-tight">Create your account</h1>

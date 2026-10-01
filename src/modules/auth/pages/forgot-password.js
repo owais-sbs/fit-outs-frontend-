@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ROUTES } from "@/shared/constants/routes";
-import { BRAND_NAME, JctLogoTile } from "@/components/brand/BrandMark";
+import { PlatformBrandHeader } from "@/components/brand/BrandMark";
 import { requestPasswordSetupEmail } from "@/modules/auth/api/password-setup.api";
 
 export default function ForgotPasswordPage() {
@@ -47,12 +47,10 @@ export default function ForgotPasswordPage() {
 
       <div className="relative z-10 w-full max-w-[420px] page-enter">
         <div className="mb-8 text-center">
-          <div className="mb-5 flex justify-center">
-            <JctLogoTile className="h-14 w-14 rounded-2xl" imgClassName="h-8 w-8" />
-          </div>
-          <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground md:text-[2rem]">
-            {BRAND_NAME}
-          </h1>
+          <PlatformBrandHeader
+            className="mb-5 flex justify-center"
+            imgClassName="h-24 w-24"
+          />
           <p className="mt-2 text-sm text-muted-foreground">
             Portal password setup
           </p>

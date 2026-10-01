@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ROUTES } from "@/shared/constants/routes";
-import { BRAND_NAME, JctLogoTile } from "@/components/brand/BrandMark";
+import { PlatformBrandHeader } from "@/components/brand/BrandMark";
 import {
   completePasswordSetup,
   validatePasswordSetupToken,
@@ -80,11 +80,11 @@ export default function SetPasswordPage() {
 
       <div className="relative z-10 w-full max-w-md">
         <div className="mb-8 flex flex-col items-center gap-3 text-center">
-          <JctLogoTile className="h-14 w-14" />
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">{BRAND_NAME}</p>
-            <h1 className="text-2xl font-semibold tracking-tight">Portal access</h1>
-          </div>
+          <PlatformBrandHeader
+            className="flex justify-center"
+            imgClassName="h-24 w-24"
+          />
+          <h1 className="text-2xl font-semibold tracking-tight">Portal access</h1>
         </div>
 
         <div className="rounded-xl border border-border/60 bg-card/95 p-6 shadow-lg backdrop-blur-sm">
