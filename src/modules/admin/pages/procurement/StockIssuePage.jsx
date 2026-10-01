@@ -34,27 +34,43 @@ export default function StockIssuePage() {
     }).catch(console.error);
   }, []);
 
-  const selectedMaterial = materials.find((m) => m.id === form.materialId);
+  const selectedMaterial = materials.find((m) => String(m.id) === String(form.materialId));
+  const stockOnHand = Number(selectedMaterial?.quantityOnHand ?? 0);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.materialId || !form.quantity || parseFloat(form.quantity) <= 0) {
+    const qty = parseFloat(form.quantity);
+    if (!form.materialId || !form.quantity || Number.isNaN(qty) || qty <= 0) {
       setToast({ type: "error", message: "Material and positive quantity are required." });
+      return;
+    }
+    if (qty > stockOnHand) {
+      setToast({
+        type: "error",
+        message: `Insufficient stock for ${selectedMaterial?.materialName || "material"}. Available: ${stockOnHand}, requested: ${qty}.`,
+      });
       return;
     }
     setIsSaving(true);
     try {
       await recordStockIssue({
         materialId: form.materialId,
-        quantity: parseFloat(form.quantity),
+        quantity: qty,
         projectId: form.projectId ? Number(form.projectId) : null,
         referenceNo: form.referenceNo.trim() || null,
         notes: form.notes.trim() || null,
       });
       setToast({ type: "success", message: "Stock issue recorded successfully." });
       setForm({ materialId: "", quantity: "", projectId: "", referenceNo: "", notes: "" });
+      // Refresh material balances so stock labels stay accurate
+      const matRes = await fetchMaterials({ active: true }, 0, 200);
+      setMaterials(matRes?.content ?? (Array.isArray(matRes) ? matRes : []));
     } catch (err) {
-      setToast({ type: "error", message: err.response?.data?.message || err.message });
+      const data = err.response?.data;
+      setToast({
+        type: "error",
+        message: data?.error || data?.message || err.message || "Failed to record issue",
+      });
     } finally {
       setIsSaving(false);
     }
@@ -92,7 +108,19 @@ export default function StockIssuePage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Quantity * {selectedMaterial ? `(${selectedMaterial.unitType})` : ""}</Label>
-                <Input type="number" step="0.001" min="0" value={form.quantity} onChange={(e) => setForm((p) => ({ ...p, quantity: e.target.value }))} />
+                <Input
+                  type="number"
+                  step="0.001"
+                  min="0"
+                  max={selectedMaterial ? stockOnHand : undefined}
+                  value={form.quantity}
+                  onChange={(e) => setForm((p) => ({ ...p, quantity: e.target.value }))}
+                />
+                {selectedMaterial && (
+                  <p className="text-xs text-muted-foreground">
+                    Available on hand: <span className="font-medium text-foreground">{stockOnHand}</span>
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label>Project (optional)</Label>

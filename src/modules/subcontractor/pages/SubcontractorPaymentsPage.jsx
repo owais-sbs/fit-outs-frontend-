@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { CreditCard, Loader2, Plus, Send } from "lucide-react";
 import { PageShell, PageTitle, Surface } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import {
   fetchScCertificates,
   submitScInvoice,
 } from "@/modules/admin/api/subcontractor.api";
+import { ROUTES } from "@/shared/constants/routes";
 import { SC_STATUS_BADGE, formatScStatus } from "../utils/subcontractor.utils";
 
 function formatMoney(amount, currency = "AED") {
@@ -174,7 +176,31 @@ export default function SubcontractorPaymentsPage() {
         </Surface>
       </div>
 
-      {message && <p className="rounded-lg bg-primary/10 px-3 py-2 text-sm text-primary">{message}</p>}
+      {message && (
+        <p className={`rounded-lg px-3 py-2 text-sm ${
+          /iban|bank|failed|required|error/i.test(message)
+            ? "bg-destructive/10 text-destructive"
+            : "bg-primary/10 text-primary"
+        }`}>
+          {message}
+          {/iban|bank/i.test(message) && (
+            <>
+              {" "}
+              <Link className="underline font-medium" to={ROUTES.SUBCONTRACTOR.ORG_EXTRAS}>
+                Open bank details
+              </Link>
+            </>
+          )}
+        </p>
+      )}
+
+      <Surface className="p-4 text-sm text-muted-foreground">
+        Before raising an invoice, save an <strong>IBAN</strong> under{" "}
+        <Link className="text-primary underline" to={ROUTES.SUBCONTRACTOR.ORG_EXTRAS}>
+          Organization → Financial terms &amp; bank
+        </Link>
+        {" "}(Save bank — letter alone is not enough).
+      </Surface>
 
       {showForm && (
         <Surface className="space-y-4 p-5">

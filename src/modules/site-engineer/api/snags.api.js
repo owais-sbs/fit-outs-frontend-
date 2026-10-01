@@ -1,6 +1,9 @@
 import axiosInstance from "@/lib/axiosInstance";
+import { createSnag, updateSnagStatus, SNAG_SEVERITIES, SNAG_STATUSES } from "@/modules/admin/api/snags.api";
 
 const unwrap = (r) => r.data?.data ?? r.data;
+
+export { createSnag, updateSnagStatus, SNAG_SEVERITIES, SNAG_STATUSES };
 
 export const fetchMySnags = () =>
   axiosInstance.get("/snags/mine").then((r) => {
@@ -9,4 +12,4 @@ export const fetchMySnags = () =>
   });
 
 export const updateMySnagStatus = (projectId, uuid, status) =>
-  axiosInstance.patch(`/projects/${projectId}/snags/${uuid}/status`, { status }).then(unwrap);
+  updateSnagStatus(projectId, uuid, status);
