@@ -205,6 +205,21 @@ export function AuthProvider({ children }) {
     }
   }, [finishAuthResponse]);
 
+  /** Demo-only: re-authenticate as another whitelisted Puma account. */
+  const switchDemoPortal = useCallback(async (email) => {
+    setIsLoading(true);
+    try {
+      localStorage.removeItem("selectedRole");
+      const { data } = await axiosInstance.post("/auth/demo-portal-switch", { email });
+      const result = finishAuthResponse(data?.data);
+      setIsLoading(false);
+      return result;
+    } catch (error) {
+      setIsLoading(false);
+      throw new Error(apiErrorMessage(error, "Unable to switch portal"));
+    }
+  }, [finishAuthResponse]);
+
   const signup = useCallback(async (payload) => {
     setIsLoading(true);
     try {
@@ -275,6 +290,7 @@ export function AuthProvider({ children }) {
     isLoading,
     login,
     signup,
+    switchDemoPortal,
     refreshUser,
     selectRole,
     logout,
