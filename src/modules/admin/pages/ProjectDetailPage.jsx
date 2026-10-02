@@ -1,5 +1,7 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useParams, Link, useLocation } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { STALE_TIMES } from "@/shared/api/queryClient";
 import {
   DollarSign, CalendarDays, Clock, Calendar, Pencil,
   TrendingUp, Building2, Briefcase, MapPin, FileImage, FileText, GanttChart,
@@ -191,19 +193,10 @@ export default function ProjectDetailPage() {
   const completionPath = projectSubPath(routes, "PROJECT_COMPLETION", projectId);
   const subcontractorsPath = projectSubPath(routes, "PROJECT_SUBCONTRACTORS", projectId);
   const validationPath = projectSubPath(routes, "PROJECT_VALIDATION", projectId);
-  const [project, setProject] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
-  const [boqs, setBoqs] = useState([]);
-  const [boqsLoading, setBoqsLoading] = useState(true);
-  const [clients, setClients] = useState([]);
   const [clientSaving, setClientSaving] = useState(false);
-  const [employees, setEmployees] = useState([]);
-  const [crewAssignments, setCrewAssignments] = useState([]);
-  const [teamAssignments, setTeamAssignments] = useState([]);
-  const [jurisdictionPacks, setJurisdictionPacks] = useState([]);
-  const [projectNatures, setProjectNatures] = useState([]);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [detailsSaving, setDetailsSaving] = useState(false);
   const [detailsForm, setDetailsForm] = useState({
@@ -215,86 +208,117 @@ export default function ProjectDetailPage() {
     assignedManager: "",
     clientId: "",
   });
-  const [commercial, setCommercial] = useState(null);
-  const [scheduleActivities, setScheduleActivities] = useState([]);
-  const [weightedCompletionPercent, setWeightedCompletionPercent] = useState(null);
-  const [paymentSummary, setPaymentSummary] = useState({
-    billedAmount: 0,
-    paidAmount: 0,
-    outstandingAmount: 0,
+
+  const { data: project, isLoading: loading } = useQuery({
+    queryKey: ["projectDetail", projectId],
+    queryFn: async () => {
+      const p = await fetchProjectById(projectId);
+      if (p) rememberProjectName(projectId, p.projectName || p.name);
+      return p || null;
+    },
+    staleTime: STALE_TIMES.STATIC,
   });
 
-  const load = useCallback(() => {
-    setLoading(true);
-    fetchProjectById(projectId)
-      .then((p) => {
-        setProject(p);
-        rememberProjectName(projectId, p?.projectName || p?.name);
-      })
-      .catch(() => setProject(null))
-      .finally(() => setLoading(false));
-  }, [projectId]);
+  const { data: boqs = [], isLoading: boqsLoading } = useQuery({
+    queryKey: ["projectBoqs", projectId],
+    queryFn: async () => {
+      const list = await fetchBoqsByProject(projectId);
+      return Array.isArray(list) ? list : [];
+    },
+    staleTime: STALE_TIMES.STATIC,
+  });
 
-  const loadBoqs = useCallback(() => {
-    setBoqsLoading(true);
-    fetchBoqsByProject(projectId)
-      .then((list) => setBoqs(Array.isArray(list) ? list : []))
-      .catch(() => setBoqs([]))
-      .finally(() => setBoqsLoading(false));
-  }, [projectId]);
+  const { data: commercial = null } = useQuery({
+    queryKey: ["projectCommercial", projectId],
+    queryFn: () => fetchProjectCommercial(projectId).catch(() => null),
+    staleTime: STALE_TIMES.STATIC,
+  });
 
-  const loadDisplaySources = useCallback(() => {
-    fetchProjectCommercial(projectId)
-      .then((data) => setCommercial(data || null))
-      .catch(() => setCommercial(null));
-    fetchProjectSchedule(projectId)
-      .then((data) => setScheduleActivities(scheduleActivitiesFromResponse(data)))
-      .catch(() => setScheduleActivities([]));
-    fetchProgressReport(projectId)
-      .then((report) => {
-        const pct = report?.weightedCompletionPercent ?? report?.completionPercent;
-        setWeightedCompletionPercent(pct != null && pct !== "" ? Number(pct) : null);
-      })
-      .catch(() => setWeightedCompletionPercent(null));
-    fetchCompanySummary()
-      .then((list) => {
-        const row = (Array.isArray(list) ? list : []).find(
-          (item) => String(item.projectId) === String(projectId)
-        );
-        setPaymentSummary({
-          billedAmount: Number(row?.billedAmount || 0),
-          paidAmount: Number(row?.paidAmount || 0),
-          outstandingAmount: Number(row?.outstandingAmount || 0),
-        });
-      })
-      .catch(() => setPaymentSummary({ billedAmount: 0, paidAmount: 0, outstandingAmount: 0 }));
-  }, [projectId]);
+  const { data: scheduleActivities = [] } = useQuery({
+    queryKey: ["projectSchedule", projectId],
+    queryFn: async () => {
+      const data = await fetchProjectSchedule(projectId).catch(() => []);
+      return scheduleActivitiesFromResponse(data);
+    },
+    staleTime: STALE_TIMES.STATIC,
+  });
 
-  useEffect(() => {
-    load();
-    loadBoqs();
-    loadDisplaySources();
-    fetchAllClients()
-      .then((list) => setClients(Array.isArray(list) ? list : []))
-      .catch(() => setClients([]));
-    fetchAllEmployees()
-      .then((list) => setEmployees(Array.isArray(list) ? list.filter((e) => e.isActive !== false) : []))
-      .catch(() => setEmployees([]));
-    fetchCrewAssignments(projectId)
-      .then((list) => setCrewAssignments(Array.isArray(list) ? list : []))
-      .catch(() => setCrewAssignments([]));
-    fetchProjectTeamAssignments(projectId)
-      .then(setTeamAssignments)
-      .catch(() => setTeamAssignments([]));
-    fetchJurisdictionPacks(true)
-      .then((list) => setJurisdictionPacks(Array.isArray(list) ? list : []))
-      .catch(() => setJurisdictionPacks([]));
-    fetchApprovalsCatalog()
-      .then((catalog) => {
-        setProjectNatures(Array.isArray(catalog?.projectNatures) ? catalog.projectNatures : []);
-      })
-      .catch(() => setProjectNatures([]));
-  }, [load, loadBoqs, loadDisplaySources, projectId]);
+  const { data: weightedCompletionPercent = null } = useQuery({
+    queryKey: ["projectProgressReport", projectId],
+    queryFn: async () => {
+      const report = await fetchProgressReport(projectId).catch(() => null);
+      const pct = report?.weightedCompletionPercent ?? report?.completionPercent;
+      return pct != null && pct !== "" ? Number(pct) : null;
+    },
+    staleTime: STALE_TIMES.STATIC,
+  });
+
+  const { data: paymentSummary = { billedAmount: 0, paidAmount: 0, outstandingAmount: 0 } } = useQuery({
+    queryKey: ["projectPaymentSummary", projectId],
+    queryFn: async () => {
+      const list = await fetchCompanySummary().catch(() => []);
+      const row = (Array.isArray(list) ? list : []).find(
+        (item) => String(item.projectId) === String(projectId)
+      );
+      return {
+        billedAmount: Number(row?.billedAmount || 0),
+        paidAmount: Number(row?.paidAmount || 0),
+        outstandingAmount: Number(row?.outstandingAmount || 0),
+      };
+    },
+    staleTime: STALE_TIMES.STATIC,
+  });
+
+  const { data: clients = [] } = useQuery({
+    queryKey: ["adminClients"],
+    queryFn: async () => {
+      const list = await fetchAllClients().catch(() => []);
+      return Array.isArray(list) ? list : [];
+    },
+    staleTime: STALE_TIMES.STATIC,
+  });
+
+  const { data: employees = [] } = useQuery({
+    queryKey: ["adminEmployees"],
+    queryFn: async () => {
+      const list = await fetchAllEmployees().catch(() => []);
+      return Array.isArray(list) ? list.filter((e) => e.isActive !== false) : [];
+    },
+    staleTime: STALE_TIMES.STATIC,
+  });
+
+  const { data: crewAssignments = [] } = useQuery({
+    queryKey: ["projectCrewAssignments", projectId],
+    queryFn: async () => {
+      const list = await fetchCrewAssignments(projectId).catch(() => []);
+      return Array.isArray(list) ? list : [];
+    },
+    staleTime: STALE_TIMES.STATIC,
+  });
+
+  const { data: teamAssignments = [] } = useQuery({
+    queryKey: ["projectTeamAssignments", projectId],
+    queryFn: () => fetchProjectTeamAssignments(projectId).catch(() => []),
+    staleTime: STALE_TIMES.STATIC,
+  });
+
+  const { data: jurisdictionPacks = [] } = useQuery({
+    queryKey: ["jurisdictionPacks"],
+    queryFn: async () => {
+      const list = await fetchJurisdictionPacks(true).catch(() => []);
+      return Array.isArray(list) ? list : [];
+    },
+    staleTime: STALE_TIMES.STATIC,
+  });
+
+  const { data: projectNatures = [] } = useQuery({
+    queryKey: ["approvalsCatalogNatures"],
+    queryFn: async () => {
+      const catalog = await fetchApprovalsCatalog().catch(() => null);
+      return Array.isArray(catalog?.projectNatures) ? catalog.projectNatures : [];
+    },
+    staleTime: STALE_TIMES.STATIC,
+  });
 
   const managerDisplay = useMemo(
     () => resolveManagerDisplay(project, teamAssignments, employees),
@@ -388,21 +412,20 @@ export default function ProjectDetailPage() {
   const commercialBoqLocked = boqFrozen || commercialFrozen;
 
   const handleTeamSaved = (updated) => {
-    setTeamAssignments(updated);
-    load();
+    queryClient.invalidateQueries({ queryKey: ["projectTeamAssignments", projectId] });
+    queryClient.invalidateQueries({ queryKey: ["projectDetail", projectId] });
   };
 
   const handleStatusChange = async (newStatus) => {
-    setProject((p) => ({ ...p, status: newStatus }));
     setSaving(true);
     setSaveMessage("");
     try {
-      const updated = await updateProject(projectId, { status: newStatus });
-      setProject(updated);
+      await updateProject(projectId, { status: newStatus });
+      queryClient.invalidateQueries({ queryKey: ["projectDetail", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["adminProjects"] });
       setSaveMessage("Status saved.");
     } catch {
       setSaveMessage("Failed to save status.");
-      load();
     } finally {
       setSaving(false);
     }
@@ -412,13 +435,12 @@ export default function ProjectDetailPage() {
     setClientSaving(true);
     setSaveMessage("");
     try {
-      const updated = await updateProject(projectId, { clientId: Number(clientId) });
-      const client = clients.find((c) => String(c.id) === String(clientId));
-      setProject({ ...updated, clientName: client?.fullName || updated.clientName });
+      await updateProject(projectId, { clientId: Number(clientId) });
+      queryClient.invalidateQueries({ queryKey: ["projectDetail", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["adminProjects"] });
       setSaveMessage("Client assigned.");
     } catch {
       setSaveMessage("Failed to assign client.");
-      load();
     } finally {
       setClientSaving(false);
     }
@@ -446,7 +468,7 @@ export default function ProjectDetailPage() {
     setDetailsSaving(true);
     setSaveMessage("");
     try {
-      const updated = await updateProject(projectId, {
+      await updateProject(projectId, {
         projectType: detailsForm.projectType,
         approvalProjectNatureId: detailsForm.approvalProjectNatureId || undefined,
         jurisdictionPackId: detailsForm.jurisdictionPackId || undefined,
@@ -455,13 +477,8 @@ export default function ProjectDetailPage() {
         assignedManager: detailsForm.assignedManager || undefined,
         clientId: detailsForm.clientId ? Number(detailsForm.clientId) : undefined,
       });
-      const client = clients.find((c) => String(c.id) === String(detailsForm.clientId));
-      setProject({
-        ...updated,
-        clientName: client?.fullName || updated.clientName,
-        approvalProjectNatureId: detailsForm.approvalProjectNatureId || updated.approvalProjectNatureId,
-        jurisdictionPackId: detailsForm.jurisdictionPackId || updated.jurisdictionPackId,
-      });
+      queryClient.invalidateQueries({ queryKey: ["projectDetail", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["adminProjects"] });
       setDetailsOpen(false);
       setSaveMessage("Project details saved.");
     } catch {

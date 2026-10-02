@@ -421,8 +421,9 @@ export default function ProjectApprovalsPage() {
         </div>
       ) : (
         <div className="grid gap-4 lg:grid-cols-[minmax(380px,440px)_1fr]">
-          <Card className="self-start overflow-hidden">
-            <CardHeader className="space-y-3 border-b border-border/40 pb-3">
+          <div className="min-w-0">
+            <Card className="flex flex-col overflow-hidden lg:sticky lg:top-8 lg:h-[calc(100dvh-7.5rem)]">
+            <CardHeader className="shrink-0 space-y-3 border-b border-border/40 pb-3">
               <div className="flex items-center justify-between gap-2">
                 <CardTitle className="text-sm font-semibold">
                   {cases.length} permit{cases.length === 1 ? "" : "s"} required
@@ -474,8 +475,8 @@ export default function ProjectApprovalsPage() {
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="p-0">
-              <div className="max-h-[min(70vh,720px)] overflow-y-auto">
+            <CardContent className="min-h-0 flex-1 overflow-y-auto p-0">
+              <div>
                 {visibleCases.map((c) => {
                   const active = selected === c.uuid;
                   return (
@@ -557,6 +558,7 @@ export default function ProjectApprovalsPage() {
               </div>
             </CardContent>
           </Card>
+          </div>
 
           <div>
             {selected ? (

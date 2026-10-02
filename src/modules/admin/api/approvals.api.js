@@ -88,6 +88,15 @@ export const bindApprovalCaseAuthority = (caseUuid, payload) =>
 export const attachChecklistItem = (caseUuid, itemUuid, payload) =>
   axiosInstance.post(`/approval-cases/${caseUuid}/checklist/${itemUuid}/attach`, payload).then(unwrap);
 
+export const uploadChecklistItem = (caseUuid, itemUuid, file, expiryDate) => {
+  const fd = new FormData();
+  fd.append("file", file);
+  if (expiryDate) fd.append("expiryDate", expiryDate);
+  return axiosInstance
+    .post(`/approval-cases/${caseUuid}/checklist/${itemUuid}/upload`, fd, multipartConfig({ timeout: 120000 }))
+    .then(unwrap);
+};
+
 export const waiveChecklistItem = (caseUuid, itemUuid, payload) =>
   axiosInstance.post(`/approval-cases/${caseUuid}/checklist/${itemUuid}/waive`, payload).then(unwrap);
 

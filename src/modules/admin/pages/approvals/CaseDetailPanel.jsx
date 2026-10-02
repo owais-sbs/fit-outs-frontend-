@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
   FileArchive,
+  FileUp,
   Loader2,
+  Paperclip,
   RefreshCw,
   Send,
   ShieldAlert,
@@ -14,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { attachmentHref, attachmentLabel } from "@/lib/attachments";
 import {
   assemblePack,
   attachChecklistItem,
@@ -25,11 +28,14 @@ import {
   fetchAuthorities,
   patchApprovalCase,
   renewApprovalCase,
+  uploadChecklistItem,
   waiveChecklistItem,
 } from "../../api/approvals.api";
 import { daysLabel, money, statusLabel, statusTone, urgencyTone } from "./approvalStatus";
 
 const EDITABLE_AUTHORITY_STATUSES = new Set(["NOT_STARTED", "PACK_IN_PREPARATION", "READY_TO_SUBMIT"]);
+
+const CHECKLIST_ACCEPT = ".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,.xls,.xlsx,.zip";
 
 const CHECKLIST_TONES = {
   ATTACHED: "bg-emerald-500/15 text-emerald-800",
@@ -38,6 +44,86 @@ const CHECKLIST_TONES = {
   WAIVED: "bg-copper/15 text-copper-foreground",
   NOT_APPLICABLE: "bg-secondary text-muted-foreground",
 };
+
+function ChecklistDocDropzone({ disabled, busy, hasFile, filePath, onFile }) {
+  const [dragging, setDragging] = useState(false);
+  const inputRef = useRef(null);
+
+  const takeFile = (files) => {
+    const file = files?.[0];
+    if (file) onFile(file);
+  };
+
+  return (
+    <div className="flex min-w-[11rem] flex-1 flex-col gap-1 sm:max-w-xs">
+      <div
+        role="button"
+        tabIndex={disabled ? -1 : 0}
+        onKeyDown={(e) => {
+          if (disabled || busy) return;
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            inputRef.current?.click();
+          }
+        }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          if (!disabled) setDragging(true);
+        }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragging(false);
+          if (!disabled && !busy) takeFile(e.dataTransfer.files);
+        }}
+        onClick={() => {
+          if (!disabled && !busy) inputRef.current?.click();
+        }}
+        className={`flex cursor-pointer items-center gap-2 rounded-md border border-dashed px-2.5 py-1.5 text-xs transition-colors ${
+          disabled ? "cursor-not-allowed opacity-60" : ""
+        } ${
+          dragging
+            ? "border-primary bg-primary/5"
+            : "border-border/60 hover:border-primary/40 hover:bg-muted/20"
+        }`}
+      >
+        {busy ? (
+          <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-muted-foreground" />
+        ) : hasFile ? (
+          <Paperclip className="h-3.5 w-3.5 shrink-0 text-emerald-700" />
+        ) : (
+          <FileUp className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        )}
+        <span className="min-w-0 truncate text-muted-foreground">
+          {hasFile ? "Drop or click to replace" : "Drop file or browse"}
+        </span>
+        <input
+          ref={inputRef}
+          type="file"
+          accept={CHECKLIST_ACCEPT}
+          className="hidden"
+          disabled={disabled || busy}
+          onChange={(e) => {
+            takeFile(e.target.files);
+            e.target.value = "";
+          }}
+        />
+      </div>
+      {hasFile && filePath && (
+        <a
+          href={attachmentHref(filePath)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="truncate text-[11px] text-primary hover:underline"
+          onClick={(e) => e.stopPropagation()}
+          title={attachmentLabel(filePath)}
+        >
+          {attachmentLabel(filePath)}
+        </a>
+      )}
+    </div>
+  );
+}
 
 /**
  * Case detail: checklist, submissions, comments, fees and audit trail.
@@ -418,23 +504,45 @@ export default function CaseDetailPanel({ caseUuid, summary, onChanged, readOnly
                     waived
                   </span>
                 )}
-                <div className="ml-auto flex items-center gap-1">
-                  <Input
-                    className="h-8 w-56"
-                    placeholder="File path"
-                    defaultValue={item.filePath || ""}
-                    onBlur={(e) => {
-                      const value = e.target.value.trim();
-                      if (value !== (item.filePath || "")) {
-                        run(() => attachChecklistItem(caseUuid, item.uuid, { filePath: value }), "Document attached");
-                      }
+                <div className="ml-auto flex w-full flex-wrap items-end gap-2 sm:w-auto sm:max-w-md">
+                  <ChecklistDocDropzone
+                    disabled={readOnly}
+                    busy={busy}
+                    hasFile={!!item.filePath}
+                    filePath={item.filePath}
+                    onFile={(file) => {
+                      const expiry = item.expiryDate || undefined;
+                      run(
+                        () => uploadChecklistItem(caseUuid, item.uuid, file, expiry),
+                        "Document uploaded"
+                      );
                     }}
                   />
+                  <div className="w-[9.5rem] shrink-0">
+                    <Label className="text-[10px] text-muted-foreground">Valid until</Label>
+                    <Input
+                      type="date"
+                      className="h-8"
+                      disabled={readOnly || busy}
+                      defaultValue={item.expiryDate || ""}
+                      key={`${item.uuid}-${item.expiryDate || "none"}`}
+                      onBlur={(e) => {
+                        const value = e.target.value || null;
+                        if (value === (item.expiryDate || null) || value === (item.expiryDate || "")) return;
+                        if (!value && !item.expiryDate) return;
+                        if (value === item.expiryDate) return;
+                        run(
+                          () => attachChecklistItem(caseUuid, item.uuid, { expiryDate: value || null }),
+                          "Validity updated"
+                        );
+                      }}
+                    />
+                  </div>
                   {item.blocking && (
                     <Button
                       size="sm"
                       variant="ghost"
-                      disabled={busy}
+                      disabled={busy || readOnly}
                       title="Director waiver"
                       onClick={() => {
                         const reason = window.prompt("Director waiver reason?");
