@@ -8,6 +8,7 @@ import { Toaster } from './components/ui/sonner';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { queryClient } from './shared/api/queryClient';
+import OfflineGate from './components/shared/offline/OfflineGate';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
@@ -15,6 +16,7 @@ root.render(
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <App />
+        <OfflineGate />
         <Toaster />
       </ThemeProvider>
       <ReactQueryDevtools initialIsOpen={false} />
