@@ -1,145 +1,201 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { AlertCircle, ArrowLeft, CheckCircle2, Loader2, Mail } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ROUTES } from "@/shared/constants/routes";
-import { PlatformBrandHeader } from "@/components/brand/BrandMark";
-import { requestPasswordSetupEmail } from "@/modules/auth/api/password-setup.api";
+import { AuthShell } from "@/modules/auth/components/AuthShell";
+import { forgotPassword } from "@/modules/auth/api/password-reset.api";
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const RESEND_COOLDOWN_SECONDS = 30;
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
 
-  const handleSubmit = async (event) => {
+  useEffect(() => {
+    if (cooldown <= 0) return undefined;
+    const id = window.setInterval(() => {
+      setCooldown((prev) => (prev <= 1 ? 0 : prev - 1));
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [cooldown]);
+
+  const sendReset = useCallback(
+    async (isResend) => {
+      setError("");
+      const trimmed = email.trim();
+
+      if (!trimmed || !EMAIL_RE.test(trimmed)) {
+        setError("Please enter a valid email address.");
+        return;
+      }
+
+      if (isResend && cooldown > 0) {
+        return;
+      }
+
+      setSubmitting(true);
+      try {
+        await forgotPassword(trimmed);
+        setSuccess(true);
+        setCooldown(RESEND_COOLDOWN_SECONDS);
+      } catch (err) {
+        const status = err.response?.status;
+        if (status === 404 || (status >= 200 && status < 300)) {
+          setSuccess(true);
+          setCooldown(RESEND_COOLDOWN_SECONDS);
+          return;
+        }
+        if (status === 429) {
+          setError("Too many requests, try again in a few minutes");
+          return;
+        }
+        setError(
+          err.response?.data?.message ||
+            "Unable to send reset link. Please try again."
+        );
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [email, cooldown]
+  );
+
+  const handleSubmit = (event) => {
     event.preventDefault();
-    setError("");
-
-    if (!email.trim()) {
-      setError("Please enter your email address.");
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      await requestPasswordSetupEmail(email.trim());
-      setSuccess(true);
-    } catch (err) {
-      setError(err.response?.data?.message || "Unable to send setup email. Please try again.");
-    } finally {
-      setSubmitting(false);
-    }
+    sendReset(false);
   };
 
   return (
-    <div className="relative flex min-h-screen w-full items-center justify-center overflow-hidden px-4 py-10">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(900px 520px at 12% -10%, color-mix(in oklab, var(--color-accent-blue) 18%, transparent), transparent 55%), radial-gradient(700px 480px at 92% 108%, oklch(var(--muted) / 0.85), transparent 50%)",
-        }}
-      />
+    <AuthShell>
+      {success ? (
+        <div className="space-y-6" aria-live="polite">
+          <div className="space-y-2 text-center sm:text-left">
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+              Check your email
+            </h1>
+            <p className="text-base text-muted-foreground">
+              We&apos;ve sent password reset instructions to your email address
+              if an account is associated with it.
+            </p>
+          </div>
 
-      <div className="relative z-10 w-full max-w-[420px] page-enter">
-        <div className="mb-8 text-center">
-          <PlatformBrandHeader
-            className="mb-5 flex justify-center"
-            imgClassName="h-24 w-24"
-          />
-          <p className="mt-2 text-sm text-muted-foreground">
-            Portal password setup
+          <p className="text-sm text-muted-foreground">
+            Didn&apos;t receive the email? Check your spam folder or try again.
+          </p>
+
+          <Button
+            type="button"
+            variant="ghost"
+            className="h-[3.575rem] w-full rounded-full bg-transparent px-12 text-base font-bold uppercase tracking-widest text-foreground shadow-[inset_0_0_0_2px_#616467] transition duration-200 hover:bg-[#616467] hover:text-white dark:text-neutral-200"
+            disabled={submitting || cooldown > 0}
+            onClick={() => sendReset(true)}
+          >
+            {submitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Sending…
+              </>
+            ) : cooldown > 0 ? (
+              `Try again (${cooldown}s)`
+            ) : (
+              "Try again"
+            )}
+          </Button>
+
+          {error && (
+            <div
+              role="alert"
+              aria-live="assertive"
+              className="flex items-center gap-2.5 rounded-xl border border-destructive/20 bg-destructive/10 p-3.5 text-base text-destructive"
+            >
+              <AlertCircle className="h-5 w-5 shrink-0" />
+              <p>{error}</p>
+            </div>
+          )}
+
+          <p className="text-center text-sm text-muted-foreground">
+            <Link
+              to={ROUTES.AUTH.LOGIN}
+              className="font-medium text-foreground hover:underline"
+            >
+              Remember your password? Sign in
+            </Link>
           </p>
         </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-2 text-center sm:text-left">
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+              Forgot your password?
+            </h1>
+            <p className="text-base text-muted-foreground">
+              Enter the email address associated with your account and we&apos;ll
+              send you a link to reset your password.
+            </p>
+          </div>
 
-        <div className="surface-panel relative overflow-hidden px-6 py-7 sm:px-8">
-          <div
-            aria-hidden
-            className="absolute inset-x-0 top-0 h-0.5"
-            style={{
-              background:
-                "linear-gradient(90deg, transparent, var(--color-accent-blue), var(--color-accent-blue), transparent)",
-            }}
-          />
-
-          {success ? (
-            <div className="space-y-4 text-center">
-              <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-600" />
-              <div>
-                <h2 className="text-lg font-semibold">Check your email</h2>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  If an account exists for <strong>{email}</strong>, we sent a link to set your password.
-                  The link expires in 7 days.
-                </p>
-              </div>
-              <Button asChild className="w-full">
-                <Link to={ROUTES.AUTH.LOGIN}>Back to sign in</Link>
-              </Button>
+          {error && (
+            <div
+              role="alert"
+              aria-live="assertive"
+              className="flex items-center gap-2.5 rounded-xl border border-destructive/20 bg-destructive/10 p-3.5 text-base text-destructive animate-in fade-in slide-in-from-top-1 duration-200"
+            >
+              <AlertCircle className="h-5 w-5 shrink-0" />
+              <p>{error}</p>
             </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-1 text-center">
-                <h2 className="text-lg font-semibold">Forgot password?</h2>
-                <p className="text-sm text-muted-foreground">
-                  Enter your email and we&apos;ll send you a link to set or reset your password.
-                </p>
-              </div>
-
-              {error && (
-                <div className="flex items-center gap-2 rounded-xl border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
-                  <AlertCircle className="h-4 w-4 shrink-0" />
-                  <p>{error}</p>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Email Address
-                </Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="name@company.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="h-11 rounded-xl pl-10"
-                    required
-                    autoFocus
-                  />
-                </div>
-              </div>
-
-              <Button
-                type="submit"
-                className="h-11 w-full rounded-xl"
-                disabled={submitting}
-              >
-                {submitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Sending…
-                  </>
-                ) : (
-                  "Send setup link"
-                )}
-              </Button>
-
-              <Button asChild variant="ghost" className="w-full gap-2">
-                <Link to={ROUTES.AUTH.LOGIN}>
-                  <ArrowLeft className="h-4 w-4" />
-                  Back to sign in
-                </Link>
-              </Button>
-            </form>
           )}
-        </div>
-      </div>
-    </div>
+
+          <div className="space-y-2.5">
+            <Label htmlFor="email" className="text-base font-medium text-foreground">
+              Email address
+            </Label>
+            <Input
+              id="email"
+              type="email"
+              name="email"
+              autoComplete="email"
+              placeholder="Enter your email address"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="h-[3.575rem] rounded-xl text-base"
+              required
+              autoFocus
+            />
+          </div>
+
+          <Button
+            type="submit"
+            variant="ghost"
+            className="mt-1.5 h-[3.575rem] w-full rounded-full bg-transparent px-12 text-base font-bold uppercase tracking-widest text-foreground shadow-[inset_0_0_0_2px_#616467] transition duration-200 hover:bg-[#616467] hover:text-white dark:text-neutral-200"
+            disabled={submitting}
+          >
+            {submitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Sending…
+              </>
+            ) : (
+              "Send reset link"
+            )}
+          </Button>
+
+          <p className="text-center text-sm text-muted-foreground">
+            <Link
+              to={ROUTES.AUTH.LOGIN}
+              className="font-medium text-foreground hover:underline"
+            >
+              Remember your password? Sign in
+            </Link>
+          </p>
+        </form>
+      )}
+    </AuthShell>
   );
 }

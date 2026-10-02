@@ -5,12 +5,14 @@ import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { ThemeProvider } from './shared/theme/ThemeProvider';
 import { Toaster } from './components/ui/sonner';
+import OfflineGate from './components/shared/offline/OfflineGate';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
     <ThemeProvider>
       <App />
+      <OfflineGate />
       <Toaster />
     </ThemeProvider>
   </React.StrictMode>

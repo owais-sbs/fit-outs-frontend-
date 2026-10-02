@@ -91,7 +91,7 @@ export default function Login() {
   };
 
   return (
-    <div className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-background px-6 py-12">
+    <div className="relative flex h-dvh max-h-dvh w-full items-center justify-center overflow-hidden bg-background px-6 py-4 sm:py-6">
       {/* Full-page dotted check grid — dark on light, light on dark */}
       <div
         aria-hidden
@@ -114,10 +114,13 @@ export default function Login() {
         </div>
 
         {/* Plain fill inside the frame; dots remain outside */}
-        <div className="relative bg-background px-10 py-14 sm:px-12 sm:py-16">
-          <PlatformBrandHeader imgClassName="h-[11.9rem] w-[11.9rem] sm:h-[13.6rem] sm:w-[13.6rem]" />
+        <div className="relative bg-background px-8 py-8 sm:px-10 sm:py-10">
+          <PlatformBrandHeader
+            className="mb-6 flex items-center justify-center"
+            imgClassName="h-[clamp(5.5rem,18vh,8.5rem)] w-[clamp(5.5rem,18vh,8.5rem)]"
+          />
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
               <div className="flex items-center gap-2.5 rounded-xl border border-destructive/20 bg-destructive/10 p-3.5 text-base text-destructive animate-in fade-in slide-in-from-top-1 duration-200">
                 <AlertCircle className="h-5 w-5 shrink-0" />
@@ -135,7 +138,7 @@ export default function Login() {
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="h-[3.575rem] rounded-xl text-base"
+                className="h-12 rounded-xl text-base sm:h-[3.575rem]"
                 required
               />
             </div>
@@ -158,7 +161,7 @@ export default function Login() {
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="h-[3.575rem] rounded-xl text-base"
+                className="h-12 rounded-xl text-base sm:h-[3.575rem]"
                 required
               />
             </div>
@@ -166,14 +169,14 @@ export default function Login() {
             <Button
               type="submit"
               variant="ghost"
-              className="mt-1.5 h-[3.575rem] w-full rounded-full bg-transparent px-12 text-base font-bold uppercase tracking-widest text-foreground shadow-[inset_0_0_0_2px_#616467] transition duration-200 hover:bg-[#616467] hover:text-white dark:text-neutral-200"
+              className="mt-1.5 h-12 w-full rounded-full bg-transparent px-12 text-base font-bold uppercase tracking-widest text-foreground shadow-[inset_0_0_0_2px_#616467] transition duration-200 hover:bg-[#616467] hover:text-white sm:h-[3.575rem] dark:text-neutral-200"
               disabled={isLoading}
             >
               {isLoading ? "Signing in..." : "Sign in"}
             </Button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-muted-foreground">
+          <p className="mt-4 text-center text-sm text-muted-foreground">
             New here?{" "}
             <Link to={ROUTES.AUTH.SIGNUP} className="font-medium text-foreground hover:underline">
               Create an account

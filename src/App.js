@@ -11,6 +11,7 @@ import AccessPhaseGate from "./app/routes/access-phase-gate";
 import Login from "./modules/auth/pages/login";
 import SignupPage from "./modules/auth/pages/signup";
 import ForgotPasswordPage from "./modules/auth/pages/forgot-password";
+import ResetPasswordPage from "./modules/auth/pages/reset-password";
 import SetPasswordPage from "./modules/auth/pages/set-password";
 import RolesManagement from "./modules/auth/pages/roles-management";
 import LandingPage from "./modules/marketing/pages/LandingPage";
@@ -253,6 +254,7 @@ function App() {
             <Route path={ROUTES.AUTH.SIGNUP} element={<SignupPage />} />
             <Route path={ROUTES.AUTH.REGISTER_SUBCONTRACTOR} element={<SubcontractorRegistrationPage />} />
             <Route path={ROUTES.AUTH.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
+            <Route path={ROUTES.AUTH.RESET_PASSWORD} element={<ResetPasswordPage />} />
             <Route path={ROUTES.AUTH.SET_PASSWORD} element={<SetPasswordPage />} />
             <Route path="/roles" element={<RolesManagement />} />
             <Route path={ROUTES.SUBSCRIBE} element={<SubscribePage />} />
