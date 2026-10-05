@@ -1030,7 +1030,7 @@ export default function MaterialPlanPage() {
       </div>
 
       {/* Packages */}
-      <Card className="rounded-xl border border-slate-200 bg-white shadow-sm">
+      <Card className="rounded-xl border border-border bg-card shadow-sm">
         <CardHeader className="pb-2">
           <button
             type="button"
@@ -1122,7 +1122,7 @@ export default function MaterialPlanPage() {
                 return (
                   <div
                     key={pkg.id}
-                    className="overflow-hidden rounded-lg border border-slate-200 bg-white"
+                    className="overflow-hidden rounded-lg border border-border bg-background/60"
                   >
                     <div className="flex flex-col gap-2 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
                       <button
@@ -1184,7 +1184,7 @@ export default function MaterialPlanPage() {
                       </div>
                     </div>
                     {expanded && (
-                      <div className="border-t border-slate-200 bg-slate-50 px-3 py-2">
+                      <div className="border-t border-border bg-muted/50 px-3 py-2">
                         {count === 0 ? (
                           <p className="py-1 text-xs text-muted-foreground">No materials in this package yet.</p>
                         ) : (
@@ -1211,7 +1211,7 @@ export default function MaterialPlanPage() {
           )}
 
           {canEdit && lines.length > 0 && (
-            <div className="rounded-xl border border-dashed border-slate-200 bg-white p-3">
+            <div className="rounded-xl border border-dashed border-border bg-muted/30 p-3">
               <p className="mb-2 text-xs font-medium">Multi-select plan materials</p>
               <p className="mb-2 text-[11px] text-muted-foreground">
                 Only unassigned materials can be selected. Assigned items stay checked and locked.
@@ -1259,7 +1259,7 @@ export default function MaterialPlanPage() {
                         onClick={(e) => e.stopPropagation()}
                       />
                       <span className="min-w-0 flex-1 truncate">{line.materialName}</span>
-                      <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">
+                      <span className="shrink-0 rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-secondary-foreground">
                         {pkgName || "Unassigned"}
                       </span>
                     </div>
@@ -1273,7 +1273,7 @@ export default function MaterialPlanPage() {
       </Card>
 
       {/* Work items */}
-      <Card className="rounded-xl border border-slate-200 bg-white shadow-sm">
+      <Card className="rounded-xl border border-border bg-card shadow-sm">
         <CardHeader className="pb-2">
           <button
             type="button"
@@ -1308,9 +1308,9 @@ export default function MaterialPlanPage() {
                   <AccordionItem
                     key={group.key}
                     value={group.key}
-                    className="overflow-hidden rounded-lg border border-slate-200"
+                    className="overflow-hidden rounded-lg border border-border"
                   >
-                    <AccordionTrigger className="bg-slate-50 px-4 py-3 hover:bg-slate-100 hover:no-underline data-[state=open]:border-b data-[state=open]:border-slate-200 [&>svg]:text-muted-foreground">
+                    <AccordionTrigger className="bg-muted/50 px-4 py-3 hover:bg-muted hover:no-underline data-[state=open]:border-b data-[state=open]:border-border [&>svg]:text-muted-foreground">
                       <div className="min-w-0 flex-1 pr-3 text-left">
                         <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                           Work item
@@ -1325,7 +1325,7 @@ export default function MaterialPlanPage() {
                         </p>
                       </div>
                     </AccordionTrigger>
-                    <AccordionContent className="bg-white px-4 pb-3">
+                    <AccordionContent className="bg-background/40 px-4 pb-3">
                       {group.isEmpty && !canEdit ? (
                         <p className="py-4 text-sm text-muted-foreground">
                           No materials are configured for this work item in Project Configuration.

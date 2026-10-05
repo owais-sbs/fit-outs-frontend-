@@ -168,7 +168,7 @@ function PackageScopeBuilder({ projectId, busy, onCreated, onMessage, existingPa
   };
 
   return (
-    <Card className="rounded-xl border border-slate-200 border-primary/20 bg-white shadow-sm">
+    <Card className="rounded-xl border border-border border-primary/20 bg-card shadow-sm">
       <CardHeader className="pb-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle className="text-sm font-semibold">{existingPackage ? "Edit package scope and details" : "Create package from approved BOQ"}</CardTitle>
@@ -463,7 +463,7 @@ export default function ProjectSubcontractorPage() {
 
       <ScInspectionReviewPanel projectId={projectId} />
 
-      <Card className="rounded-xl border border-slate-200 bg-white shadow-sm">
+      <Card className="rounded-xl border border-border bg-card shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold">All packages ({packages.length})</CardTitle>
         </CardHeader>
@@ -484,7 +484,7 @@ export default function ProjectSubcontractorPage() {
                   {p.appointedCompanyName ? (
                     <span className="text-xs text-emerald-700">· {p.appointedCompanyName}</span>
                   ) : (
-                    <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">
+                    <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-secondary-foreground">
                       Unassigned
                     </span>
                   )}
@@ -500,7 +500,7 @@ export default function ProjectSubcontractorPage() {
         </CardContent>
       </Card>
 
-      <Card className="rounded-xl border border-slate-200 bg-white shadow-sm">
+      <Card className="rounded-xl border border-border bg-card shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold">Claims ({claims.length})</CardTitle>
         </CardHeader>
