@@ -17,6 +17,7 @@ import { ROUTES } from "@/shared/constants/routes";
 import NotificationDropdown from "@/modules/client/components/design/NotificationDropdown";
 import useNotifications from "@/shared/hooks/useNotifications";
 import ThemeToggle from "@/shared/theme/ThemeToggle";
+import DemoPortalSwitcher from "@/components/shared/DemoPortalSwitcher";
 import DensityToggle from "@/components/shared/DensityToggle";
 
 export default function AdminNavbar() {
@@ -41,6 +42,7 @@ export default function AdminNavbar() {
       <div className="ml-auto flex items-center gap-1">
         <DensityToggle />
         <ThemeToggle />
+        <DemoPortalSwitcher />
         <NotificationDropdown
           notifications={notifications}
           onMarkRead={markRead}

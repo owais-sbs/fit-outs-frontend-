@@ -19,6 +19,7 @@ import { ROLE_LABELS } from "@/shared/constants/roles";
 import NotificationDropdown from "@/modules/client/components/design/NotificationDropdown";
 import useNotifications from "@/shared/hooks/useNotifications";
 import ThemeToggle from "@/shared/theme/ThemeToggle";
+import DemoPortalSwitcher from "@/components/shared/DemoPortalSwitcher";
 import DensityToggle from "@/components/shared/DensityToggle";
 
 export default function DirectorNavbar() {
@@ -43,6 +44,7 @@ export default function DirectorNavbar() {
       <div className="ml-auto flex items-center gap-2">
         <DensityToggle />
         <ThemeToggle />
+        <DemoPortalSwitcher />
         <Badge variant="outline" className="hidden sm:inline-flex border-primary/35 bg-accent text-accent-foreground">
           {ROLE_LABELS[role] || "Director"}
         </Badge>

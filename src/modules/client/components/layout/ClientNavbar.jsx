@@ -13,6 +13,7 @@ import { ROUTES } from "@/shared/constants/routes";
 import NotificationDropdown from "@/modules/client/components/design/NotificationDropdown";
 import useNotifications from "@/shared/hooks/useNotifications";
 import ThemeToggle from "@/shared/theme/ThemeToggle";
+import DemoPortalSwitcher from "@/components/shared/DemoPortalSwitcher";
 
 export default function ClientNavbar() {
   const { user, logout } = useAuth();
@@ -30,6 +31,7 @@ export default function ClientNavbar() {
 
       <div className="ml-auto flex items-center gap-1">
         <ThemeToggle />
+        <DemoPortalSwitcher />
         <NotificationDropdown
           notifications={notifications}
           onMarkRead={markRead}

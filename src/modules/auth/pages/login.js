@@ -2,8 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/shared/context/auth-context";
 import { ROUTES } from "@/shared/constants/routes";
-import { ROLES } from "@/shared/constants/roles";
-import { routeForAccessPhase } from "@/shared/constants/access-phase";
+import { portalHomeForRole } from "@/shared/constants/portal-home";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,26 +10,8 @@ import { AlertCircle } from "lucide-react";
 import { PlatformBrandHeader } from "@/components/brand/BrandMark";
 import { SessionBootLoader } from "@/components/brand/SessionBootLoader";
 
-const ROLE_ROUTES = {
-  [ROLES.SUPER_ADMIN]: ROUTES.SUPER_ADMIN.DASHBOARD,
-  [ROLES.ADMIN]: ROUTES.ADMIN.DASHBOARD,
-  [ROLES.BUSINESS_OWNER]: ROUTES.BUSINESS_OWNER.DASHBOARD,
-  [ROLES.PROJECT_MANAGER]: ROUTES.PROJECT_MANAGER.DASHBOARD,
-  [ROLES.DESIGNER]: ROUTES.DESIGNER.DASHBOARD,
-  [ROLES.QAS]: ROUTES.QAS.DASHBOARD,
-  [ROLES.QS]: ROUTES.ADMIN.QAS,
-  [ROLES.SENIOR_QS]: ROUTES.ADMIN.BOQ_INBOX,
-  [ROLES.FINANCE]: ROUTES.FINANCE.DASHBOARD,
-  [ROLES.SUBCONTRACTOR]: ROUTES.SUBCONTRACTOR.DASHBOARD,
-  [ROLES.CLIENT]: ROUTES.CLIENT.DASHBOARD,
-  [ROLES.SALES]: ROUTES.SALES.DASHBOARD,
-  [ROLES.EMPLOYEE]: ROUTES.EMPLOYEE.DASHBOARD,
-  [ROLES.SITE_ENGINEER]: ROUTES.SITE_ENGINEER.DASHBOARD,
-};
-
 function destinationForAuth(user, role) {
-  const portal = ROLE_ROUTES[role] || ROUTES.ADMIN.DASHBOARD;
-  return routeForAccessPhase(user?.accessPhase, portal);
+  return portalHomeForRole(user, role);
 }
 
 export default function Login() {
