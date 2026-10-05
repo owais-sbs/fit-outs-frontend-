@@ -30,6 +30,7 @@ export const DEMO_PORTAL_GROUPS = [
   {
     label: "Subcontractor",
     accounts: [
+      { email: "dct@fitouts.demo", name: "dct", role: "Subcontractor" },
       { email: "moid@fitouts.demo", name: "Moid", role: "SC Admin" },
       { email: "nameera@fitouts.demo", name: "Nameera", role: "SC Admin" },
       { email: "doccontroller@fitouts.demo", name: "SC Doc Controller", role: "Doc Controller" },
