@@ -406,6 +406,12 @@ export default function ValidationInboxPage() {
                       {item.progressNotes && (
                         <p className="text-xs text-muted-foreground mt-1">{item.progressNotes}</p>
                       )}
+                      {item.delayWorkingDays != null && item.delayWorkingDays > 0 && (
+                        <p className="text-xs font-medium text-amber-700 mt-1">
+                          Delay: {item.delayWorkingDays} working day{item.delayWorkingDays === 1 ? "" : "s"}
+                          {item.delayReason ? ` · ${item.delayReason}` : ""}
+                        </p>
+                      )}
                       {Array.isArray(item.materialIssues) && item.materialIssues.length > 0 && (
                         <div className="mt-2 rounded-md border border-border/40 bg-muted/20 p-2 space-y-1">
                           <p className="text-[11px] font-medium">Materials declared vs plan</p>

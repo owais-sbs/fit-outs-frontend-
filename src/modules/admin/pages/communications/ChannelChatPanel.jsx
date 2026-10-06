@@ -19,6 +19,7 @@ export default function ChannelChatPanel({
   onIncoming,
   disabled = false,
   readOnly = false,
+  readOnlyHint,
   projectId,
   projectRoomId,
   roomTaskId,
@@ -174,7 +175,10 @@ export default function ChannelChatPanel({
         </div>
       ) : readOnly || channelType === "EMAIL" ? (
         <div className="border-t border-border/60 bg-card p-3 text-xs text-muted-foreground">
-          {channelType === "EMAIL" ? "Sent emails are read-only." : "Open the linked project room or task to reply."}
+          {readOnlyHint
+            || (channelType === "EMAIL"
+              ? "Sent emails are read-only."
+              : "Open the linked project room or task to reply.")}
         </div>
       ) : null}
     </div>

@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fetchMySiteVisits } from "@/modules/admin/api/site-visits.api";
 import { fetchMySiteEngineerProjects } from "@/modules/site-engineer/api/projects.api";
 import ProjectClientCommsPanel from "@/modules/site-engineer/components/ProjectClientCommsPanel";
+import ProjectChatSection from "@/modules/admin/pages/communications/ProjectChatSection";
 import { ROUTES } from "@/shared/constants/routes";
 
 function InfoRow({ label, value }) {
@@ -172,7 +173,8 @@ export default function SiteEngineerProjectDetailPage() {
           </Surface>
         </TabsContent>
 
-        <TabsContent value="communications" className="mt-4">
+        <TabsContent value="communications" className="mt-4 space-y-4">
+          <ProjectChatSection projectId={projectId} />
           <ProjectClientCommsPanel projectId={projectId} />
         </TabsContent>
       </Tabs>

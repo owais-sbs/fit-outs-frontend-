@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AttachmentUploadField } from "@/components/shared/AttachmentField";
+import { Checkbox } from "@/components/ui/checkbox";
 import ProgressMaterialIssuesFields, {
   toMaterialIssuesPayload,
 } from "@/modules/admin/components/progress/ProgressMaterialIssuesFields";
@@ -55,8 +56,10 @@ export default function AssignedProgrammeView({
     percentComplete: 0,
     notes: "",
     labourHours: "",
+    delayReported: false,
     delayReasonCode: "WEATHER",
     delayReasonText: "",
+    delayWorkingDays: "",
   });
   const [materialRows, setMaterialRows] = useState([]);
   const [planLines, setPlanLines] = useState([]);
@@ -139,8 +142,10 @@ export default function AssignedProgrammeView({
       percentComplete: a?.percentComplete || 0,
       notes: "",
       labourHours: "",
+      delayReported: false,
       delayReasonCode: "WEATHER",
       delayReasonText: "",
+      delayWorkingDays: "",
     });
     setMaterialRows([]);
     setPendingFiles([]);
@@ -192,9 +197,16 @@ export default function AssignedProgrammeView({
 
   const submit = async () => {
     if (!selected?.uuid || !allowProgress) return;
-    if (form.delayReasonCode === "OTHER" && !String(form.delayReasonText || "").trim()) {
-      setMessage("Please describe the custom delay reason.");
-      return;
+    const delayDays = Number(form.delayWorkingDays);
+    if (form.delayReported) {
+      if (!Number.isInteger(delayDays) || delayDays < 1) {
+        setMessage("Enter the delay in whole working days (at least 1).");
+        return;
+      }
+      if (form.delayReasonCode === "OTHER" && !String(form.delayReasonText || "").trim()) {
+        setMessage("Please describe the custom delay reason.");
+        return;
+      }
     }
     setBusy(true);
     setMessage("");
@@ -205,7 +217,10 @@ export default function AssignedProgrammeView({
         percentComplete: Number(form.percentComplete) || 0,
         notes: form.notes || null,
         labourHours: form.labourHours !== "" ? Number(form.labourHours) : null,
-        delayReason: formatDelayReason(form.delayReasonCode, form.delayReasonText),
+        delayReason: form.delayReported
+          ? formatDelayReason(form.delayReasonCode, form.delayReasonText)
+          : null,
+        delayWorkingDays: form.delayReported ? delayDays : null,
         ...(materialIssues.length ? { materialIssues } : {}),
       });
       if (created?.uuid && pendingFiles.length > 0) {
@@ -363,31 +378,56 @@ export default function AssignedProgrammeView({
                     onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
                   />
                 </div>
-                <div>
-                  <Label className="text-xs">Delay reason</Label>
-                  <Select
-                    value={form.delayReasonCode}
-                    onValueChange={(v) => setForm((f) => ({ ...f, delayReasonCode: v }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {DELAY_REASON_PRESETS.map((r) => (
-                        <SelectItem key={r.code} value={r.code}>{r.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                {form.delayReasonCode === "OTHER" && (
-                  <div>
-                    <Label className="text-xs">Custom delay reason</Label>
-                    <Input
-                      value={form.delayReasonText}
-                      onChange={(e) => setForm((f) => ({ ...f, delayReasonText: e.target.value }))}
-                      placeholder="Describe the delay"
+                <div className="sm:col-span-2">
+                  <label className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={form.delayReported}
+                      onCheckedChange={(checked) =>
+                        setForm((f) => ({ ...f, delayReported: checked === true }))
+                      }
                     />
-                  </div>
+                    This activity is delayed
+                  </label>
+                </div>
+                {form.delayReported && (
+                  <>
+                    <div>
+                      <Label className="text-xs">Delay reason</Label>
+                      <Select
+                        value={form.delayReasonCode}
+                        onValueChange={(v) => setForm((f) => ({ ...f, delayReasonCode: v }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {DELAY_REASON_PRESETS.map((r) => (
+                            <SelectItem key={r.code} value={r.code}>{r.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-xs">Delay (working days)</Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        step={1}
+                        value={form.delayWorkingDays}
+                        onChange={(e) => setForm((f) => ({ ...f, delayWorkingDays: e.target.value }))}
+                      />
+                    </div>
+                    {form.delayReasonCode === "OTHER" && (
+                      <div className="sm:col-span-2">
+                        <Label className="text-xs">Custom delay reason</Label>
+                        <Input
+                          value={form.delayReasonText}
+                          onChange={(e) => setForm((f) => ({ ...f, delayReasonText: e.target.value }))}
+                          placeholder="Describe the delay"
+                        />
+                      </div>
+                    )}
+                  </>
                 )}
                 <div className="sm:col-span-2">
                   <ProgressMaterialIssuesFields
@@ -419,6 +459,9 @@ export default function AssignedProgrammeView({
                   {progressMode === "immediate"
                     ? "Updates the Gantt immediately for you and the client programme."
                     : "Your update and media go to the PM Validation Inbox. Gantt % updates after approval."}
+                  {form.delayReported
+                    ? " The extra working days are added to this activity, and successor dates are recalculated, when the PM approves."
+                    : ""}
                 </p>
               </div>
               {message && <p className="mt-2 text-sm text-muted-foreground">{message}</p>}

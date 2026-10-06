@@ -45,6 +45,7 @@ import BoqApprovalPipeline from "./boq/BoqApprovalPipeline";
 import { formatCurrency, formatAed } from "@/shared/utils/currency";
 import { splitProjectBoqs } from "./boq/boqDataUtils";
 import ProjectRoomsSection from "./roomcollab/ProjectRoomsSection";
+import ProjectChatSection from "./communications/ProjectChatSection";
 import FinalProjectPdfButton from "../components/projects/FinalProjectPdfButton";
 import ProjectTeamAssignmentSection from "./ProjectTeamAssignmentSection";
 import SiteEngineerTaskAssignSection from "./SiteEngineerTaskAssignSection";
@@ -751,6 +752,8 @@ export default function ProjectDetailPage() {
       {!isFinance && (
         <ProjectRoomsSection projectId={projectId} projectName={project.projectName || project.name} />
       )}
+
+      <ProjectChatSection projectId={projectId} locked={archived} />
 
       {/* Main grid */}
       <div className="grid gap-6 lg:grid-cols-3">
