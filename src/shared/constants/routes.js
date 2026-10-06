@@ -134,6 +134,7 @@ export const ROUTES = {
   },
   PROJECT_MANAGER: {
     DASHBOARD: "/project-manager",
+    AWAITING_APPROVALS: "/project-manager/awaiting-approvals",
     BOQ_INBOX: "/project-manager/boq/inbox",
     BOQ_VIEW: "/project-manager/boq/:boqId",
     BILLING_MILESTONE_INBOX: "/project-manager/billing/inbox",

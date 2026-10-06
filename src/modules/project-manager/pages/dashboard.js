@@ -8,6 +8,12 @@ import { PageShell, PageTitle } from "@/components/layout/PageShell";
 export default function ProjectManagerDashboard() {
   const tiles = [
     {
+      title: "Awaiting your approval",
+      description: "Variations, CRs, BOQs, and billing milestones waiting on you",
+      href: ROUTES.PROJECT_MANAGER.AWAITING_APPROVALS,
+      icon: Stamp,
+    },
+    {
       title: "BOQ Inbox",
       description: "Review and approve BOQs pending PM sign-off",
       href: ROUTES.PROJECT_MANAGER.BOQ_INBOX,

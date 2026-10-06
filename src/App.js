@@ -82,6 +82,7 @@ import DirectorProjectsPage from "./modules/business-owner/pages/DirectorProject
 import DirectorCommercialPage from "./modules/business-owner/pages/DirectorCommercialPage";
 import DirectorCrmPage from "./modules/business-owner/pages/DirectorCrmPage";
 import ProjectManagerDashboard from "./modules/project-manager/pages/dashboard";
+import PmAwaitingApprovalsPage from "./modules/project-manager/pages/PmAwaitingApprovalsPage";
 import PmLayout from "./modules/project-manager/layouts/PmLayout";
 import FinanceLayout from "./modules/finance/layouts/FinanceLayout";
 import FinanceDashboard from "./modules/finance/pages/dashboard";
@@ -450,6 +451,7 @@ function App() {
               }
             >
               <Route index element={<ProjectManagerDashboard />} />
+              <Route path="awaiting-approvals" element={<PmAwaitingApprovalsPage />} />
               <Route path="boq/inbox" element={<BoqApprovalInboxPage />} />
               <Route path="boq/:boqId" element={<BoqViewPage />} />
               <Route path="billing/inbox" element={<BillingMilestoneInboxPage />} />

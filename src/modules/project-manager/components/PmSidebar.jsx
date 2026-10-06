@@ -16,6 +16,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { SidebarBrand } from "@/components/brand/BrandMark";
+import { Badge } from "@/components/ui/badge";
 import {
   Sidebar,
   SidebarContent,
@@ -34,6 +35,7 @@ import {
 } from "@/components/ui/sidebar";
 import { ROUTES } from "@/shared/constants/routes";
 import { useAuth } from "@/shared/context/auth-context";
+import { usePmAwaitingApprovals } from "../hooks/PmAwaitingApprovalsContext";
 
 const TEMPLATES_SUB_ITEMS = [
   { label: "Schedule templates", href: ROUTES.PROJECT_MANAGER.SCHEDULE_TEMPLATES, icon: GanttChart },
@@ -50,6 +52,39 @@ const GROUPS = [
     label: "Overview",
     items: [
       { type: "link", label: "Dashboard", href: ROUTES.PROJECT_MANAGER.DASHBOARD, icon: LayoutDashboard },
+    ],
+  },
+  {
+    label: "Awaiting approvals",
+    items: [
+      {
+        type: "link",
+        label: "My approvals",
+        href: ROUTES.PROJECT_MANAGER.AWAITING_APPROVALS,
+        icon: Stamp,
+        countKey: "total",
+      },
+      {
+        type: "link",
+        label: "Variations & CRs",
+        href: ROUTES.PROJECT_MANAGER.VARIATIONS_INBOX,
+        icon: GitBranch,
+        countKey: "variations",
+      },
+      {
+        type: "link",
+        label: "BOQs",
+        href: ROUTES.PROJECT_MANAGER.BOQ_INBOX,
+        icon: Inbox,
+        countKey: "boqs",
+      },
+      {
+        type: "link",
+        label: "Billing milestones",
+        href: ROUTES.PROJECT_MANAGER.BILLING_MILESTONE_INBOX,
+        icon: ClipboardCheck,
+        countKey: "billing",
+      },
     ],
   },
   {
@@ -130,6 +165,8 @@ function Submenu({ label, icon: Icon, items }) {
 export default function PmSidebar() {
   const location = useLocation();
   const { user } = useAuth();
+  const { counts, total } = usePmAwaitingApprovals();
+  const badgeCounts = { ...counts, total };
 
   return (
     <Sidebar collapsible="icon">
@@ -168,12 +205,21 @@ export default function PmSidebar() {
                   }
                   const Icon = item.icon;
                   const active = isActivePath(location.pathname, item.href);
+                  const count = item.countKey ? badgeCounts[item.countKey] : 0;
                   return (
                     <SidebarMenuItem key={item.href}>
                       <SidebarMenuButton asChild isActive={active} tooltip={item.label}>
                         <NavLink to={item.href}>
                           <Icon className="h-4 w-4" />
                           <span>{item.label}</span>
+                          {count > 0 && (
+                            <Badge
+                              className="ml-auto h-5 min-w-5 justify-center px-1 text-[10px]"
+                              variant="destructive"
+                            >
+                              {count}
+                            </Badge>
+                          )}
                         </NavLink>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
