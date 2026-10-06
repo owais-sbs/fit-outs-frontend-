@@ -79,7 +79,7 @@ export default function PlanningAuditPage() {
   }
 
   return (
-    <Card className="rounded-xl border border-slate-200 bg-white shadow-sm">
+    <Card className="rounded-xl border border-border bg-card shadow-sm">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-sm font-semibold">
           <ClipboardList className="h-4 w-4" />

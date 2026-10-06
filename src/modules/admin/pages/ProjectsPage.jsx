@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useMemo, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowUpDown, Briefcase, Plus } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import { PageShell, StatTile, SearchInput, FilterToolbar } from "@/components/layout/PageShell";
@@ -24,6 +25,7 @@ import {
 import { fetchAllProjects } from "../api/projects.api";
 import { fetchAllClients } from "../api/clients.api";
 import { ROUTES, portalRoutesFromPath } from "@/shared/constants/routes";
+import { STALE_TIMES } from "@/shared/api/queryClient";
 
 const SORT_ID = "id";
 const SORT_NEW_FIRST = "new-first";
@@ -45,25 +47,34 @@ export default function ProjectsPage() {
   const createRoute = location.pathname.startsWith("/project-manager")
     ? `${ROUTES.PROJECT_MANAGER.PROJECTS}/new`
     : ROUTES.ADMIN.PROJECT_CREATE;
-  const [projects, setProjects] = useState([]);
-  const [clientMap, setClientMap] = useState(new Map());
+
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState(SORT_NEW_FIRST);
   const [statusFilter, setStatusFilter] = useState(STATUS_ALL);
   const [commercialFilter, setCommercialFilter] = useState(STATUS_ALL);
-  const [loading, setLoading] = useState(true);
 
-  const loadData = useCallback(() => {
-    Promise.all([fetchAllProjects(), fetchAllClients().catch(() => [])])
-      .then(([projs, clients]) => {
-        setProjects(projs);
-        setClientMap(new Map(clients.map((c) => [String(c.id), c])));
-      })
-      .catch(() => setProjects([]))
-      .finally(() => setLoading(false));
-  }, []);
+  const { data: projects = [], isLoading: loading } = useQuery({
+    queryKey: ["adminProjects"],
+    queryFn: fetchAllProjects,
+    staleTime: STALE_TIMES.STATIC,
+  });
 
-  useEffect(() => { loadData(); }, [loadData]);
+  const { data: clientList = [] } = useQuery({
+    queryKey: ["adminClients"],
+    queryFn: async () => {
+      try {
+        const res = await fetchAllClients();
+        return Array.isArray(res) ? res : [];
+      } catch {
+        return [];
+      }
+    },
+    staleTime: STALE_TIMES.STATIC,
+  });
+
+  const clientMap = useMemo(() => {
+    return new Map(clientList.map((c) => [String(c.id), c]));
+  }, [clientList]);
 
   const stats = useMemo(() => {
     const total = projects.length;

@@ -21,6 +21,8 @@
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@stomp/stompjs": "^7.3.0",
+    "@tanstack/react-query": "^5.104.0",
+    "@tanstack/react-query-devtools": "^5.104.0",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",

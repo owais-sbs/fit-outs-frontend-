@@ -258,7 +258,7 @@ export default function ResourcePlanPage() {
       {message && <p className="text-sm text-muted-foreground">{message}</p>}
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="rounded-xl border border-slate-200 bg-white shadow-sm">
+        <Card className="rounded-xl border border-border bg-card shadow-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Wrench className="h-4 w-4" /> Plant & tools
@@ -309,7 +309,7 @@ export default function ResourcePlanPage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-xl border border-slate-200 bg-white shadow-sm">
+        <Card className="rounded-xl border border-border bg-card shadow-sm">
           <CardHeader className="pb-2 flex flex-row items-center justify-between gap-2 space-y-0">
             <CardTitle className="text-sm font-semibold">Utilisation</CardTitle>
             <div className="flex shrink-0 flex-wrap items-center gap-2">
@@ -402,7 +402,7 @@ export default function ResourcePlanPage() {
         </Card>
       </div>
 
-      <Card className="rounded-xl border border-slate-200 bg-white shadow-sm">
+      <Card className="rounded-xl border border-border bg-card shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold">Assign resource to activity</CardTitle>
         </CardHeader>

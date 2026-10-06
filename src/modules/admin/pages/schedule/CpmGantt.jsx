@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal, flushSync } from "react-dom";
-import { Lock, Maximize2, Milestone, Minimize2, ShieldAlert } from "lucide-react";
+import { Lock, Maximize2, Milestone, Minimize2, Plus, ShieldAlert, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -89,9 +89,11 @@ export default function CpmGantt({
   nonWorkingWeekdays,
   holidays = [],
   emptyMessage = "No activities yet. Apply a template to generate the programme.",
+  addActivityContent = null,
 }) {
   const [workingDayAxis, setWorkingDayAxis] = useState(true);
   const [showFloat, setShowFloat] = useState(true);
+  const [showAddActivity, setShowAddActivity] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [labelWidth, setLabelWidth] = useState(LABEL_W_DEFAULT);
   const rootRef = useRef(null);
@@ -453,35 +455,16 @@ export default function CpmGantt({
       >
         <div
           className={cn(
-            "overflow-hidden bg-card text-card-foreground",
+            "relative overflow-hidden bg-card text-card-foreground",
             expanded
               ? "flex h-full min-h-0 w-full flex-1 flex-col rounded-none"
-              : "rounded-2xl shadow-[0_1px_0_oklch(var(--border)/0.7),0_16px_40px_-28px_oklch(0.2_0.02_285/0.2)]"
+              : "rounded-2xl shadow-[0_1px_0_oklch(var(--border)/0.7),0_16px_40px_-28px_oklch(0.2_0.02_285/0.2)] flex flex-col"
           )}
         >
-          <div className="shrink-0 flex flex-row items-center justify-between gap-2 flex-wrap border-b border-border/40 px-4 py-3">
-            <div className="text-sm font-semibold leading-none tracking-tight">Programme</div>
-            <div className="flex items-center gap-4 flex-wrap justify-end">
-              <div className="flex items-center gap-2">
-                <Switch id="wd-axis" checked={workingDayAxis} onCheckedChange={setWorkingDayAxis} />
-                <Label htmlFor="wd-axis" className="text-xs cursor-pointer">Working-day axis</Label>
-              </div>
-              {typeof onShowBaselineChange === "function" && (
-                <div className="flex items-center gap-2">
-                  <Switch
-                    id="show-baseline"
-                    checked={showBaseline}
-                    onCheckedChange={onShowBaselineChange}
-                    disabled={baselineToggleDisabled}
-                  />
-                  <Label htmlFor="show-baseline" className="text-xs cursor-pointer">Show baseline</Label>
-                </div>
-              )}
-              <div className="flex items-center gap-2">
-                <Switch id="show-float" checked={showFloat} onCheckedChange={setShowFloat} />
-                <Label htmlFor="show-float" className="text-xs cursor-pointer">Float</Label>
-              </div>
-              <div className="flex items-center gap-3 text-[11px] text-muted-foreground flex-wrap">
+          <div className="shrink-0 flex flex-row items-center justify-between gap-3 flex-wrap border-b border-border/40 px-4 py-3">
+            <div className="flex items-center gap-4 flex-wrap">
+              <div className="text-sm font-semibold leading-none tracking-tight">Programme Gantt</div>
+              <div className="flex items-center gap-3 text-[11px] text-muted-foreground flex-wrap border-l border-border/40 pl-3">
                 <span className="inline-flex items-center gap-1.5">
                   <span className="h-2.5 w-5 rounded-sm bg-foreground" /> Activity
                 </span>
@@ -502,11 +485,44 @@ export default function CpmGantt({
                   </span>
                 )}
               </div>
+            </div>
+            <div className="flex items-center gap-4 flex-wrap justify-end ml-auto">
+              <div className="flex items-center gap-2">
+                <Switch id="wd-axis" checked={workingDayAxis} onCheckedChange={setWorkingDayAxis} />
+                <Label htmlFor="wd-axis" className="text-xs cursor-pointer">Working-day axis</Label>
+              </div>
+              {typeof onShowBaselineChange === "function" && (
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="show-baseline"
+                    checked={showBaseline}
+                    onCheckedChange={onShowBaselineChange}
+                    disabled={baselineToggleDisabled}
+                  />
+                  <Label htmlFor="show-baseline" className="text-xs cursor-pointer">Show baseline</Label>
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <Switch id="show-float" checked={showFloat} onCheckedChange={setShowFloat} />
+                <Label htmlFor="show-float" className="text-xs cursor-pointer">Float</Label>
+              </div>
+              {addActivityContent && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={showAddActivity ? "secondary" : "outline"}
+                  className="gap-1.5 text-xs"
+                  onClick={() => setShowAddActivity((v) => !v)}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  {showAddActivity ? "Hide activity" : "Add activity"}
+                </Button>
+              )}
               <Button
                 type="button"
                 size="sm"
                 variant="outline"
-                className="gap-1.5"
+                className="gap-1.5 text-xs"
                 onClick={toggleFullscreen}
               >
                 {expanded ? (
@@ -523,6 +539,26 @@ export default function CpmGantt({
               </Button>
             </div>
           </div>
+
+          {addActivityContent && showAddActivity && (
+            <div className="absolute top-14 right-3 z-50 w-full max-w-sm sm:max-w-md h-auto max-h-[calc(100%-4.5rem)] bg-card border border-border/60 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+              <div className="flex items-center justify-between border-b border-border/40 px-4 py-2.5 shrink-0 bg-muted/20">
+                <div className="text-sm font-semibold">Add activity</div>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7 rounded-full text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowAddActivity(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {addActivityContent}
+              </div>
+            </div>
+          )}
 
           <div className={cn("p-0", expanded && "flex min-h-0 flex-1 flex-col")}>
             <div

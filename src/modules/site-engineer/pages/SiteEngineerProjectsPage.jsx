@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Briefcase, MapPin, MessageSquare, GanttChart } from "lucide-react";
 import { PageShell, PageTitle, Surface } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
@@ -9,29 +9,19 @@ import LoadingPanel from "@/components/shared/LoadingPanel";
 import { loadingMessages } from "@/components/shared/loadingMessages";
 import { fetchMySiteEngineerProjects } from "@/modules/site-engineer/api/projects.api";
 import { ROUTES } from "@/shared/constants/routes";
+import { STALE_TIMES } from "@/shared/api/queryClient";
 
 export default function SiteEngineerProjectsPage() {
   const navigate = useNavigate();
-  const [projects, setProjects] = useState([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    fetchMySiteEngineerProjects()
-      .then((projs) => {
-        if (!cancelled) setProjects(Array.isArray(projs) ? projs : []);
-      })
-      .catch(() => {
-        if (!cancelled) setProjects([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { data: projects = [], isLoading: loading } = useQuery({
+    queryKey: ["siteEngineerProjects"],
+    queryFn: async () => {
+      const projs = await fetchMySiteEngineerProjects();
+      return Array.isArray(projs) ? projs : [];
+    },
+    staleTime: STALE_TIMES.STATIC,
+  });
 
   const openProject = (projectId, tab) => {
     const base = ROUTES.SITE_ENGINEER.PROJECT_DETAIL.replace(":projectId", projectId);

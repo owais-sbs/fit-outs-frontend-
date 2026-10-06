@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useLocation, useParams } from "react-router-dom";
+import { Link, useLocation, useParams, useSearchParams } from "react-router-dom";
 import { AlertTriangle, ChevronRight, FileText, Loader2, Plus, Search, Sparkles, Trash2 } from "lucide-react";
 import { PageShell, PageHeader } from "@/components/layout/PageShell";
 import ProjectPageFrame from "@/components/layout/ProjectPageFrame";
@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { projectDetailPath } from "@/shared/constants/routes";
+import { projectDetailPath, ROUTES } from "@/shared/constants/routes";
 import {
   addProjectApprovalCase,
   deleteApprovalCase,
@@ -51,11 +51,13 @@ function statusAccent(status) {
 export default function ProjectApprovalsPage() {
   const { projectId } = useParams();
   const route = useLocation();
+  const [searchParams] = useSearchParams();
+  const caseFromUrl = searchParams.get("case");
   const detailPath = projectDetailPath(route.pathname, projectId);
   const persistReady = useRef(false);
 
   const [cases, setCases] = useState([]);
-  const [selected, setSelected] = useState(null);
+  const [selected, setSelected] = useState(caseFromUrl);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -126,6 +128,10 @@ export default function ProjectApprovalsPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (caseFromUrl) setSelected(caseFromUrl);
+  }, [projectId, caseFromUrl]);
 
   const resolvePayload = useCallback(() => ({
     ...location,
@@ -255,6 +261,13 @@ export default function ProjectApprovalsPage() {
       <PageHeader
         title="Approvals"
         subtitle="Authority, community and building permits for this project."
+        actions={
+          <Button asChild variant="outline" size="sm">
+            <Link to={`${ROUTES.ADMIN.APPROVALS_CONFIG}?section=documents`}>
+              Manage documents
+            </Link>
+          </Button>
+        }
       />
 
       <ProjectLifecycleBanner commercialStage={commercialStage} />
@@ -421,8 +434,9 @@ export default function ProjectApprovalsPage() {
         </div>
       ) : (
         <div className="grid gap-4 lg:grid-cols-[minmax(380px,440px)_1fr]">
-          <Card className="self-start overflow-hidden">
-            <CardHeader className="space-y-3 border-b border-border/40 pb-3">
+          <div className="min-w-0">
+            <Card className="flex flex-col overflow-hidden lg:sticky lg:top-8 lg:h-[calc(100dvh-7.5rem)]">
+            <CardHeader className="shrink-0 space-y-3 border-b border-border/40 pb-3">
               <div className="flex items-center justify-between gap-2">
                 <CardTitle className="text-sm font-semibold">
                   {cases.length} permit{cases.length === 1 ? "" : "s"} required
@@ -474,8 +488,8 @@ export default function ProjectApprovalsPage() {
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="p-0">
-              <div className="max-h-[min(70vh,720px)] overflow-y-auto">
+            <CardContent className="min-h-0 flex-1 overflow-y-auto p-0">
+              <div>
                 {visibleCases.map((c) => {
                   const active = selected === c.uuid;
                   return (
@@ -557,6 +571,7 @@ export default function ProjectApprovalsPage() {
               </div>
             </CardContent>
           </Card>
+          </div>
 
           <div>
             {selected ? (

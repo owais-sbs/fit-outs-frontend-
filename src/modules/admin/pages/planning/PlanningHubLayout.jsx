@@ -76,13 +76,12 @@ export default function PlanningHubLayout() {
         />
         <PageHeader
           title="Project Planning Hub"
-          subtitle={displayName}
         />
 
         <div className="space-y-6">
           <nav
             aria-label="Planning sections"
-            className="flex overflow-x-auto no-scrollbar whitespace-nowrap rounded-xl border border-border bg-card p-1 shadow-sm"
+            className="flex overflow-x-auto no-scrollbar whitespace-nowrap rounded-sm border border-border bg-card p-1 shadow-sm"
           >
             {NAV.map(({ segment, label, icon: Icon }) => (
               <NavLink
@@ -91,9 +90,9 @@ export default function PlanningHubLayout() {
                 state={location.state}
                 className={({ isActive }) =>
                   cn(
-                    "inline-flex min-h-11 shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors",
+                    "inline-flex min-h-9 shrink-0 items-center gap-2 rounded-sm px-3 py-2 text-sm transition-colors",
                     isActive
-                      ? "bg-accent font-semibold text-accent-foreground shadow-sm"
+                      ? "bg-accent font-bold text-accent-foreground shadow-none"
                       : "text-muted-foreground hover:bg-secondary/70 hover:text-foreground"
                   )
                 }

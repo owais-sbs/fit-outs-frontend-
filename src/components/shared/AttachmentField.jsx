@@ -8,6 +8,7 @@ import {
   parseAttachmentPaths,
 } from "@/lib/attachments";
 import { PdfAttachmentPreview } from "@/components/shared/PdfAttachmentPreview";
+import SecureImage from "@/components/shared/SecureImage";
 
 export function AttachmentList({ paths, className = "", inlinePreview = true }) {
   const items = parseAttachmentPaths(paths);
@@ -27,7 +28,7 @@ export function AttachmentList({ paths, className = "", inlinePreview = true }) 
               rel="noopener noreferrer"
               className="block h-16 w-16 overflow-hidden rounded-lg border bg-muted/30"
             >
-              <img src={href} alt={label} className="h-full w-full object-cover" />
+              <SecureImage src={href} alt={label} className="h-full w-full object-cover" />
             </a>
           );
         }

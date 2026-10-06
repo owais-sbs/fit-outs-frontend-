@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { STALE_TIMES } from "@/shared/api/queryClient";
 import {
   BarChart3, DollarSign, Target, Trophy,
   TrendingUp, MapPin, Download, RefreshCw, Loader2,
@@ -90,55 +92,60 @@ function exportCsv(analytics) {
 export default AdminCrmDashboard;
 
 function AdminCrmDashboard() {
+  const queryClient = useQueryClient();
   const initial = defaultDateRange("30d");
   const [period, setPeriod] = useState("30d");
   const [assignee, setAssignee] = useState("all");
   const [dateFrom, setDateFrom] = useState(initial.from);
   const [dateTo, setDateTo] = useState(initial.to);
 
-  const [leads, setLeads] = useState([]);
-  const [projects, setProjects] = useState([]);
-  const [siteVisits, setSiteVisits] = useState([]);
-  const [employees, setEmployees] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [refreshedAt, setRefreshedAt] = useState(null);
+  const { data: leads = [], isLoading: leadsLoading } = useQuery({
+    queryKey: ["adminLeads"],
+    queryFn: async () => {
+      const res = await fetchAllLeads(0, 500);
+      return Array.isArray(res) ? res : [];
+    },
+    staleTime: STALE_TIMES.STATIC,
+  });
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const [leadRes, projectRes, visitRes, employeeRes] = await Promise.allSettled([
-        fetchAllLeads(0, 500),
-        fetchAllProjects(),
-        fetchAllSiteVisits(),
-        fetchAllEmployees(),
-      ]);
-      const leadData = leadRes.status === "fulfilled" ? leadRes.value : [];
-      const projectData = projectRes.status === "fulfilled" ? projectRes.value : [];
-      const visitData = visitRes.status === "fulfilled" ? visitRes.value : [];
-      const employeeData = employeeRes.status === "fulfilled" ? employeeRes.value : [];
-      setLeads(Array.isArray(leadData) ? leadData : []);
-      setProjects(Array.isArray(projectData) ? projectData : []);
-      setSiteVisits(Array.isArray(visitData) ? visitData : []);
-      setEmployees(Array.isArray(employeeData) ? employeeData : []);
-      setRefreshedAt(new Date());
-      const failed = [leadRes, projectRes, visitRes].find((r) => r.status === "rejected");
-      if (failed) {
-        const err = failed.reason;
-        setError(err?.response?.data?.error || err?.response?.data?.message || err?.message || "Some dashboard data failed to load");
-      }
-    } catch (err) {
-      console.error(err);
-      setError(err?.response?.data?.message || err?.message || "Failed to load dashboard data");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const { data: projects = [], isLoading: projectsLoading } = useQuery({
+    queryKey: ["adminProjects"],
+    queryFn: async () => {
+      const res = await fetchAllProjects();
+      return Array.isArray(res) ? res : [];
+    },
+    staleTime: STALE_TIMES.STATIC,
+  });
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  const { data: siteVisits = [], isLoading: visitsLoading } = useQuery({
+    queryKey: ["adminSiteVisits"],
+    queryFn: async () => {
+      const res = await fetchAllSiteVisits();
+      return Array.isArray(res) ? res : [];
+    },
+    staleTime: STALE_TIMES.STATIC,
+  });
+
+  const { data: employees = [] } = useQuery({
+    queryKey: ["adminEmployees"],
+    queryFn: async () => {
+      const res = await fetchAllEmployees();
+      return Array.isArray(res) ? res : [];
+    },
+    staleTime: STALE_TIMES.STATIC,
+  });
+
+  const loading = leadsLoading || projectsLoading || visitsLoading;
+  const [error] = useState("");
+  const [refreshedAt, setRefreshedAt] = useState(new Date());
+
+  const load = () => {
+    queryClient.invalidateQueries({ queryKey: ["adminLeads"] });
+    queryClient.invalidateQueries({ queryKey: ["adminProjects"] });
+    queryClient.invalidateQueries({ queryKey: ["adminSiteVisits"] });
+    queryClient.invalidateQueries({ queryKey: ["adminEmployees"] });
+    setRefreshedAt(new Date());
+  };
 
   const handlePeriodChange = (next) => {
     setPeriod(next);

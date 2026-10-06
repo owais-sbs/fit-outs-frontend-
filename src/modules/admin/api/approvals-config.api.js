@@ -1,4 +1,5 @@
 import axiosInstance from "@/lib/axiosInstance";
+import { multipartConfig } from "@/lib/multipart";
 
 const catalogTimeout = { timeout: 120000 };
 
@@ -48,6 +49,20 @@ export const updateDocumentType = (id, payload) =>
 
 export const deleteDocumentType = (id) =>
   axiosInstance.delete(`/document-types/${id}`).then(dataOf);
+
+export const saveDocumentRegister = (id, payload) =>
+  axiosInstance.put(`/document-types/${id}/register`, payload).then(dataOf);
+
+export const uploadDocumentMasterFile = (id, file, fields = {}) => {
+  const body = new FormData();
+  body.append("file", file);
+  if (fields.expiryDate) body.append("expiryDate", fields.expiryDate);
+  if (fields.issueDate) body.append("issueDate", fields.issueDate);
+  if (fields.referenceNo) body.append("referenceNo", fields.referenceNo);
+  return axiosInstance
+    .post(`/document-types/${id}/file`, body, multipartConfig({ timeout: 120000 }))
+    .then(dataOf);
+};
 
 export const fetchScopeTags = () =>
   axiosInstance.get("/scope-tags", catalogTimeout).then(dataOf);

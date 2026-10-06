@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Briefcase, Sliders, CheckCircle, MapPin, Eye, Loader2 } from "lucide-react";
 import { PageShell, PageTitle, StatTile, Surface, SearchInput } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { fetchMyScProjects } from "@/modules/admin/api/subcontractor.api";
 import { ROUTES } from "@/shared/constants/routes";
+import { STALE_TIMES } from "@/shared/api/queryClient";
 
 function normalizeStatus(status) {
   if (!status) return "";
@@ -24,28 +26,18 @@ function isCompletedStatus(status) {
 
 export default function SubcontractorProjectsPage() {
   const navigate = useNavigate();
-  const [projects, setProjects] = useState([]);
   const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError("");
-    try {
+  const { data: projects = [], isLoading: loading, error: queryError } = useQuery({
+    queryKey: ["subcontractorProjects"],
+    queryFn: async () => {
       const list = await fetchMyScProjects();
-      setProjects(Array.isArray(list) ? list : []);
-    } catch (err) {
-      setError(err?.response?.data?.error || err?.response?.data?.message || "Unable to load projects");
-      setProjects([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      return Array.isArray(list) ? list : [];
+    },
+    staleTime: STALE_TIMES.STATIC,
+  });
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  const error = queryError?.response?.data?.error || queryError?.response?.data?.message || (queryError ? "Unable to load projects" : "");
 
   const stats = useMemo(() => {
     const total = projects.length;

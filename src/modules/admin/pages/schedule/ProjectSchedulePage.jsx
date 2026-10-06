@@ -108,12 +108,10 @@ export default function ProjectSchedulePage() {
   const { commercialStage, archived } = useProjectLifecycle(projectId);
   const location = useLocation();
   const routes = portalRoutesFromPath(location.pathname);
-  const isPm = location.pathname.startsWith("/project-manager");
   const detailPath = (routes.PROJECT_DETAIL || ROUTES.ADMIN.PROJECT_DETAIL).replace(
     ":projectId",
     projectId
   );
-  const scheduleHubPath = routes.SCHEDULE_HUB || routes.PROJECTS || ROUTES.ADMIN.SCHEDULE_HUB;
   const roomTaskPath = (taskId) =>
     (routes.PROJECT_ROOM_TASK || ROUTES.ADMIN.PROJECT_ROOM_TASK)
       .replace(":projectId", projectId)
@@ -507,8 +505,8 @@ export default function ProjectSchedulePage() {
       <ProjectPathLine
         projectId={projectId}
         initialName={schedule?.projectName || ""}
-        backTo={scheduleHubPath}
-        backTitle={isPm || routes.SCHEDULE_HUB ? "All schedules" : "All projects"}
+        backTo={detailPath}
+        backTitle="Project"
       />
       <PageHeader
         title="Schedule workspace"
@@ -608,6 +606,113 @@ export default function ProjectSchedulePage() {
           usingPreview
             ? "Preview has no activities. Check scope toggles or recompute."
             : "No activities yet. Apply a template to generate the programme."
+        }
+        addActivityContent={
+          <div className="space-y-4">
+            {roomTasks.length > 0 && (
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                <div className="flex-1">
+                  <Label className="text-xs">Create from room task</Label>
+                  <select
+                    className="w-full h-9 rounded-md border bg-background px-2 text-sm"
+                    value={fromRoomTaskId}
+                    onChange={(e) => setFromRoomTaskId(e.target.value)}
+                  >
+                    <option value="">Select room task...</option>
+                    {roomTasks.map((t) => (
+                      <option key={t.uuid} value={t.uuid}>
+                        {t.roomName ? `${t.roomName} · ` : ""}{t.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <Button size="sm" variant="outline" disabled={busy || !fromRoomTaskId} onClick={handleCreateFromRoomTask}>
+                  Create
+                </Button>
+              </div>
+            )}
+            <div>
+              <Label className="text-xs">Name</Label>
+              <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs">Room (optional)</Label>
+                <select
+                  className="w-full h-9 rounded-md border bg-background px-2 text-sm"
+                  value={form.projectRoomId}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      projectRoomId: e.target.value,
+                      roomTaskId: "",
+                    }))
+                  }
+                >
+                  <option value="">None</option>
+                  {rooms.map((r) => (
+                    <option key={r.uuid} value={r.uuid}>
+                      {r.floorLabel ? `${r.floorLabel} · ` : ""}{r.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs">Room task (optional)</Label>
+                <select
+                  className="w-full h-9 rounded-md border bg-background px-2 text-sm"
+                  value={form.roomTaskId}
+                  onChange={(e) => {
+                    const taskId = e.target.value;
+                    const task = roomTasks.find((t) => String(t.uuid) === String(taskId));
+                    setForm((f) => ({
+                      ...f,
+                      roomTaskId: taskId,
+                      projectRoomId: task?.projectRoomId || f.projectRoomId,
+                    }));
+                  }}
+                >
+                  <option value="">None</option>
+                  {tasksForRoom(form.projectRoomId).map((t) => (
+                    <option key={t.uuid} value={t.uuid}>{t.title}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs">Start</Label>
+                <Input type="date" value={form.startDate} onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))} />
+              </div>
+              <div>
+                <Label className="text-xs">End</Label>
+                <Input type="date" value={form.endDate} onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))} />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs">% complete</Label>
+                <Input type="number" min={0} max={100} value={form.percentComplete}
+                  onChange={(e) => setForm((f) => ({ ...f, percentComplete: e.target.value }))} />
+              </div>
+              <div>
+                <Label className="text-xs">Assignee</Label>
+                <select
+                  className="w-full h-9 rounded-md border bg-background px-2 text-sm"
+                  value={form.assigneeAccountId}
+                  onChange={(e) => setForm((f) => ({ ...f, assigneeAccountId: e.target.value }))}
+                >
+                  <option value="">Unassigned</option>
+                  {employees.map((emp) => (
+                    <option key={emp.id} value={emp.id}>{emp.employeeName || emp.fullName}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <Button size="sm" disabled={busy || !form.name} onClick={handleCreate}>
+              <Plus className="h-4 w-4 mr-1" /> Add
+            </Button>
+          </div>
         }
       />
 
@@ -725,117 +830,6 @@ export default function ProjectSchedulePage() {
       )}
 
       <div className="grid gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Add activity</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {roomTasks.length > 0 && (
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-                <div className="flex-1">
-                  <Label className="text-xs">Create from room task</Label>
-                  <select
-                    className="w-full h-9 rounded-md border bg-background px-2 text-sm"
-                    value={fromRoomTaskId}
-                    onChange={(e) => setFromRoomTaskId(e.target.value)}
-                  >
-                    <option value="">Select room task...</option>
-                    {roomTasks.map((t) => (
-                      <option key={t.uuid} value={t.uuid}>
-                        {t.roomName ? `${t.roomName} Â· ` : ""}{t.title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <Button size="sm" variant="outline" disabled={busy || !fromRoomTaskId} onClick={handleCreateFromRoomTask}>
-                  Create
-                </Button>
-              </div>
-            )}
-            <div>
-              <Label className="text-xs">Name</Label>
-              <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <Label className="text-xs">Room (optional)</Label>
-                <select
-                  className="w-full h-9 rounded-md border bg-background px-2 text-sm"
-                  value={form.projectRoomId}
-                  onChange={(e) =>
-                    setForm((f) => ({
-                      ...f,
-                      projectRoomId: e.target.value,
-                      roomTaskId: "",
-                    }))
-                  }
-                >
-                  <option value="">None</option>
-                  {rooms.map((r) => (
-                    <option key={r.uuid} value={r.uuid}>
-                      {r.floorLabel ? `${r.floorLabel} Â· ` : ""}{r.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <Label className="text-xs">Room task (optional)</Label>
-                <select
-                  className="w-full h-9 rounded-md border bg-background px-2 text-sm"
-                  value={form.roomTaskId}
-                  onChange={(e) => {
-                    const taskId = e.target.value;
-                    const task = roomTasks.find((t) => String(t.uuid) === String(taskId));
-                    setForm((f) => ({
-                      ...f,
-                      roomTaskId: taskId,
-                      projectRoomId: task?.projectRoomId || f.projectRoomId,
-                    }));
-                  }}
-                >
-                  <option value="">None</option>
-                  {tasksForRoom(form.projectRoomId).map((t) => (
-                    <option key={t.uuid} value={t.uuid}>{t.title}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <Label className="text-xs">Start</Label>
-                <Input type="date" value={form.startDate} onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))} />
-              </div>
-              <div>
-                <Label className="text-xs">End</Label>
-                <Input type="date" value={form.endDate} onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))} />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <Label className="text-xs">% complete</Label>
-                <Input type="number" min={0} max={100} value={form.percentComplete}
-                  onChange={(e) => setForm((f) => ({ ...f, percentComplete: e.target.value }))} />
-              </div>
-              <div>
-                <Label className="text-xs">Assignee</Label>
-                <select
-                  className="w-full h-9 rounded-md border bg-background px-2 text-sm"
-                  value={form.assigneeAccountId}
-                  onChange={(e) => setForm((f) => ({ ...f, assigneeAccountId: e.target.value }))}
-                >
-                  <option value="">Unassigned</option>
-                  {employees.map((emp) => (
-                    <option key={emp.id} value={emp.id}>{emp.employeeName || emp.fullName}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <Button size="sm" disabled={busy || !form.name} onClick={handleCreate}>
-              <Plus className="h-4 w-4 mr-1" /> Add
-            </Button>
-          </CardContent>
-        </Card>
-
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm">Dependency</CardTitle>

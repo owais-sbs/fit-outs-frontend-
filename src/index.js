@@ -5,16 +5,22 @@ import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { ThemeProvider } from './shared/theme/ThemeProvider';
 import { Toaster } from './components/ui/sonner';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { queryClient } from './shared/api/queryClient';
 import OfflineGate from './components/shared/offline/OfflineGate';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <ThemeProvider>
-      <App />
-      <OfflineGate />
-      <Toaster />
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <App />
+        <OfflineGate />
+        <Toaster />
+      </ThemeProvider>
+      <ReactQueryDevtools initialIsOpen={false} />
+    </QueryClientProvider>
   </React.StrictMode>
 );
 

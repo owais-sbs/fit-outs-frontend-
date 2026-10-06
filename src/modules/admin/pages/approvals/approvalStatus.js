@@ -155,6 +155,31 @@ export function summarizeApprovalCases(cases) {
   };
 }
 
+const BOARD_CLOSED = new Set(["EXPIRED", "REJECTED", "CLOSED"]);
+const BOARD_LIVE = new Set(["APPROVED", "ISSUED", "EXPIRING_SOON", "RENEWAL_IN_PROGRESS"]);
+const BOARD_AUTHORITY = new Set(["SUBMITTED", "UNDER_REVIEW", "RESUBMITTED", "COMMENTS_RECEIVED"]);
+const BOARD_PREP = new Set(["NOT_STARTED", "PACK_IN_PREPARATION"]);
+
+/** One column per permit on the portfolio board. Blocked work wins over its status. */
+export const BOARD_COLUMNS = [
+  { id: "preparation", label: "In preparation", emphasis: false },
+  { id: "documents", label: "Documents required", emphasis: true },
+  { id: "ready", label: "Ready to submit", emphasis: true },
+  { id: "authority", label: "With the authority", emphasis: false },
+  { id: "live", label: "Live", emphasis: false },
+  { id: "closed", label: "Closed", emphasis: false },
+];
+
+export function boardColumnId(row) {
+  if (BOARD_CLOSED.has(row?.status)) return "closed";
+  if (row?.blockReason) return "documents";
+  if (row?.status === "READY_TO_SUBMIT") return "ready";
+  if (BOARD_AUTHORITY.has(row?.status)) return "authority";
+  if (BOARD_LIVE.has(row?.status)) return "live";
+  if (BOARD_PREP.has(row?.status)) return "preparation";
+  return "preparation";
+}
+
 export function approvalWorkbenchFilters(cases) {
   const summary = summarizeApprovalCases(cases);
   return [
@@ -164,4 +189,210 @@ export function approvalWorkbenchFilters(cases) {
     { id: "with_authority", label: "With authority", count: summary.awaiting },
     { id: "approved", label: "Approved", count: summary.live },
   ];
+}
+
+const PREP_STATUSES = new Set(["NOT_STARTED", "PACK_IN_PREPARATION", "RENEWAL_IN_PROGRESS"]);
+const SUBMITTED_STATUSES = new Set(["SUBMITTED", "UNDER_REVIEW", "RESUBMITTED", "COMMENTS_RECEIVED"]);
+const APPROVED_STATUSES = new Set(["APPROVED", "ISSUED", "EXPIRING_SOON"]);
+const AUTHORITY_ROW_STATUSES = new Set(["SUBMITTED", "UNDER_REVIEW", "RESUBMITTED"]);
+
+const TONE_RANK = { attention: 0, ready: 1, authority: 2, prep: 3, complete: 4, closed: 5 };
+
+export const ATTENTION_PREVIEW_LIMIT = 6;
+
+export const PROJECT_FILTERS = [
+  { id: "all", label: "All" },
+  { id: "attention", label: "Needs attention" },
+  { id: "ready", label: "Ready" },
+  { id: "authority", label: "With authority" },
+  { id: "prep", label: "In prep" },
+  { id: "complete", label: "Complete" },
+];
+
+export const PROJECT_COUNT_COLUMNS = [
+  { key: "required", label: "Required", variant: "secondary", hint: "Open permits, excluding closed" },
+  { key: "prep", label: "In prep", variant: "warning", hint: "Not started, pack in preparation, or renewal in progress" },
+  { key: "ready", label: "Ready", variant: "info", hint: "Ready to submit" },
+  { key: "submitted", label: "Submitted", variant: "info", hint: "Submitted, under review, resubmitted, or comments received" },
+  { key: "approved", label: "Approved", variant: "success", hint: "Approved, issued, or expiring soon" },
+  { key: "rejected", label: "Rejected", variant: "danger", hint: "Rejected" },
+];
+
+const PROJECT_TONE_META = {
+  attention: {
+    label: "Attention",
+    badge: "danger",
+    row: "border-l-[3px] border-l-destructive bg-destructive/5",
+  },
+  complete: {
+    label: "Complete",
+    badge: "success",
+    row: "border-l-[3px] border-l-success bg-success/5",
+  },
+  ready: {
+    label: "Ready",
+    badge: "info",
+    row: "border-l-[3px] border-l-info bg-info/5",
+  },
+  authority: {
+    label: "With authority",
+    badge: "warning",
+    row: "border-l-[3px] border-l-warning bg-warning/5",
+  },
+  prep: {
+    label: "In prep",
+    badge: "secondary",
+    row: "border-l-[3px] border-l-muted-foreground/40 bg-muted/40",
+  },
+  closed: {
+    label: "Closed",
+    badge: "secondary",
+    row: "border-l-[3px] border-l-muted-foreground/30 bg-muted/20",
+  },
+};
+
+function isExpiredCase(c) {
+  return c?.status === "EXPIRED" || (c?.daysToExpiry != null && c.daysToExpiry < 0);
+}
+
+function slaAttentionReason(days) {
+  if (days < 0) return "SLA overdue";
+  if (days === 0) return "SLA due today";
+  return `SLA due in ${days}d`;
+}
+
+function expiryAttentionReason(c) {
+  const days = c?.daysToExpiry;
+  if (days === 0) return "Expires today";
+  if (days != null) return `Expires in ${days}d`;
+  return "Expiring soon";
+}
+
+/** One entry per permit that needs a person, highest severity first. */
+export function portfolioAttentionItems(cases) {
+  const items = [];
+  for (const permit of Array.isArray(cases) ? cases : []) {
+    if (!permit || permit.status === "CLOSED") continue;
+    if (permit.status === "REJECTED") {
+      items.push({ permit, priority: 0, kind: "danger", reason: "Rejected" });
+      continue;
+    }
+    if (isExpiredCase(permit)) {
+      items.push({ permit, priority: 1, kind: "danger", reason: "Expired" });
+      continue;
+    }
+    if (permit.status === "COMMENTS_RECEIVED") {
+      items.push({ permit, priority: 2, kind: "warning", reason: "Comments received" });
+      continue;
+    }
+    if (permit.daysToSlaDue != null && permit.daysToSlaDue <= 7) {
+      items.push({ permit, priority: 3, kind: "warning", reason: slaAttentionReason(permit.daysToSlaDue) });
+      continue;
+    }
+    if (isExpiringCase(permit)) {
+      items.push({ permit, priority: 4, kind: "warning", reason: expiryAttentionReason(permit) });
+    }
+  }
+  items.sort((a, b) => a.priority - b.priority || permitLabel(a.permit).localeCompare(permitLabel(b.permit)));
+  return items;
+}
+
+function projectDisplayName(projectId, projectName) {
+  if (projectName) return projectName;
+  if (projectId != null) return `Project ${projectId}`;
+  return "Project";
+}
+
+/** Counts and row tone for one project's permits. First matching tone wins. */
+export function projectRollup(cases, meta = {}) {
+  const list = Array.isArray(cases) ? cases : [];
+  const counts = { required: 0, prep: 0, ready: 0, submitted: 0, approved: 0, rejected: 0 };
+  let rejected = false;
+  let expired = false;
+  let comments = false;
+  let authority = false;
+
+  for (const permit of list) {
+    const status = permit?.status;
+    if (status === "CLOSED") continue;
+    counts.required += 1;
+    if (PREP_STATUSES.has(status)) counts.prep += 1;
+    else if (status === "READY_TO_SUBMIT") counts.ready += 1;
+    else if (SUBMITTED_STATUSES.has(status)) counts.submitted += 1;
+    else if (APPROVED_STATUSES.has(status)) counts.approved += 1;
+    else if (status === "REJECTED") counts.rejected += 1;
+
+    if (status === "REJECTED") rejected = true;
+    if (isExpiredCase(permit)) expired = true;
+    if (status === "COMMENTS_RECEIVED") comments = true;
+    if (AUTHORITY_ROW_STATUSES.has(status)) authority = true;
+  }
+
+  const allClosed = list.length > 0 && counts.required === 0;
+  let tone = "prep";
+  if (allClosed) tone = "closed";
+  else if (rejected || expired || comments) tone = "attention";
+  else if (counts.required > 0 && counts.approved === counts.required) tone = "complete";
+  else if (counts.ready > 0) tone = "ready";
+  else if (authority) tone = "authority";
+
+  const style = PROJECT_TONE_META[tone];
+  return {
+    projectId: meta.projectId ?? null,
+    projectName: projectDisplayName(meta.projectId, meta.projectName),
+    counts,
+    tone,
+    label: style.label,
+    badgeVariant: style.badge,
+    rowClass: style.row,
+  };
+}
+
+/** One row per project, attention first and complete or closed last. */
+export function groupProjectRollups(cases) {
+  const groups = new Map();
+  for (const permit of Array.isArray(cases) ? cases : []) {
+    const projectId = permit?.projectId ?? null;
+    const key = projectId != null ? `id:${projectId}` : `name:${permit?.projectName || "Project"}`;
+    if (!groups.has(key)) {
+      groups.set(key, { projectId, projectName: permit?.projectName || "", cases: [] });
+    }
+    const group = groups.get(key);
+    if (permit?.projectName) group.projectName = permit.projectName;
+    group.cases.push(permit);
+  }
+
+  return [...groups.values()]
+    .map((group) => projectRollup(group.cases, group))
+    .sort((a, b) => {
+      const rank = (TONE_RANK[a.tone] ?? 9) - (TONE_RANK[b.tone] ?? 9);
+      if (rank !== 0) return rank;
+      return a.projectName.localeCompare(b.projectName);
+    });
+}
+
+export function summarizePortfolio(cases) {
+  const list = Array.isArray(cases) ? cases : [];
+  let ready = 0;
+  let withAuthority = 0;
+  let approved = 0;
+  let open = 0;
+  for (const permit of list) {
+    if (!permit || permit.status === "CLOSED") continue;
+    open += 1;
+    if (permit.status === "READY_TO_SUBMIT") ready += 1;
+    if (SUBMITTED_STATUSES.has(permit.status)) withAuthority += 1;
+    if (APPROVED_STATUSES.has(permit.status)) approved += 1;
+  }
+  const attention = portfolioAttentionItems(list);
+  return {
+    needsAttention: attention.length,
+    ready,
+    withAuthority,
+    approved,
+    open,
+    approvedShare: open ? Math.round((approved / open) * 100) : 0,
+    attention,
+    projects: groupProjectRollups(list),
+  };
 }

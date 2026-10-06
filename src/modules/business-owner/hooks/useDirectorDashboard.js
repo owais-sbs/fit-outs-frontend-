@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { STALE_TIMES } from "@/shared/api/queryClient";
 import { fetchAllProjects } from "@/modules/admin/api/projects.api";
 import { fetchStockBalances, fetchStockMovements } from "@/modules/admin/api/stock.api";
 import { fetchBoqInbox, fetchCompanyBoqPortfolio } from "@/modules/admin/api/boq.api";
@@ -50,26 +51,11 @@ function mapPortfolioBoqs(portfolioRows) {
 }
 
 export default function useDirectorDashboard() {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [data, setData] = useState({
-    projects: [],
-    stock: [],
-    movements: [],
-    inbox: [],
-    leads: [],
-    siteVisits: [],
-    projectBoqs: {},
-    allBoqs: [],
-    projectCommercials: {},
-    companyPnl: null,
-    billingByProject: {},
-  });
+  const queryClient = useQueryClient();
 
-  const load = useCallback(async (signal) => {
-    setLoading(true);
-    setError(null);
-    try {
+  const { data, isLoading: loading, error: queryError } = useQuery({
+    queryKey: ["directorDashboard"],
+    queryFn: async () => {
       const [projects, stock, inboxRaw, leads, siteVisits, movementsRes, companyPnl, boqPortfolio, billingSummary] =
         await Promise.all([
           fetchAllProjects(),
@@ -83,8 +69,6 @@ export default function useDirectorDashboard() {
           fetchCompanySummary().catch(() => []),
         ]);
 
-      if (signal?.aborted) return;
-
       const inbox = filterBoqInboxForRole(inboxRaw, ROLES.BUSINESS_OWNER);
       const movements = movementsRes?.content ?? (Array.isArray(movementsRes) ? movementsRes : []);
       const { projectBoqs, allBoqs, projectCommercials } = mapPortfolioBoqs(boqPortfolio);
@@ -96,48 +80,39 @@ export default function useDirectorDashboard() {
         }
       });
 
-      setData({
+      return {
         projects: asList(projects),
-        stock,
+        stock: asList(stock),
         movements,
         inbox,
-        leads,
-        siteVisits,
+        leads: asList(leads),
+        siteVisits: asList(siteVisits),
         projectBoqs,
         allBoqs,
         projectCommercials,
         companyPnl,
         billingByProject,
-      });
-    } catch (e) {
-      if (signal?.aborted) return;
-      setError(e.message || "Failed to load dashboard data");
-    } finally {
-      if (!signal?.aborted) {
-        setLoading(false);
-      }
-    }
-  }, []);
+      };
+    },
+    staleTime: STALE_TIMES.STATIC,
+  });
 
-  useEffect(() => {
-    const controller = new AbortController();
-    load(controller.signal);
-    return () => controller.abort();
-  }, [load]);
+  const error = queryError?.message || null;
+  const reload = () => queryClient.invalidateQueries({ queryKey: ["directorDashboard"] });
 
   const {
-    projects,
-    stock,
-    movements,
-    inbox,
-    leads,
-    siteVisits,
-    projectBoqs,
-    allBoqs,
+    projects = [],
+    stock = [],
+    movements = [],
+    inbox = [],
+    leads = [],
+    siteVisits = [],
+    projectBoqs = {},
+    allBoqs = [],
     projectCommercials = {},
-    companyPnl,
+    companyPnl = null,
     billingByProject = {},
-  } = data;
+  } = data ?? {};
 
   const lowStock = stock.filter((s) => s.lowStock);
   const totalStockValue = stock.reduce((s, b) => s + Number(b.stockValue || 0), 0);
@@ -183,7 +158,7 @@ export default function useDirectorDashboard() {
   return {
     loading,
     error,
-    reload: () => load(),
+    reload,
     kpis,
     portfolio,
     stock,
