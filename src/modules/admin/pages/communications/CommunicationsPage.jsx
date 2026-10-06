@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { MessageSquare, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ import {
   markChannelRead,
 } from "../../api/communications.api";
 import ChannelChatPanel from "./ChannelChatPanel";
-import { ROUTES } from "@/shared/constants/routes";
+import { ROUTES, projectDetailPath } from "@/shared/constants/routes";
 
 const STAFF_FILTERS = [
   { id: "ALL", label: "All" },
@@ -24,6 +24,7 @@ const STAFF_FILTERS = [
   { id: "CLIENT", label: "Clients" },
   { id: "GROUP", label: "Groups" },
   { id: "PROJECT_ROOM", label: "Projects" },
+  { id: "PROJECT_GROUP", label: "Project groups" },
   { id: "EMAIL", label: "Email" },
 ];
 
@@ -31,11 +32,22 @@ const CLIENT_FILTERS = [
   { id: "ALL", label: "All" },
   { id: "CLIENT", label: "Client" },
   { id: "PROJECT_ROOM", label: "Projects" },
+  { id: "PROJECT_GROUP", label: "Project groups" },
   { id: "EMAIL", label: "Email" },
 ];
 
+function projectGroupPath(pathname, projectId) {
+  const id = String(projectId);
+  if (pathname.startsWith("/client")) return ROUTES.CLIENT.PROJECT_DETAIL.replace(":projectId", id);
+  if (pathname.startsWith("/site-engineer")) return ROUTES.SITE_ENGINEER.PROJECT_DETAIL.replace(":projectId", id);
+  if (pathname.startsWith("/subcontractor")) return ROUTES.SUBCONTRACTOR.PROJECT_DETAIL.replace(":projectId", id);
+  if (pathname.startsWith("/finance")) return ROUTES.FINANCE.PROJECT_DETAIL.replace(":projectId", id);
+  return projectDetailPath(pathname, id);
+}
+
 export default function CommunicationsPage({ clientMode = false }) {
   const { user } = useAuth();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const deepLinkChannel = searchParams.get("channel");
   const accountId = user?.id != null ? Number(user.id) : null;
@@ -130,6 +142,9 @@ export default function CommunicationsPage({ clientMode = false }) {
 
   const projectLink = useMemo(() => {
     if (!selected?.projectId) return null;
+    if (selected.channelType === "PROJECT_GROUP") {
+      return projectGroupPath(location.pathname, selected.projectId);
+    }
     if (clientMode) {
       if (selected.roomTaskId) {
         return ROUTES.CLIENT.PROJECT_ROOM_TASK.replace(":projectId", selected.projectId).replace(
@@ -158,7 +173,7 @@ export default function CommunicationsPage({ clientMode = false }) {
       );
     }
     return null;
-  }, [selected, clientMode]);
+  }, [selected, clientMode, location.pathname]);
 
   return (
     <div className="page-enter flex h-[calc(100vh-4rem)] flex-col gap-4 p-4 md:p-6">

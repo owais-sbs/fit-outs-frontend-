@@ -12,14 +12,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import ChannelChatPanel from "@/modules/admin/pages/communications/ChannelChatPanel";
-import {
-  ensureProjectClientChannel,
-  fetchChannelMessages,
-  markChannelRead,
-} from "@/modules/admin/api/communications.api";
-import { useCommunicationsSocket } from "@/shared/hooks/useCommunicationsSocket";
-import { useAuth } from "@/shared/context/auth-context";
 import { fetchProjectClientContacts } from "@/modules/site-engineer/api/projects.api";
 import {
   createCommunicationLog,
@@ -40,11 +32,7 @@ function fmtDateTime(d) {
 }
 
 export default function ProjectClientCommsPanel({ projectId }) {
-  const { user } = useAuth();
-  const accountId = user?.id != null ? Number(user.id) : null;
   const [contacts, setContacts] = useState([]);
-  const [channel, setChannel] = useState(null);
-  const [messages, setMessages] = useState([]);
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -57,17 +45,6 @@ export default function ProjectClientCommsPanel({ projectId }) {
     agreedChanges: "",
     occurredAt: "",
   });
-
-  const loadMessages = useCallback(async (channelUuid) => {
-    if (!channelUuid) return;
-    try {
-      const msgs = await fetchChannelMessages(channelUuid);
-      setMessages(msgs);
-      await markChannelRead(channelUuid).catch(() => {});
-    } catch {
-      setMessages([]);
-    }
-  }, []);
 
   const loadLogs = useCallback(() => {
     if (!projectId) return;
@@ -83,17 +60,12 @@ export default function ProjectClientCommsPanel({ projectId }) {
     setError("");
     Promise.all([
       fetchProjectClientContacts(projectId).catch(() => []),
-      ensureProjectClientChannel(projectId),
       fetchProjectCommunicationLogs(projectId).catch(() => []),
     ])
-      .then(async ([contactList, ch, logList]) => {
+      .then(([contactList, logList]) => {
         if (cancelled) return;
         setContacts(Array.isArray(contactList) ? contactList : []);
-        setChannel(ch || null);
         setLogs(Array.isArray(logList) ? logList : []);
-        if (ch?.channelUuid) {
-          await loadMessages(ch.channelUuid);
-        }
       })
       .catch((e) => {
         if (!cancelled) {
@@ -106,19 +78,7 @@ export default function ProjectClientCommsPanel({ projectId }) {
     return () => {
       cancelled = true;
     };
-  }, [projectId, loadMessages]);
-
-  useCommunicationsSocket({
-    accountId,
-    channelUuid: channel?.channelUuid || null,
-    onMessage: (msg) => {
-      if (!msg) return;
-      setMessages((prev) => {
-        if (prev.some((m) => m.uuid === msg.uuid)) return prev;
-        return [...prev, msg];
-      });
-    },
-  });
+  }, [projectId]);
 
   const submitLog = async () => {
     if (!projectId || !form.summary.trim()) {
@@ -135,7 +95,7 @@ export default function ProjectClientCommsPanel({ projectId }) {
         clientRequests: form.clientRequests.trim() || null,
         agreedChanges: form.agreedChanges.trim() || null,
         occurredAt: form.occurredAt ? new Date(form.occurredAt).toISOString() : null,
-        relatedChannelId: channel?.channelUuid || null,
+        relatedChannelId: null,
       });
       setForm({
         channel: "MEETING",
@@ -197,35 +157,6 @@ export default function ProjectClientCommsPanel({ projectId }) {
               </div>
             ))}
           </div>
-        )}
-      </Surface>
-
-      <Surface className="p-5 space-y-3">
-        <div>
-          <h2 className="text-sm font-semibold tracking-tight">
-            {channel?.name || "Client chat"}
-          </h2>
-          <p className="text-xs text-muted-foreground">
-            Two-way chat with this project&apos;s client
-          </p>
-        </div>
-        {channel?.channelUuid ? (
-          <ChannelChatPanel
-            channelUuid={channel.channelUuid}
-            channelType={channel.channelType || "CLIENT"}
-            messages={messages}
-            projectId={Number(projectId)}
-            onIncoming={(msg) => {
-              if (!msg) return;
-              setMessages((prev) => {
-                if (prev.some((m) => m.uuid === msg.uuid)) return prev;
-                return [...prev, msg];
-              });
-            }}
-            onSent={() => loadMessages(channel.channelUuid)}
-          />
-        ) : (
-          <p className="text-sm text-muted-foreground">Unable to open chat channel.</p>
         )}
       </Surface>
 

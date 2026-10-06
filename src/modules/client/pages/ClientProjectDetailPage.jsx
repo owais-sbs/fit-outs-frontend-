@@ -14,6 +14,7 @@ import { fetchIssuedEstimatesForClient } from "@/modules/admin/api/site-visits.a
 import { ROUTES } from "@/shared/constants/routes";
 import { formatAed } from "@/shared/utils/currency";
 import ClientProjectRoomsSection from "./ClientProjectRoomsSection";
+import ProjectChatSection from "@/modules/admin/pages/communications/ProjectChatSection";
 import ProjectLifecycleBanner from "@/modules/admin/components/projects/ProjectLifecycleBanner";
 
 function InfoItem({ label, value, mono = false }) {
@@ -152,6 +153,8 @@ export default function ClientProjectDetailPage() {
       <ProjectLifecycleBanner commercialStage={project.commercialStage} />
 
       <ClientProjectRoomsSection projectId={projectId} projectName={project.projectName} />
+
+      <ProjectChatSection projectId={projectId} />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile
