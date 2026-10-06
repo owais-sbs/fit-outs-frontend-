@@ -170,7 +170,6 @@ import SiteEngineerTasksPage from "./modules/site-engineer/pages/SiteEngineerTas
 import SiteEngineerSnagsPage from "./modules/site-engineer/pages/SiteEngineerSnagsPage";
 import SiteEngineerCommunicationsPage from "./modules/site-engineer/pages/SiteEngineerCommunicationsPage";
 import ProjectSchedulePage from "./modules/admin/pages/schedule/ProjectSchedulePage";
-import ScheduleHubPage from "./modules/admin/pages/schedule/ScheduleHubPage";
 import ScheduleTemplateLibraryPage from "./modules/admin/pages/schedule/ScheduleTemplateLibraryPage";
 import MaterialPlanPage from "./modules/admin/pages/planning/MaterialPlanPage";
 import ResourcePlanPage from "./modules/admin/pages/planning/ResourcePlanPage";
@@ -358,7 +357,7 @@ function App() {
               <Route path="subcontractors/vendors" element={<VendorListPage />} />
               <Route path="validation/inbox" element={<ValidationInboxPage />} />
               <Route path="quality-templates" element={<QualityTemplatesPage />} />
-              <Route path="schedule" element={<ScheduleHubPage />} />
+              <Route path="schedule" element={<Navigate to={ROUTES.ADMIN.PROJECTS} replace />} />
               <Route path="schedule/templates" element={<ScheduleTemplateLibraryPage />} />
               <Route path="approvals" element={<ApprovalsDashboardPage />} />
               <Route path="approvals/deposits" element={<DepositLedgerPage />} />
@@ -486,7 +485,7 @@ function App() {
               <Route path="validation/inbox" element={<ValidationInboxPage />} />
               <Route path="schedule/duration-extensions" element={<DurationExtensionInboxPage />} />
               <Route path="quality-templates" element={<QualityTemplatesPage />} />
-              <Route path="schedule" element={<ScheduleHubPage />} />
+              <Route path="schedule" element={<Navigate to={ROUTES.PROJECT_MANAGER.PROJECTS} replace />} />
               <Route path="schedule/templates" element={<ScheduleTemplateLibraryPage />} />
               <Route path="approvals" element={<ApprovalsDashboardPage />} />
               <Route path="approvals/deposits" element={<DepositLedgerPage />} />

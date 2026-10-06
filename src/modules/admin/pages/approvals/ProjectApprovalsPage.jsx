@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useLocation, useParams } from "react-router-dom";
+import { Link, useLocation, useParams, useSearchParams } from "react-router-dom";
 import { AlertTriangle, ChevronRight, FileText, Loader2, Plus, Search, Sparkles, Trash2 } from "lucide-react";
 import { PageShell, PageHeader } from "@/components/layout/PageShell";
 import ProjectPageFrame from "@/components/layout/ProjectPageFrame";
@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { projectDetailPath } from "@/shared/constants/routes";
+import { projectDetailPath, ROUTES } from "@/shared/constants/routes";
 import {
   addProjectApprovalCase,
   deleteApprovalCase,
@@ -51,11 +51,13 @@ function statusAccent(status) {
 export default function ProjectApprovalsPage() {
   const { projectId } = useParams();
   const route = useLocation();
+  const [searchParams] = useSearchParams();
+  const caseFromUrl = searchParams.get("case");
   const detailPath = projectDetailPath(route.pathname, projectId);
   const persistReady = useRef(false);
 
   const [cases, setCases] = useState([]);
-  const [selected, setSelected] = useState(null);
+  const [selected, setSelected] = useState(caseFromUrl);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -126,6 +128,10 @@ export default function ProjectApprovalsPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (caseFromUrl) setSelected(caseFromUrl);
+  }, [projectId, caseFromUrl]);
 
   const resolvePayload = useCallback(() => ({
     ...location,
@@ -255,6 +261,13 @@ export default function ProjectApprovalsPage() {
       <PageHeader
         title="Approvals"
         subtitle="Authority, community and building permits for this project."
+        actions={
+          <Button asChild variant="outline" size="sm">
+            <Link to={`${ROUTES.ADMIN.APPROVALS_CONFIG}?section=documents`}>
+              Manage documents
+            </Link>
+          </Button>
+        }
       />
 
       <ProjectLifecycleBanner commercialStage={commercialStage} />

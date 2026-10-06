@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { ChevronDown, ChevronRight, Pencil, Search, Trash2 } from "lucide-react";
 import ConfigurationLayout from "../../components/shared/configuration/ConfigurationLayout";
 import PageHeader from "../../components/shared/configuration/PageHeader";
 import MasterFormModal from "../../components/shared/configuration/MasterFormModal";
 import DeleteConfirmationModal from "../../components/shared/configuration/DeleteConfirmationModal";
 import EmptyState from "../../components/shared/configuration/EmptyState";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,17 +44,20 @@ import {
   updateProjectNature,
   updateCompanyRegistration,
 } from "../../api/approvals-config.api";
+import DocumentMasterWorkspace from "./DocumentMasterWorkspace";
 
 const TABS = [
+  { id: "documents", label: "Documents" },
   { id: "authorities", label: "Authorities" },
   { id: "permits", label: "Permit types" },
-  { id: "documents", label: "Documents" },
   { id: "scopeTags", label: "Scope tags" },
   { id: "propertyTypes", label: "Property types" },
   { id: "projectNatures", label: "Project nature" },
   { id: "registrations", label: "Company registrations" },
   { id: "packs", label: "Jurisdiction packs" },
 ];
+
+const SECTION_IDS = new Set(TABS.map((item) => item.id));
 
 const TRIGGER_TYPES = [
   { value: "SCOPE_TAG", label: "Scope tag" },
@@ -107,7 +111,9 @@ function matches(term, ...values) {
 }
 
 export default function ApprovalsConfigurationPage() {
-  const [tab, setTab] = useState("authorities");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedSection = searchParams.get("section");
+  const [tab, setTab] = useState(SECTION_IDS.has(requestedSection) ? requestedSection : "documents");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
@@ -162,6 +168,17 @@ export default function ApprovalsConfigurationPage() {
     load();
   }, []);
 
+  useEffect(() => {
+    const section = searchParams.get("section");
+    if (SECTION_IDS.has(section)) setTab(section);
+  }, [searchParams]);
+
+  const selectSection = (id) => {
+    setTab(id);
+    setSearch("");
+    setSearchParams({ section: id }, { replace: true });
+  };
+
   const filteredAuthorities = useMemo(
     () => authorities.filter((item) => matches(search, item.code, item.name, item.type, item.emirate)),
     [authorities, search]
@@ -169,10 +186,6 @@ export default function ApprovalsConfigurationPage() {
   const filteredPermits = useMemo(
     () => permits.filter((item) => matches(search, item.permitCode, item.name, item.issuingBody)),
     [permits, search]
-  );
-  const filteredDocuments = useMemo(
-    () => documents.filter((item) => matches(search, item.docCode, item.name, item.category)),
-    [documents, search]
   );
   const filteredScopeTags = useMemo(
     () => scopeTags.filter((item) => matches(search, item.code, item.name, item.description)),
@@ -419,22 +432,33 @@ export default function ApprovalsConfigurationPage() {
       <PageHeader
         title="Approvals Config"
         description="Authority, permit, document, classifier and company-registration libraries used when generating approval cases."
-        actionLabel={actionLabel}
+        actionLabel={tab === "documents" ? null : actionLabel}
         onAction={openCreate}
       />
 
-      <Tabs value={tab} onValueChange={(value) => { setTab(value); setSearch(""); }}>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <TabsList className="flex-wrap h-auto">
-            {TABS.map((item) => (
-              <TabsTrigger key={item.id} value={item.id}>{item.label}</TabsTrigger>
-            ))}
-          </TabsList>
-          <div className="relative w-full sm:w-72">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input className="pl-9 h-9" placeholder="Search" value={search} onChange={(e) => setSearch(e.target.value)} />
-          </div>
+      <div className="flex min-h-0 items-start gap-6">
+        <nav className="sticky top-4 flex w-52 shrink-0 flex-col gap-1">
+          {TABS.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => selectSection(item.id)}
+              className={`rounded-lg px-3 py-2 text-left text-sm font-medium ${
+                tab === item.id ? "bg-foreground text-background" : "text-muted-foreground hover:bg-secondary"
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </nav>
+        <div className="min-w-0 flex-1">
+      <Tabs value={tab} onValueChange={selectSection}>
+        {tab !== "documents" && (
+        <div className="relative mb-4 w-full sm:w-72">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input className="pl-9 h-9" placeholder="Search" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
+        )}
 
         <TabsContent value="authorities" className="mt-4">
           {loading ? <Skeleton className="h-48 w-full" /> : filteredAuthorities.length === 0 ? (
@@ -570,41 +594,14 @@ export default function ApprovalsConfigurationPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="documents" className="mt-4">
-          {loading ? <Skeleton className="h-48 w-full" /> : filteredDocuments.length === 0 ? (
-            <EmptyState title="No document types" description="Submission checklist items required by authorities." />
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Code</TableHead>
-                  <TableHead>Document</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Owner</TableHead>
-                  <TableHead>Expiry</TableHead>
-                  <TableHead />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredDocuments.map((row) => (
-                  <TableRow key={row.id}>
-                    <TableCell className="font-mono text-xs">{row.docCode}</TableCell>
-                    <TableCell>
-                      <div className="font-medium">{row.name}</div>
-                      <p className="text-xs text-muted-foreground line-clamp-2">{row.typicallyRequiredFor}</p>
-                    </TableCell>
-                    <TableCell>{row.category}</TableCell>
-                    <TableCell className="text-xs">{row.sourceOwner}</TableCell>
-                    <TableCell>{row.expiryTracked ? "Tracked" : "No"}</TableCell>
-                    <TableCell className="text-right space-x-1">
-                      <Button size="icon" variant="ghost" onClick={() => openEdit(row)}><Pencil className="h-4 w-4" /></Button>
-                      <Button size="icon" variant="ghost" onClick={() => setDeleteTarget(row)}><Trash2 className="h-4 w-4" /></Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+        <TabsContent value="documents" className="mt-0">
+          <DocumentMasterWorkspace
+            documents={documents}
+            loading={loading}
+            onChanged={load}
+            onDelete={(row) => setDeleteTarget(row)}
+            showToast={showToast}
+          />
         </TabsContent>
 
         <TabsContent value="scopeTags" className="mt-4">
@@ -799,6 +796,8 @@ export default function ApprovalsConfigurationPage() {
           })}
         </TabsContent>
       </Tabs>
+        </div>
+      </div>
 
       <MasterFormModal
         isOpen={formOpen}

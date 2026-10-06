@@ -108,12 +108,10 @@ export default function ProjectSchedulePage() {
   const { commercialStage, archived } = useProjectLifecycle(projectId);
   const location = useLocation();
   const routes = portalRoutesFromPath(location.pathname);
-  const isPm = location.pathname.startsWith("/project-manager");
   const detailPath = (routes.PROJECT_DETAIL || ROUTES.ADMIN.PROJECT_DETAIL).replace(
     ":projectId",
     projectId
   );
-  const scheduleHubPath = routes.SCHEDULE_HUB || routes.PROJECTS || ROUTES.ADMIN.SCHEDULE_HUB;
   const roomTaskPath = (taskId) =>
     (routes.PROJECT_ROOM_TASK || ROUTES.ADMIN.PROJECT_ROOM_TASK)
       .replace(":projectId", projectId)
@@ -507,8 +505,8 @@ export default function ProjectSchedulePage() {
       <ProjectPathLine
         projectId={projectId}
         initialName={schedule?.projectName || ""}
-        backTo={scheduleHubPath}
-        backTitle={isPm || routes.SCHEDULE_HUB ? "All schedules" : "All projects"}
+        backTo={detailPath}
+        backTitle="Project"
       />
       <PageHeader
         title="Schedule workspace"

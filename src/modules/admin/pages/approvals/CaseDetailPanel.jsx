@@ -37,6 +37,11 @@ const EDITABLE_AUTHORITY_STATUSES = new Set(["NOT_STARTED", "PACK_IN_PREPARATION
 
 const CHECKLIST_ACCEPT = ".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,.xls,.xlsx,.zip";
 
+function isCompanyHeldCategory(category) {
+  const value = String(category || "").trim().toLowerCase();
+  return value === "company" || value === "insurance";
+}
+
 const CHECKLIST_TONES = {
   ATTACHED: "bg-emerald-500/15 text-emerald-800",
   MISSING: "bg-red-500/15 text-red-800",
@@ -484,14 +489,21 @@ export default function CaseDetailPanel({ caseUuid, summary, onChanged, readOnly
         </CardHeader>
         <CardContent className="p-0">
           <div className="divide-y divide-border/40">
-            {detail.checklist.map((item) => (
+            {detail.checklist.map((item) => {
+              const fromRegister = isCompanyHeldCategory(item.category)
+                && item.source === "AUTO_COLLECTED"
+                && !!item.filePath;
+              return (
               <div key={item.uuid} className="flex flex-wrap items-center gap-2 px-4 py-2.5">
                 <span className="font-mono text-xs text-muted-foreground">{item.documentTypeCode}</span>
                 <span className="text-sm">{item.documentTypeName}</span>
                 <Badge className={CHECKLIST_TONES[item.status] || CHECKLIST_TONES.MISSING}>
                   {item.status.replace(/_/g, " ").toLowerCase()}
                 </Badge>
-                {item.source === "AUTO_COLLECTED" && (
+                {fromRegister && (
+                  <span className="text-[11px] text-muted-foreground">From company register</span>
+                )}
+                {item.source === "AUTO_COLLECTED" && !fromRegister && (
                   <span className="text-[11px] text-muted-foreground">collected automatically</span>
                 )}
                 {item.expiryDate && (
@@ -505,6 +517,16 @@ export default function CaseDetailPanel({ caseUuid, summary, onChanged, readOnly
                   </span>
                 )}
                 <div className="ml-auto flex w-full flex-wrap items-end gap-2 sm:w-auto sm:max-w-md">
+                  {fromRegister ? (
+                    <a
+                      className="truncate text-xs text-foreground underline-offset-2 hover:underline"
+                      href={attachmentHref(item.filePath)}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {attachmentLabel(item.filePath)}
+                    </a>
+                  ) : (
                   <ChecklistDocDropzone
                     disabled={readOnly}
                     busy={busy}
@@ -518,6 +540,8 @@ export default function CaseDetailPanel({ caseUuid, summary, onChanged, readOnly
                       );
                     }}
                   />
+                  )}
+                  {!fromRegister && (
                   <div className="w-[9.5rem] shrink-0">
                     <Label className="text-[10px] text-muted-foreground">Valid until</Label>
                     <Input
@@ -538,6 +562,7 @@ export default function CaseDetailPanel({ caseUuid, summary, onChanged, readOnly
                       }}
                     />
                   </div>
+                  )}
                   {item.blocking && (
                     <Button
                       size="sm"
@@ -555,7 +580,8 @@ export default function CaseDetailPanel({ caseUuid, summary, onChanged, readOnly
                   )}
                 </div>
               </div>
-            ))}
+              );
+            })}
             {!detail.checklist.length && (
               <p className="px-4 py-6 text-sm text-muted-foreground">No checklist items on this permit.</p>
             )}

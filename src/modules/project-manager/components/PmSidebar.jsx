@@ -88,30 +88,32 @@ const GROUPS = [
     ],
   },
   {
+    label: "Site",
+    items: [
+      { type: "link", label: "Site Visits", href: ROUTES.PROJECT_MANAGER.SITE_VISITS, icon: MapPin },
+    ],
+  },
+  {
+    label: "Estimate",
+    items: [
+      { type: "link", label: "Credit notes", href: ROUTES.PROJECT_MANAGER.CREDIT_NOTES, icon: Stamp },
+    ],
+  },
+  {
     label: "Delivery",
     items: [
       { type: "link", label: "Projects", href: ROUTES.PROJECT_MANAGER.PROJECTS, icon: Briefcase },
-      { type: "link", label: "Schedule", href: ROUTES.PROJECT_MANAGER.SCHEDULE_HUB, icon: GanttChart },
       { type: "submenu", label: "Inbox", icon: Inbox, children: INBOX_SUB_ITEMS },
       { type: "submenu", label: "Templates", icon: ClipboardList, children: TEMPLATES_SUB_ITEMS },
-      { type: "link", label: "Approvals", href: ROUTES.PROJECT_MANAGER.APPROVALS_DASHBOARD, icon: Stamp },
+      { type: "link", label: "Approvals & Permits", href: ROUTES.PROJECT_MANAGER.APPROVALS_DASHBOARD, icon: Stamp },
       { type: "link", label: "Duration extensions", href: ROUTES.PROJECT_MANAGER.DURATION_EXTENSION_INBOX, icon: Timer },
       { type: "link", label: "Communications", href: ROUTES.PROJECT_MANAGER.COMMUNICATIONS, icon: Mail },
       { type: "link", label: "SC vendors", href: ROUTES.PROJECT_MANAGER.VENDORS, icon: HardHat },
     ],
   },
   {
-    label: "Commercial",
+    label: "Team",
     items: [
-      { type: "link", label: "BOQ Inbox", href: ROUTES.PROJECT_MANAGER.BOQ_INBOX, icon: Inbox },
-      { type: "link", label: "Billing milestone approval", href: ROUTES.PROJECT_MANAGER.BILLING_MILESTONE_INBOX, icon: Stamp },
-      { type: "link", label: "Credit notes", href: ROUTES.PROJECT_MANAGER.CREDIT_NOTES, icon: Stamp },
-    ],
-  },
-  {
-    label: "Field",
-    items: [
-      { type: "link", label: "Site Visits", href: ROUTES.PROJECT_MANAGER.SITE_VISITS, icon: MapPin },
       { type: "link", label: "Terms & Conditions", href: ROUTES.PROJECT_MANAGER.TERMS, icon: ClipboardList },
     ],
   },
@@ -120,9 +122,6 @@ const GROUPS = [
 function isActivePath(pathname, href) {
   if (pathname === href) return true;
   if (href === ROUTES.PROJECT_MANAGER.DASHBOARD) return false;
-  if (href === ROUTES.PROJECT_MANAGER.SCHEDULE_HUB) {
-    return pathname === href || /\/projects\/[^/]+\/schedule\/?$/.test(pathname);
-  }
   return pathname.startsWith(`${href}/`);
 }
 

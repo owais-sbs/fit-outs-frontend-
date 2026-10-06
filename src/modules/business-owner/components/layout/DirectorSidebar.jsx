@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Inbox, Briefcase, FileText, Warehouse,
-  Users, BarChart3, ChevronRight, MapPin, UserSquare2,
+  Users, ChevronRight, MapPin, UserSquare2, UserCheck,
   CalendarRange, Package, ClipboardList, PenTool, Settings,
   Grid, Wrench, ArrowDownToLine, ArrowUpFromLine, History, CircleDollarSign,
+  PieChart, Mail, CheckSquare, CheckCircle, GitBranch, GanttChart,
+  ImagePlus, Stamp, ShieldCheck, HardHat,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup,
@@ -20,50 +22,107 @@ import { useAuth } from "@/shared/context/auth-context";
 import { SidebarBrand } from "@/components/brand/BrandMark";
 import { fetchBoqInbox } from "@/modules/admin/api/boq.api";
 
-const COMMAND_CENTER = [
-  { label: "Dashboard", href: ROUTES.BUSINESS_OWNER.DASHBOARD, icon: LayoutDashboard },
-  { label: "BOQ Inbox", href: ROUTES.BUSINESS_OWNER.BOQ_INBOX, icon: Inbox, badge: true },
+const DESIGN_OVERVIEW_SUB_ITEMS = [
+  { label: "Design Requests", href: "/admin/design-qas/requests", icon: FileText },
+  { label: "Design Options", href: "/admin/design-qas/options", icon: Grid },
+  { label: "Approvals", href: "/admin/design-qas/approvals", icon: CheckCircle },
+];
+
+const INBOX_SUB_ITEMS = [
+  { label: "Validation Inbox", href: ROUTES.ADMIN.VALIDATION_INBOX, icon: CheckSquare },
+  { label: "Variations inbox", href: ROUTES.BUSINESS_OWNER.VARIATIONS_INBOX, icon: GitBranch },
   { label: "Billing milestone approval", href: ROUTES.BUSINESS_OWNER.BILLING_MILESTONE_INBOX, icon: FileText },
-  { label: "Variations inbox", href: ROUTES.BUSINESS_OWNER.VARIATIONS_INBOX, icon: ClipboardList },
-  { label: "Commercial matrices", href: ROUTES.BUSINESS_OWNER.COMMERCIAL_MATRICES, icon: Settings },
-  { label: "Credit notes", href: ROUTES.BUSINESS_OWNER.CREDIT_NOTES, icon: FileText },
 ];
 
-const PORTFOLIO = [
-  { label: "Projects", href: ROUTES.BUSINESS_OWNER.PROJECTS, icon: Briefcase },
-  { label: "Commercial (BOQ)", href: ROUTES.BUSINESS_OWNER.COMMERCIAL, icon: FileText },
-  { label: "Procurement", href: ROUTES.BUSINESS_OWNER.PROCUREMENT, icon: Warehouse },
+const TEMPLATES_SUB_ITEMS = [
+  { label: "Schedule templates", href: ROUTES.ADMIN.SCHEDULE_TEMPLATES, icon: GanttChart },
+  { label: "Quality templates", href: ROUTES.ADMIN.QUALITY_TEMPLATES, icon: ClipboardList },
 ];
 
-const INSIGHTS = [
-  { label: "CRM & Pipeline", href: ROUTES.BUSINESS_OWNER.CRM, icon: Users },
-  { label: "Finance / P&L", href: ROUTES.BUSINESS_OWNER.FINANCE, icon: CircleDollarSign },
-  { label: "Reports", href: ROUTES.BUSINESS_OWNER.DASHBOARD, icon: BarChart3 },
-];
-
-const OPERATIONS = [
-  { label: "Projects", href: ROUTES.ADMIN.PROJECTS, icon: Briefcase },
-  { label: "QAS / BOQ", href: ROUTES.ADMIN.QAS, icon: ClipboardList },
-  { label: "Materials", href: ROUTES.ADMIN.MATERIAL_CONFIG, icon: Package },
-  { label: "Stock", href: ROUTES.ADMIN.PROCUREMENT_STOCK, icon: Warehouse },
-  { label: "Leads", href: ROUTES.ADMIN.LEADS_LIST, icon: Users },
-  { label: "Clients", href: ROUTES.ADMIN.CLIENTS, icon: Users },
-  { label: "Employees", href: ROUTES.ADMIN.EMPLOYEES, icon: UserSquare2 },
-  { label: "Calendar", href: ROUTES.ADMIN.CALENDAR, icon: CalendarRange },
-  { label: "Site Visits", href: ROUTES.ADMIN.SITE_VISITS, icon: MapPin },
-];
-
-const PROCUREMENT_OPS = [
+const PROCUREMENT_SUB_ITEMS = [
   { label: "Stock Dashboard", href: ROUTES.ADMIN.PROCUREMENT_STOCK, icon: Warehouse },
   { label: "Goods Receipt", href: ROUTES.ADMIN.PROCUREMENT_RECEIPT, icon: ArrowDownToLine },
   { label: "Stock Issue", href: ROUTES.ADMIN.PROCUREMENT_ISSUE, icon: ArrowUpFromLine },
   { label: "Movement History", href: ROUTES.ADMIN.PROCUREMENT_MOVEMENTS, icon: History },
 ];
 
-const PROJECT_CONFIG_OPS = [
+const PROJECT_CONFIG_SUB_ITEMS = [
   { label: "Room Configuration", href: ROUTES.ADMIN.ROOM_CONFIG, icon: Grid },
   { label: "Work Item Config", href: ROUTES.ADMIN.WORK_ITEM_CONFIG, icon: Wrench },
   { label: "Materials Master", href: ROUTES.ADMIN.MATERIAL_CONFIG, icon: Package },
+  { label: "Appendices", href: ROUTES.ADMIN.APPENDIX_CONFIG, icon: ImagePlus },
+  { label: "Cover letter", href: ROUTES.ADMIN.COVER_LETTER_CONFIG, icon: Stamp },
+  { label: "Approvals Config", href: ROUTES.ADMIN.APPROVALS_CONFIG, icon: ShieldCheck },
+  { label: "Commercial matrices", href: ROUTES.ADMIN.COMMERCIAL_MATRICES, icon: Stamp },
+  { label: "Credit notes", href: ROUTES.ADMIN.CREDIT_NOTES, icon: FileText },
+];
+
+const NAV_GROUPS = [
+  {
+    id: "overview",
+    label: "Overview",
+    items: [
+      { type: "link", label: "Dashboard", href: ROUTES.BUSINESS_OWNER.DASHBOARD, icon: LayoutDashboard },
+      { type: "link", label: "Finance / P&L", href: ROUTES.BUSINESS_OWNER.FINANCE, icon: CircleDollarSign },
+    ],
+  },
+  {
+    id: "sales",
+    label: "Sales",
+    items: [
+      { type: "link", label: "CRM & Pipeline", href: ROUTES.BUSINESS_OWNER.CRM, icon: Users },
+      { type: "link", label: "Leads", href: ROUTES.ADMIN.LEADS_LIST, icon: Users },
+      { type: "link", label: "Sources", href: ROUTES.ADMIN.LEAD_SOURCES, icon: PieChart },
+      { type: "link", label: "Clients", href: ROUTES.ADMIN.CLIENTS, icon: UserCheck },
+    ],
+  },
+  {
+    id: "site",
+    label: "Site",
+    items: [
+      { type: "link", label: "Site Visits", href: ROUTES.ADMIN.SITE_VISITS, icon: MapPin },
+      { type: "link", label: "Calendar", href: ROUTES.ADMIN.CALENDAR, icon: CalendarRange },
+    ],
+  },
+  {
+    id: "estimate",
+    label: "Estimate",
+    items: [
+      { type: "submenu", label: "Design Overview", icon: PenTool, children: DESIGN_OVERVIEW_SUB_ITEMS },
+      { type: "link", label: "QAS", href: ROUTES.ADMIN.QAS, icon: ClipboardList },
+      { type: "link", label: "BOQ Inbox", href: ROUTES.BUSINESS_OWNER.BOQ_INBOX, icon: Inbox, badge: true },
+      { type: "link", label: "Commercial (BOQ)", href: ROUTES.BUSINESS_OWNER.COMMERCIAL, icon: FileText },
+    ],
+  },
+  {
+    id: "delivery",
+    label: "Delivery",
+    items: [
+      { type: "link", label: "Projects", href: ROUTES.ADMIN.PROJECTS, icon: Briefcase },
+      { type: "submenu", label: "Inbox", icon: Inbox, children: INBOX_SUB_ITEMS },
+      { type: "submenu", label: "Templates", icon: ClipboardList, children: TEMPLATES_SUB_ITEMS },
+      { type: "link", label: "Approvals & Permits", href: ROUTES.ADMIN.APPROVALS_DASHBOARD, icon: Stamp },
+      { type: "link", label: "Communications", href: ROUTES.ADMIN.COMMUNICATIONS, icon: Mail },
+      { type: "link", label: "SC vendors", href: ROUTES.ADMIN.VENDORS, icon: HardHat },
+    ],
+  },
+  {
+    id: "supply",
+    label: "Supply",
+    items: [
+      { type: "submenu", label: "Procurement", icon: Warehouse, children: PROCUREMENT_SUB_ITEMS },
+      { type: "submenu", label: "Project Configuration", icon: Settings, children: PROJECT_CONFIG_SUB_ITEMS },
+    ],
+  },
+  {
+    id: "team",
+    label: "Team",
+    items: [
+      { type: "link", label: "Employees", href: ROUTES.ADMIN.EMPLOYEES, icon: UserSquare2 },
+      { type: "link", label: "Settings", href: ROUTES.ADMIN.SETTINGS, icon: Settings },
+      { type: "link", label: "Terms & Conditions", href: ROUTES.BUSINESS_OWNER.TERMS, icon: FileText },
+    ],
+  },
 ];
 
 function Submenu({ label, icon: Icon, items }) {
@@ -105,15 +164,15 @@ function Submenu({ label, icon: Icon, items }) {
 function NavItem({ item, pendingCount }) {
   const location = useLocation();
   const Icon = item.icon;
-  const isActive =
-    location.pathname === item.href ||
-    (item.href !== ROUTES.BUSINESS_OWNER.DASHBOARD && location.pathname.startsWith(`${item.href}/`)) ||
-    (item.href === ROUTES.BUSINESS_OWNER.DASHBOARD && location.pathname === item.href);
+  const isDashboard = item.href === ROUTES.BUSINESS_OWNER.DASHBOARD;
+  const isActive = isDashboard
+    ? location.pathname === item.href
+    : location.pathname === item.href || location.pathname.startsWith(`${item.href}/`);
 
   return (
     <SidebarMenuItem>
       <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
-        <NavLink to={item.href}>
+        <NavLink to={item.href} end={isDashboard}>
           <Icon className="h-4 w-4" />
           <span>{item.label}</span>
           {item.badge && pendingCount > 0 && (
@@ -137,21 +196,6 @@ export default function DirectorSidebar() {
       .catch(() => setPendingCount(0));
   }, [role]);
 
-  const renderGroup = (label, items) => (
-    <SidebarGroup key={label}>
-      <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/60">
-        {label}
-      </SidebarGroupLabel>
-      <SidebarGroupContent>
-        <SidebarMenu>
-          {items.map((item) => (
-            <NavItem key={item.href} item={item} pendingCount={pendingCount} />
-          ))}
-        </SidebarMenu>
-      </SidebarGroupContent>
-    </SidebarGroup>
-  );
-
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
@@ -169,33 +213,36 @@ export default function DirectorSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        {renderGroup("Command Center", COMMAND_CENTER)}
-        {renderGroup("Portfolio", PORTFOLIO)}
-        {renderGroup("Insights", INSIGHTS)}
-
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/60">
-            Operations
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {OPERATIONS.map((item) => (
-                <NavItem key={item.href} item={item} pendingCount={0} />
-              ))}
-              <Submenu label="Procurement" icon={Warehouse} items={PROCUREMENT_OPS} />
-              <Submenu label="Project Configuration" icon={Settings} items={PROJECT_CONFIG_OPS} />
-              <Submenu label="Design Overview" icon={PenTool} items={[
-                { label: "Design Requests", href: "/admin/design-qas/requests", icon: FileText },
-                { label: "Design Options", href: "/admin/design-qas/options", icon: Grid },
-                { label: "Approvals", href: "/admin/design-qas/approvals", icon: ClipboardList },
-              ]} />
-              <NavItem
-                item={{ label: "Terms & Conditions", href: ROUTES.BUSINESS_OWNER.TERMS, icon: FileText }}
-                pendingCount={0}
-              />
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {NAV_GROUPS.map((group) => (
+          <SidebarGroup key={group.id}>
+            <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/60">
+              {group.label}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {group.items.map((item) => {
+                  if (item.type === "submenu") {
+                    return (
+                      <Submenu
+                        key={item.label}
+                        label={item.label}
+                        icon={item.icon}
+                        items={item.children}
+                      />
+                    );
+                  }
+                  return (
+                    <NavItem
+                      key={item.href}
+                      item={item}
+                      pendingCount={pendingCount}
+                    />
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border p-4">
