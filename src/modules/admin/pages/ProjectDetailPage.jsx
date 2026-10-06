@@ -47,6 +47,7 @@ import BoqApprovalPipeline from "./boq/BoqApprovalPipeline";
 import { formatCurrency, formatAed } from "@/shared/utils/currency";
 import { splitProjectBoqs } from "./boq/boqDataUtils";
 import ProjectRoomsSection from "./roomcollab/ProjectRoomsSection";
+import ProjectChatSection from "./communications/ProjectChatSection";
 import FinalProjectPdfButton from "../components/projects/FinalProjectPdfButton";
 import ProjectTeamAssignmentSection from "./ProjectTeamAssignmentSection";
 import SiteEngineerTaskAssignSection from "./SiteEngineerTaskAssignSection";
@@ -659,7 +660,7 @@ export default function ProjectDetailPage() {
           />
         </div>
 
-        <Card className="h-[100px]">
+        <Card>
           <CardContent className="p-4 pt-6 md:p-6 md:pt-5">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm font-semibold">Execution Progress</p>
@@ -768,6 +769,8 @@ export default function ProjectDetailPage() {
         {!isFinance && (
           <ProjectRoomsSection projectId={projectId} projectName={project.projectName || project.name} />
         )}
+
+        <ProjectChatSection projectId={projectId} locked={archived} />
 
         {/* Main grid */}
         <div className="grid gap-6 lg:grid-cols-3">

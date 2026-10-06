@@ -25,6 +25,7 @@ export const DEMO_PORTAL_GROUPS = [
       { email: "sales@fitouts.demo", name: "Sales User", role: "Sales" },
       { email: "seniorqs@fitouts.demo", name: "Senior QS", role: "Senior QS" },
       { email: "siteengineer@fitouts.demo", name: "Site Engineer", role: "Site Engineer" },
+      { email: "taragif875@hiredify.com", name: "se", role: "Site Engineer" },
     ],
   },
   {

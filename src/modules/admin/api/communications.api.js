@@ -72,13 +72,41 @@ export const sendChannelMessage = (channelUuid, body) =>
 export const createCommunicationChannel = (payload) =>
   axiosInstance.post("/communications/channels", payload).then((r) => r.data?.data ?? r.data);
 
-export const ensureProjectClientChannel = (projectId) =>
-  axiosInstance
-    .post(`/projects/${projectId}/client-channel`)
-    .then((r) => normalizeInboxItem(r.data?.data ?? r.data));
-
 export const markChannelRead = (channelUuid) =>
   axiosInstance.patch(`/communications/channels/${channelUuid}/read`);
+
+export const fetchProjectChatCandidates = (projectId) =>
+  axiosInstance.get(`/projects/${projectId}/chat/candidates`).then((r) => {
+    const data = r.data?.data ?? r.data;
+    return Array.isArray(data) ? data : [];
+  });
+
+export const fetchProjectChatGroups = (projectId) =>
+  axiosInstance.get(`/projects/${projectId}/chat/groups`).then((r) => {
+    const data = r.data?.data ?? r.data;
+    return Array.isArray(data) ? data : [];
+  });
+
+export const fetchProjectDirectCandidates = (projectId) =>
+  axiosInstance.get(`/projects/${projectId}/chat/direct/candidates`).then((r) => {
+    const data = r.data?.data ?? r.data;
+    return Array.isArray(data) ? data : [];
+  });
+
+export const startProjectDirectChat = (projectId, accountId) =>
+  axiosInstance
+    .post(`/projects/${projectId}/chat/direct`, { accountId })
+    .then((r) => r.data?.data ?? r.data);
+
+export const createProjectChatGroup = (projectId, payload) =>
+  axiosInstance
+    .post(`/projects/${projectId}/chat/groups`, payload)
+    .then((r) => r.data?.data ?? r.data);
+
+export const updateProjectChatGroupMembers = (projectId, channelUuid, memberAccountIds) =>
+  axiosInstance
+    .put(`/projects/${projectId}/chat/groups/${channelUuid}/members`, { memberAccountIds })
+    .then((r) => r.data?.data ?? r.data);
 
 export const resolveCommunicationChannel = ({ projectRoomId, roomTaskId } = {}) =>
   axiosInstance

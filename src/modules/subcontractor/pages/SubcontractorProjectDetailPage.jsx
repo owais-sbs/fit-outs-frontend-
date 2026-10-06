@@ -12,6 +12,7 @@ import {
 } from "@/modules/admin/api/subcontractor.api";
 import { ROUTES } from "@/shared/constants/routes";
 import { SC_STATUS_BADGE, formatScStatus } from "../utils/subcontractor.utils";
+import ProjectChatSection from "@/modules/admin/pages/communications/ProjectChatSection";
 
 export default function SubcontractorProjectDetailPage() {
   const { projectId } = useParams();
@@ -264,6 +265,7 @@ export default function SubcontractorProjectDetailPage() {
             </div>
           )}
         </Surface>
+        <ProjectChatSection projectId={projectId} />
       </div>
     </PageShell>
   );
