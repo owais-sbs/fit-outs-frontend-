@@ -24,14 +24,12 @@ import { ROUTES } from "@/shared/constants/routes";
 import {
   createProjectRoom,
   createRoomTask,
-  fetchFinalReport,
   fetchProjectRooms,
   fetchRoomTasks,
   syncRoomsFromBoq,
 } from "../../api/room-collab.api";
-import { fetchPublishedProjectSchedule } from "../../api/schedule.api";
-import { fetchBillingMilestones } from "../../api/billing.api";
-import { downloadFinalApprovedPdf } from "./finalReportPdf";
+import { fetchFinalProjectReport } from "../../api/final-project-report.api";
+import { openFinalProjectReportPdf } from "./finalProjectReportPdf";
 import { ROOM_TASK_TYPES, formatTaskType } from "../../data/roomTaskTypes";
 
 const STATUS_VARIANT = {
@@ -42,7 +40,7 @@ const STATUS_VARIANT = {
   CLOSED: "secondary",
 };
 
-export default function ProjectRoomsSection({ projectId, projectName }) {
+export default function ProjectRoomsSection({ projectId }) {
   const [rooms, setRooms] = useState([]);
   const [selectedRoomId, setSelectedRoomId] = useState("");
   const [tasks, setTasks] = useState([]);
@@ -159,15 +157,8 @@ export default function ProjectRoomsSection({ projectId, projectName }) {
   const handleExportPdf = async () => {
     setExporting(true);
     try {
-      const [report, schedule, milestones] = await Promise.all([
-        fetchFinalReport(projectId),
-        fetchPublishedProjectSchedule(projectId).catch(() => null),
-        fetchBillingMilestones(projectId).catch(() => []),
-      ]);
-      await downloadFinalApprovedPdf(report, projectName, {
-        schedule,
-        milestones: Array.isArray(milestones) ? milestones : [],
-      });
+      const report = await fetchFinalProjectReport(projectId);
+      await openFinalProjectReportPdf(report);
     } catch (err) {
       setError(err.response?.data?.error || "PDF export failed");
     } finally {
