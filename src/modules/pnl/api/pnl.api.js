@@ -5,6 +5,15 @@ const unwrap = (r) => r.data?.data ?? r.data;
 /** PnL endpoints can run a full company recalc on refresh/export; allow longer than the global 15s. */
 const PNL_TIMEOUT_MS = 60000;
 
+function projectPnlParams({ yearMonth, from, to, refresh } = {}) {
+  return {
+    ...(yearMonth ? { yearMonth } : {}),
+    ...(from ? { from } : {}),
+    ...(to ? { to } : {}),
+    ...(refresh ? { refresh: true } : {}),
+  };
+}
+
 export const fetchCompanyPnl = (yearMonth, options = {}) => {
   const { refresh = false, signal } = options;
   return axiosInstance
@@ -19,13 +28,16 @@ export const fetchCompanyPnl = (yearMonth, options = {}) => {
     .then(unwrap);
 };
 
-export const fetchProjectPnl = (projectId, options = {}) =>
-  axiosInstance
+export const fetchProjectPnl = (projectId, options = {}) => {
+  const { yearMonth, from, to, signal } = options;
+  return axiosInstance
     .get(`/projects/${projectId}/pnl`, {
+      params: projectPnlParams({ yearMonth, from, to }),
       timeout: PNL_TIMEOUT_MS,
-      signal: options.signal,
+      signal,
     })
     .then(unwrap);
+};
 
 export const fetchOverheadRule = (options = {}) =>
   axiosInstance
@@ -46,9 +58,10 @@ export const exportCompanyPnl = async (format = "csv", yearMonth) => {
   return res.data;
 };
 
-export const exportProjectPnl = async (projectId, format = "csv") => {
+export const exportProjectPnl = async (projectId, format = "csv", options = {}) => {
+  const { yearMonth, from, to } = options;
   const res = await axiosInstance.get(`/projects/${projectId}/pnl/export`, {
-    params: { format },
+    params: { format, ...projectPnlParams({ yearMonth, from, to }) },
     responseType: "blob",
     timeout: PNL_TIMEOUT_MS,
   });

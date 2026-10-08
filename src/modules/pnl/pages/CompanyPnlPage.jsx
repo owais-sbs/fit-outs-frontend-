@@ -207,7 +207,9 @@ export default function CompanyPnlPage({
                       <TableCell className="text-right">
                         {projectPnlPath && (
                           <Button asChild size="sm" variant="outline">
-                            <Link to={projectPnlPath(row.projectId)}>Detail</Link>
+                            <Link to={`${projectPnlPath(row.projectId)}?yearMonth=${encodeURIComponent(yearMonth)}`}>
+                              Detail
+                            </Link>
                           </Button>
                         )}
                       </TableCell>
