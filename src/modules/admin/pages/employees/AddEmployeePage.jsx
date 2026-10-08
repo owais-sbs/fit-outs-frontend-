@@ -187,6 +187,8 @@ export default function AddEmployeePage() {
         <PageHeader
           title="Add Employee"
           description="Create staff with a portal role. They will receive an email to set their password."
+          backTo={ROUTES.ADMIN.EMPLOYEES}
+          backTitle="Back to employees"
         />
         <FillDemoDataButton
           onClick={() => setForm({

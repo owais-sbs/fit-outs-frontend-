@@ -88,27 +88,47 @@ export default function QualityTemplatesPage() {
       {message && <p className="text-sm text-muted-foreground">{message}</p>}
 
       <Card>
-        <CardHeader className="pb-2">
+        <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0 pb-2">
           <CardTitle className="text-sm font-semibold">Saved templates ({templates.length})</CardTitle>
+          {templates.length > 0 && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-8 gap-1.5"
+              disabled={busy}
+              onClick={() => loadOne(templates[0].activityType)}
+            >
+              Open first
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           {templates.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-6 text-center">No templates yet</p>
+            <p className="py-6 text-center text-sm text-muted-foreground">No templates yet</p>
           ) : (
-            <div className="flex flex-wrap gap-2">
-              {templates.map((t) => (
-                <Button
-                  key={t.activityType}
-                  type="button"
-                  size="sm"
-                  variant={activityType === t.activityType ? "default" : "outline"}
-                  disabled={busy}
-                  onClick={() => loadOne(t.activityType)}
-                >
-                  {t.activityType}
-                </Button>
-              ))}
-            </div>
+            <ul className="divide-y divide-border/60 rounded-lg border border-border/60">
+              {templates.map((t) => {
+                const active = activityType === t.activityType;
+                return (
+                  <li key={t.activityType}>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => loadOne(t.activityType)}
+                      className={`flex w-full items-center justify-between gap-3 px-3.5 py-2.5 text-left text-sm transition-colors hover:bg-muted/50 ${
+                        active ? "bg-[#C9A96E]/12 font-medium text-foreground" : "text-foreground/90"
+                      }`}
+                    >
+                      <span className="truncate">{t.activityType}</span>
+                      <span className="shrink-0 text-xs text-muted-foreground">
+                        {active ? "Editing" : "Open"}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
           )}
         </CardContent>
       </Card>

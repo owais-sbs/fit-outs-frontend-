@@ -69,10 +69,15 @@ export default function ChannelChatPanel({
   };
 
   return (
-    <div className="flex h-full min-h-[480px] flex-col overflow-hidden rounded-xl border border-border/60 bg-muted/20">
-      <div className="flex-1 space-y-1.5 overflow-y-auto px-3 py-3">
+    <div className="admin-chat-shell h-full min-h-[480px]">
+      <div className="admin-chat-thread space-y-2.5">
         {messages.length === 0 ? (
-          <p className="py-10 text-center text-xs text-muted-foreground">No messages yet.</p>
+          <div className="flex h-full min-h-[12rem] flex-col items-center justify-center gap-1 px-6 text-center">
+            <p className="text-sm font-medium text-foreground/80">No messages yet</p>
+            <p className="text-xs text-muted-foreground">
+              Messages in this channel will appear here.
+            </p>
+          </div>
         ) : (
           messages.map((m) => {
             const mine = myId != null && Number(m.senderAccountId) === myId;
@@ -81,14 +86,17 @@ export default function ChannelChatPanel({
             return (
               <div key={m.uuid} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                 <div
-                  className={`max-w-[85%] rounded-lg px-3 py-2 text-sm shadow-sm ${
-                    mine ? "bg-primary text-primary-foreground" : "bg-card border border-border/60"
-                  }`}
+                  className={[
+                    "admin-chat-bubble",
+                    mine ? "admin-chat-bubble-mine" : "admin-chat-bubble-theirs",
+                  ].join(" ")}
                 >
                   {!mine && m.senderName && (
-                    <p className="mb-0.5 text-[10px] font-medium opacity-70">{m.senderName}</p>
+                    <p className="mb-1 text-[11px] font-medium text-muted-foreground">
+                      {m.senderName}
+                    </p>
                   )}
-                  {m.body && <p className="whitespace-pre-wrap">{m.body}</p>}
+                  {m.body && <p className="whitespace-pre-wrap leading-snug">{m.body}</p>}
                   {hasFile &&
                     (href ? (
                       <a
@@ -96,8 +104,10 @@ export default function ChannelChatPanel({
                         target="_blank"
                         rel="noreferrer"
                         className={[
-                          "mt-1.5 flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs",
-                          mine ? "bg-black/15 hover:bg-black/20" : "bg-muted hover:bg-muted/80",
+                          "mt-2 flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium",
+                          mine
+                            ? "bg-white/15 hover:bg-white/20"
+                            : "bg-muted hover:bg-muted/80 text-foreground",
                         ].join(" ")}
                       >
                         <FileText className="h-3.5 w-3.5 shrink-0" />
@@ -105,13 +115,15 @@ export default function ChannelChatPanel({
                       </a>
                     ) : (
                       <p
-                        className={`mt-1.5 flex items-center gap-1.5 text-xs ${mine ? "opacity-90" : "text-muted-foreground"}`}
+                        className={`mt-2 flex items-center gap-1.5 text-xs ${mine ? "opacity-90" : "text-muted-foreground"}`}
                       >
                         <FileText className="h-3.5 w-3.5 shrink-0" />
                         <span className="truncate">{fileLabel(m)}</span>
                       </p>
                     ))}
-                  <p className={`mt-1 text-[10px] ${mine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                  <p
+                    className={`mt-1.5 text-[10px] tabular-nums ${mine ? "opacity-70" : "text-muted-foreground"}`}
+                  >
                     {formatChatTime(m.createdAt)}
                   </p>
                 </div>
@@ -123,16 +135,17 @@ export default function ChannelChatPanel({
       </div>
 
       {file && (
-        <div className="flex items-center gap-2 border-t border-border/40 bg-card/90 px-3 py-1.5 text-xs">
+        <div className="flex items-center gap-2 border-t border-border/50 bg-muted/40 px-3 py-2 text-xs">
           <FileText className="h-3.5 w-3.5 text-primary" />
-          <span className="min-w-0 flex-1 truncate">{file.name}</span>
+          <span className="min-w-0 flex-1 truncate font-medium">{file.name}</span>
           <button
             type="button"
-            className="text-muted-foreground hover:text-foreground"
+            className="rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
             onClick={() => {
               setFile(null);
               if (fileInputRef.current) fileInputRef.current.value = "";
             }}
+            aria-label="Remove attachment"
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -140,7 +153,7 @@ export default function ChannelChatPanel({
       )}
 
       {canSend ? (
-        <div className="flex items-end gap-1.5 border-t border-border/60 bg-card p-3">
+        <div className="admin-chat-composer">
           {(isProjectRoom || isRoomTask) && (
             <>
               <input
@@ -153,7 +166,7 @@ export default function ChannelChatPanel({
                 type="button"
                 size="icon"
                 variant="ghost"
-                className="h-9 w-9 shrink-0"
+                className="h-10 w-10 shrink-0"
                 disabled={busy}
                 onClick={() => fileInputRef.current?.click()}
                 title="Attach file"
@@ -163,18 +176,24 @@ export default function ChannelChatPanel({
             </>
           )}
           <input
-            className="min-h-9 flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
+            className="admin-chat-input"
             value={body}
             onChange={(e) => setBody(e.target.value)}
-            placeholder="Type a message…"
+            placeholder="Write a message…"
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), send())}
           />
-          <Button size="icon" disabled={busy || (!body.trim() && !file)} onClick={send}>
+          <Button
+            size="icon"
+            className="h-10 w-10 shrink-0"
+            disabled={busy || (!body.trim() && !file)}
+            onClick={send}
+            aria-label="Send message"
+          >
             <Send className="h-4 w-4" />
           </Button>
         </div>
       ) : readOnly || channelType === "EMAIL" ? (
-        <div className="border-t border-border/60 bg-card p-3 text-xs text-muted-foreground">
+        <div className="border-t border-border/60 bg-muted/30 px-4 py-3 text-xs text-muted-foreground">
           {readOnlyHint
             || (channelType === "EMAIL"
               ? "Sent emails are read-only."

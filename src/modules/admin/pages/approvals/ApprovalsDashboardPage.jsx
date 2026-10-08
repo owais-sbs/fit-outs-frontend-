@@ -141,10 +141,18 @@ export default function ApprovalsDashboardPage() {
 
   return (
     <PageShell>
-      <PageTitle
-        title="Approvals & Permits"
-        subtitle="Permit progress across every project."
-      />
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <PageTitle
+          title="Approvals & Permits"
+          subtitle="Permit progress across every project."
+        />
+        <Button asChild variant="outline" size="sm" className="shrink-0 gap-1.5">
+          <Link to={routes.DEPOSIT_LEDGER}>
+            View all deposits
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </Button>
+      </div>
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <MetricCard
@@ -172,33 +180,25 @@ export default function ApprovalsDashboardPage() {
           loading={loading}
         />
         <Card>
-          <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0 p-4 md:p-4">
-            <div className="min-w-0 space-y-1">
-              <CardDescription className="flex items-center gap-1.5">
-                <Coins className="h-3.5 w-3.5" />
-                Deposit ledger
-              </CardDescription>
-              {loading ? (
-                <Skeleton className="h-8 w-28" />
-              ) : (
-                <CardTitle className="text-2xl tabular-nums">{money(outstandingTotal, currency)}</CardTitle>
-              )}
-              {loading ? (
-                <Skeleton className="h-4 w-36" />
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  {outstanding.length
-                    ? `${outstanding.length} still held by others`
-                    : "Nothing outstanding"}
-                </p>
-              )}
-            </div>
-            <Button asChild size="sm">
-              <Link to={routes.DEPOSIT_LEDGER}>
-                View all
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
+          <CardHeader className="space-y-1 p-4 md:p-4">
+            <CardDescription className="flex items-center gap-1.5">
+              <Coins className="h-3.5 w-3.5" />
+              Deposit ledger
+            </CardDescription>
+            {loading ? (
+              <Skeleton className="h-8 w-28" />
+            ) : (
+              <CardTitle className="text-2xl tabular-nums">{money(outstandingTotal, currency)}</CardTitle>
+            )}
+            {loading ? (
+              <Skeleton className="h-4 w-36" />
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                {outstanding.length
+                  ? `${outstanding.length} still held by others`
+                  : "Nothing outstanding"}
+              </p>
+            )}
           </CardHeader>
         </Card>
       </section>

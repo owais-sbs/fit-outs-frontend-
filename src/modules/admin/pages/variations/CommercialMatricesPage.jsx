@@ -116,24 +116,24 @@ export default function CommercialMatricesPage() {
   }
 
   return (
-    <PageShell>
+    <PageShell className="max-w-none">
       <PageTitle
         title="Commercial approval matrices"
-        description="Tenant rules for variation / SC certificate / credit-note value bands"
+        subtitle="Tenant rules for variation / SC certificate / credit-note value bands"
         actions={(
-          <Button disabled={busy} onClick={save}>
-            <Save className="h-4 w-4 mr-1" /> Save matrix
+          <Button disabled={busy} onClick={save} className="gap-1.5">
+            <Save className="h-4 w-4" /> Save matrix
           </Button>
         )}
       />
-      {message && <p className="text-sm text-muted-foreground mb-3">{message}</p>}
+      {message && <p className="mb-1 text-sm text-muted-foreground">{message}</p>}
       {!matrices.some((m) => m.eventType === eventType) && (
-        <p className="text-sm text-muted-foreground mb-3">
+        <p className="mb-1 text-sm text-muted-foreground">
           No saved matrix for {eventType} yet. Save one to turn this approval chain on.
         </p>
       )}
 
-      <Surface className="p-4 space-y-4 mb-4">
+      <Surface className="mb-4 space-y-4 border-border/70 p-4 shadow-sm md:p-5">
         <div className="grid md:grid-cols-2 gap-3">
           <div>
             <Label>Event type</Label>

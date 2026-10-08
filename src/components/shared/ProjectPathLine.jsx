@@ -123,10 +123,11 @@ export default function ProjectPathLine({
           state={backState}
           onClick={backOnClick}
           title={resolvedBackTitle}
-          className="-ml-1.5 h-8 w-8"
+          iconOnly
+          className="-ml-1 shrink-0"
         />
       ) : null}
-      <Breadcrumbs className="min-w-0" items={items} />
+      <Breadcrumbs className="min-w-0 flex-1" items={items} />
     </div>
   );
 }

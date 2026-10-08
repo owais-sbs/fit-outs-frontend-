@@ -63,42 +63,52 @@ export default function MovementHistoryPage() {
           </Select>
         </div>
 
-        <Surface>
-          <div className="overflow-x-auto p-0">
+        <Surface className="overflow-hidden p-0">
+          <div className="overflow-x-auto">
             {isLoading ? (
               <div className="space-y-3 p-6">{[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
             ) : (
               <Table className="min-w-[900px]">
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Material</TableHead>
-                    <TableHead>Qty</TableHead>
-                    <TableHead>Unit Cost</TableHead>
-                    <TableHead>Total</TableHead>
-                    <TableHead>Project</TableHead>
-                    <TableHead>Reference</TableHead>
-                    <TableHead>Notes</TableHead>
+                  <TableRow className="bg-muted/30 hover:bg-muted/30">
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wide">Date</TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wide">Type</TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wide">Material</TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wide">Qty</TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wide">Unit Cost</TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wide">Total</TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wide">Project</TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wide">Reference</TableHead>
+                    <TableHead className="text-[11px] font-semibold uppercase tracking-wide">Notes</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filtered.length === 0 ? (
-                    <TableRow><TableCell colSpan={9} className="py-8 text-center text-muted-foreground">No movements found.</TableCell></TableRow>
-                  ) : filtered.map((m) => (
-                    <TableRow key={m.id}>
-                      <TableCell className="whitespace-nowrap text-xs">{m.movementDate ? new Date(m.movementDate).toLocaleString() : "—"}</TableCell>
-                      <TableCell><Badge variant="outline" className="text-[10px]">{m.movementType}</Badge></TableCell>
-                      <TableCell>
-                        <div className="text-xs font-medium">{m.materialName}</div>
-                        <div className="text-[10px] text-muted-foreground">{m.materialCode}</div>
+                    <TableRow>
+                      <TableCell colSpan={9} className="py-12 text-center text-sm text-muted-foreground">
+                        No movements found.
                       </TableCell>
-                      <TableCell className="text-xs">{m.quantity}</TableCell>
-                      <TableCell className="text-xs">{formatCurrencyNullable(m.unitCost)}</TableCell>
-                      <TableCell className="text-xs">{formatCurrencyNullable(m.totalCost)}</TableCell>
-                      <TableCell className="text-xs">{m.projectName || "—"}</TableCell>
-                      <TableCell className="text-xs">{m.referenceNo || "—"}</TableCell>
-                      <TableCell className="max-w-[150px] truncate text-xs">{m.notes || "—"}</TableCell>
+                    </TableRow>
+                  ) : filtered.map((m) => (
+                    <TableRow key={m.id} className="hover:bg-muted/20">
+                      <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                        {m.movementDate ? new Date(m.movementDate).toLocaleString() : "—"}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-[10px] font-medium">
+                          {m.movementType}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm font-medium">{m.materialName}</div>
+                        <div className="text-[11px] text-muted-foreground">{m.materialCode}</div>
+                      </TableCell>
+                      <TableCell className="text-sm tabular-nums">{m.quantity}</TableCell>
+                      <TableCell className="text-sm tabular-nums">{formatCurrencyNullable(m.unitCost)}</TableCell>
+                      <TableCell className="text-sm font-medium tabular-nums">{formatCurrencyNullable(m.totalCost)}</TableCell>
+                      <TableCell className="text-sm">{m.projectName || "—"}</TableCell>
+                      <TableCell className="font-mono text-xs text-muted-foreground">{m.referenceNo || "—"}</TableCell>
+                      <TableCell className="max-w-[160px] truncate text-xs text-muted-foreground">{m.notes || "—"}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

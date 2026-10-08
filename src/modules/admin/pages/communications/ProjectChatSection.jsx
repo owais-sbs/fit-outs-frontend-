@@ -249,32 +249,33 @@ export default function ProjectChatSection({ projectId, locked = false }) {
         : "Only members of this group can send.";
 
   return (
-    <section className="rounded-xl border border-border/60 bg-card">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 px-4 py-3">
-        <div>
-          <h2 className="flex items-center gap-2 text-sm font-semibold">
-            <MessageSquare className="h-4 w-4 text-primary" />
-            Project chat
+    <section className="admin-chat-shell !min-h-0 overflow-hidden">
+      <div className="admin-chat-header flex-wrap">
+        <div className="min-w-0">
+          <h2 className="flex items-center gap-2 text-sm font-semibold tracking-tight">
+            <MessageSquare className="h-4 w-4 text-muted-foreground" />
+            Project conversations
           </h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Start a chat with anyone on the internal team. Only an Admin, Project Manager, or Project Director can contact the client.
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Direct and group threads for this project. Client contact is limited to Admin, PM, or Project Director.
           </p>
         </div>
         {!locked && (canStartChat || canManage) && (
           <div className="flex items-center gap-2">
             {canStartChat && (
               <Button
-                size="icon"
+                size="sm"
                 variant="outline"
-                className="h-8 w-8"
+                className="gap-1.5"
                 aria-label="Start a chat"
                 onClick={openDirect}
               >
-                <Plus className="h-4 w-4" />
+                <Plus className="h-3.5 w-3.5" />
+                New chat
               </Button>
             )}
             {canManage && (
-              <Button size="sm" variant="outline" className="gap-2" onClick={openCreate}>
+              <Button size="sm" variant="outline" className="gap-1.5" onClick={openCreate}>
                 New group
               </Button>
             )}
@@ -289,28 +290,30 @@ export default function ProjectChatSection({ projectId, locked = false }) {
       )}
 
       <div className="grid min-h-[520px] lg:grid-cols-[280px_1fr]">
-        <div className="border-b border-border/60 lg:border-b-0 lg:border-r">
+        <div className="border-b border-border/60 lg:border-b-0 lg:border-r lg:border-border/60">
           {loading ? (
-            <p className="p-4 text-sm text-muted-foreground">Loading groups…</p>
+            <p className="p-4 text-sm text-muted-foreground">Loading conversations…</p>
           ) : groups.length === 0 ? (
-            <p className="p-4 text-sm text-muted-foreground">
-              No chats yet. Use the plus button to start one.
-            </p>
+            <div className="p-6 text-center">
+              <p className="text-sm font-medium text-foreground/80">No conversations yet</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Start a direct chat or create a group to begin.
+              </p>
+            </div>
           ) : (
             groups.map((group) => (
               <button
                 key={group.channelUuid}
                 type="button"
                 onClick={() => setSelectedId(group.channelUuid)}
-                className={`w-full border-b border-border/30 px-4 py-3 text-left hover:bg-secondary/50 ${
-                  selected?.channelUuid === group.channelUuid ? "bg-secondary/70" : ""
-                }`}
+                data-active={selected?.channelUuid === group.channelUuid}
+                className="admin-inbox-item"
               >
                 <div className="flex items-start justify-between gap-2">
                   <p className="truncate text-sm font-medium">{group.name}</p>
                   {group.unreadCount > 0 && <Badge className="shrink-0">{group.unreadCount}</Badge>}
                 </div>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="mt-0.5 text-xs text-muted-foreground">
                   {group.direct
                     ? "Direct"
                     : group.includesClient
@@ -318,18 +321,20 @@ export default function ProjectChatSection({ projectId, locked = false }) {
                       : "Internal"}
                   {!group.direct && ` · ${group.memberCount || group.members?.length || 0} people`}
                 </p>
-                <p className="mt-1 truncate text-xs">{group.lastMessage || "No messages yet"}</p>
+                <p className="mt-1 truncate text-xs text-foreground/70">
+                  {group.lastMessage || "No messages yet"}
+                </p>
               </button>
             ))
           )}
         </div>
 
-        <div className="flex min-h-0 flex-col gap-2 p-3">
+        <div className="flex min-h-0 flex-col gap-3 p-3">
           {selected ? (
             <>
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div>
-                  <p className="font-semibold">{selected.name}</p>
+              <div className="flex flex-wrap items-start justify-between gap-2 rounded-md border border-border/50 bg-muted/30 px-3 py-2.5">
+                <div className="min-w-0">
+                  <p className="font-semibold tracking-tight">{selected.name}</p>
                   <p className="text-xs text-muted-foreground">
                     {(selected.members || []).map((member) => member.displayName).join(", ") || "No members"}
                   </p>
@@ -357,8 +362,14 @@ export default function ProjectChatSection({ projectId, locked = false }) {
               />
             </>
           ) : (
-            <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
-              {loading ? "Loading…" : "Select a chat"}
+            <div className="flex flex-1 flex-col items-center justify-center gap-1 text-center">
+              <MessageSquare className="mb-2 h-7 w-7 text-muted-foreground/45" />
+              <p className="text-sm font-medium text-foreground/80">
+                {loading ? "Loading…" : "Select a conversation"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Choose a thread on the left to view and reply.
+              </p>
             </div>
           )}
         </div>
@@ -367,11 +378,11 @@ export default function ProjectChatSection({ projectId, locked = false }) {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingId ? "Edit group members" : "New project group"}</DialogTitle>
+            <DialogTitle>{editingId ? "Edit group members" : "Create project group"}</DialogTitle>
             <DialogDescription>
               {clientSelected
-                ? "This group includes the client, so only a Project Manager or Project Director can be added with them."
-                : "Choose the people who should be in this group."}
+                ? "This group includes the client. Only a Project Manager or Project Director may join alongside them."
+                : "Select the people who should participate in this group."}
             </DialogDescription>
           </DialogHeader>
 
@@ -443,9 +454,9 @@ export default function ProjectChatSection({ projectId, locked = false }) {
       <Dialog open={directOpen} onOpenChange={setDirectOpen}>
         <DialogContent className="max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Start a chat</DialogTitle>
+            <DialogTitle>Start a conversation</DialogTitle>
             <DialogDescription>
-              Choose one person on the internal team. The client can only be contacted by an Admin, Project Manager, or Project Director.
+              Select one teammate to open a direct thread. Client contact is limited to Admin, Project Manager, or Project Director.
             </DialogDescription>
           </DialogHeader>
 

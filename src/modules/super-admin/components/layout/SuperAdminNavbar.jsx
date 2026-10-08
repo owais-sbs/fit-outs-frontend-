@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LogOut, Settings, User } from "lucide-react";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -41,11 +39,9 @@ export default function SuperAdminNavbar() {
 
   return (
     <header className="sa-topbar sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 px-4 md:px-6">
-      <SidebarTrigger className="-ml-1" />
-      <Separator orientation="vertical" className="mr-1 hidden h-5 md:block" />
       <div className="flex-1" />
 
-      <div className="ml-auto flex items-center gap-1">
+      <div className="ml-auto flex items-center gap-5">
         <ThemeToggle />
 
         <DropdownMenu
@@ -78,7 +74,7 @@ export default function SuperAdminNavbar() {
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => navigate(ROUTES.SUPER_ADMIN.PROFILE)}>
               <User className="mr-2 h-4 w-4" />
-              My profile
+              My Profile
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate(ROUTES.SUPER_ADMIN.SETTINGS)}>
               <Settings className="mr-2 h-4 w-4" />

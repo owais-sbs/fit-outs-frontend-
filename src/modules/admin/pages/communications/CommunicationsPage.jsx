@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import LoadingPanel from "@/components/shared/LoadingPanel";
 import { loadingMessages } from "@/components/shared/loadingMessages";
+import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
+import { PageShell } from "@/components/layout/PageShell";
 import { useAuth } from "@/shared/context/auth-context";
 import { useCommunicationsSocket } from "@/shared/hooks/useCommunicationsSocket";
 import {
@@ -176,31 +178,28 @@ export default function CommunicationsPage({ clientMode = false }) {
   }, [selected, clientMode, location.pathname]);
 
   return (
-    <div className="page-enter flex h-[calc(100vh-4rem)] flex-col gap-4 p-4 md:p-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-display text-3xl font-semibold tracking-tight flex items-center gap-2 md:text-[2rem]">
-            <MessageSquare className="h-6 w-6 text-muted-foreground" />
-            Communications
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {clientMode
-              ? "Your project and client conversations in one place."
-              : "Internal, client, group, and project-room conversations in one place."}
-          </p>
-        </div>
-        {!clientMode && (
-          <Button variant="outline" size="sm" onClick={startInternalChat} className="gap-2">
-            <Plus className="h-4 w-4" />
-            New internal channel
-          </Button>
-        )}
-      </div>
+    <PageShell className="flex h-[calc(100vh-7.5rem)] min-h-[32rem] flex-col gap-4 !space-y-0">
+      <PageHeader
+        title="Communications"
+        description={
+          clientMode
+            ? "Project and client conversations in one place."
+            : "Internal, client, and project conversations."
+        }
+        actions={
+          !clientMode ? (
+            <Button variant="outline" size="sm" onClick={startInternalChat} className="gap-2">
+              <Plus className="h-4 w-4" />
+              New channel
+            </Button>
+          ) : null
+        }
+      />
 
       <Tabs value={filter} onValueChange={setFilter}>
-        <TabsList className="flex-wrap h-auto">
+        <TabsList className="flex h-auto flex-wrap gap-1 bg-muted/50 p-1">
           {filters.map((f) => (
-            <TabsTrigger key={f.id} value={f.id}>
+            <TabsTrigger key={f.id} value={f.id} className="text-xs sm:text-sm">
               {f.label}
             </TabsTrigger>
           ))}
@@ -216,47 +215,61 @@ export default function CommunicationsPage({ clientMode = false }) {
         </div>
       )}
 
-      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[320px_1fr]">
-        <div className="surface-panel overflow-y-auto">
-          {loading ? (
-            <LoadingPanel size="inline" messages={loadingMessages.generic} className="p-4" />
-          ) : inbox.length === 0 ? (
-            <p className="p-4 text-sm text-muted-foreground">No conversations yet.</p>
-          ) : (
-            inbox.map((item) => (
-              <button
-                key={`${item.channelType}-${item.channelUuid}`}
-                type="button"
-                onClick={() => setSelected(item)}
-                className={`w-full border-b border-border/30 px-4 py-3 text-left hover:bg-secondary/50 ${
-                  selected?.channelUuid === item.channelUuid ? "bg-secondary/70" : ""
-                }`}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <p className="font-medium text-sm truncate">{item.name}</p>
-                  {item.unreadCount > 0 && (
-                    <Badge variant="default" className="shrink-0">
-                      {item.unreadCount}
-                    </Badge>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground">{item.contextLabel}</p>
-                <p className="text-xs truncate mt-1">{item.lastMessage || "—"}</p>
-              </button>
-            ))
-          )}
+      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[300px_1fr]">
+        <div className="admin-chat-shell !min-h-0 overflow-hidden">
+          <div className="admin-chat-header">
+            <p className="flex items-center gap-2 text-sm font-semibold">
+              <MessageSquare className="h-4 w-4 text-muted-foreground" />
+              Inbox
+            </p>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            {loading ? (
+              <LoadingPanel size="inline" messages={loadingMessages.generic} className="p-4" />
+            ) : inbox.length === 0 ? (
+              <p className="p-6 text-center text-sm text-muted-foreground">No conversations yet.</p>
+            ) : (
+              inbox.map((item) => (
+                <button
+                  key={`${item.channelType}-${item.channelUuid}`}
+                  type="button"
+                  onClick={() => setSelected(item)}
+                  data-active={selected?.channelUuid === item.channelUuid}
+                  className="admin-inbox-item"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="truncate text-sm font-medium text-foreground">{item.name}</p>
+                    {item.unreadCount > 0 && (
+                      <Badge variant="default" className="shrink-0">
+                        {item.unreadCount}
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="mt-0.5 text-xs text-muted-foreground">{item.contextLabel}</p>
+                  <p className="mt-1 truncate text-xs text-foreground/70">{item.lastMessage || "No messages yet"}</p>
+                </button>
+              ))
+            )}
+          </div>
         </div>
 
-        <div className="flex min-h-0 flex-col gap-2">
+        <div className="flex min-h-0 flex-col gap-3">
           {selected ? (
             <>
-              <div className="flex items-center justify-between gap-2">
-                <div>
-                  <p className="font-semibold">{selected.name}</p>
+              <div className="admin-chat-thread-header flex items-center justify-between gap-3 px-4 py-3">
+                <div className="min-w-0">
+                  <p className="truncate font-semibold tracking-tight text-[#0a1628] dark:text-foreground">
+                    {selected.name}
+                  </p>
                   <p className="text-xs text-muted-foreground">{selected.contextLabel}</p>
                 </div>
                 {projectLink && (
-                  <Button variant="outline" size="sm" asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    asChild
+                    className="shrink-0 border-[#C9A96E]/50 text-[#0a1628] hover:bg-[#C9A96E]/15 dark:text-foreground"
+                  >
                     <Link to={projectLink}>Open in project</Link>
                   </Button>
                 )}
@@ -281,12 +294,18 @@ export default function CommunicationsPage({ clientMode = false }) {
               />
             </>
           ) : (
-            <div className="surface-panel flex flex-1 items-center justify-center text-sm text-muted-foreground">
-              Select a conversation
+            <div className="admin-chat-shell flex flex-1 items-center justify-center">
+              <div className="px-6 text-center">
+                <MessageSquare className="mx-auto mb-3 h-8 w-8 text-muted-foreground/50" />
+                <p className="text-sm font-medium text-foreground/80">Select a conversation</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Choose a thread from the inbox to view messages.
+                </p>
+              </div>
             </div>
           )}
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

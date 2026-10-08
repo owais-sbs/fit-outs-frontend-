@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
-  ArrowLeft, Save, Briefcase, MapPin, Calendar, Loader2, UserPlus, CheckCircle2, AlertCircle,
+  Save, Briefcase, MapPin, Calendar, Loader2, UserPlus, CheckCircle2, AlertCircle,
 } from "lucide-react";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -260,22 +260,12 @@ export default function CreateProjectPage() {
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
-      <div className="flex items-center gap-2">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate(projectsListRoute)}
-          className="h-8 w-8 text-muted-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <span className="text-sm text-muted-foreground font-medium">Back to projects</span>
-      </div>
-
       <div className="flex flex-wrap items-start justify-between gap-3">
         <PageHeader
           title="Create New Project"
           description="Start a project with the details you have. Client account is optional — you can skip it or create one here."
+          backTo={projectsListRoute}
+          backTitle="Back to projects"
         />
         <FillDemoDataButton
           onClick={() => {

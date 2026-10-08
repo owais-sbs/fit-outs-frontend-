@@ -123,8 +123,11 @@ export default function DesignRequestsPage() {
                 </div>
               </CardContent>
 
-              <CardFooter className="border-t border-border/40 bg-muted/10 px-5 py-3">
-                <Button variant="outline" className="w-full" asChild>
+              <CardFooter className="border-0 px-5 pb-4 pt-1">
+                <Button
+                  className="w-full border-0 bg-[#0a1628] text-[#FAF7F2] hover:bg-[#0d1c32] hover:text-[#FAF7F2]"
+                  asChild
+                >
                   <Link to={req.detailRoute}>
                     View details
                     <ArrowRight className="ml-2 h-4 w-4" />

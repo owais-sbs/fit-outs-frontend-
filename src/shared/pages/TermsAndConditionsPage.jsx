@@ -50,8 +50,8 @@ function NavLink({ href, children, nested = false }) {
     <a
       href={href}
       className={cn(
-        "block rounded-sm border border-transparent px-3 py-2 text-sm leading-snug text-muted-foreground transition-colors hover:border-border hover:bg-muted hover:text-foreground",
-        nested && "pl-5 text-[13px]"
+        "block rounded-md px-3 py-1.5 text-sm leading-snug text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+        nested ? "pl-3 text-[13px]" : "font-medium text-foreground/85"
       )}
     >
       {children}
@@ -153,12 +153,12 @@ export default function TermsAndConditionsPage() {
             </section>
           </div>
 
-          <aside className="hidden shrink-0 lg:block lg:w-60 xl:w-64">
+          <aside className="hidden shrink-0 lg:block lg:w-56 xl:w-60">
             <nav
               aria-label="Terms and conditions sections"
-              className="sticky top-24 rounded-sm border border-border bg-card p-2"
+              className="sticky top-24 rounded-lg border border-border/70 bg-card p-3 shadow-sm"
             >
-              <p className="px-3 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground/80">
+              <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 On this page
               </p>
               <ul className="space-y-0.5">
@@ -166,7 +166,7 @@ export default function TermsAndConditionsPage() {
                   <li key={item.id}>
                     <NavLink href={`#${item.id}`}>{item.label}</NavLink>
                     {item.children ? (
-                      <ul className="mt-0.5 space-y-0.5 border-l border-border ml-3">
+                      <ul className="ml-3 mt-0.5 space-y-0.5 border-l border-border/60 pl-2">
                         {item.children.map((child) => (
                           <li key={child.id}>
                             <NavLink href={`#${child.id}`} nested>

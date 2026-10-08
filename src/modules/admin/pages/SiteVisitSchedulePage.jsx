@@ -752,6 +752,8 @@ export default function SiteVisitSchedulePage() {
       <PageHeader
         title="Schedule site visit"
         description="Book an on-site inspection with a clear lead, staff assignment, location pin, and checklist workflow."
+        backTo={ROUTES.ADMIN.SITE_VISITS}
+        backTitle="Back to site visits"
       />
 
       {leadPrefillWarning && (

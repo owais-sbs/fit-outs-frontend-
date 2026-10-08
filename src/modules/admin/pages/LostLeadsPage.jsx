@@ -70,6 +70,8 @@ export default function LostLeadsPage() {
       <PageHeader
         title="Lost Leads"
         description="Review leads that were lost and analyse reasons for churn."
+        backTo={ROUTES.ADMIN.LEADS_LIST}
+        backTitle="Back to leads"
       />
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -97,9 +99,9 @@ export default function LostLeadsPage() {
       </FilterToolbar>
 
       <Card className="overflow-hidden">
-        <div className="max-h-[calc(100vh-26rem)] overflow-auto">
+        <div className="overflow-x-auto">
           <Table>
-            <TableHeader className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm">
+            <TableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur-sm">
               <TableRow className="hover:bg-transparent">
                 <TableHead className="pl-6">Client</TableHead>
                 <TableHead>Company</TableHead>
@@ -112,7 +114,7 @@ export default function LostLeadsPage() {
             </TableHeader>
             <TableBody>
               {loading
-                ? Array.from({ length: 5 }).map((_, i) => (
+                ? Array.from({ length: 10 }).map((_, i) => (
                     <TableRow key={i}>
                       {Array.from({ length: 7 }).map((__, j) => (
                         <TableCell key={j}><Skeleton className="h-4 w-full max-w-[100px]" /></TableCell>
@@ -137,7 +139,9 @@ export default function LostLeadsPage() {
                     >
                       <TableCell className="pl-6 font-medium">{lead.clientName}</TableCell>
                       <TableCell className="text-muted-foreground">{lead.company || "\u2014"}</TableCell>
-                      <TableCell className="text-muted-foreground">{lead.source}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {lead.source === "Walk in" ? "Walk-in" : lead.source}
+                      </TableCell>
                       <TableCell>{lead.assignee}</TableCell>
                       <TableCell className="font-medium tabular-nums">{formatCurrency(lead.budget)}</TableCell>
                       <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">
@@ -163,21 +167,29 @@ export default function LostLeadsPage() {
           </Table>
         </div>
         {!loading && filtered.length > 0 && (
-          <div className="flex items-center justify-between border-t px-4 py-3">
+          <div className="flex shrink-0 flex-col gap-2 border-t border-border bg-muted/20 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-muted-foreground">
-              {filtered.length} lead{filtered.length !== 1 ? "s" : ""} &middot; Page {page} of {totalPages}
+              {filtered.length} lead{filtered.length !== 1 ? "s" : ""}
+              <span className="mx-1.5 text-border">·</span>
+              Showing {paginated.length} of {PAGE_SIZE} per page
+              <span className="mx-1.5 text-border">·</span>
+              Page {page} of {totalPages}
             </p>
-            <Pagination>
-              <PaginationContent>
+            <Pagination className="mx-0 w-auto justify-end">
+              <PaginationContent className="gap-0.5">
                 <PaginationItem>
                   <PaginationPrevious
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    className={page <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    className={page <= 1 ? "pointer-events-none h-8 opacity-50" : "h-8 cursor-pointer"}
                   />
                 </PaginationItem>
                 {Array.from({ length: totalPages }).map((_, i) => (
                   <PaginationItem key={i}>
-                    <PaginationLink isActive={page === i + 1} onClick={() => setPage(i + 1)} className="cursor-pointer">
+                    <PaginationLink
+                      isActive={page === i + 1}
+                      onClick={() => setPage(i + 1)}
+                      className="h-8 w-8 cursor-pointer"
+                    >
                       {i + 1}
                     </PaginationLink>
                   </PaginationItem>
@@ -185,7 +197,7 @@ export default function LostLeadsPage() {
                 <PaginationItem>
                   <PaginationNext
                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    className={page >= totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    className={page >= totalPages ? "pointer-events-none h-8 opacity-50" : "h-8 cursor-pointer"}
                   />
                 </PaginationItem>
               </PaginationContent>

@@ -620,14 +620,18 @@ export default function CalendarPage() {
           <Button variant="outline" size="sm" onClick={goToday} className="text-xs">
             Today
           </Button>
-          <div className="flex items-center gap-3 ml-2">
-            <div className="flex items-center gap-1.5">
+          <div className="ml-2 flex items-center gap-4">
+            <div className="flex items-center gap-2">
               <Switch id="cal-visits" checked={showSiteVisits} onCheckedChange={setShowSiteVisits} />
-              <Label htmlFor="cal-visits" className="text-xs">Site visits</Label>
+              <Label htmlFor="cal-visits" className="cursor-pointer text-xs font-medium text-foreground">
+                Site visits
+              </Label>
             </div>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
               <Switch id="cal-schedule" checked={showSchedule} onCheckedChange={setShowSchedule} />
-              <Label htmlFor="cal-schedule" className="text-xs">Schedule</Label>
+              <Label htmlFor="cal-schedule" className="cursor-pointer text-xs font-medium text-foreground">
+                Schedule
+              </Label>
             </div>
           </div>
         </div>

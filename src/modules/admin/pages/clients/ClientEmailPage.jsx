@@ -7,6 +7,7 @@ import {
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 import { INITIAL_EMAIL_THREADS } from "../../data/clients";
 import { INITIAL_CLIENTS } from "../../data/clients";
+import { ROUTES } from "@/shared/constants/routes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -256,6 +257,8 @@ export default function ClientEmailPage() {
         <PageHeader
           title="Client Email"
           description="Manage all client email communications."
+          backTo={ROUTES.ADMIN.CLIENTS}
+          backTitle="Back to clients"
           actions={
             <Button size="sm" className="gap-2" onClick={() => setCompose({ to: "", name: "" })}>
               <Edit className="h-4 w-4" />

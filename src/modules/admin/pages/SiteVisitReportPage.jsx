@@ -809,12 +809,13 @@ export default function SiteVisitReportPage() {
       </div>
 
       {readOnly && effectiveStep === "checklist" && (
-        <Card className="border-primary/20 bg-primary/5">
-          <CardContent className="flex items-center gap-3 p-4 text-sm text-primary">
-            <LockKeyhole className="h-4 w-4" />
-            This report is read-only after submission.
-          </CardContent>
-        </Card>
+        <div
+          role="status"
+          className="pointer-events-none select-none flex items-center gap-3 rounded-sm border border-amber-600/35 bg-amber-50 px-4 py-3 text-sm text-amber-950 shadow-none hover:bg-amber-50 dark:border-amber-400/40 dark:bg-amber-950/40 dark:text-amber-50 dark:hover:bg-amber-950/40"
+        >
+          <LockKeyhole className="h-4 w-4 shrink-0 text-amber-700 dark:text-amber-300" />
+          <span className="font-medium tracking-tight">This report is read-only after submission.</span>
+        </div>
       )}
 
       {error && (
@@ -824,8 +825,12 @@ export default function SiteVisitReportPage() {
       )}
 
       {loading && (
-        <Card>
-          <CardContent className="py-12 text-center text-sm text-muted-foreground">Loading report details...</CardContent>
+        <Card className="border-border/60">
+          <CardContent className="flex flex-col items-center justify-center gap-3 py-14">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-muted-foreground/25 border-t-primary" />
+            <p className="text-sm font-medium text-foreground">Loading report details…</p>
+            <p className="text-xs text-muted-foreground">Fetching visit checklist and estimate data.</p>
+          </CardContent>
         </Card>
       )}
 

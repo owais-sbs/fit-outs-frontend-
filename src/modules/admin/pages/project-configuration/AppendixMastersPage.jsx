@@ -70,21 +70,25 @@ export default function AppendixMastersPage() {
   };
 
   return (
-    <PageShell className="p-6">
+    <PageShell className="max-w-none">
       <PageTitle
         title="Appendix masters"
         subtitle="Image-based appendix pages selectable when creating cover letters and draft BoQ estimates."
       />
 
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {error && (
+        <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {error}
+        </p>
+      )}
 
-      <Card>
-        <CardHeader>
+      <Card className="border-border/70 shadow-sm">
+        <CardHeader className="pb-3">
           <CardTitle className="text-base">Add appendix</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleCreate} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="space-y-2">
+          <form onSubmit={handleCreate} className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="space-y-1.5">
               <Label>Title</Label>
               <Input
                 value={form.title}
@@ -92,7 +96,7 @@ export default function AppendixMastersPage() {
                 required
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Category</Label>
               <Input
                 value={form.category}
@@ -100,18 +104,18 @@ export default function AppendixMastersPage() {
                 placeholder="e.g. Finishes"
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Description</Label>
               <Input
                 value={form.description}
                 onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Image</Label>
-              <label className="flex h-10 cursor-pointer items-center gap-2 rounded-md border border-dashed px-3 text-sm text-muted-foreground">
-                <ImagePlus className="h-4 w-4" />
-                {file ? file.name : "Choose image"}
+              <label className="flex h-10 cursor-pointer items-center gap-2 rounded-md border border-dashed border-border px-3 text-sm text-muted-foreground hover:bg-muted/40">
+                <ImagePlus className="h-4 w-4 shrink-0 text-[#C9A96E]" />
+                <span className="truncate">{file ? file.name : "Choose image"}</span>
                 <input
                   type="file"
                   accept="image/*"
@@ -120,7 +124,7 @@ export default function AppendixMastersPage() {
                 />
               </label>
             </div>
-            <div className="sm:col-span-2 lg:col-span-4">
+            <div className="sm:col-span-2 xl:col-span-4">
               <Button type="submit" disabled={saving || !file}>
                 {saving ? "Saving…" : "Add appendix master"}
               </Button>
@@ -131,33 +135,48 @@ export default function AppendixMastersPage() {
 
       {loading ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
+      ) : items.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-border bg-muted/10 px-6 py-12 text-center">
+          <p className="text-sm font-medium text-foreground">No appendix masters yet</p>
+          <p className="mt-1 text-xs text-muted-foreground">Add an image appendix above to get started.</p>
+        </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {items.map((item) => (
-            <Card key={item.uuid} className={!item.active ? "opacity-60" : ""}>
-              <CardContent className="p-4 space-y-3">
+            <Card
+              key={item.uuid}
+              className={`overflow-hidden border-border/70 shadow-sm ${!item.active ? "opacity-60" : ""}`}
+            >
+              <CardContent className="space-y-3 p-4">
                 {item.imageUrl && (
                   <img
                     src={item.imageUrl}
                     alt={item.title}
-                    className="h-40 w-full rounded-xl object-cover"
+                    className="h-40 w-full rounded-lg object-cover ring-1 ring-border/60"
                   />
                 )}
                 <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="font-medium">{item.title}</p>
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold tracking-tight">{item.title}</p>
                     {item.category && (
                       <p className="text-xs text-muted-foreground">{item.category}</p>
                     )}
                   </div>
-                  <Badge variant={item.active ? "success" : "secondary"}>
+                  <Badge
+                    className={
+                      item.active
+                        ? "shrink-0 border-[#C9A96E]/35 bg-[#C9A96E]/15 text-[#8a6d3b]"
+                        : "shrink-0"
+                    }
+                    variant={item.active ? "outline" : "secondary"}
+                  >
                     {item.active ? "Active" : "Inactive"}
                   </Badge>
                 </div>
                 {item.description && (
-                  <p className="text-sm text-muted-foreground">{item.description}</p>
+                  <p className="line-clamp-2 text-sm text-muted-foreground">{item.description}</p>
                 )}
-                <div className="flex gap-2">
+                <div className="flex gap-2 pt-1">
                   <Button size="sm" variant="outline" onClick={() => toggleActive(item)}>
                     {item.active ? "Deactivate" : "Activate"}
                   </Button>

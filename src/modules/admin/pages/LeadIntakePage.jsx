@@ -117,10 +117,15 @@ export default function LeadIntakePage() {
       <PageHeader
         title="New lead"
         description="Capture a fit-out enquiry. All starred fields are required."
+        backTo={ROUTES.ADMIN.LEADS_LIST}
+        backTitle="Back to leads"
         actions={
-          <Badge variant="outline" className="gap-1.5 text-xs">
-            <span className="font-semibold text-primary">{filledCount}</span>
-            <span className="text-muted-foreground">/ {totalFields} fields</span>
+          <Badge
+            variant="outline"
+            className="gap-1.5 border-border/80 bg-background px-2.5 py-1 text-xs text-foreground shadow-sm dark:border-white/20 dark:bg-[#0a1628] dark:text-[#FAF7F2]"
+          >
+            <span className="font-semibold tabular-nums">{filledCount}</span>
+            <span className="opacity-70">/{totalFields}</span>
           </Badge>
         }
       />
@@ -264,16 +269,18 @@ export default function LeadIntakePage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2.5 text-sm text-muted-foreground">
-              <p className="flex gap-2">
-                <span className="text-primary">•</span>
-                Select <strong className="text-foreground">Walk-in</strong> source for showroom enquiries.
+              <p className="leading-relaxed">
+                <span className="mr-2 text-primary">•</span>
+                Select{" "}
+                <strong className="whitespace-nowrap text-foreground">Walk-in</strong>
+                {" "}source for showroom enquiries.
               </p>
-              <p className="flex gap-2">
-                <span className="text-primary">•</span>
+              <p className="leading-relaxed">
+                <span className="mr-2 text-primary">•</span>
                 Use <strong className="text-foreground">Other</strong> for sources not in the list.
               </p>
               <Separator className="my-2" />
-              <p className="text-xs">
+              <p className="text-xs leading-relaxed">
                 Lead will appear in <strong className="text-foreground">New</strong> status automatically.
               </p>
             </CardContent>

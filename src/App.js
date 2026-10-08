@@ -199,6 +199,7 @@ import BillingMilestoneInboxPage from "./modules/admin/pages/billing/BillingMile
 import ProjectSubcontractorPage from "./modules/admin/pages/subcontractor/ProjectSubcontractorPage";
 import VendorListPage from "./modules/admin/pages/subcontractor/VendorListPage";
 import AdminSettingsPage from "./modules/admin/pages/SettingsPage";
+import AdminProfilePage from "./modules/admin/pages/ProfilePage";
 import ClientSnagsPage from "./modules/client/pages/ClientSnagsPage";
 import TermsAndConditionsPage from "./shared/pages/TermsAndConditionsPage";
 
@@ -388,6 +389,7 @@ function App() {
               <Route path="boq/inbox" element={<BoqApprovalInboxPage />} />
               <Route path="boq/:boqId" element={<BoqViewPage />} />
               <Route path="boq" element={<BoqFlowPage />} />
+              <Route path="profile" element={<AdminProfilePage />} />
               <Route path="settings" element={<AdminSettingsPage />} />
               <Route path="terms" element={<TermsAndConditionsPage />} />
 

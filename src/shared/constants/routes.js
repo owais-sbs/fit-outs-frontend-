@@ -108,6 +108,7 @@ export const ROUTES = {
     BOQ_VIEW: "/admin/boq/:boqId",
     BOQ_INBOX: "/admin/boq/inbox",
     QAS: "/admin/qas",
+    PROFILE: "/admin/profile",
     SETTINGS: "/admin/settings",
     TERMS: "/admin/terms",
   },

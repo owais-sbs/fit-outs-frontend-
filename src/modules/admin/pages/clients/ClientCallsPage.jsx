@@ -154,6 +154,8 @@ export default function ClientCallsPage() {
       <PageHeader
         title="Client Calls"
         description="Track all outbound and inbound client calls."
+        backTo={ROUTES.ADMIN.CLIENTS}
+        backTitle="Back to clients"
         actions={
           <Button size="sm" className="gap-2" onClick={() => setLogOpen(true)}>
             <Plus className="h-4 w-4" />

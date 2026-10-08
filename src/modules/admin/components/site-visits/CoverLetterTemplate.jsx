@@ -5,7 +5,7 @@ import {
   formatEstimateDate,
 } from "../../data/jctCoverLetterCopy";
 import { computeSubtotal } from "../../api/site-visit-estimate.api";
-import jctLogo from "@/assets/jct-logo.svg";
+import fitoutsLogo from "@/assets/Fit-Outs Logo.jpg";
 
 /** Inline styles only — html2canvas export strips Tailwind classes. */
 const styles = {
@@ -15,7 +15,7 @@ const styles = {
     margin: "0 auto",
     background: "#ffffff",
     color: "#111827",
-    fontFamily: "Segoe UI, Helvetica, Arial, sans-serif",
+    fontFamily: '"Plus Jakarta Sans", Segoe UI, Helvetica, Arial, sans-serif',
     boxSizing: "border-box",
   },
   letter: {
@@ -29,19 +29,22 @@ const styles = {
     gap: 16,
     padding: "24px 32px",
     color: "#ffffff",
-    background: "linear-gradient(135deg, #1F3A34 0%, #0F2027 100%)",
+    background: "linear-gradient(135deg, #0a1628 0%, #0B1F3A 55%, #081729 100%)",
     boxSizing: "border-box",
   },
   headerLeft: {
     display: "flex",
     alignItems: "flex-start",
-    gap: 12,
+    gap: 14,
   },
   logo: {
-    height: 44,
+    height: 52,
     width: "auto",
-    borderRadius: 2,
-    border: "1px solid rgba(255,255,255,0.12)",
+    maxWidth: 140,
+    objectFit: "contain",
+    borderRadius: 4,
+    background: "#ffffff",
+    padding: 6,
     display: "block",
     flexShrink: 0,
   },
@@ -50,7 +53,7 @@ const styles = {
     fontSize: 11,
     letterSpacing: "0.18em",
     textTransform: "uppercase",
-    color: "rgba(255,255,255,0.7)",
+    color: "#C9A96E",
   },
   company: {
     margin: "4px 0 0",
@@ -62,7 +65,7 @@ const styles = {
   tagline: {
     margin: "4px 0 0",
     fontSize: 12,
-    color: "rgba(255,255,255,0.8)",
+    color: "rgba(201, 169, 110, 0.95)",
   },
   headerRight: {
     textAlign: "right",
@@ -73,7 +76,7 @@ const styles = {
   coverLabel: {
     margin: 0,
     fontWeight: 600,
-    color: "#C8A97E",
+    color: "#C9A96E",
   },
   quoteNo: {
     margin: "8px 0 0",
@@ -283,10 +286,10 @@ const CoverLetterTemplate = forwardRef(function CoverLetterTemplate(
       <div style={styles.letter}>
         <div style={styles.header}>
           <div style={styles.headerLeft}>
-            <img src={jctLogo} alt="JCT Contracting" style={styles.logo} crossOrigin="anonymous" />
+            <img src={fitoutsLogo} alt="Fit-Outs" style={styles.logo} crossOrigin="anonymous" />
             <div>
               <p style={styles.eyebrow}>Quotation</p>
-              <h1 style={styles.company}>{JCT_COVER_LETTER.companyName}</h1>
+              <h1 style={styles.company}>Fit-Outs</h1>
               <p style={styles.tagline}>Premium Fit-Out & Interior Solutions</p>
             </div>
           </div>

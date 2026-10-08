@@ -2,10 +2,28 @@ import { PageShell, SearchInput } from "@/components/layout/PageShell";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
 
 /** Shared page chrome for Design QAS routes. */
-export function DesignQasPageShell({ title, description, actions, stats, search, onSearchChange, searchPlaceholder, resultCount, children }) {
+export function DesignQasPageShell({
+  title,
+  description,
+  actions,
+  stats,
+  search,
+  onSearchChange,
+  searchPlaceholder,
+  resultCount,
+  children,
+  backTo,
+  backTitle = "Back",
+}) {
   return (
     <PageShell className="space-y-5">
-      <PageHeader title={title} description={description} actions={actions} />
+      <PageHeader
+        title={title}
+        description={description}
+        actions={actions}
+        backTo={backTo}
+        backTitle={backTitle}
+      />
 
       {stats ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{stats}</div> : null}
 

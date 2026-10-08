@@ -122,7 +122,9 @@ export default function StockDashboardPage() {
             <h2 className="flex items-center gap-2 text-base font-semibold tracking-tight">
               <History className="h-4 w-4" /> Recent Movements
             </h2>
-            <Button asChild variant="link" size="sm"><Link to={ROUTES.ADMIN.PROCUREMENT_MOVEMENTS}>View all</Link></Button>
+            <Button asChild variant="outline" size="sm" className="gap-1.5">
+              <Link to={ROUTES.ADMIN.PROCUREMENT_MOVEMENTS}>View all</Link>
+            </Button>
           </div>
           <div className="overflow-x-auto p-0 pt-3">
             <Table>

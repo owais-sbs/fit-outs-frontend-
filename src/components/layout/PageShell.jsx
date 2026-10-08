@@ -13,36 +13,41 @@ export function PageShell({ className, children, ...props }) {
 }
 
 /**
- * Inline back control — sits on the content left edge (aligned with path line / title).
+ * Clean back control — sits above the page title (or icon-only beside breadcrumbs).
  */
-export function PageBackLink({ to, state, onClick, title = "Back", className }) {
+export function PageBackLink({ to, state, onClick, title = "Back", iconOnly = false, className }) {
   const classes = cn(
-    "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md",
+    "inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-md border border-border/70 bg-card",
+    iconOnly ? "w-8 px-0" : "w-fit px-2.5",
     "text-muted-foreground transition-colors cursor-pointer",
-    "hover:bg-accent hover:text-accent-foreground",
+    "hover:bg-accent hover:text-accent-foreground hover:border-border",
     className
   );
 
-  const icon = <ArrowLeft className="h-4 w-4" aria-hidden />;
+  const content = (
+    <>
+      <ArrowLeft className="h-3.5 w-3.5 shrink-0" aria-hidden />
+      {!iconOnly && <span className="text-sm font-medium">{title}</span>}
+    </>
+  );
 
   if (typeof onClick === "function" && to == null) {
     return (
       <button type="button" className={classes} title={title} aria-label={title} onClick={onClick}>
-        {icon}
+        {content}
       </button>
     );
   }
 
   return (
     <Link to={to} state={state} className={classes} title={title} aria-label={title}>
-      {icon}
+      {content}
     </Link>
   );
 }
 
 /**
- * Page title with optional back control on the content left edge
- * (aligned with ProjectPathLine / breadcrumbs above).
+ * Page title with optional back control stacked cleanly above.
  */
 export function PageHeader({
   title,
@@ -57,18 +62,18 @@ export function PageHeader({
 }) {
   const hasBack = backTo != null || typeof backOnClick === "function";
   return (
-    <div className={cn("flex items-start gap-1 sm:gap-2", className)}>
+    <div className={cn("space-y-3", className)}>
       {hasBack ? (
         <PageBackLink
           to={backTo}
           state={backState}
           onClick={backOnClick}
           title={backTitle}
-          className={cn("mt-0.5 sm:mt-1", backClassName)}
+          className={backClassName}
         />
       ) : null}
       <PageTitle
-        className="min-w-0 flex-1"
+        className="min-w-0"
         title={title}
         subtitle={subtitle}
         actions={actions}

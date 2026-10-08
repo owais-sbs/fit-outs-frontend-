@@ -225,11 +225,11 @@ export default function LeadsListPage() {
       </FilterToolbar>
 
       <Card className="overflow-hidden">
-        <div className="max-h-[calc(100vh-26rem)] overflow-auto">
+        <div className="overflow-x-auto">
           {loading ? (
             <div className="space-y-2">
               <LoadingPanel size="section" messages={loadingMessages.leads} />
-              <TableSkeleton rows={6} cols={7} className="p-4" />
+              <TableSkeleton rows={10} cols={7} className="p-4" />
             </div>
           ) : paginated.length === 0 ? (
             <EmptyState
@@ -238,7 +238,7 @@ export default function LeadsListPage() {
               description="Adjust filters or search terms"
             />
           ) : (
-            <Table framed>
+            <Table>
               <TableHeader className="sticky top-0 z-10 bg-card/95 backdrop-blur-sm">
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="pl-6">Ref No.</TableHead>
@@ -287,7 +287,9 @@ export default function LeadsListPage() {
                         </button>
                       )}
                     </TableCell>
-                    <TableCell className="text-muted-foreground">{lead.source}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {lead.source === "Walk in" ? "Walk-in" : lead.source}
+                    </TableCell>
                     <TableCell className="text-muted-foreground">{lead.projectType || "\u2014"}</TableCell>
                     <TableCell className="text-muted-foreground max-w-[160px] truncate">
                       {lead.email || "\u2014"}
@@ -311,21 +313,29 @@ export default function LeadsListPage() {
           )}
         </div>
         {!loading && filtered.length > 0 && (
-          <div className="flex items-center justify-between border-t px-4 py-3">
+          <div className="flex shrink-0 flex-col gap-2 border-t border-border bg-muted/20 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-muted-foreground">
-              {filtered.length} lead{filtered.length !== 1 ? "s" : ""} &middot; Page {page} of {totalPages}
+              {filtered.length} lead{filtered.length !== 1 ? "s" : ""}
+              <span className="mx-1.5 text-border">·</span>
+              Showing {paginated.length} of {PAGE_SIZE} per page
+              <span className="mx-1.5 text-border">·</span>
+              Page {page} of {totalPages}
             </p>
-            <Pagination>
-              <PaginationContent>
+            <Pagination className="mx-0 w-auto justify-end">
+              <PaginationContent className="gap-0.5">
                 <PaginationItem>
                   <PaginationPrevious
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    className={page <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    className={page <= 1 ? "pointer-events-none h-8 opacity-50" : "h-8 cursor-pointer"}
                   />
                 </PaginationItem>
                 {Array.from({ length: totalPages }).map((_, i) => (
                   <PaginationItem key={i}>
-                    <PaginationLink isActive={page === i + 1} onClick={() => setPage(i + 1)} className="cursor-pointer">
+                    <PaginationLink
+                      isActive={page === i + 1}
+                      onClick={() => setPage(i + 1)}
+                      className="h-8 w-8 cursor-pointer"
+                    >
                       {i + 1}
                     </PaginationLink>
                   </PaginationItem>
@@ -333,7 +343,7 @@ export default function LeadsListPage() {
                 <PaginationItem>
                   <PaginationNext
                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    className={page >= totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    className={page >= totalPages ? "pointer-events-none h-8 opacity-50" : "h-8 cursor-pointer"}
                   />
                 </PaginationItem>
               </PaginationContent>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
-  ArrowLeft, Calendar, MessageSquare, Phone, Mail,
+  Calendar, MessageSquare, Phone, Mail,
   Building2, Clock, UserCheck,
 } from "lucide-react";
 import { ROUTES } from "@/shared/constants/routes";
@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { PageShell, Surface } from "@/components/layout/PageShell";
+import { PageShell, PageBackLink, Surface } from "@/components/layout/PageShell";
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -161,9 +161,7 @@ export default function LeadDetailPage() {
   if (loading) {
     return (
       <PageShell>
-        <Button variant="ghost" size="sm" asChild>
-          <Link to={ROUTES.ADMIN.LEADS_LIST}><ArrowLeft className="mr-2 h-4 w-4" />Leads</Link>
-        </Button>
+        <PageBackLink to={ROUTES.ADMIN.LEADS_LIST} title="Back to leads" />
         <Card><CardContent className="py-16 text-center text-muted-foreground">Loading lead...</CardContent></Card>
       </PageShell>
     );
@@ -172,9 +170,7 @@ export default function LeadDetailPage() {
   if (!lead) {
     return (
       <PageShell>
-        <Button variant="ghost" size="sm" asChild>
-          <Link to={ROUTES.ADMIN.LEADS_LIST}><ArrowLeft className="mr-2 h-4 w-4" />Leads</Link>
-        </Button>
+        <PageBackLink to={ROUTES.ADMIN.LEADS_LIST} title="Back to leads" />
         <Card><CardContent className="py-16 text-center text-muted-foreground">Lead not found.</CardContent></Card>
       </PageShell>
     );
@@ -186,9 +182,7 @@ export default function LeadDetailPage() {
 
   return (
     <PageShell className="space-y-5">
-      <Button variant="ghost" size="sm" asChild className="-ml-2">
-        <Link to={ROUTES.ADMIN.LEADS_LIST}><ArrowLeft className="mr-2 h-4 w-4" />Leads</Link>
-      </Button>
+      <PageBackLink to={ROUTES.ADMIN.LEADS_LIST} title="Back to leads" />
 
       <Surface className="flex flex-wrap items-start justify-between gap-4 p-5">
         <div className="flex items-start gap-4">
@@ -223,7 +217,7 @@ export default function LeadDetailPage() {
             <Button
               variant="default"
               size="sm"
-              className="gap-1.5 bg-green-600 hover:bg-green-700"
+              className="gap-1.5 bg-[#C9A96E] text-[#0a1628] hover:bg-[#B89051] hover:text-[#0a1628]"
               onClick={() => setConvertOpen(true)}
             >
               <UserCheck className="h-3.5 w-3.5" />
@@ -402,7 +396,7 @@ export default function LeadDetailPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setConvertOpen(false)} disabled={converting}>Cancel</Button>
             <Button
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-[#C9A96E] text-[#0a1628] hover:bg-[#B89051] hover:text-[#0a1628]"
               disabled={converting}
               onClick={handleConvertToClient}
             >

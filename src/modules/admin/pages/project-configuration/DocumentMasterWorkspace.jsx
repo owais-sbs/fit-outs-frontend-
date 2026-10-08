@@ -97,7 +97,7 @@ function FilePreview({ path }) {
         )}
         {pdfFile && (
           <Document file={pdfFile} loading={null} error={<p className="p-4 text-sm text-muted-foreground">Preview unavailable</p>}>
-            <Page pageNumber={1} width={420} renderTextLayer={false} renderAnnotationLayer={false} />
+            <Page pageNumber={1} width={260} renderTextLayer={false} renderAnnotationLayer={false} className="mx-auto max-w-full" />
           </Document>
         )}
         <a href={attachmentHref(path)} target="_blank" rel="noreferrer" className="block truncate border-t px-3 py-2 text-xs text-muted-foreground hover:text-foreground">
@@ -342,8 +342,8 @@ export default function DocumentMasterWorkspace({ documents, loading, onChanged,
         ) : !selected || !details ? (
           <p className="py-16 text-center text-sm text-muted-foreground">Select a document.</p>
         ) : (
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,280px)_minmax(0,1fr)]">
-            <div className="space-y-3">
+          <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,240px)_minmax(0,1fr)]">
+            <div className="min-w-0 space-y-3">
               {companyHeld ? (
                 <>
                   <FilePreview path={details.filePath} />
@@ -373,12 +373,12 @@ export default function DocumentMasterWorkspace({ documents, loading, onChanged,
               )}
             </div>
 
-            <div className="space-y-4">
+            <div className="min-w-0 space-y-4">
               <div>
                 <h2 className="text-xl font-semibold tracking-tight">{details.name || "Document"}</h2>
                 <p className="font-mono text-xs text-muted-foreground">{details.docCode}</p>
               </div>
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Field label="Category" value={details.category} onChange={(value) => setDetails({ ...details, category: value })} />
                 <Field label="Owner" value={details.sourceOwner} onChange={(value) => setDetails({ ...details, sourceOwner: value })} />
                 {companyHeld && (
@@ -390,7 +390,7 @@ export default function DocumentMasterWorkspace({ documents, loading, onChanged,
                 )}
               </div>
               <Area label="Required for" value={details.typicallyRequiredFor} onChange={(value) => setDetails({ ...details, typicallyRequiredFor: value })} />
-              <div className="flex flex-wrap gap-4">
+              <div className="grid gap-3 sm:grid-cols-2">
                 <Toggle label="Track expiry" checked={!!details.expiryTracked} onChange={(value) => setDetails({ ...details, expiryTracked: value })} />
                 <Toggle label="Active" checked={!!details.active} onChange={(value) => setDetails({ ...details, active: value })} />
               </div>
@@ -413,9 +413,14 @@ export default function DocumentMasterWorkspace({ documents, loading, onChanged,
 
 function Field({ label, value, onChange, type = "text" }) {
   return (
-    <div className="space-y-1.5">
-      <Label className="text-xs">{label}</Label>
-      <Input type={type} value={value || ""} onChange={(event) => onChange(event.target.value)} />
+    <div className="flex min-w-0 flex-col gap-1.5">
+      <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
+      <Input
+        type={type}
+        className="min-w-0"
+        value={value || ""}
+        onChange={(event) => onChange(event.target.value)}
+      />
     </div>
   );
 }

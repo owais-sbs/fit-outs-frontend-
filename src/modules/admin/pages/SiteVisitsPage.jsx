@@ -314,18 +314,32 @@ export default function SiteVisitsPage() {
       ) : null}
 
       <Tabs value={tab} onValueChange={setTab}>
-        <div className="flex flex-col gap-2 rounded-lg border border-border bg-card p-2 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-          <TabsList className="h-auto w-full flex-wrap justify-start gap-1 bg-muted/40 p-1 sm:w-auto">
-            <TabsTrigger value="upcoming" className="rounded-lg">
-              Upcoming ({filteredUpcoming.length})
+        <div className="flex flex-col gap-3 rounded-sm border border-border bg-card p-2.5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <TabsList className="h-auto w-full flex-wrap justify-start gap-1.5 bg-muted/50 p-1 sm:w-auto">
+            <TabsTrigger
+              value="upcoming"
+              className="rounded-sm px-3.5 py-2 text-sm font-medium data-[state=active]:bg-[#0a1628] data-[state=active]:text-[#FAF7F2] data-[state=active]:shadow-sm"
+            >
+              Upcoming
+              <span className="ml-1.5 tabular-nums opacity-80">({filteredUpcoming.length})</span>
             </TabsTrigger>
-            <TabsTrigger value="completed" className="rounded-lg">
-              Completed ({filteredCompleted.length})
+            <TabsTrigger
+              value="completed"
+              className="rounded-sm px-3.5 py-2 text-sm font-medium data-[state=active]:bg-[#0a1628] data-[state=active]:text-[#FAF7F2] data-[state=active]:shadow-sm"
+            >
+              Completed
+              <span className="ml-1.5 tabular-nums opacity-80">({filteredCompleted.length})</span>
             </TabsTrigger>
-            <TabsTrigger value="reports" className="rounded-lg">
+            <TabsTrigger
+              value="reports"
+              className="rounded-sm px-3.5 py-2 text-sm font-medium data-[state=active]:bg-[#0a1628] data-[state=active]:text-[#FAF7F2] data-[state=active]:shadow-sm"
+            >
               Reports
             </TabsTrigger>
-            <TabsTrigger value="checklists" className="rounded-lg">
+            <TabsTrigger
+              value="checklists"
+              className="rounded-sm px-3.5 py-2 text-sm font-medium data-[state=active]:bg-[#0a1628] data-[state=active]:text-[#FAF7F2] data-[state=active]:shadow-sm"
+            >
               Checklists
             </TabsTrigger>
           </TabsList>
@@ -340,6 +354,11 @@ export default function SiteVisitsPage() {
                 className="h-9 pl-9"
               />
             </div>
+          )}
+          {(tab === "reports" || tab === "checklists") && (
+            <p className="text-xs text-muted-foreground sm:text-sm">
+              {tab === "reports" ? "Generated inspection reports" : "Inspection checklist templates"}
+            </p>
           )}
         </div>
 

@@ -53,11 +53,11 @@ function SourceCard({ source }) {
 
   return (
     <Card className="border-border/60 bg-card shadow-sm">
-      <CardContent className="flex h-full flex-col gap-4 px-5 pb-5 pt-6 md:px-6 md:pb-6 md:pt-6">
-        <div className="flex items-start gap-3">
+      <CardContent className="flex h-full flex-col gap-5 px-5 pb-5 pt-6 md:px-6 md:pb-6 md:pt-7">
+        <div className="flex items-start gap-3.5">
           <div
             className={cn(
-              "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+              "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
               colors.iconBg,
               colors.text
             )}
@@ -66,7 +66,9 @@ function SourceCard({ source }) {
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-2">
-              <h3 className="truncate text-base font-semibold text-foreground">{source.name}</h3>
+              <h3 className="truncate text-base font-semibold tracking-tight text-foreground">
+                {source.name === "Walk in" || source.name === "Walk-in" ? "Walk-in" : source.name}
+              </h3>
               <Badge
                 variant="outline"
                 className="shrink-0 border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
@@ -124,6 +126,7 @@ export default function LeadSourcesPage() {
     leads.forEach((lead) => {
       let source = lead.source || "Other";
       if (source === "—") source = "Other";
+      if (source === "Walk in") source = "Walk-in";
 
       if (!sourceMap[source]) {
         sourceMap[source] = {
@@ -161,13 +164,13 @@ export default function LeadSourcesPage() {
   const overallConvRate = leads.length > 0 ? Math.round((totalConverted / leads.length) * 100) : 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-10">
       <PageHeader
         title="Lead Sources"
         description="Performance breakdown by acquisition channel"
       />
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard title="Total Leads" value={loading ? "..." : leads.length} icon={Users} />
         <StatCard
           title="Converted"
@@ -196,17 +199,19 @@ export default function LeadSourcesPage() {
         </div>
       ) : (
         <>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
             {sourceStats.map((source) => (
               <SourceCard key={source.name} source={source} />
             ))}
           </div>
 
-          <Card className="border-border/60 bg-card">
-            <CardContent className="p-6">
-              <h3 className="mb-6 text-base font-semibold text-foreground">Lead Volume by Source</h3>
+          <Card className="mt-2 border-border/60 bg-card">
+            <CardContent className="p-6 sm:p-8">
+              <h3 className="mb-6 text-base font-semibold tracking-tight text-foreground">
+                Lead Volume by Source
+              </h3>
 
-              <div className="space-y-8">
+              <div className="space-y-6">
                 {sourceStats.map((source) => {
                   const Icon = source.icon;
                   const colors = COLOR_MAP[source.color];

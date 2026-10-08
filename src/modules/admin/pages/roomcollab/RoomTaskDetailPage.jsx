@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
-  ArrowLeft,
   CheckCircle2,
   ChevronDown,
   ChevronRight,
@@ -11,6 +10,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { PageBackLink, PageShell } from "@/components/layout/PageShell";
 import { ROUTES } from "@/shared/constants/routes";
 import {
   closeRoomTask,
@@ -25,13 +25,24 @@ import { useCollabChatSocket } from "@/shared/hooks/useCollabChatSocket";
 function StatusStrip({ task, timeline, historyOpen, setHistoryOpen }) {
   const events = (timeline || []).filter((ev) => ev.eventType !== "MESSAGE");
   return (
-    <div className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5 space-y-2">
-      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-        <span>Deadline: {task.clientDeadline ? new Date(task.clientDeadline).toLocaleString() : "—"}</span>
-        <span>First sent: {task.firstSentToClientAt ? new Date(task.firstSentToClientAt).toLocaleString() : "—"}</span>
-        <span>Revisions: {task.revisionCount ?? 0}</span>
+    <div className="rounded-lg border border-border/60 bg-card px-4 py-3 space-y-2">
+      <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-muted-foreground">
+        <span>
+          <span className="font-medium text-foreground/70">Deadline:</span>{" "}
+          {task.clientDeadline ? new Date(task.clientDeadline).toLocaleString() : "—"}
+        </span>
+        <span>
+          <span className="font-medium text-foreground/70">First sent:</span>{" "}
+          {task.firstSentToClientAt ? new Date(task.firstSentToClientAt).toLocaleString() : "—"}
+        </span>
+        <span>
+          <span className="font-medium text-foreground/70">Revisions:</span> {task.revisionCount ?? 0}
+        </span>
         {task.approvedAt && (
-          <span>Approved: {new Date(task.approvedAt).toLocaleString()}</span>
+          <span>
+            <span className="font-medium text-foreground/70">Approved:</span>{" "}
+            {new Date(task.approvedAt).toLocaleString()}
+          </span>
         )}
       </div>
       {events.length > 0 && (
@@ -68,13 +79,15 @@ function LatestFile({ versions }) {
   if (!list.length) return null;
   const latest = [...list].sort((a, b) => (b.versionNo || 0) - (a.versionNo || 0))[0];
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-card px-3 py-2 text-sm">
-      <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+    <div className="flex items-center gap-3 rounded-lg border border-border/60 bg-card px-4 py-3 text-sm">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-muted">
+        <FileText className="h-4 w-4 text-muted-foreground" />
+      </div>
       <div className="min-w-0 flex-1">
         <p className="truncate font-medium">
           Latest: v{latest.versionNo} · {latest.originalName}
           {latest.isFinal && (
-            <Badge className="ml-1.5 bg-emerald-600 text-white text-[10px] gap-1 align-middle">
+            <Badge className="ml-1.5 gap-1 align-middle border-none bg-[#C9A96E]/18 text-[10px] text-[#8a6d3b]">
               <CheckCircle2 className="h-3 w-3" /> Final
             </Badge>
           )}
@@ -161,7 +174,7 @@ export default function RoomTaskDetailPage() {
 
   if (loading) {
     return (
-      <div className="py-16 flex justify-center">
+      <div className="flex justify-center py-16">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
@@ -184,22 +197,23 @@ export default function RoomTaskDetailPage() {
   const canSubmit = !closed && latest && latest.uploaderRole === "STAFF";
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-4 pb-16">
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-          <Link to={backTo}><ArrowLeft className="h-4 w-4" /></Link>
-        </Button>
-        <div className="min-w-0 flex-1">
-          <p className="text-xs text-muted-foreground">
+    <PageShell className="mx-auto max-w-3xl !space-y-4 pb-16">
+      <PageBackLink to={backTo} title="Back to project" />
+
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             {task.floorLabel} · {task.roomName}
           </p>
-          <h1 className="text-xl font-bold truncate">{task.title}</h1>
+          <h1 className="mt-0.5 truncate text-2xl font-semibold tracking-tight">{task.title}</h1>
         </div>
-        <Badge variant="outline">{task.status.replace(/_/g, " ")}</Badge>
+        <Badge variant="outline" className="shrink-0 uppercase tracking-wide">
+          {task.status.replace(/_/g, " ")}
+        </Badge>
       </div>
 
       {error && (
-        <p className="text-sm text-destructive border border-destructive/30 bg-destructive/10 rounded-md px-3 py-2">
+        <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {error}
         </p>
       )}
@@ -261,7 +275,7 @@ export default function RoomTaskDetailPage() {
               disabled={busy}
               onClick={() => run(() => submitTaskToClient(projectId, taskId))}
             >
-              <Send className="h-3.5 w-3.5 mr-1" /> Submit to client
+              <Send className="mr-1 h-3.5 w-3.5" /> Submit to client
             </Button>
           )}
           {task.status === "APPROVED" && (
@@ -284,6 +298,6 @@ export default function RoomTaskDetailPage() {
         onSent={softReload}
         disabled={closed}
       />
-    </div>
+    </PageShell>
   );
 }

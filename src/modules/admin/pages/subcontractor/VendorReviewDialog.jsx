@@ -31,7 +31,7 @@ const REVIEW_STATUS_OPTIONS = [
 ];
 
 const STATUS_BADGE = {
-  VALID: "bg-emerald-500/15 text-emerald-700 border-none",
+  VALID: "border-none bg-[#C9A96E]/18 text-[#8a6d3b] dark:text-[#d9be8a]",
   EXPIRING_SOON: "bg-amber-500/15 text-amber-700 border-none",
   EXPIRED: "bg-destructive/15 text-destructive border-none",
   INCOMPLETE: "bg-slate-500/15 text-slate-700 border-none",
@@ -185,7 +185,7 @@ export default function VendorReviewDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto">
+      <DialogContent className="max-h-[88vh] w-[min(92vw,56rem)] max-w-4xl overflow-y-auto sm:rounded-xl">
         <DialogHeader>
           <DialogTitle>Prequalification review</DialogTitle>
         </DialogHeader>
