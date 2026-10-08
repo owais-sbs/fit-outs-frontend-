@@ -6,6 +6,7 @@ import {
   Wallet,
   BarChart3,
   Settings,
+  UserRound,
 } from "lucide-react";
 import { ROUTES } from "@/shared/constants/routes";
 
@@ -29,6 +30,7 @@ export const SUPER_ADMIN_NAV_GROUPS = [
     label: "System",
     items: [
       { label: "Reports", href: ROUTES.SUPER_ADMIN.REPORTS, icon: BarChart3 },
+      { label: "My Profile", href: ROUTES.SUPER_ADMIN.PROFILE, icon: UserRound },
       { label: "Settings", href: ROUTES.SUPER_ADMIN.SETTINGS, icon: Settings },
     ],
   },

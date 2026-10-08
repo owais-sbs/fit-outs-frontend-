@@ -8,4 +8,5 @@ export { default as UsersPage } from "./UsersPage";
 export { default as PermissionsPage } from "./PermissionsPage";
 export { default as ReportsPage } from "./ReportsPage";
 export { default as SettingsPage } from "./SettingsPage";
+export { default as ProfilePage } from "./ProfilePage";
 export { default as SuperAdminPlaceholder } from "./SuperAdminPlaceholder";

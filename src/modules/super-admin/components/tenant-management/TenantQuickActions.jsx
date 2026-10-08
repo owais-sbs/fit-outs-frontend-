@@ -14,7 +14,7 @@ export default function TenantQuickActions({ variant = "list" }) {
     <div className="flex flex-wrap items-center gap-2">
       <Button
         size="sm"
-        className="gap-2"
+        className="gap-2 border-0 bg-[#0a1628] text-[#FAF7F2] hover:bg-[#0d1c32] hover:text-[#FAF7F2]"
         onClick={() => navigate(ROUTES.SUPER_ADMIN.COMPANIES_CREATE)}>
         <Plus className="h-4 w-4" />
         Add company

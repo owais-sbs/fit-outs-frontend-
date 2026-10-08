@@ -22,8 +22,10 @@ export default function DashboardHeader({
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{currentDate}</p>
-        <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground md:text-[2rem]">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          {currentDate}
+        </p>
+        <h1 className="font-sans text-3xl font-semibold tracking-tight text-foreground md:text-[2rem]">
           {title}
         </h1>
         <p className="mt-1 max-w-xl text-sm text-muted-foreground">
@@ -32,7 +34,11 @@ export default function DashboardHeader({
       </div>
       <div className="flex flex-wrap items-center gap-2">
         {children || (
-          <Button size="sm" className="gap-2" asChild>
+          <Button
+            size="sm"
+            className="gap-2 border-0 bg-[#0a1628] text-[#FAF7F2] hover:bg-[#0d1c32] hover:text-[#FAF7F2]"
+            asChild
+          >
             <Link to={ROUTES.SUPER_ADMIN.COMPANIES_CREATE}>
               <Plus className="h-4 w-4" />
               Add company

@@ -12,12 +12,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -38,20 +32,20 @@ import axiosInstance from "@/lib/axiosInstance";
 
 const PLAN_ACCENTS = {
   basic: {
-    ring: "border-primary/15 hover:border-primary/30",
-    band: "from-slate-500/90 via-slate-500/40 to-transparent",
+    ring: "border-[#0B1F3A]/15 hover:border-[#C9A96E]/35",
+    band: "from-[#0B1F3A] via-[#0B1F3A]/50 to-transparent",
     icon: Database,
     badge: "Starter",
   },
   professional: {
-    ring: "border-cyan-500/15 hover:border-cyan-500/30",
-    band: "from-cyan-500/90 via-cyan-500/40 to-transparent",
+    ring: "border-[#C9A96E]/30 hover:border-[#C9A96E]/55",
+    band: "from-[#C9A96E] via-[#B89051]/55 to-transparent",
     icon: Users2,
     badge: "Most chosen",
   },
   enterprise: {
-    ring: "border-emerald-500/15 hover:border-emerald-500/30",
-    band: "from-emerald-500/90 via-emerald-500/40 to-transparent",
+    ring: "border-[#0B1F3A]/25 hover:border-[#C9A96E]/40",
+    band: "from-[#0B1F3A] via-[#C9A96E]/60 to-transparent",
     icon: ShieldCheck,
     badge: "Scale",
   },
@@ -249,30 +243,30 @@ export default function PlansPage() {
   };
 
   return (
-    <PageShell className="pb-24">
+    <PageShell>
       <PageHeader
         title="Subscription plans"
         description="Configure pricing, modules, and renewal settings for fit-out tenant tiers."
         actions={
-          <Button variant="outline" size="sm" className="gap-2" onClick={() => setCreateOpen(true)}>
+          <Button size="sm" className="gap-2" onClick={() => setCreateOpen(true)}>
             <Plus className="h-4 w-4" />Create plan
           </Button>
         }
       />
 
       {/* ── Plan cards ── */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-5 md:grid-cols-3">
         {loading
           ? Array.from({ length: 3 }).map((_, i) => (
-              <Card key={i} className="">
+              <Card key={i} className="border border-border/60">
                 <CardHeader className="space-y-4 pb-4">
-                  <Skeleton className="h-11 w-11 rounded-2xl" />
+                  <Skeleton className="h-11 w-11 rounded-lg" />
                   <Skeleton className="h-5 w-32" />
-                  <Skeleton className="h-20 w-full rounded-2xl" />
+                  <Skeleton className="h-20 w-full rounded-lg" />
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <Skeleton className="h-10 w-full" />
-                  <Skeleton className="h-24 w-full rounded-2xl" />
+                  <Skeleton className="h-24 w-full rounded-lg" />
                 </CardContent>
               </Card>
             ))
@@ -285,22 +279,23 @@ export default function PlansPage() {
                 <Card
                   key={plan.id}
                   className={cn(
-                    "group relative overflow-hidden bg-card/90 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg",
+                    "group relative overflow-hidden border bg-card shadow-sm transition-all duration-200 hover:shadow-md",
                     accent.ring
                   )}
                 >
-                  <div className={cn("absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r", accent.band)} />
-                  <div className="absolute right-0 top-0 h-28 w-28 rounded-bl-full bg-gradient-to-br from-primary/10 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                  <div className={cn("absolute inset-x-0 top-0 h-1 bg-gradient-to-r", accent.band)} />
 
-                  <CardHeader className="relative space-y-4 pb-4">
+                  <CardHeader className="relative space-y-4 pb-3 pt-5">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-muted/60 text-foreground transition-colors group-hover:bg-background">
-                          <AccentIcon className="h-5 w-5" />
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0B1F3A]/[0.06] text-[#0B1F3A] ring-1 ring-[#0B1F3A]/10">
+                          <AccentIcon className="h-[18px] w-[18px]" />
                         </div>
                         <div className="space-y-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <CardTitle className="text-base tracking-tight font-display">{plan.displayName}</CardTitle>
+                            <CardTitle className="text-base font-semibold tracking-tight">
+                              {plan.displayName}
+                            </CardTitle>
                             <Badge
                               variant={plan.published ? "success" : "secondary"}
                               className="h-5 px-2 text-[10px] uppercase tracking-wide"
@@ -315,27 +310,29 @@ export default function PlansPage() {
                       </div>
                     </div>
 
-                    <div className="grid gap-3 rounded-2xl bg-muted/30 p-4">
+                    <div className="grid gap-3 rounded-lg border border-border/50 bg-muted/25 p-3.5">
                       <div className="flex items-end justify-between gap-3">
                         <div>
                           <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Monthly</p>
                           <div className="mt-1 flex items-baseline gap-1">
-                            <span className="text-3xl font-semibold tracking-tight">{formatAed(plan.price)}</span>
+                            <span className="text-2xl font-semibold tracking-tight tabular-nums">
+                              {formatAed(plan.price)}
+                            </span>
                           </div>
                         </div>
                         <div className="text-right">
                           <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Annual</p>
-                          <p className="mt-1 text-sm font-medium text-foreground">
+                          <p className="mt-1 text-sm font-medium text-foreground tabular-nums">
                             {formatAed(plan.annualPrice)}
                           </p>
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        <Badge variant="outline" className="gap-1">
+                        <Badge variant="outline" className="gap-1 font-normal">
                           <Users2 className="h-3 w-3" />
                           {plan.seats} seats
                         </Badge>
-                        <Badge variant="outline" className="gap-1">
+                        <Badge variant="outline" className="gap-1 font-normal">
                           <Sparkles className="h-3 w-3" />
                           {plan.modules.length} modules
                         </Badge>
@@ -345,17 +342,17 @@ export default function PlansPage() {
                   </CardHeader>
 
                   <CardContent className="relative space-y-4">
-                    <div className="rounded-2xl bg-muted/20 p-4">
+                    <div className="rounded-lg border border-border/40 bg-background/60 p-3.5">
                       <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
                         Marketing features
                       </p>
-                      <ul className="mt-3 space-y-2 text-sm">
+                      <ul className="mt-2.5 space-y-2 text-sm">
                         {(plan.features || []).length === 0 ? (
                           <li className="text-muted-foreground">No feature bullets yet</li>
                         ) : (
                           plan.features.map((feature) => (
                             <li key={feature} className="flex items-start gap-2">
-                              <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                              <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#C9A96E]" />
                               <span>{feature}</span>
                             </li>
                           ))
@@ -397,75 +394,91 @@ export default function PlansPage() {
       </div>
 
       {/* ── Module toggles ── */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Module toggles</CardTitle>
+      <Card className="border border-border/60 shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold tracking-tight">
+            Module toggles
+          </CardTitle>
           <CardDescription>Enable features per plan tier</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {ALL_MODULES.map((mod) => (
-              <div key={mod.id} className="rounded-lg bg-muted/20 p-4">
-                <p className="font-medium">{mod.label}</p>
-                <p className="mb-3 text-xs text-muted-foreground">{mod.features.join(" · ")}</p>
-                {["basic", "professional", "enterprise"].map((pid) => (
-                  <div key={pid} className="flex items-center justify-between py-1">
-                    <span className="text-xs capitalize">{pid}</span>
-                    <Switch
-                      checked={moduleToggles[mod.id]?.[pid]}
-                      onCheckedChange={() => toggleModule(mod.id, pid)}
-                    />
-                  </div>
-                ))}
+              <div
+                key={mod.id}
+                className="rounded-lg border border-border/50 bg-muted/15 p-3.5 transition-colors hover:bg-muted/25"
+              >
+                <p className="text-sm font-semibold text-foreground">{mod.label}</p>
+                <p className="mb-3 mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                  {mod.features.join(" · ")}
+                </p>
+                <div className="space-y-1.5 border-t border-border/40 pt-2.5">
+                  {["basic", "professional", "enterprise"].map((pid) => (
+                    <div key={pid} className="flex items-center justify-between gap-3 py-1">
+                      <span className="text-xs font-medium capitalize text-muted-foreground">
+                        {pid}
+                      </span>
+                      <Switch
+                        checked={moduleToggles[mod.id]?.[pid]}
+                        onCheckedChange={() => toggleModule(mod.id, pid)}
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
             ))}
           </div>
         </CardContent>
       </Card>
 
-      {/* ── Feature comparison matrix ── */}
-      <Accordion type="single" collapsible className="rounded-lg bg-muted/20 px-4">
-        <AccordionItem value="matrix">
-          <AccordionTrigger>Feature comparison matrix</AccordionTrigger>
-          <AccordionContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Feature</TableHead>
+      {/* ── Feature comparison matrix (always open) ── */}
+      <Card className="border border-border/60 shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold tracking-tight">
+            Feature comparison matrix
+          </CardTitle>
+          <CardDescription>Module availability across subscription tiers</CardDescription>
+        </CardHeader>
+        <CardContent className="overflow-x-auto pt-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Feature</TableHead>
+                {plans.map((p) => (
+                  <TableHead key={p.id}>{p.displayName}</TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {ALL_MODULES.map((m) => (
+                <TableRow key={m.id}>
+                  <TableCell className="font-medium">{m.label}</TableCell>
                   {plans.map((p) => (
-                    <TableHead key={p.id}>{p.displayName}</TableHead>
+                    <TableCell key={p.id}>
+                      {p.modules.includes(m.id) ? (
+                        <Check className="h-4 w-4 text-[#C9A96E]" />
+                      ) : (
+                        <span className="text-xs text-muted-foreground">N/A</span>
+                      )}
+                    </TableCell>
                   ))}
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {ALL_MODULES.map((m) => (
-                  <TableRow key={m.id}>
-                    <TableCell className="font-medium">{m.label}</TableCell>
-                    {plans.map((p) => (
-                      <TableCell key={p.id}>
-                        {p.modules.includes(m.id) ? (
-                          <Check className="h-4 w-4 text-primary" />
-                        ) : (
-                          "N/A"
-                        )}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
       {/* ── Create plan dialog ── */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Create subscription plan</DialogTitle>
+        <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto border border-border/60 sm:rounded-lg">
+          <DialogHeader className="space-y-1.5 border-b border-border/50 pb-4 text-left">
+            <DialogTitle className="text-lg font-semibold tracking-tight">
+              Create subscription plan
+            </DialogTitle>
             <DialogDescription>Add a new plan tier for fit-out companies.</DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleCreateSubmit} className="space-y-4">
+          <form onSubmit={handleCreateSubmit} className="space-y-5 pt-1">
             <div className="space-y-2">
               <Label htmlFor="planName">Plan name</Label>
               <Input
@@ -474,6 +487,7 @@ export default function PlansPage() {
                 onChange={handleCreateChange("planName")}
                 placeholder="e.g. Basic, Professional, Enterprise"
                 required
+                className="h-10"
               />
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -485,6 +499,7 @@ export default function PlansPage() {
                   min="1"
                   value={createForm.maxUsers}
                   onChange={handleCreateChange("maxUsers")}
+                  className="h-10"
                 />
               </div>
               <div className="space-y-2">
@@ -496,9 +511,10 @@ export default function PlansPage() {
                   step="0.01"
                   value={createForm.priceMonthly}
                   onChange={handleCreateChange("priceMonthly")}
+                  className="h-10"
                 />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="priceAnnual">Annual price (AED)</Label>
                 <Input
                   id="priceAnnual"
@@ -507,19 +523,20 @@ export default function PlansPage() {
                   step="0.01"
                   value={createForm.priceAnnual}
                   onChange={handleCreateChange("priceAnnual")}
+                  className="h-10"
                 />
               </div>
             </div>
             <div className="space-y-2">
               <Label>Included modules</Label>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 rounded-lg border border-border/50 bg-muted/15 p-3">
                 {ALL_MODULES.map((mod) => {
                   const selected = createForm.modulesIncluded.includes(mod.id);
                   return (
                     <Badge
                       key={mod.id}
                       variant={selected ? "default" : "outline"}
-                      className="cursor-pointer gap-1 px-3 py-1.5"
+                      className="cursor-pointer gap-1 px-3 py-1.5 font-normal"
                       onClick={() => moduleToggle(mod.id)}
                     >
                       {mod.label}
@@ -533,13 +550,13 @@ export default function PlansPage() {
               <Label htmlFor="featuresText">Feature bullets (one per line)</Label>
               <textarea
                 id="featuresText"
-                className="min-h-[96px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                className="min-h-[96px] w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
                 value={createForm.featuresText}
                 onChange={handleCreateChange("featuresText")}
                 placeholder={"Unlimited projects\nPriority support\nCustom branding"}
               />
             </div>
-            <DialogFooter className="pt-2">
+            <DialogFooter className="gap-2 border-t border-border/50 pt-4 sm:gap-2">
               <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>
                 Cancel
               </Button>
@@ -652,13 +669,6 @@ export default function PlansPage() {
           </form>
         </DialogContent>
       </Dialog>
-
-      {/* ── Sticky footer ── */}
-      <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-border bg-background/95 p-4 backdrop-blur md:left-[var(--sidebar-width)]">
-        <div className="mx-auto flex max-w-[1600px] justify-end gap-2">
-          <Button variant="outline" onClick={() => setCreateOpen(true)}>Create plan</Button>
-        </div>
-      </div>
     </PageShell>
   );
 }

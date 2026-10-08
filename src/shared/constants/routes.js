@@ -31,6 +31,7 @@ export const ROUTES = {
     SITE_VISITS: "/super-admin/site-visits",
     SITE_VISIT_SCHEDULE: "/super-admin/site-visits/schedule",
     SITE_VISIT_REPORT: "/super-admin/site-visits/:visitId/report",
+    PROFILE: "/super-admin/profile",
     SETTINGS: "/super-admin/settings",
     TERMS: "/super-admin/terms",
     AUDIT_LOG: "/super-admin/audit-log",

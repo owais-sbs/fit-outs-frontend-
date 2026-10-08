@@ -18,6 +18,8 @@ export default function AnalyticsToolbar({
   onPeriodChange,
   onExport,
   filterSlot,
+  showDateIcon = true,
+  dateInputClassName,
 }) {
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-border/60 bg-card/80 p-4 shadow-sm lg:flex-row lg:items-center lg:justify-between">
@@ -39,19 +41,21 @@ export default function AnalyticsToolbar({
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex items-center gap-2">
-          <Calendar className="h-4 w-4 text-muted-foreground" />
+          {showDateIcon ? (
+            <Calendar className="h-4 w-4 shrink-0 text-muted-foreground" />
+          ) : null}
           <Input
             type="date"
             value={dateFrom}
             onChange={(e) => onDateFromChange(e.target.value)}
-            className="w-[140px]"
+            className={dateInputClassName || "w-[140px]"}
           />
           <span className="text-muted-foreground">–</span>
           <Input
             type="date"
             value={dateTo}
             onChange={(e) => onDateToChange(e.target.value)}
-            className="w-[140px]"
+            className={dateInputClassName || "w-[140px]"}
           />
         </div>
         <Button variant="outline" size="sm" className="gap-2" onClick={onExport}>

@@ -261,12 +261,12 @@ export default function TenantsPage() {
         </div>
 
         {!loading && filtered.length > 0 && (
-          <div className="flex items-center justify-between border-t px-4 py-3">
-            <p className="text-xs text-muted-foreground">
-              {filtered.length} compan{filtered.length !== 1 ? "ies" : "y"} - Page {page} of{" "}
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t px-4 py-3">
+            <p className="shrink-0 whitespace-nowrap text-xs text-muted-foreground">
+              {filtered.length} compan{filtered.length !== 1 ? "ies" : "y"} · Page {page} of{" "}
               {totalPages}
             </p>
-            <Pagination>
+            <Pagination className="mx-0 w-auto justify-end">
               <PaginationContent>
                 <PaginationItem>
                   <PaginationPrevious

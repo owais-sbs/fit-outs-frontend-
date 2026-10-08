@@ -38,7 +38,7 @@ export default function ReportsPage() {
   }, [period]);
 
   return (
-    <div className="space-y-8 pb-8">
+    <div className="sa-reports-page space-y-8 pb-8">
       <PageHeader
         title="Reports & analytics"
         description="Platform-wide revenue, tenant growth, and site visit insights."
@@ -52,6 +52,8 @@ export default function ReportsPage() {
         onDateFromChange={setDateFrom}
         onDateToChange={setDateTo}
         onExport={() => {}}
+        showDateIcon={false}
+        dateInputClassName="sa-date-input w-[11.75rem]"
         filterSlot={
           <Select value={tenantFilter} onValueChange={setTenantFilter}>
             <SelectTrigger className="w-[160px]">
@@ -69,11 +71,27 @@ export default function ReportsPage() {
       <KpiGrid kpis={REPORTS_KPIS} icons={KPI_ICONS} loading={loading} />
 
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="flex h-auto flex-wrap gap-1 bg-muted/50 p-1">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="revenue">Revenue</TabsTrigger>
-          <TabsTrigger value="tenants">Tenant growth</TabsTrigger>
-          <TabsTrigger value="visits">Site visits</TabsTrigger>
+        <TabsList className="sa-reports-tabs inline-flex h-auto w-fit max-w-full flex-wrap justify-start gap-1 rounded-lg border border-border/50 bg-muted/30 p-1">
+          <TabsTrigger
+            value="overview"
+            className="rounded-md px-3.5 py-2 text-sm text-muted-foreground data-[state=active]:bg-[#C9A96E]/20 data-[state=active]:text-foreground data-[state=active]:shadow-none dark:data-[state=active]:bg-[#C9A96E]/25 dark:data-[state=active]:text-foreground">
+            Overview
+          </TabsTrigger>
+          <TabsTrigger
+            value="revenue"
+            className="rounded-md px-3.5 py-2 text-sm text-muted-foreground data-[state=active]:bg-[#C9A96E]/20 data-[state=active]:text-foreground data-[state=active]:shadow-none dark:data-[state=active]:bg-[#C9A96E]/25 dark:data-[state=active]:text-foreground">
+            Revenue
+          </TabsTrigger>
+          <TabsTrigger
+            value="tenants"
+            className="rounded-md px-3.5 py-2 text-sm text-muted-foreground data-[state=active]:bg-[#C9A96E]/20 data-[state=active]:text-foreground data-[state=active]:shadow-none dark:data-[state=active]:bg-[#C9A96E]/25 dark:data-[state=active]:text-foreground">
+            Tenant growth
+          </TabsTrigger>
+          <TabsTrigger
+            value="visits"
+            className="rounded-md px-3.5 py-2 text-sm text-muted-foreground data-[state=active]:bg-[#C9A96E]/20 data-[state=active]:text-foreground data-[state=active]:shadow-none dark:data-[state=active]:bg-[#C9A96E]/25 dark:data-[state=active]:text-foreground">
+            Site visits
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">

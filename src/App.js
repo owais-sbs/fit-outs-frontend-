@@ -29,6 +29,7 @@ import PaymentsPage from "./modules/super-admin/pages/PaymentsPage";
 import UsersPage from "./modules/super-admin/pages/UsersPage";
 import ReportsPage from "./modules/super-admin/pages/ReportsPage";
 import SettingsPage from "./modules/super-admin/pages/SettingsPage";
+import ProfilePage from "./modules/super-admin/pages/ProfilePage";
 import AdminPortalLayout from "./modules/admin/layouts/AdminPortalLayout";
 import {
   LeadIntakePage,
@@ -286,6 +287,7 @@ function App() {
               <Route path="site-visits" element={<SiteVisitsPage />} />
               <Route path="site-visits/schedule" element={<SiteVisitSchedulePage />} />
               <Route path="site-visits/:visitId/report" element={<SiteVisitReportPage />} />
+              <Route path="profile" element={<ProfilePage />} />
               <Route path="settings" element={<SettingsPage />} />
             </Route>
 

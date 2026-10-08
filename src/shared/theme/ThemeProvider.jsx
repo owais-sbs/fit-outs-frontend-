@@ -5,6 +5,11 @@ const ThemeContext = createContext(null);
 
 function applyThemeClass(theme) {
   const root = document.documentElement;
+  // Auth screens force light; do not re-apply dark while they are mounted.
+  if (root.dataset.authLight === "true") {
+    root.classList.remove("dark");
+    return;
+  }
   if (theme === "dark") {
     root.classList.add("dark");
   } else {

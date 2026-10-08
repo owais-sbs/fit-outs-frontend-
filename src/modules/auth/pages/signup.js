@@ -1,5 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import {
+  AlertCircle,
+  Building2,
+  CreditCard,
+  Eye,
+  EyeOff,
+  FolderKanban,
+  Mail,
+  Truck,
+  UserPlus,
+} from "lucide-react";
 import { useAuth } from "@/shared/context/auth-context";
 import { ROUTES } from "@/shared/constants/routes";
 import { ROLES } from "@/shared/constants/roles";
@@ -7,9 +18,16 @@ import { routeForAccessPhase } from "@/shared/constants/access-phase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AlertCircle } from "lucide-react";
-import { PlatformBrandHeader } from "@/components/brand/BrandMark";
-import { SessionBootLoader } from "@/components/brand/SessionBootLoader";
+import {
+  BRAND_NAME,
+  PLATFORM_LOGO_URL,
+  PLATFORM_LOGO_JPG_URL,
+} from "@/components/brand/BrandMark";
+import {
+  AuthLoadingOverlay,
+  SessionBootLoader,
+} from "@/components/brand/SessionBootLoader";
+import loginBg from "@/assets/loginpage.png";
 
 const ROLE_ROUTES = {
   [ROLES.SUPER_ADMIN]: ROUTES.SUPER_ADMIN.DASHBOARD,
@@ -34,6 +52,44 @@ function destinationForAuthResult(result, role) {
   return routeForAccessPhase(accessPhase, portal);
 }
 
+/** Auth screens stay light and locked to the viewport (no page scroll). */
+function useForceLightDocument() {
+  useEffect(() => {
+    const root = document.documentElement;
+    const { body } = document;
+    const prevHtmlOverflow = root.style.overflow;
+    const prevBodyOverflow = body.style.overflow;
+    const prevBodyHeight = body.style.height;
+
+    root.classList.remove("dark");
+    root.dataset.authLight = "true";
+    root.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    body.style.height = "100%";
+
+    return () => {
+      delete root.dataset.authLight;
+      root.style.overflow = prevHtmlOverflow;
+      body.style.overflow = prevBodyOverflow;
+      body.style.height = prevBodyHeight;
+      try {
+        if (localStorage.getItem("fitouts-theme") === "dark") {
+          root.classList.add("dark");
+        }
+      } catch {
+        /* ignore */
+      }
+    };
+  }, []);
+}
+
+const FEATURES = [
+  { icon: Building2, title: "Companies", desc: "Manage your business" },
+  { icon: CreditCard, title: "Subscriptions", desc: "Track & renew" },
+  { icon: FolderKanban, title: "Projects", desc: "Stay on schedule" },
+  { icon: Truck, title: "Delivery", desc: "From one platform" },
+];
+
 export default function SignupPage() {
   const navigate = useNavigate();
   const { signup, isAuthenticated, role, user, isLoading: authLoading } = useAuth();
@@ -41,8 +97,12 @@ export default function SignupPage() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [logoSrc, setLogoSrc] = useState(PLATFORM_LOGO_URL);
+
+  useForceLightDocument();
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
@@ -94,96 +154,191 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-background px-6 py-12">
+    <div
+      className="fixed inset-0 flex h-dvh max-h-dvh w-full overflow-hidden text-[#0B1F3A]"
+      style={{ fontFamily: '"Plus Jakarta Sans", system-ui, sans-serif' }}
+    >
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          backgroundImage: `
-            radial-gradient(circle, oklch(var(--foreground) / 0.28) 1px, transparent 1px)
-          `,
-          backgroundSize: "20px 20px",
-        }}
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: `url(${loginBg})` }}
+      />
+      <div
+        aria-hidden
+        className="absolute inset-0 bg-gradient-to-br from-white/60 via-white/40 to-[#0B1F3A]/10 backdrop-blur-[2px]"
       />
 
-      <div className="relative z-10 w-full max-w-[468px] page-enter">
-        <div aria-hidden className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-10 -right-10 top-0 border-t border-dotted border-foreground/35" />
-          <div className="absolute -left-10 -right-10 bottom-0 border-t border-dotted border-foreground/35" />
-          <div className="absolute -top-10 -bottom-10 left-0 border-l border-dotted border-foreground/35" />
-          <div className="absolute -top-10 -bottom-10 right-0 border-l border-dotted border-foreground/35" />
-        </div>
+      {isLoading ? <AuthLoadingOverlay label="Creating account…" /> : null}
 
-        <div className="relative bg-background px-10 py-14 sm:px-12 sm:py-16">
-          <PlatformBrandHeader />
+      <div className="relative z-10 flex h-full min-h-0 w-full flex-col overflow-hidden lg:flex-row">
+        <aside className="flex min-h-0 flex-1 flex-col justify-between overflow-hidden px-6 py-8 sm:px-10 lg:max-w-[58%] lg:px-12 lg:py-10 xl:px-16">
+          <div className="min-h-0">
+            <img
+              src={logoSrc}
+              alt={BRAND_NAME}
+              className="-ml-1 h-auto w-[210px] object-contain object-left sm:-ml-2 sm:w-[240px] lg:w-[260px]"
+              onError={() => {
+                if (logoSrc !== PLATFORM_LOGO_JPG_URL) setLogoSrc(PLATFORM_LOGO_JPG_URL);
+              }}
+            />
 
-          <div className="mb-8 text-center">
-            <h1 className="text-xl font-semibold tracking-tight">Create your account</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Sign up, then choose a plan to access your admin portal.
+            <h1
+              className="mt-8 max-w-xl text-[2rem] font-semibold leading-[1.12] tracking-[-0.02em] text-[#0B1F3A] sm:mt-10 sm:text-[2.6rem] xl:text-[3rem]"
+              style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}
+            >
+              Premium{" "}
+              <span className="font-semibold text-[#C9A96E]">Fit-Out &amp;</span>
+              <br />
+              Interior Solutions
+            </h1>
+            <p className="mt-4 max-w-md text-[15px] font-normal leading-[1.65] tracking-normal text-[#475569] sm:text-base">
+              Create your account to access plans, projects, and your fit-out workspace.
             </p>
+
+            <div className="mt-8 grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-4 sm:gap-x-8">
+              {FEATURES.map(({ icon: Icon, title, desc }) => (
+                <div key={title} className="min-w-0">
+                  <Icon className="h-5 w-5 text-[#C9A96E]" strokeWidth={1.5} />
+                  <p className="mt-2.5 text-[13px] font-semibold tracking-tight text-[#0B1F3A]">
+                    {title}
+                  </p>
+                  <p className="mt-1 text-[12px] font-normal leading-snug text-[#64748B]">
+                    {desc}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {error && (
-              <div className="flex items-center gap-2.5 rounded-xl border border-destructive/20 bg-destructive/10 p-3.5 text-base text-destructive">
-                <AlertCircle className="h-5 w-5 shrink-0" />
-                <p>{error}</p>
+          <div className="mt-6 hidden shrink-0 lg:block">
+            <div className="mb-3.5 h-px w-10 bg-[#C9A96E]" />
+            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#C9A96E]">
+              Build · Manage · Grow
+            </p>
+          </div>
+        </aside>
+
+        <main className="flex min-h-0 flex-1 items-center justify-center overflow-hidden px-5 py-6 sm:px-8 lg:px-10 lg:py-0">
+          <div className="relative w-full max-w-[420px]">
+            <div className="relative overflow-hidden rounded-[1.35rem] border border-white/80 bg-white/80 p-7 shadow-[0_20px_60px_-24px_rgba(11,31,58,0.35)] backdrop-blur-xl sm:p-9">
+              <div
+                aria-hidden
+                className="pointer-events-none absolute right-0 top-0 h-16 w-16"
+              >
+                <div className="absolute right-0 top-0 h-0 w-0 border-l-[64px] border-t-[64px] border-l-transparent border-t-[#0B1F3A]" />
+                <div className="absolute right-0 top-0 h-0 w-0 border-l-[40px] border-t-[40px] border-l-transparent border-t-[#C9A96E]" />
               </div>
-            )}
 
-            <div className="space-y-2">
-              <Label htmlFor="fullName">Full name</Label>
-              <Input
-                id="fullName"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                className="h-12 rounded-xl"
-                required
-              />
+              <div className="relative mb-7">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#C9A96E]">
+                  Get started
+                </p>
+                <h2
+                  className="mt-2 text-[2rem] font-semibold tracking-[-0.02em] text-[#0B1F3A]"
+                  style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}
+                >
+                  Create account
+                </h2>
+                <p className="mt-1.5 text-sm font-normal text-[#64748B]">
+                  Sign up, then choose a plan to access your portal.
+                </p>
+              </div>
+
+              <form onSubmit={handleSubmit} className="relative space-y-4">
+                {error && (
+                  <div className="flex items-center gap-2.5 rounded-xl border border-red-200 bg-red-50/90 p-3.5 text-sm text-red-700">
+                    <AlertCircle className="h-5 w-5 shrink-0" />
+                    <p>{error}</p>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="fullName" className="text-sm font-semibold text-[#0B1F3A]">
+                    Full name
+                  </Label>
+                  <Input
+                    id="fullName"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className="h-12 rounded-xl border-[#0B1F3A]/12 bg-white/90 text-[#0B1F3A] focus-visible:ring-[#C9A96E]/40"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-sm font-semibold text-[#0B1F3A]">
+                    Email
+                  </Label>
+                  <div className="relative">
+                    <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#0B1F3A]/40" />
+                    <Input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="h-12 rounded-xl border-[#0B1F3A]/12 bg-white/90 pl-11 text-[#0B1F3A] focus-visible:ring-[#C9A96E]/40"
+                      autoComplete="email"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="text-sm font-semibold text-[#0B1F3A]">
+                    Password
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="h-12 rounded-xl border-[#0B1F3A]/12 bg-white/90 pr-11 text-[#0B1F3A] focus-visible:ring-[#C9A96E]/40"
+                      minLength={8}
+                      autoComplete="new-password"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-[#0B1F3A]/40 transition-colors hover:text-[#0B1F3A]"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <Button
+                  type="submit"
+                  className="mt-3 h-12 w-full rounded-xl border-0 bg-gradient-to-r from-[#C9A96E] to-[#B89051] text-sm font-semibold text-white shadow-[0_8px_24px_-10px_rgba(184,144,81,0.7)] hover:from-[#B89051] hover:to-[#A67F42]"
+                  disabled={isLoading}
+                >
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Create account
+                </Button>
+              </form>
+
+              <div className="relative mt-7 flex items-center gap-3">
+                <div className="h-px flex-1 bg-[#0B1F3A]/10" />
+                <span className="text-xs text-[#0B1F3A]/45">Already have an account?</span>
+                <div className="h-px flex-1 bg-[#0B1F3A]/10" />
+              </div>
+              <p className="mt-4 text-center text-sm">
+                <Link
+                  to={ROUTES.AUTH.LOGIN}
+                  className="font-semibold text-[#C9A96E] hover:text-[#B89051] hover:underline"
+                >
+                  Sign in
+                </Link>
+              </p>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="h-12 rounded-xl"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="h-12 rounded-xl"
-                minLength={8}
-                required
-              />
-            </div>
-
-            <Button
-              type="submit"
-              className="mt-2 h-12 w-full rounded-full text-base font-semibold"
-              disabled={isLoading}
-            >
-              {isLoading ? "Creating account..." : "Create account"}
-            </Button>
-          </form>
-
-          <p className="mt-6 text-center text-sm text-muted-foreground">
-            Already have an account?{" "}
-            <Link to={ROUTES.AUTH.LOGIN} className="font-medium text-foreground hover:underline">
-              Sign in
-            </Link>
-          </p>
-        </div>
+          </div>
+        </main>
       </div>
     </div>
   );
