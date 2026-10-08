@@ -1,18 +1,14 @@
 import { useState } from "react";
 import { FileDown, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { fetchFinalReport } from "@/modules/admin/api/room-collab.api";
-import { fetchPublishedProjectSchedule } from "@/modules/admin/api/schedule.api";
-import { fetchBillingMilestones } from "@/modules/admin/api/billing.api";
-import { downloadFinalApprovedPdf } from "@/modules/admin/pages/roomcollab/finalReportPdf";
+import { fetchFinalProjectReport } from "@/modules/admin/api/final-project-report.api";
+import { openFinalProjectReportPdf } from "@/modules/admin/pages/roomcollab/finalProjectReportPdf";
 
 /**
- * Downloads the same Final PDF used on client/admin rooms sections
- * (room approvals + construction progress >1% + payment progress).
+ * Builds a live final project report for the open project and opens the PDF.
  */
 export default function FinalProjectPdfButton({
   projectId,
-  projectName,
   size = "sm",
   variant = "outline",
   className,
@@ -26,17 +22,10 @@ export default function FinalProjectPdfButton({
     setExporting(true);
     setError("");
     try {
-      const [report, schedule, milestones] = await Promise.all([
-        fetchFinalReport(projectId),
-        fetchPublishedProjectSchedule(projectId).catch(() => null),
-        fetchBillingMilestones(projectId).catch(() => []),
-      ]);
-      await downloadFinalApprovedPdf(report, projectName, {
-        schedule,
-        milestones: Array.isArray(milestones) ? milestones : [],
-      });
+      const report = await fetchFinalProjectReport(projectId);
+      await openFinalProjectReportPdf(report);
     } catch (err) {
-      setError(err?.response?.data?.error || err?.message || "PDF export failed");
+      setError(err?.response?.data?.error || err?.response?.data?.message || err?.message || "PDF export failed");
     } finally {
       setExporting(false);
     }
