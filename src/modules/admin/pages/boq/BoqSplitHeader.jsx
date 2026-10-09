@@ -1,7 +1,7 @@
 import { BOQ_THEME, BOQ_PRINT_COLOR } from "./boqTheme";
 
 /**
- * Orange / navy split banner — single gradient background (no clip-path gap).
+ * Gold / navy split banner — matches Fit-Outs dashboard brand colors.
  */
 export default function BoqSplitHeader({ left, right, minHeight = 150, className = "" }) {
   return (
@@ -10,7 +10,7 @@ export default function BoqSplitHeader({ left, right, minHeight = 150, className
       style={{
         ...BOQ_PRINT_COLOR,
         minHeight,
-        background: `linear-gradient(105deg, ${BOQ_THEME.orange} 0%, ${BOQ_THEME.orangeLight} 44%, ${BOQ_THEME.navy} 44%, ${BOQ_THEME.navy} 100%)`,
+        background: `linear-gradient(105deg, ${BOQ_THEME.orange} 0%, ${BOQ_THEME.orangeLight} 44%, ${BOQ_THEME.navy} 44%, ${BOQ_THEME.navyDark} 100%)`,
       }}
     >
       <div className="flex" style={{ minHeight }}>

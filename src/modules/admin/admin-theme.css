@@ -255,11 +255,14 @@ html.portal-admin .sa-main-inner {
 }
 
 html.portal-admin .sa-topbar {
-  border-bottom: 1px solid rgba(11, 31, 58, 0.08);
-  background: rgba(250, 247, 242, 0.82);
+  height: 3.5rem;
+  min-height: 3.5rem;
+  box-sizing: border-box;
+  border-bottom: 1px solid rgba(11, 31, 58, 0.1);
+  background: rgba(250, 247, 242, 0.92);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.65);
+  box-shadow: none;
 }
 
 html.dark.portal-admin .sa-topbar {
@@ -297,12 +300,24 @@ html.portal-admin [data-sidebar="menu-button"] {
   animation: none !important;
 }
 
-/* ---------- Expanded sidebar — compact + clean ---------- */
+/* ---------- Expanded sidebar — header height matches topbar so borders align ---------- */
+html.portal-admin [data-slot="sidebar"] [data-sidebar="header"],
 html.portal-admin [data-slot="sidebar"]:not([data-collapsible="icon"]) [data-sidebar="header"] {
-  height: auto !important;
-  min-height: 4.25rem;
-  padding: 0.85rem 0.65rem 0.75rem !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  height: 3.5rem !important;
+  min-height: 3.5rem !important;
+  max-height: 3.5rem !important;
+  padding: 0 0.65rem !important;
+  display: flex !important;
+  align-items: center !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  box-sizing: border-box;
+  overflow: hidden !important;
+  flex-shrink: 0 !important;
+}
+
+html.portal-admin [data-slot="sidebar"][data-collapsible="icon"] [data-sidebar="header"] {
+  justify-content: center !important;
+  padding: 0 0.35rem !important;
 }
 
 html.portal-admin [data-slot="sidebar"]:not([data-collapsible="icon"]) [data-sidebar="header"]::after {

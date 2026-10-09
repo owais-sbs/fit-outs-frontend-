@@ -196,14 +196,16 @@ export default function CommunicationsPage({ clientMode = false }) {
         }
       />
 
-      <Tabs value={filter} onValueChange={setFilter}>
-        <TabsList className="flex h-auto flex-wrap gap-1 bg-muted/50 p-1">
-          {filters.map((f) => (
-            <TabsTrigger key={f.id} value={f.id} className="text-xs sm:text-sm">
-              {f.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+      <Tabs value={filter} onValueChange={setFilter} className="w-full">
+        <div className="flex w-full justify-start">
+          <TabsList className="!inline-flex h-auto !w-auto max-w-full flex-wrap !justify-start gap-1 bg-muted/50 p-1">
+            {filters.map((f) => (
+              <TabsTrigger key={f.id} value={f.id} className="text-xs sm:text-sm">
+                {f.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
       </Tabs>
 
       {error && (

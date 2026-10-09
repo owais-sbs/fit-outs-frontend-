@@ -385,7 +385,7 @@ export default function BillingMilestoneInboxPage() {
               <TableCell className="text-right">
                 {canActOnGroup(group) && (
                   <div className="flex justify-end gap-1">
-                    <Button size="sm" variant="default" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => openActionGroup(group, "approve")}>
+                    <Button size="sm" variant="default" className="border-0 bg-[#0a1628] text-[#FAF7F2] hover:bg-[#081729] hover:text-[#FAF7F2]" onClick={() => openActionGroup(group, "approve")}>
                       <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Approve
                     </Button>
                     <Button

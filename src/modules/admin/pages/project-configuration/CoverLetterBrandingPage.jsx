@@ -131,7 +131,7 @@ export default function CoverLetterBrandingPage() {
   };
 
   return (
-    <PageShell className="p-6">
+    <PageShell className="max-w-none">
       <PageTitle
         title="Cover letter"
         subtitle="Company stamp and signature used on site-visit quotation cover letters. Each visit can still hide or replace them."

@@ -72,14 +72,14 @@ export default function QualityTemplatesPage() {
 
   if (loading) {
     return (
-      <PageShell className="max-w-3xl mx-auto flex justify-center py-24 text-muted-foreground">
+      <PageShell className="flex justify-start py-24 text-muted-foreground">
         <Loader2 className="h-6 w-6 animate-spin" />
       </PageShell>
     );
   }
 
   return (
-    <PageShell className="max-w-3xl mx-auto">
+    <PageShell className="max-w-none">
       <PageTitle
         title="Quality templates"
         subtitle="Checklist templates for hold points, keyed by activity type"
@@ -87,7 +87,7 @@ export default function QualityTemplatesPage() {
 
       {message && <p className="text-sm text-muted-foreground">{message}</p>}
 
-      <Card>
+      <Card className="border-border/70 shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0 pb-2">
           <CardTitle className="text-sm font-semibold">Saved templates ({templates.length})</CardTitle>
           {templates.length > 0 && (
@@ -105,7 +105,7 @@ export default function QualityTemplatesPage() {
         </CardHeader>
         <CardContent>
           {templates.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">No templates yet</p>
+            <p className="py-6 text-sm text-muted-foreground">No templates yet</p>
           ) : (
             <ul className="divide-y divide-border/60 rounded-lg border border-border/60">
               {templates.map((t) => {
@@ -121,7 +121,7 @@ export default function QualityTemplatesPage() {
                       }`}
                     >
                       <span className="truncate">{t.activityType}</span>
-                      <span className="shrink-0 text-xs text-muted-foreground">
+                      <span className="shrink-0 text-xs font-medium text-muted-foreground">
                         {active ? "Editing" : "Open"}
                       </span>
                     </button>
@@ -133,7 +133,7 @@ export default function QualityTemplatesPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="border-border/70 shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold">
             {activityType ? `Edit — ${activityType}` : "New template"}

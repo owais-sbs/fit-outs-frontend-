@@ -43,7 +43,14 @@ function ProjectDrawer({ project, clientName, projectDrafts, onClose, onStart, o
         {/* body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-5">
           <div className="flex flex-wrap gap-2">
-            <Badge variant={project.isActive ? "success" : "secondary"}>
+            <Badge
+              variant="outline"
+              className={
+                project.isActive
+                  ? "border-[#C9A96E]/40 bg-[#C9A96E]/15 text-[#8a6d3b]"
+                  : ""
+              }
+            >
               {project.isActive ? "Active" : "Inactive"}
             </Badge>
             <Badge variant="outline" className="text-xs capitalize">{project.projectType || "—"}</Badge>
@@ -323,7 +330,12 @@ export default function Step01ProjectSelection() {
             <select
               value={filterType}
               onChange={(e) => setType(e.target.value)}
-              className="h-8 rounded-sm border border-input bg-background px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+              aria-label="Filter by project type"
+              className="h-8 appearance-none rounded-sm border border-input bg-background bg-[length:12px] bg-[right_0.65rem_center] bg-no-repeat px-3 py-1 pr-8 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+              style={{
+                backgroundImage:
+                  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\")",
+              }}
             >
               {PROJECT_TYPES.map((t) => <option key={t}>{t}</option>)}
             </select>
@@ -414,7 +426,14 @@ export default function Step01ProjectSelection() {
                       </td>
                       <td className="py-3.5 px-4">
                         <div className="flex flex-col gap-1 items-start">
-                          <Badge variant={project.isActive ? "success" : "secondary"} className="text-xs">
+                          <Badge
+                            variant="outline"
+                            className={`text-xs ${
+                              project.isActive
+                                ? "border-[#C9A96E]/40 bg-[#C9A96E]/15 text-[#8a6d3b]"
+                                : ""
+                            }`}
+                          >
                             {project.isActive ? "Active" : "Inactive"}
                           </Badge>
                           {projectBoq && (

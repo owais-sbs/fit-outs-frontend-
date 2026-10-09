@@ -39,6 +39,17 @@ function generateTempPassword() {
   return out;
 }
 
+/** Section title with clear space above the divider and before fields. */
+function FormSectionHeading({ children }) {
+  return (
+    <div className="border-b border-border/60 pb-px">
+      <h3 className="mb-6 pt-1 text-sm font-semibold uppercase leading-relaxed tracking-wider text-muted-foreground/85">
+        {children}
+      </h3>
+    </div>
+  );
+}
+
 export default function CreateProjectPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -259,7 +270,7 @@ export default function CreateProjectPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="max-w-4xl space-y-8">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <PageHeader
           title="Create New Project"
@@ -290,7 +301,7 @@ export default function CreateProjectPage() {
         />
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-8">
         {errors.submit && (
           <p className="rounded-xl bg-destructive/10 px-3 py-2 text-sm text-destructive ring-1 ring-destructive/20">
             {errors.submit}
@@ -314,13 +325,11 @@ export default function CreateProjectPage() {
           </div>
         )}
 
-        <Card className="bg-card/65 backdrop-blur-sm">
-          <CardContent className="p-6 space-y-6">
-            <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground/85 border-b pb-2">
-              General Project Information
-            </h3>
+        <Card className="border-border/70 bg-white shadow-sm hover:bg-white dark:bg-card dark:hover:bg-card">
+          <CardContent className="space-y-8 px-6 pb-8 pt-8 md:px-8">
+            <FormSectionHeading>General Project Information</FormSectionHeading>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-6">
               <div className="space-y-1.5">
                 <Label htmlFor="projectName" className="text-xs font-semibold">Project Name *</Label>
                 <div className="relative">
@@ -538,7 +547,7 @@ export default function CreateProjectPage() {
               </div>
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-2 pt-1">
               <Label htmlFor="description" className="text-xs font-semibold">Project Scope / Description</Label>
               <Textarea
                 id="description"
@@ -551,13 +560,11 @@ export default function CreateProjectPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-card/65 backdrop-blur-sm">
-          <CardContent className="p-6 space-y-6">
-            <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground/85 border-b pb-2">
-              Assignment & Budgeting
-            </h3>
+        <Card className="border-border/70 bg-white shadow-sm hover:bg-white dark:bg-card dark:hover:bg-card">
+          <CardContent className="space-y-8 px-6 pb-8 pt-8 md:px-8">
+            <FormSectionHeading>Assignment & Budgeting</FormSectionHeading>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-6">
               <div className="space-y-1.5">
                 <Label htmlFor="assignedManager" className="text-xs font-semibold">Assigned Project Manager *</Label>
                 <Select
@@ -634,7 +641,7 @@ export default function CreateProjectPage() {
           </CardContent>
         </Card>
 
-        <div className="flex justify-end gap-3">
+        <div className="flex justify-end gap-3 pt-2">
           <Button type="button" variant="outline" onClick={() => navigate(projectsListRoute)} disabled={submitting}>
             Cancel
           </Button>

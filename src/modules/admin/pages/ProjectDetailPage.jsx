@@ -40,7 +40,7 @@ import { fetchProgressReport } from "../api/reporting.api";
 import { ROUTES, PROJECT_DETAIL_NAV_STATE, boqViewPath, portalRoutesFromPath } from "@/shared/constants/routes";
 import { useAuth } from "@/shared/context/auth-context";
 import { BoqStatusBadge } from "./boq/BoqApprovalTimeline";
-import { PROJECT_STATUS_LIST, PROJECT_STATUS_COLORS, isProjectArchived, isCommercialFrozen } from "../constants/project.constants";
+import { PROJECT_STATUS_LIST, isProjectArchived, isCommercialFrozen } from "../constants/project.constants";
 import ProjectStatusBadge from "../components/projects/ProjectStatusBadge";
 import ProjectLifecycleBanner from "../components/projects/ProjectLifecycleBanner";
 import BoqApprovalPipeline from "./boq/BoqApprovalPipeline";
@@ -129,18 +129,19 @@ function StatusSelect({ value, onValueChange, disabled }) {
     <Select value={value} onValueChange={onValueChange} disabled={disabled}>
       <SelectTrigger
         className={cn(
-          "h-8 w-auto min-w-[8.5rem] gap-1 rounded-full border-none px-3 text-xs font-medium shadow-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring/30",
-          PROJECT_STATUS_COLORS[value] || "bg-secondary text-foreground"
+          "h-8 w-auto min-w-[8.5rem] gap-1 rounded-full border border-[#0a1628]/15 bg-[#0a1628] px-3 text-xs font-medium text-[#FAF7F2] shadow-none hover:bg-[#081729] hover:text-[#FAF7F2] focus-visible:ring-2 focus-visible:ring-[#C9A96E]/40"
         )}
       >
         <SelectValue />
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent align="end" className="min-w-[10rem] border-border/70 bg-card p-1 shadow-md">
         {PROJECT_STATUS_LIST.map((status) => (
-          <SelectItem key={status} value={status}>
-            <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", PROJECT_STATUS_COLORS[status])}>
-              {status}
-            </span>
+          <SelectItem
+            key={status}
+            value={status}
+            className="rounded-md text-sm focus:bg-[#0a1628]/8 focus:text-foreground data-[state=checked]:bg-[#0a1628] data-[state=checked]:text-[#FAF7F2]"
+          >
+            {status}
           </SelectItem>
         ))}
       </SelectContent>

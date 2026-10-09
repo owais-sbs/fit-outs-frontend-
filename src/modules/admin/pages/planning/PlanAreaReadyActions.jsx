@@ -8,9 +8,18 @@ import { fetchPlanningStatus, updatePlanningStatus } from "../../api/planning.ap
 
 const STATUS_BADGE = {
   NOT_REQUIRED: "bg-secondary text-muted-foreground",
-  NOT_STARTED: "bg-amber-500/15 text-amber-800",
+  NOT_STARTED: "bg-sky-500/15 text-sky-800",
   IN_PROGRESS: "bg-sky-500/15 text-sky-800",
-  READY: "bg-emerald-500/15 text-emerald-800",
+  READY: "bg-[#C9A96E]/20 text-[#8a6d3b]",
+  DRAFT: "bg-sky-500/15 text-sky-800",
+};
+
+const STATUS_LABEL = {
+  NOT_REQUIRED: "Not required",
+  NOT_STARTED: "In Progress",
+  IN_PROGRESS: "In Progress",
+  READY: "Ready",
+  DRAFT: "In Progress",
 };
 
 /**
@@ -31,8 +40,8 @@ export default function PlanAreaReadyActions({
     if (!projectId || !statusKey) return;
     setLoading(true);
     fetchPlanningStatus(projectId)
-      .then((data) => setStatus(data?.[statusKey] || "NOT_STARTED"))
-      .catch(() => setStatus("NOT_STARTED"))
+      .then((data) => setStatus(data?.[statusKey] || "IN_PROGRESS"))
+      .catch(() => setStatus("IN_PROGRESS"))
       .finally(() => setLoading(false));
   }, [projectId, statusKey]);
 
@@ -55,12 +64,12 @@ export default function PlanAreaReadyActions({
   };
 
   const isReady = status === "READY";
-  const label = String(status || "NOT_STARTED").replace(/_/g, " ");
+  const label = STATUS_LABEL[status] || "In Progress";
 
   return (
     <div className={cn("ml-auto flex flex-wrap items-center gap-2", className)}>
       {!loading && status ? (
-        <Badge className={cn("border-none", STATUS_BADGE[status] || STATUS_BADGE.NOT_STARTED)}>
+        <Badge className={cn("border-none", STATUS_BADGE[status] || STATUS_BADGE.IN_PROGRESS)}>
           {label}
         </Badge>
       ) : null}
@@ -77,7 +86,7 @@ export default function PlanAreaReadyActions({
       ) : (
         <Button
           size="sm"
-          className="min-h-11 bg-emerald-600 text-white hover:bg-emerald-700 md:min-h-9"
+          className="min-h-11 border-0 bg-[#C9A96E] text-[#0a1628] hover:bg-[#b8955a] hover:text-[#0a1628] md:min-h-9"
           onClick={() => setAreaStatus("READY")}
           disabled={busy || archived || loading}
         >

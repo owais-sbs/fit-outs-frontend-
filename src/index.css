@@ -30,9 +30,9 @@
     --warning-foreground: 0.38 0.1 55;
     --info: 0.55 0.12 230;
     --info-foreground: 0.35 0.1 230;
-    /* Solid toast fills — AA white/dark text on fills (light) */
-    --toast-success: 0.48 0.14 155;
-    --toast-success-foreground: 0.99 0.01 155;
+    /* Solid toast fills — brand gold success (not green) */
+    --toast-success: 0.74 0.08 85;
+    --toast-success-foreground: 0.22 0.04 255;
     --toast-warning: 0.82 0.14 85;
     --toast-warning-foreground: 0.28 0.08 55;
     --toast-info: 0.5 0.14 250;
@@ -131,9 +131,9 @@
     --warning-foreground: 0.9 0.08 80;
     --info: 0.72 0.1 230;
     --info-foreground: 0.88 0.06 230;
-    /* Solid toast fills — AA on dark canvas */
-    --toast-success: 0.45 0.12 155;
-    --toast-success-foreground: 0.98 0.02 155;
+    /* Solid toast fills — brand gold success on dark canvas */
+    --toast-success: 0.72 0.09 85;
+    --toast-success-foreground: 0.16 0.03 255;
     --toast-warning: 0.75 0.12 85;
     --toast-warning-foreground: 0.22 0.06 55;
     --toast-info: 0.48 0.12 250;

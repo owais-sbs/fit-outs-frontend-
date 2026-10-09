@@ -1,30 +1,30 @@
-/** Fit-outs BOQ document theme — matches branded invoice template */
+/** Fit-outs BOQ document theme — navy + gold, matches admin / superadmin dashboard. */
 import { formatCurrency } from "@/shared/utils/currency";
 
 export const BOQ_THEME = {
-  navy: "#1F3A34",
-  navyDark: "#0F2027",
-  orange: "#E07B39",
-  orangeLight: "#C8A97E",
-  orangeAccent: "#C8A97E",
-  orangeGradientFrom: "#C8A97E",
-  orangeGradientTo: "#E07B39",
-  cream: "#F7F5F2",
-  creamRoom: "#F7F5F2",
-  roomTotalBg: "#F0EDE8",
+  navy: "#0a1628",
+  navyDark: "#06101c",
+  orange: "#C9A96E",
+  orangeLight: "#D9BE8A",
+  orangeAccent: "#C9A96E",
+  orangeGradientFrom: "#C9A96E",
+  orangeGradientTo: "#A8894F",
+  cream: "#FAF7F2",
+  creamRoom: "#F5F0E8",
+  roomTotalBg: "#EFE8DC",
   metaBg: "#ffffff",
   metaBorder: "#E5E1DA",
   metaLabel: "#6B6B6B",
-  tableHeader: "#1F3A34",
+  tableHeader: "#0a1628",
   surfaceBadge: "#F0EDE8",
   surfaceBadgeText: "#6B6B6B",
-  grandTotalBg: "#1F3A34",
-  sectionBg: "#F7F5F2",
+  grandTotalBg: "#0a1628",
+  sectionBg: "#FAF7F2",
   lineAlt: "#FBFAF8",
 };
 
 export const COMPANY = {
-  name: "JCT Contracting",
+  name: "Fitouts Contracting",
   tagline: "Premium Fit-Out & Interior Solutions",
   address: "Business Bay, Dubai, UAE",
   email: "projects@fitouts.com.au",

@@ -455,86 +455,109 @@ export default function ProjectSnagsPage() {
                       )}
                       <AttachmentList paths={s.photoPaths} className="mt-2" inlinePreview={false} />
                     </div>
-                    <div className="flex flex-col gap-2 sm:items-end">
-                      <select
-                        className="h-8 rounded-md border border-input bg-transparent px-2 text-xs"
-                        value={s.status || "OPEN"}
-                        disabled={busy || archived}
-                        onChange={(e) =>
-                          run(() => updateSnagStatus(projectId, s.uuid, e.target.value), "Status updated")
-                        }
-                      >
-                        {SNAG_STATUSES.map((st) => (
-                          <option key={st} value={st}>{st.replace(/_/g, " ")}</option>
-                        ))}
-                      </select>
-                      <select
-                        className="h-8 rounded-md border border-input bg-transparent px-2 text-xs"
-                        value={s.assigneeAccountId || ""}
-                        disabled={busy || archived}
-                        onChange={(e) =>
-                          run(
-                            () => updateSnag(projectId, s.uuid, {
-                              assigneeAccountId: e.target.value ? Number(e.target.value) : 0,
-                            }),
-                            "Assignee updated"
-                          )
-                        }
-                      >
-                        <option value="">Unassigned</option>
-                        {employees.map((emp) => (
-                          <option key={emp.id} value={emp.id}>
-                            {emp.employeeName || emp.fullName || emp.email}
-                          </option>
-                        ))}
-                      </select>
-                      <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <input
-                          type="checkbox"
-                          checked={!!s.clientVisible}
+                    <div className="flex w-full shrink-0 flex-col gap-2.5 sm:w-[13.5rem] sm:items-stretch">
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          Status
+                        </p>
+                        <select
+                          className="h-9 w-full appearance-none rounded-md border border-border bg-background bg-[length:12px] bg-[right_0.65rem_center] bg-no-repeat px-2.5 pr-8 text-xs shadow-sm focus:outline-none focus:ring-2 focus:ring-[#C9A96E]/35"
+                          style={{
+                            backgroundImage:
+                              "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\")",
+                          }}
+                          value={s.status || "OPEN"}
+                          disabled={busy || archived}
+                          onChange={(e) =>
+                            run(() => updateSnagStatus(projectId, s.uuid, e.target.value), "Status updated")
+                          }
+                        >
+                          {SNAG_STATUSES.map((st) => (
+                            <option key={st} value={st}>{st.replace(/_/g, " ")}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          Assignee
+                        </p>
+                        <select
+                          className="h-9 w-full appearance-none rounded-md border border-border bg-background bg-[length:12px] bg-[right_0.65rem_center] bg-no-repeat px-2.5 pr-8 text-xs shadow-sm focus:outline-none focus:ring-2 focus:ring-[#C9A96E]/35"
+                          style={{
+                            backgroundImage:
+                              "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\")",
+                          }}
+                          value={s.assigneeAccountId || ""}
                           disabled={busy || archived}
                           onChange={(e) =>
                             run(
-                              () => updateSnag(projectId, s.uuid, { clientVisible: e.target.checked }),
-                              "Visibility updated"
+                              () => updateSnag(projectId, s.uuid, {
+                                assigneeAccountId: e.target.value ? Number(e.target.value) : 0,
+                              }),
+                              "Assignee updated"
                             )
                           }
-                        />
-                        Client portal
-                      </label>
-                      <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <input
-                          type="checkbox"
-                          checked={!!s.scVisible}
-                          disabled={busy || archived || projectScs.length === 0}
-                          onChange={(e) => {
-                            const on = e.target.checked;
-                            const recipients = on
-                              ? (projectScs.length === 1
-                                ? [projectScs[0].accountId]
-                                : (s.scRecipientAccountIds || []).map(Number))
-                              : [];
-                            run(
-                              () => updateSnag(projectId, s.uuid, {
-                                scVisible: on,
-                                scRecipientAccountIds: recipients,
-                              }),
-                              "SC visibility updated"
-                            );
-                          }}
-                        />
-                        SC portal
-                      </label>
+                        >
+                          <option value="">Unassigned</option>
+                          {employees.map((emp) => (
+                            <option key={emp.id} value={emp.id}>
+                              {emp.employeeName || emp.fullName || emp.email}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="space-y-2 rounded-md border border-border/60 bg-muted/20 px-2.5 py-2">
+                        <label className="flex items-center gap-2 text-xs text-foreground/80">
+                          <input
+                            type="checkbox"
+                            className="h-3.5 w-3.5 rounded border-border"
+                            checked={!!s.clientVisible}
+                            disabled={busy || archived}
+                            onChange={(e) =>
+                              run(
+                                () => updateSnag(projectId, s.uuid, { clientVisible: e.target.checked }),
+                                "Visibility updated"
+                              )
+                            }
+                          />
+                          Client portal
+                        </label>
+                        <label className="flex items-center gap-2 text-xs text-foreground/80">
+                          <input
+                            type="checkbox"
+                            className="h-3.5 w-3.5 rounded border-border"
+                            checked={!!s.scVisible}
+                            disabled={busy || archived || projectScs.length === 0}
+                            onChange={(e) => {
+                              const on = e.target.checked;
+                              const recipients = on
+                                ? (projectScs.length === 1
+                                  ? [projectScs[0].accountId]
+                                  : (s.scRecipientAccountIds || []).map(Number))
+                                : [];
+                              run(
+                                () => updateSnag(projectId, s.uuid, {
+                                  scVisible: on,
+                                  scRecipientAccountIds: recipients,
+                                }),
+                                "SC visibility updated"
+                              );
+                            }}
+                          />
+                          SC portal
+                        </label>
+                      </div>
                       {!!s.scVisible && projectScs.length > 0 && (
-                        <div className="rounded border border-border/50 bg-muted/15 px-2 py-1.5 space-y-1 max-w-[220px]">
+                        <div className="max-h-32 space-y-1 overflow-y-auto rounded-md border border-border/60 bg-background px-2.5 py-2">
                           {projectScs.map((sc) => {
                             const checked = (s.scRecipientAccountIds || [])
                               .map(Number)
                               .includes(sc.accountId);
                             return (
-                              <label key={sc.accountId} className="flex items-center gap-1.5 text-xs">
+                              <label key={sc.accountId} className="flex items-center gap-2 text-xs">
                                 <input
                                   type="checkbox"
+                                  className="h-3.5 w-3.5 rounded border-border"
                                   disabled={busy || archived}
                                   checked={checked}
                                   onChange={(e) => {

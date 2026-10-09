@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Grid, Clock, FileText, Loader2 } from "lucide-react";
+import { Clock, File, Grid, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
@@ -91,11 +91,13 @@ export default function DesignOptionsPage() {
               key={opt.taskId}
               className="flex flex-col overflow-hidden border-border/60 shadow-sm transition-shadow hover:shadow-md"
             >
-              <div className="relative aspect-[16/10] bg-gradient-to-br from-muted/80 to-muted/30">
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5">
-                  <FileText className="h-9 w-9 text-muted-foreground/35" />
+              <div className="relative aspect-[16/10] bg-gradient-to-br from-muted/50 via-muted/25 to-background">
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-border/50 bg-background/95 shadow-sm">
+                    <File className="h-7 w-7 text-[#0a1628]/75 dark:text-[#C9A96E]/90" strokeWidth={1.35} />
+                  </div>
                   {opt.versionLabel && (
-                    <span className="rounded-md bg-background/80 px-2 py-0.5 font-mono text-[11px] text-muted-foreground">
+                    <span className="rounded-md bg-background/90 px-2 py-0.5 font-mono text-[11px] text-muted-foreground shadow-sm">
                       {opt.versionLabel}
                     </span>
                   )}
@@ -146,8 +148,11 @@ export default function DesignOptionsPage() {
                 </div>
               </CardContent>
 
-              <CardFooter className="mt-auto border-t border-border/40 bg-muted/10 px-5 py-3">
-                <Button variant="outline" className="w-full" asChild>
+              <CardFooter className="mt-auto bg-transparent px-5 pb-4 pt-2">
+                <Button
+                  className="w-full border-0 bg-[#0a1628] text-[#FAF7F2] shadow-sm hover:bg-[#081729] hover:text-[#FAF7F2]"
+                  asChild
+                >
                   <Link to={opt.detailRoute}>Open task</Link>
                 </Button>
               </CardFooter>

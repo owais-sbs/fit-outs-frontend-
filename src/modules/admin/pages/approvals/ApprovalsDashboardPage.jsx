@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ArrowRight, Coins } from "lucide-react";
+import { ArrowRight, Coins, Search } from "lucide-react";
 import { PageShell, PageTitle } from "@/components/layout/PageShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -250,14 +250,17 @@ export default function ApprovalsDashboardPage() {
 
       <section ref={tableRef} className="space-y-3">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <Input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search projects"
-            aria-label="Search projects"
-            className="lg:max-w-xs"
-            disabled={loading}
-          />
+          <div className="relative w-full lg:max-w-xs">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search projects"
+              aria-label="Search projects"
+              className="pl-9"
+              disabled={loading}
+            />
+          </div>
           <div className="flex flex-wrap gap-2">
             {PROJECT_FILTERS.map((item) => (
               <Button

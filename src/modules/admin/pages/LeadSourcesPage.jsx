@@ -71,7 +71,7 @@ function SourceCard({ source }) {
               </h3>
               <Badge
                 variant="outline"
-                className="shrink-0 border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                className="shrink-0 border-[#C9A96E]/40 bg-[#C9A96E]/15 text-[#8a6d3b] dark:text-[#d9be8a]"
               >
                 {source.convRate}% conv.
               </Badge>
@@ -86,7 +86,7 @@ function SourceCard({ source }) {
         <div className="mt-auto space-y-2 border-t border-border/50 pt-3 text-sm">
           <div className="flex items-center justify-between gap-3">
             <span className="text-muted-foreground">Converted</span>
-            <span className="font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
+            <span className="font-semibold tabular-nums text-[#C9A96E]">
               {source.converted}
             </span>
           </div>
@@ -164,19 +164,19 @@ export default function LeadSourcesPage() {
   const overallConvRate = leads.length > 0 ? Math.round((totalConverted / leads.length) * 100) : 0;
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-8 pt-3">
       <PageHeader
         title="Lead Sources"
         description="Performance breakdown by acquisition channel"
       />
 
-      <section className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="mt-4 grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard title="Total Leads" value={loading ? "..." : leads.length} icon={Users} />
         <StatCard
           title="Converted"
           value={loading ? "..." : totalConverted}
           icon={CheckCircle}
-          valueColor="text-emerald-600 dark:text-emerald-400"
+          valueColor="text-[#C9A96E]"
         />
         <StatCard
           title="Overall Conv. Rate"

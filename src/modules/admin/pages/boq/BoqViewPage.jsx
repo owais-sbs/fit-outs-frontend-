@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
-import { ArrowLeft, CheckCircle2, Download, FileText, PenTool, XCircle } from "lucide-react";
-import { PageShell, PageTitle } from "@/components/layout/PageShell";
+import { CheckCircle2, Download, FileText, PenTool, XCircle } from "lucide-react";
+import { PageShell, PageHeader } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -151,39 +151,30 @@ export default function BoqViewPage() {
     );
   }
 
+  const backTo = backToProject || backToInbox;
+  const backTitle = backToProject ? "Back to project" : "Back";
+
   if (error || !doc) {
     return (
       <PageShell>
-        <PageTitle title="BOQ" subtitle="Read-only quotation document." />
+        <PageHeader
+          title="BOQ"
+          subtitle="Read-only quotation document."
+          backTo={backTo}
+          backTitle={backTitle}
+        />
         <p className="rounded-xl bg-destructive/10 px-3 py-2 text-sm text-destructive">{error || "BOQ not found."}</p>
-        <Button variant="outline" size="sm" asChild>
-          <Link to={backToInbox}>
-            <ArrowLeft className="mr-1 h-4 w-4" /> Back
-          </Link>
-        </Button>
       </PageShell>
     );
   }
 
   return (
     <PageShell className="max-w-5xl mx-auto">
-      <PageTitle
+      <PageHeader
         title={`BOQ v${doc.version || "1.0"}`}
         subtitle={doc.project?.projectName || doc.project?.name || "Quotation"}
-        actions={
-          <div className="flex flex-wrap gap-2">
-            {backToProject && (
-              <Button variant="outline" size="sm" asChild>
-                <Link to={backToProject}>Project</Link>
-              </Button>
-            )}
-            <Button variant="outline" size="sm" asChild>
-              <Link to={backToInbox}>
-                <ArrowLeft className="mr-1 h-4 w-4" /> Inbox
-              </Link>
-            </Button>
-          </div>
-        }
+        backTo={backTo}
+        backTitle={backTitle}
       />
 
       <ProjectLifecycleBanner commercialStage={commercialStage} />

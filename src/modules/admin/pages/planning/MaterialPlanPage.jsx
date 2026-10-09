@@ -25,6 +25,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { cn } from "@/lib/utils";
 import {
   Accordion,
   AccordionContent,
@@ -857,8 +858,15 @@ export default function MaterialPlanPage() {
             title="Material Plan"
             subtitle={displayProjectName}
             actions={plan?.status ? (
-              <Badge className="rounded-full border-none bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-600">
-                {plan.status}
+              <Badge
+                className={cn(
+                  "rounded-full border-none px-2.5 py-0.5 text-xs font-medium",
+                  isDraft
+                    ? "bg-sky-500/15 text-sky-800"
+                    : "bg-[#C9A96E]/20 text-[#8a6d3b]"
+                )}
+              >
+                {isDraft ? "In Progress" : "Ready"}
               </Badge>
             ) : null}
           />
@@ -867,8 +875,15 @@ export default function MaterialPlanPage() {
       {inHub && plan?.status ? (
         <div className="flex items-center justify-between gap-2">
           <p className="text-sm font-semibold">Material plan</p>
-          <Badge className="rounded-full border-none bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-600">
-            {plan.status}
+          <Badge
+            className={cn(
+              "rounded-full border-none px-2.5 py-0.5 text-xs font-medium",
+              isDraft
+                ? "bg-sky-500/15 text-sky-800"
+                : "bg-[#C9A96E]/20 text-[#8a6d3b]"
+            )}
+          >
+            {isDraft ? "In Progress" : "Ready"}
           </Badge>
         </div>
       ) : null}
@@ -1009,7 +1024,7 @@ export default function MaterialPlanPage() {
           {isDraft ? (
             <Button
               size="sm"
-              className="min-h-11 bg-emerald-600 text-white hover:bg-emerald-700 md:min-h-9"
+              className="min-h-11 border-0 bg-[#C9A96E] text-[#0a1628] hover:bg-[#b8955a] hover:text-[#0a1628] md:min-h-9"
               onClick={handleReady}
               disabled={busy || archived || !plan}
             >
@@ -1023,7 +1038,7 @@ export default function MaterialPlanPage() {
               onClick={handleEditDraft}
               disabled={busy || archived}
             >
-              <Pencil className="mr-1 h-4 w-4" /> Edit (switch to Draft)
+              <Pencil className="mr-1 h-4 w-4" /> Edit (reopen)
             </Button>
           )}
         </div>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2, Save, Stamp } from "lucide-react";
 import { notify } from "@/lib/notify";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
@@ -19,6 +19,7 @@ import {
 import { useAuth } from "@/shared/context/auth-context";
 import { ROUTES } from "@/shared/constants/routes";
 import { fetchPlanningGates, updatePlanningGates } from "../api/planning.api";
+import { loadAdminProfile, saveAdminProfile } from "../lib/local-profile";
 
 function SettingsGroup({ title, description, children }) {
   return (
@@ -55,12 +56,21 @@ const DEFAULT_GATES = {
 export default function AdminSettingsPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const activeTab = ["profile", "notifications", "crm", "planning"].includes(tabParam)
+    ? tabParam
+    : "profile";
   const [saved, setSaved] = useState(false);
   const [message, setMessage] = useState("");
-  const [profile, setProfile] = useState({
-    name: user?.name || "Demo User",
-    email: user?.email || "admin@onepath.com",
-    role: "Administrator",
+  const [profile, setProfile] = useState(() => {
+    const stored = loadAdminProfile();
+    return {
+      name: stored.name || user?.name || "Demo User",
+      email: stored.email || user?.email || "admin@onepath.com",
+      phone: stored.phone || "",
+      role: "Administrator",
+    };
   });
   const [notifications, setNotifications] = useState({
     newLeads: true,
@@ -97,6 +107,12 @@ export default function AdminSettingsPage() {
   }, [loadGates]);
 
   const handleSave = () => {
+    saveAdminProfile({
+      ...loadAdminProfile(),
+      name: profile.name.trim(),
+      email: profile.email.trim(),
+      phone: (profile.phone || "").trim(),
+    });
     notify.success("Settings saved successfully.");
     setSaved(true);
     setMessage("");
@@ -143,13 +159,21 @@ export default function AdminSettingsPage() {
         </div>
       )}
 
-      <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="flex h-auto flex-wrap gap-1">
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="notifications">Notifications</TabsTrigger>
-          <TabsTrigger value="crm">CRM Preferences</TabsTrigger>
-          <TabsTrigger value="planning">Planning gates</TabsTrigger>
-        </TabsList>
+      <Tabs
+        value={activeTab}
+        onValueChange={(value) => {
+          setSearchParams(value === "profile" ? {} : { tab: value }, { replace: true });
+        }}
+        className="space-y-6"
+      >
+        <div className="flex w-full justify-start">
+          <TabsList className="!inline-flex h-auto !w-auto max-w-full flex-wrap !justify-start gap-1">
+            <TabsTrigger value="profile">Profile</TabsTrigger>
+            <TabsTrigger value="notifications">Notifications</TabsTrigger>
+            <TabsTrigger value="crm">CRM Preferences</TabsTrigger>
+            <TabsTrigger value="planning">Planning gates</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="profile" className="space-y-4">
           <SettingsGroup title="Personal Information" description="Update your contact details">
@@ -162,10 +186,18 @@ export default function AdminSettingsPage() {
                 <Label>Email Address</Label>
                 <Input value={profile.email} onChange={(e) => setProfile({ ...profile, email: e.target.value })} />
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Role</Label>
-              <Input disabled value={profile.role} />
+              <div className="space-y-2">
+                <Label>Phone</Label>
+                <Input
+                  value={profile.phone || ""}
+                  onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                  placeholder="+971 50 000 0000"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Role</Label>
+                <Input disabled value={profile.role} />
+              </div>
             </div>
           </SettingsGroup>
 

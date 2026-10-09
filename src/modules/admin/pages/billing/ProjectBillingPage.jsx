@@ -936,7 +936,7 @@ export default function ProjectBillingPage() {
 
             {!commercialFrozen && isPmUser && pendingPmMilestones.length > 0 && (
               <div className="flex gap-2">
-                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" disabled={busy} onClick={handlePmApproveAll}>
+                <Button size="sm" className="border-0 bg-[#0a1628] text-[#FAF7F2] hover:bg-[#081729] hover:text-[#FAF7F2]" disabled={busy} onClick={handlePmApproveAll}>
                   <Check className="h-4 w-4 mr-1.5" /> Approve Package ({pendingPmMilestones.length})
                 </Button>
                 <Button size="sm" variant="outline" className="text-destructive border-destructive/30" disabled={busy} onClick={() => setShowPmRejectDialog(true)}>
@@ -947,7 +947,7 @@ export default function ProjectBillingPage() {
 
             {!commercialFrozen && isDirectorUser && pendingDirectorMilestones.length > 0 && (
               <div className="flex gap-2">
-                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" disabled={busy} onClick={handleDirectorApproveAll}>
+                <Button size="sm" className="border-0 bg-[#0a1628] text-[#FAF7F2] hover:bg-[#081729] hover:text-[#FAF7F2]" disabled={busy} onClick={handleDirectorApproveAll}>
                   <Check className="h-4 w-4 mr-1.5" /> Approve & Notify Client ({pendingDirectorMilestones.length})
                 </Button>
                 <Button size="sm" variant="outline" className="text-destructive border-destructive/30" disabled={busy} onClick={() => setShowDirectorRejectDialog(true)}>

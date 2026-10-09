@@ -12,7 +12,7 @@ import { formatCurrency } from "@/shared/utils/currency";
 const MOVEMENT_TYPES = ["All", "RECEIPT", "ISSUE", "ADJUSTMENT", "RETURN"];
 
 const formatCurrencyNullable = (val) =>
-  val != null ? formatCurrency(val) : "—";
+  val != null ? formatCurrency(val).replace(/\s+/g, "\u00A0") : "—";
 
 export default function MovementHistoryPage() {
   const [movements, setMovements] = useState([]);
@@ -71,15 +71,17 @@ export default function MovementHistoryPage() {
               <Table className="min-w-[900px]">
                 <TableHeader>
                   <TableRow className="bg-muted/30 hover:bg-muted/30">
-                    <TableHead className="text-[11px] font-semibold uppercase tracking-wide">Date</TableHead>
-                    <TableHead className="text-[11px] font-semibold uppercase tracking-wide">Type</TableHead>
-                    <TableHead className="text-[11px] font-semibold uppercase tracking-wide">Material</TableHead>
-                    <TableHead className="text-[11px] font-semibold uppercase tracking-wide">Qty</TableHead>
-                    <TableHead className="text-[11px] font-semibold uppercase tracking-wide">Unit Cost</TableHead>
-                    <TableHead className="text-[11px] font-semibold uppercase tracking-wide">Total</TableHead>
-                    <TableHead className="text-[11px] font-semibold uppercase tracking-wide">Project</TableHead>
-                    <TableHead className="text-[11px] font-semibold uppercase tracking-wide">Reference</TableHead>
-                    <TableHead className="text-[11px] font-semibold uppercase tracking-wide">Notes</TableHead>
+                    <TableHead className="whitespace-nowrap text-[11px] font-semibold uppercase tracking-wide">Date</TableHead>
+                    <TableHead className="whitespace-nowrap text-[11px] font-semibold uppercase tracking-wide">Type</TableHead>
+                    <TableHead className="whitespace-nowrap text-[11px] font-semibold uppercase tracking-wide">Material</TableHead>
+                    <TableHead className="whitespace-nowrap text-[11px] font-semibold uppercase tracking-wide">Qty</TableHead>
+                    <TableHead className="min-w-[6.5rem] whitespace-nowrap text-[11px] font-semibold uppercase tracking-wide">
+                      Unit Cost
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap text-[11px] font-semibold uppercase tracking-wide">Total</TableHead>
+                    <TableHead className="whitespace-nowrap text-[11px] font-semibold uppercase tracking-wide">Project</TableHead>
+                    <TableHead className="whitespace-nowrap text-[11px] font-semibold uppercase tracking-wide">Reference</TableHead>
+                    <TableHead className="whitespace-nowrap text-[11px] font-semibold uppercase tracking-wide">Notes</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -104,7 +106,11 @@ export default function MovementHistoryPage() {
                         <div className="text-[11px] text-muted-foreground">{m.materialCode}</div>
                       </TableCell>
                       <TableCell className="text-sm tabular-nums">{m.quantity}</TableCell>
-                      <TableCell className="text-sm tabular-nums">{formatCurrencyNullable(m.unitCost)}</TableCell>
+                      <TableCell className="whitespace-nowrap text-sm tabular-nums">
+                        <span className="inline-block whitespace-nowrap">
+                          {formatCurrencyNullable(m.unitCost)}
+                        </span>
+                      </TableCell>
                       <TableCell className="text-sm font-medium tabular-nums">{formatCurrencyNullable(m.totalCost)}</TableCell>
                       <TableCell className="text-sm">{m.projectName || "—"}</TableCell>
                       <TableCell className="font-mono text-xs text-muted-foreground">{m.referenceNo || "—"}</TableCell>

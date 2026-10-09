@@ -92,7 +92,7 @@ export default function AdminNavbar() {
               <p className="text-xs text-muted-foreground">{email}</p>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate(ROUTES.ADMIN.PROFILE)}>
+            <DropdownMenuItem onClick={() => navigate(`${ROUTES.ADMIN.SETTINGS}?tab=profile`)}>
               <User className="mr-2 h-4 w-4" />
               My Profile
             </DropdownMenuItem>

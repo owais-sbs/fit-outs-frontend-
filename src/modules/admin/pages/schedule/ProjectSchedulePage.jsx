@@ -1125,12 +1125,17 @@ export default function ProjectSchedulePage() {
 
       {(schedule?.baselines || []).length > 0 && (
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm">Baselines</CardTitle></CardHeader>
-          <CardContent className="text-sm space-y-2">
-            <div className="space-y-1">
-              <Label className="text-xs">Compare against</Label>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold">Baselines</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-5 text-sm">
+            <div className="flex flex-col gap-2 sm:max-w-md">
+              <Label htmlFor="baseline-compare" className="text-xs font-medium text-muted-foreground">
+                Compare against
+              </Label>
               <select
-                className="w-full h-9 rounded-md border bg-background px-2 text-sm max-w-md"
+                id="baseline-compare"
+                className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#C9A96E]/35"
                 value={selectedBaselineUuid}
                 onChange={async (e) => {
                   const uuid = e.target.value;
@@ -1142,22 +1147,26 @@ export default function ProjectSchedulePage() {
                 {schedule.baselines.map((b) => (
                   <option key={b.uuid} value={b.uuid}>
                     {b.name}
-                    {b.createdAt ? ` Â· ${new Date(b.createdAt).toLocaleString()}` : ""}
+                    {b.createdAt ? ` · ${new Date(b.createdAt).toLocaleString()}` : ""}
                   </option>
                 ))}
               </select>
             </div>
-            {schedule.baselines.map((b) => (
-              <div
-                key={b.uuid}
-                className={`flex justify-between border-b border-border/40 py-1 ${
-                  String(b.uuid) === String(selectedBaselineUuid) ? "font-medium" : ""
-                }`}
-              >
-                <span>{b.name}</span>
-                <span className="text-xs text-muted-foreground">{b.createdAt ? new Date(b.createdAt).toLocaleString() : ""}</span>
-              </div>
-            ))}
+            <ul className="divide-y divide-border/50 rounded-md border border-border/60">
+              {schedule.baselines.map((b) => (
+                <li
+                  key={b.uuid}
+                  className={`flex items-center justify-between gap-3 px-3 py-2.5 ${
+                    String(b.uuid) === String(selectedBaselineUuid) ? "bg-[#0a1628]/5 font-medium" : ""
+                  }`}
+                >
+                  <span className="truncate">{b.name}</span>
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    {b.createdAt ? new Date(b.createdAt).toLocaleString() : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
           </CardContent>
         </Card>
       )}

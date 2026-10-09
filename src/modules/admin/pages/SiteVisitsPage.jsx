@@ -299,7 +299,7 @@ export default function SiteVisitsPage() {
         }
       />
 
-      {(tab === "upcoming" || tab === "completed") && !loading ? (
+      {!loading ? (
         <div className="grid gap-3 sm:grid-cols-3">
           <SummaryTile label="Upcoming" value={stats.upcoming} icon={CalendarClock} />
           <SummaryTile label="This week" value={stats.thisWeek} icon={Calendar} />

@@ -29,7 +29,6 @@ import PaymentsPage from "./modules/super-admin/pages/PaymentsPage";
 import UsersPage from "./modules/super-admin/pages/UsersPage";
 import ReportsPage from "./modules/super-admin/pages/ReportsPage";
 import SettingsPage from "./modules/super-admin/pages/SettingsPage";
-import ProfilePage from "./modules/super-admin/pages/ProfilePage";
 import AdminPortalLayout from "./modules/admin/layouts/AdminPortalLayout";
 import {
   LeadIntakePage,
@@ -199,7 +198,6 @@ import BillingMilestoneInboxPage from "./modules/admin/pages/billing/BillingMile
 import ProjectSubcontractorPage from "./modules/admin/pages/subcontractor/ProjectSubcontractorPage";
 import VendorListPage from "./modules/admin/pages/subcontractor/VendorListPage";
 import AdminSettingsPage from "./modules/admin/pages/SettingsPage";
-import AdminProfilePage from "./modules/admin/pages/ProfilePage";
 import ClientSnagsPage from "./modules/client/pages/ClientSnagsPage";
 import TermsAndConditionsPage from "./shared/pages/TermsAndConditionsPage";
 
@@ -288,7 +286,10 @@ function App() {
               <Route path="site-visits" element={<SiteVisitsPage />} />
               <Route path="site-visits/schedule" element={<SiteVisitSchedulePage />} />
               <Route path="site-visits/:visitId/report" element={<SiteVisitReportPage />} />
-              <Route path="profile" element={<ProfilePage />} />
+              <Route
+                path="profile"
+                element={<Navigate to={`${ROUTES.SUPER_ADMIN.SETTINGS}?tab=profile`} replace />}
+              />
               <Route path="settings" element={<SettingsPage />} />
             </Route>
 
@@ -389,7 +390,7 @@ function App() {
               <Route path="boq/inbox" element={<BoqApprovalInboxPage />} />
               <Route path="boq/:boqId" element={<BoqViewPage />} />
               <Route path="boq" element={<BoqFlowPage />} />
-              <Route path="profile" element={<AdminProfilePage />} />
+              <Route path="profile" element={<Navigate to={`${ROUTES.ADMIN.SETTINGS}?tab=profile`} replace />} />
               <Route path="settings" element={<AdminSettingsPage />} />
               <Route path="terms" element={<TermsAndConditionsPage />} />
 

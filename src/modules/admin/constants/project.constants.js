@@ -73,13 +73,16 @@ export const PROJECT_STATUS_VARIANTS = {
   [PROJECT_STATUS.CANCELLED]: "destructive",
 };
 
-/** Tailwind classes for workflow status pills — shared by list badges and detail dropdown. */
+/**
+ * Professional workflow status pills — navy/sidebar tone (no rainbow pastels).
+ * Shared by list badges and project-detail status dropdown.
+ */
 export const PROJECT_STATUS_COLORS = {
-  [PROJECT_STATUS.PLANNING]: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
-  [PROJECT_STATUS.IN_PROGRESS]: "bg-blue-500/15 text-blue-700 dark:text-blue-400",
-  [PROJECT_STATUS.ON_HOLD]: "bg-orange-500/15 text-orange-700 dark:text-orange-400",
-  [PROJECT_STATUS.COMPLETED]: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
-  [PROJECT_STATUS.CANCELLED]: "bg-red-500/15 text-red-700 dark:text-red-400",
+  [PROJECT_STATUS.PLANNING]: "bg-[#0a1628]/10 text-[#0a1628] dark:bg-[#C9A96E]/15 dark:text-[#d9be8a]",
+  [PROJECT_STATUS.IN_PROGRESS]: "bg-[#0a1628] text-[#FAF7F2] dark:bg-[#C9A96E]/25 dark:text-[#FAF7F2]",
+  [PROJECT_STATUS.ON_HOLD]: "bg-[#0a1628]/8 text-[#0a1628]/80 dark:bg-white/10 dark:text-[#FAF7F2]/90",
+  [PROJECT_STATUS.COMPLETED]: "bg-[#C9A96E]/20 text-[#8a6d3b] dark:bg-[#C9A96E]/25 dark:text-[#d9be8a]",
+  [PROJECT_STATUS.CANCELLED]: "bg-[#0a1628]/6 text-muted-foreground dark:bg-white/5 dark:text-muted-foreground",
 };
 
 export const PAYMENT_STATUS_VARIANTS = {

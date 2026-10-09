@@ -99,12 +99,29 @@ export default function ProjectCompletionPage() {
 
       <ProjectLifecycleBanner commercialStage={commercialStage} />
 
-      <Tabs value={activeTab} onValueChange={setTab}>
-        <TabsList className="w-full justify-start overflow-x-auto">
-          <TabsTrigger value={TAB_CHECKLIST}>Close-out Checklist</TabsTrigger>
-          <TabsTrigger value={TAB_FINAL_ACCOUNT}>Final Account</TabsTrigger>
-          <TabsTrigger value={TAB_POST_COMPLETION}>Post-Completion</TabsTrigger>
-        </TabsList>
+      <Tabs value={activeTab} onValueChange={setTab} className="space-y-5">
+        <div className="flex w-full justify-start">
+          <TabsList className="!inline-flex h-auto !w-auto max-w-full flex-wrap !justify-start gap-1 bg-muted/40 p-1">
+            <TabsTrigger
+              value={TAB_CHECKLIST}
+              className="rounded-sm px-3.5 py-2 text-sm data-[state=active]:bg-[#0a1628] data-[state=active]:text-[#FAF7F2]"
+            >
+              Close-out Checklist
+            </TabsTrigger>
+            <TabsTrigger
+              value={TAB_FINAL_ACCOUNT}
+              className="rounded-sm px-3.5 py-2 text-sm data-[state=active]:bg-[#0a1628] data-[state=active]:text-[#FAF7F2]"
+            >
+              Final Account
+            </TabsTrigger>
+            <TabsTrigger
+              value={TAB_POST_COMPLETION}
+              className="rounded-sm px-3.5 py-2 text-sm data-[state=active]:bg-[#0a1628] data-[state=active]:text-[#FAF7F2]"
+            >
+              Post-Completion
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value={TAB_CHECKLIST}>
           <CloseoutChecklistPanel />

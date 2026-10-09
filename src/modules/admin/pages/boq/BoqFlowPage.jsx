@@ -22,13 +22,13 @@ function QasWorkspace() {
     : session?.status;
 
   return (
-    <div className="flex flex-col min-h-0">
-      <div className="border-b border-border/60 bg-background px-6 py-4 print:hidden boq-app-chrome" data-boq-chrome>
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-xl font-bold tracking-tight">QAS Management</h1>
+    <div className="flex min-h-0 flex-col">
+      <div className="boq-app-chrome border-b border-border/60 bg-background px-4 py-4 print:hidden md:px-6" data-boq-chrome>
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold tracking-tight md:text-2xl">QAS Management</h1>
             {session ? (
-              <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-muted-foreground">
+              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                 <span className="font-mono font-semibold text-primary">{session.ref}</span>
                 <span>·</span>
                 <span>{session.project?.projectName || session.project?.name}</span>
@@ -36,31 +36,25 @@ function QasWorkspace() {
                 <span>{workflowStatus}</span>
               </div>
             ) : (
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="mt-0.5 text-sm text-muted-foreground">
                 Select a project to begin the QAS workflow
               </p>
             )}
           </div>
-          {session && (
-            <div className="flex items-center gap-3">
-              <div className="text-right hidden sm:block">
-                <p className="text-xs text-muted-foreground">Current Step</p>
-                <p className="text-sm font-semibold">{stepDef?.label}</p>
-              </div>
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-white font-bold text-sm shadow-md shadow-primary/30">
-                {currentStep}
-              </div>
-            </div>
-          )}
+          {session && stepDef ? (
+            <p className="text-xs font-medium text-muted-foreground sm:text-sm">
+              Step {currentStep}: {stepDef.label}
+            </p>
+          ) : null}
         </div>
       </div>
 
-      <div className="print:hidden boq-app-chrome" data-boq-chrome>
+      <div className="boq-app-chrome print:hidden" data-boq-chrome>
         <BoqProgressBar />
       </div>
 
       <div className="flex-1 overflow-y-auto print:overflow-visible">
-        <div className={`mx-auto p-6 ${currentStep === 3 ? "max-w-5xl" : "max-w-7xl"} print:max-w-none print:p-0`}>
+        <div className="w-full max-w-none p-4 md:p-6 print:p-0">
           <StepComponent />
         </div>
       </div>
