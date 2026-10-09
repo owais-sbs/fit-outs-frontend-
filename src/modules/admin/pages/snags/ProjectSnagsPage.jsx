@@ -186,7 +186,7 @@ export default function ProjectSnagsPage() {
 
   if (loading) {
     return (
-      <PageShell className="max-w-4xl mx-auto">
+      <PageShell className="max-w-4xl">
         <LoadingPanel size="page" messages={loadingMessages.projects} />
       </PageShell>
     );

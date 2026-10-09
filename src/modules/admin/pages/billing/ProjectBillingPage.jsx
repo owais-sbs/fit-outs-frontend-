@@ -663,9 +663,9 @@ export default function ProjectBillingPage() {
       )}
 
       {isFinanceUser && !commercialFrozen && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold">New milestone</CardTitle>
+        <Card className="border-border/70 bg-card shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-semibold tracking-tight">New milestone</CardTitle>
           </CardHeader>
           <CardContent>
             {message && (
@@ -680,12 +680,26 @@ export default function ProjectBillingPage() {
               </p>
             )}
             <Tabs value={createMode} onValueChange={setCreateMode}>
-              <TabsList>
-                <TabsTrigger value="template" disabled={!approvedBoq}>
+              <TabsList className="h-auto w-full justify-start gap-1 rounded-sm border border-[#0a1628]/12 bg-[#0a1628]/[0.03] p-1 sm:w-auto">
+                <TabsTrigger
+                  value="template"
+                  disabled={!approvedBoq}
+                  className="rounded-sm px-3 py-1.5 text-xs font-semibold data-[state=active]:bg-[#0a1628] data-[state=active]:text-[#FAF7F2] data-[state=active]:shadow-none"
+                >
                   From BOQ
                 </TabsTrigger>
-                <TabsTrigger value="schedule">From schedule</TabsTrigger>
-                <TabsTrigger value="manual">Manual</TabsTrigger>
+                <TabsTrigger
+                  value="schedule"
+                  className="rounded-sm px-3 py-1.5 text-xs font-semibold data-[state=active]:bg-[#0a1628] data-[state=active]:text-[#FAF7F2] data-[state=active]:shadow-none"
+                >
+                  From schedule
+                </TabsTrigger>
+                <TabsTrigger
+                  value="manual"
+                  className="rounded-sm px-3 py-1.5 text-xs font-semibold data-[state=active]:bg-[#0a1628] data-[state=active]:text-[#FAF7F2] data-[state=active]:shadow-none"
+                >
+                  Manual
+                </TabsTrigger>
               </TabsList>
 
               <p className="mt-3 text-xs text-muted-foreground">
@@ -699,67 +713,94 @@ export default function ProjectBillingPage() {
                 </p>
               )}
 
-              <TabsContent value="template" className="space-y-3">
+              <TabsContent value="template" className="mt-4 space-y-4">
                 <p className="text-xs text-muted-foreground">
                   Payment split ({FINANCE_BOQ_PAYMENT_SLICES.map((s) => `${s.percent}%`).join(" / ")}) of{" "}
                   {formatAed(boqGrandTotal)}. Select slices, set due dates, then create draft milestones.
                 </p>
-                <div className="space-y-2">
-                  {templateRows.map((row) => (
-                    <div
-                      key={row.id}
-                      className="grid gap-2 rounded-md border border-border/50 p-2 sm:grid-cols-[auto_1fr_auto_auto_auto] sm:items-center"
-                    >
-                      <Checkbox
-                        checked={row.selected}
-                        onCheckedChange={(checked) =>
-                          setTemplateRows((rows) =>
-                            rows.map((r) =>
-                              r.id === row.id ? { ...r, selected: checked === true } : r
-                            )
-                          )
-                        }
-                        aria-label={`Select ${row.name}`}
-                      />
-                      <Input
-                        value={row.name}
-                        onChange={(e) =>
-                          setTemplateRows((rows) =>
-                            rows.map((r) =>
-                              r.id === row.id ? { ...r, name: e.target.value } : r
-                            )
-                          )
-                        }
-                        className="h-8 text-xs"
-                      />
-                      <span className="text-xs text-muted-foreground tabular-nums sm:text-right">
-                        {row.percent}%
-                      </span>
-                      <span className="text-xs font-medium tabular-nums sm:text-right">
-                        {row.selected ? formatAed(allocationById[row.id] ?? 0) : "—"}
-                      </span>
-                      <Input
-                        type="date"
-                        value={row.dueDate}
-                        disabled={!row.selected}
-                        onChange={(e) =>
-                          setTemplateRows((rows) =>
-                            rows.map((r) =>
-                              r.id === row.id ? { ...r, dueDate: e.target.value } : r
-                            )
-                          )
-                        }
-                        className="h-8 text-xs"
-                      />
-                    </div>
-                  ))}
+                <div className="overflow-hidden rounded-sm border border-[#0a1628]/15 bg-card">
+                  <table className="w-full border-collapse text-left text-sm">
+                    <thead>
+                      <tr className="border-b border-[#0a1628]/10 bg-[#0a1628]/[0.04]">
+                        <th className="w-12 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          Sel
+                        </th>
+                        <th className="px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          Description
+                        </th>
+                        <th className="w-20 px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          %
+                        </th>
+                        <th className="w-32 px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          Amount
+                        </th>
+                        <th className="w-40 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          Due date
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/50">
+                      {templateRows.map((row) => (
+                        <tr key={row.id} className="bg-card transition-colors hover:bg-muted/30">
+                          <td className="px-3 py-2.5 align-middle">
+                            <Checkbox
+                              checked={row.selected}
+                              onCheckedChange={(checked) =>
+                                setTemplateRows((rows) =>
+                                  rows.map((r) =>
+                                    r.id === row.id ? { ...r, selected: checked === true } : r
+                                  )
+                                )
+                              }
+                              aria-label={`Select ${row.name}`}
+                            />
+                          </td>
+                          <td className="px-3 py-2.5 align-middle">
+                            <Input
+                              value={row.name}
+                              onChange={(e) =>
+                                setTemplateRows((rows) =>
+                                  rows.map((r) =>
+                                    r.id === row.id ? { ...r, name: e.target.value } : r
+                                  )
+                                )
+                              }
+                              className="h-9 rounded-sm border-[#0a1628]/15 bg-card text-sm shadow-none"
+                            />
+                          </td>
+                          <td className="px-3 py-2.5 text-right align-middle text-sm tabular-nums text-muted-foreground">
+                            {row.percent}%
+                          </td>
+                          <td className="px-3 py-2.5 text-right align-middle text-sm font-medium tabular-nums">
+                            {row.selected ? formatAed(allocationById[row.id] ?? 0) : "—"}
+                          </td>
+                          <td className="px-3 py-2.5 align-middle">
+                            <Input
+                              type="date"
+                              value={row.dueDate}
+                              disabled={!row.selected}
+                              onChange={(e) =>
+                                setTemplateRows((rows) =>
+                                  rows.map((r) =>
+                                    r.id === row.id ? { ...r, dueDate: e.target.value } : r
+                                  )
+                                )
+                              }
+                              className="h-9 rounded-sm border-[#0a1628]/15 bg-card text-sm shadow-none"
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
                 <Button
                   size="sm"
+                  className="gap-1.5 border-0 bg-[#0a1628] text-[#FAF7F2] hover:bg-[#081729] hover:text-[#FAF7F2]"
                   onClick={handleCreateFromTemplate}
                   disabled={busy || !approvedBoq || boqGrandTotal <= 0}
                 >
-                  <Plus className="h-4 w-4 mr-1" /> Create selected milestones
+                  <Plus className="h-4 w-4" /> Create selected milestones
                 </Button>
               </TabsContent>
 

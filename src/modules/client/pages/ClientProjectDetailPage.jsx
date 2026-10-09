@@ -28,13 +28,17 @@ function InfoItem({ label, value, mono = false }) {
 
 function StatusBadge({ status }) {
   const cls = {
-    "In Progress": "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-none font-medium",
-    "Completed":   "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-none font-medium",
-    "Planning":    "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-none font-medium",
-    "On Hold":     "bg-orange-500/15 text-orange-700 dark:text-orange-400 border-none font-medium",
-    "Cancelled":   "destructive",
+    "In Progress":
+      "rounded-sm border border-[#0a1628]/20 bg-[#0a1628]/10 font-medium text-[#0a1628]",
+    Completed:
+      "rounded-sm border border-[#C9A96E]/40 bg-[#C9A96E]/18 font-medium text-[#8a6d3b]",
+    Planning:
+      "rounded-sm border border-[#0a1628] bg-[#0a1628] font-medium text-[#FAF7F2] shadow-none hover:bg-[#081729] hover:text-[#FAF7F2]",
+    "On Hold":
+      "rounded-sm border border-orange-400/30 bg-orange-500/15 font-medium text-orange-700 dark:text-orange-400",
+    Cancelled: "destructive rounded-sm",
   };
-  return <Badge className={cls[status] || ""}>{status}</Badge>;
+  return <Badge className={cls[status] || "rounded-sm border border-[#0a1628]/15"}>{status}</Badge>;
 }
 
 export default function ClientProjectDetailPage() {
@@ -129,21 +133,23 @@ export default function ClientProjectDetailPage() {
             <Button
               size="sm"
               variant="outline"
+              className="h-8 gap-1.5 rounded-sm border border-[#0a1628]/20 bg-card text-foreground shadow-sm hover:border-[#C9A96E]/40 hover:bg-[#C9A96E]/12 hover:text-[#8a6d3b]"
               onClick={() =>
                 navigate(ROUTES.CLIENT.PROJECT_SCHEDULE.replace(":projectId", projectId))
               }
             >
-              <GanttChart className="mr-1.5 h-4 w-4" />
+              <GanttChart className="h-3.5 w-3.5" />
               View programme
             </Button>
             <Button
               size="sm"
               variant="outline"
+              className="h-8 gap-1.5 rounded-sm border border-[#0a1628]/20 bg-card text-foreground shadow-sm hover:border-[#C9A96E]/40 hover:bg-[#C9A96E]/12 hover:text-[#8a6d3b]"
               onClick={() =>
                 navigate(ROUTES.CLIENT.PROJECT_REPORTING.replace(":projectId", projectId))
               }
             >
-              <BarChart3 className="mr-1.5 h-4 w-4" />
+              <BarChart3 className="h-3.5 w-3.5" />
               Progress report
             </Button>
           </div>

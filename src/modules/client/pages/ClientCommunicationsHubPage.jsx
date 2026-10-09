@@ -74,10 +74,10 @@ export default function ClientCommunicationsHubPage() {
         </div>
       )}
 
-      <div className="max-w-xs">
-        <Label className="text-xs">Project</Label>
+      <div className="max-w-xs space-y-2.5">
+        <Label className="text-sm font-semibold text-foreground">Project</Label>
         <Select value={projectId} onValueChange={setProjectId}>
-          <SelectTrigger>
+          <SelectTrigger className="h-10 rounded-sm border border-[#0a1628]/20 bg-card shadow-sm">
             <SelectValue placeholder="Select project" />
           </SelectTrigger>
           <SelectContent>

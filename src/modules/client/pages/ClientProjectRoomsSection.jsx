@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { CheckCircle2, DoorOpen, FileDown, Loader2, MessageSquare } from "lucide-react";
+import { CheckCircle2, DoorOpen, FileDown, FolderOpen, Loader2, MessageSquare } from "lucide-react";
 import { Surface } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ROUTES } from "@/shared/constants/routes";
+import { cn } from "@/lib/utils";
 import {
   fetchPendingClientTasks,
   fetchProjectRooms,
@@ -101,22 +102,40 @@ export default function ClientProjectRoomsSection({ projectId }) {
               </div>
             )}
 
-            <div className="grid gap-4 sm:grid-cols-[200px_1fr]">
-              <div className="max-h-64 space-y-1 overflow-y-auto">
-                {rooms.map((r) => (
-                  <button
-                    key={r.uuid}
-                    type="button"
-                    onClick={() => setSelectedRoomId(r.uuid)}
-                    className={[
-                      "w-full rounded-xl px-2.5 py-2 text-left text-sm transition-colors",
-                      selectedRoomId === r.uuid ? "bg-primary/5 ring-1 ring-primary/25" : "bg-secondary/50 hover:bg-secondary",
-                    ].join(" ")}
-                  >
-                    <p className="truncate font-medium">{r.name}</p>
-                    <p className="text-[10px] text-muted-foreground">{r.floorLabel}</p>
-                  </button>
-                ))}
+            <div className="grid gap-4 sm:grid-cols-[240px_1fr]">
+              <div className="max-h-72 space-y-2 overflow-y-auto">
+                {rooms.map((r) => {
+                  const selected = selectedRoomId === r.uuid;
+                  return (
+                    <button
+                      key={r.uuid}
+                      type="button"
+                      onClick={() => setSelectedRoomId(r.uuid)}
+                      className={cn(
+                        "flex w-full items-center gap-3 rounded-sm border px-3 py-3 text-left text-sm transition-colors",
+                        selected
+                          ? "border-[#0a1628]/25 bg-[#0a1628]/5 shadow-sm"
+                          : "border-border/70 bg-card hover:border-[#C9A96E]/40 hover:bg-[#C9A96E]/08"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "relative mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border",
+                          selected
+                            ? "border-[#0a1628]/20 bg-[#0a1628]/10 text-[#0a1628]"
+                            : "border-[#C9A96E]/35 bg-[#C9A96E]/18 text-[#8a6d3b]"
+                        )}
+                      >
+                        <span className="pointer-events-none absolute inset-0 rounded-lg bg-[#0a1628]/5" aria-hidden />
+                        <FolderOpen className="relative h-4 w-4" strokeWidth={1.75} />
+                      </span>
+                      <span className="min-w-0">
+                        <p className="truncate font-medium text-foreground">{r.name}</p>
+                        <p className="text-[11px] text-muted-foreground">{r.floorLabel || "—"}</p>
+                      </span>
+                    </button>
+                  );
+                })}
                 {rooms.length === 0 && (
                   <p className="text-sm text-muted-foreground">No rooms on this project yet.</p>
                 )}
@@ -124,14 +143,19 @@ export default function ClientProjectRoomsSection({ projectId }) {
 
               <div className="space-y-2">
                 {selectedRoomId && (
-                  <Button asChild size="sm" variant="outline">
+                  <Button
+                    asChild
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5 border-[#0a1628]/15 hover:bg-[#C9A96E]/15 hover:text-[#8a6d3b]"
+                  >
                     <Link
                       to={ROUTES.CLIENT.PROJECT_ROOM_CHAT.replace(":projectId", projectId).replace(
                         ":roomId",
                         selectedRoomId
                       )}
                     >
-                      <MessageSquare className="mr-1 h-3.5 w-3.5" /> Room chat
+                      <MessageSquare className="h-3.5 w-3.5" /> Room chat
                     </Link>
                   </Button>
                 )}

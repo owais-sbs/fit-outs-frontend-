@@ -9,6 +9,13 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { AttachmentList, AttachmentUploadField } from "@/components/shared/AttachmentField";
 import {
   approveClientSnag,
@@ -175,19 +182,21 @@ export default function ClientSnagsPage() {
         <p className="rounded-lg border border-border bg-secondary/40 px-3 py-2 text-sm">{message}</p>
       )}
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-        <div className="w-full space-y-1 sm:max-w-xs">
-          <Label className="text-xs">Project</Label>
-          <select
-            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
-            value={projectId}
-            onChange={(e) => setProjectId(e.target.value)}
-          >
-            <option value="">Select project</option>
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>{p.projectName || p.name}</option>
-            ))}
-          </select>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+        <div className="w-full space-y-2.5 sm:max-w-xs">
+          <Label className="text-sm font-semibold text-foreground">Project</Label>
+          <Select value={projectId} onValueChange={setProjectId}>
+            <SelectTrigger className="h-10 rounded-sm border border-[#0a1628]/20 bg-card shadow-sm">
+              <SelectValue placeholder="Select project" />
+            </SelectTrigger>
+            <SelectContent>
+              {projects.map((p) => (
+                <SelectItem key={p.id} value={String(p.id)}>
+                  {p.projectName || p.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div className="relative max-w-sm flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -195,7 +204,7 @@ export default function ClientSnagsPage() {
             placeholder="Search snags..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
+            className="h-10 border-border/70 bg-card pl-9 shadow-sm"
           />
         </div>
       </div>

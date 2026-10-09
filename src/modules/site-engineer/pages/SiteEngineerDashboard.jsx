@@ -10,14 +10,14 @@ import {
   ClipboardList,
   AlertTriangle,
 } from "lucide-react";
-import { PageShell, PageTitle, StatTile, Surface } from "@/components/layout/PageShell";
+import DashboardHeader from "@/modules/super-admin/components/DashboardHeader";
+import { PageShell, StatTile, Surface } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
 import EmptyState from "@/components/shared/EmptyState";
 import StatusBadge from "@/components/shared/StatusBadge";
 import LoadingPanel from "@/components/shared/LoadingPanel";
 import { loadingMessages } from "@/components/shared/loadingMessages";
 import { ROUTES } from "@/shared/constants/routes";
-import { useAuth } from "@/shared/context/auth-context";
 import { fetchMySiteVisits } from "@/modules/admin/api/site-visits.api";
 import { fetchMySiteEngineerTasks } from "@/modules/site-engineer/api/site-engineer-tasks.api";
 import { fetchMySnags } from "@/modules/site-engineer/api/snags.api";
@@ -46,7 +46,6 @@ function isOverdue(deadline, status) {
 
 export default function SiteEngineerDashboard() {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const today = todayStr();
   const [visits, setVisits] = useState([]);
   const [projects, setProjects] = useState([]);
@@ -98,15 +97,33 @@ export default function SiteEngineerDashboard() {
     .slice(0, 3);
 
   return (
-    <PageShell>
-      <PageTitle
-        title={`Welcome${user?.name ? `, ${user.name.split(" ")[0]}` : ""}`}
-        subtitle="Your site visits, tasks, and assigned projects"
-      />
+    <PageShell className="space-y-8">
+      <DashboardHeader
+        title="Site Engineer"
+        description="Your site visits, tasks, and assigned projects."
+      >
+        <Button
+          size="sm"
+          className="gap-1.5 border-0 bg-[#0a1628] text-[#FAF7F2] hover:bg-[#081729] hover:text-[#FAF7F2]"
+          onClick={() => navigate(ROUTES.SITE_ENGINEER.SITE_VISITS)}
+        >
+          <MapPin className="h-3.5 w-3.5" />
+          Site visits
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-1.5 border-[#0a1628]/20 hover:border-[#C9A96E]/40 hover:bg-[#C9A96E]/12 hover:text-[#8a6d3b]"
+          onClick={() => navigate(ROUTES.SITE_ENGINEER.TASKS)}
+        >
+          <ClipboardList className="h-3.5 w-3.5" />
+          Tasks
+        </Button>
+      </DashboardHeader>
 
-      {loading && (
+      {loading ? (
         <LoadingPanel size="inline" messages={loadingMessages.dashboard} />
-      )}
+      ) : null}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <StatTile label="Projects" value={stats.projects} icon={Briefcase} />
@@ -118,11 +135,16 @@ export default function SiteEngineerDashboard() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Surface className="p-5">
+        <Surface className="border-border/70 p-5 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-base font-semibold tracking-tight">Upcoming site visits</h2>
-            <Button variant="ghost" size="sm" onClick={() => navigate(ROUTES.SITE_ENGINEER.SITE_VISITS)}>
-              View all <ArrowRight className="ml-1 h-3.5 w-3.5" />
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1 text-muted-foreground hover:bg-[#C9A96E]/12 hover:text-[#8a6d3b]"
+              onClick={() => navigate(ROUTES.SITE_ENGINEER.SITE_VISITS)}
+            >
+              View all <ArrowRight className="h-3.5 w-3.5" />
             </Button>
           </div>
           <div className="space-y-2">
@@ -159,11 +181,16 @@ export default function SiteEngineerDashboard() {
           </div>
         </Surface>
 
-        <Surface className="p-5">
+        <Surface className="border-border/70 p-5 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-base font-semibold tracking-tight">Tasks</h2>
-            <Button variant="ghost" size="sm" onClick={() => navigate(ROUTES.SITE_ENGINEER.TASKS)}>
-              View all <ArrowRight className="ml-1 h-3.5 w-3.5" />
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1 text-muted-foreground hover:bg-[#C9A96E]/12 hover:text-[#8a6d3b]"
+              onClick={() => navigate(ROUTES.SITE_ENGINEER.TASKS)}
+            >
+              View all <ArrowRight className="h-3.5 w-3.5" />
             </Button>
           </div>
           <div className="space-y-2">

@@ -106,8 +106,13 @@ export default function FinanceDashboard() {
               Updated {refreshedAt.toLocaleTimeString()}
             </span>
           )}
-          <Button variant="outline" size="sm" className="gap-2" onClick={load} disabled={loading}>
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          <Button
+            size="sm"
+            className="gap-1.5 border-0 bg-[#0a1628] text-[#FAF7F2] hover:bg-[#081729] hover:text-[#FAF7F2]"
+            onClick={load}
+            disabled={loading}
+          >
+            {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
             Refresh
           </Button>
         </div>
@@ -138,15 +143,20 @@ export default function FinanceDashboard() {
           </div>
 
           <div className="flex justify-end">
-            <Button asChild size="sm" variant="outline">
+            <Button
+              asChild
+              size="sm"
+              variant="outline"
+              className="gap-1.5 border-[#0a1628]/20 hover:border-[#C9A96E]/40 hover:bg-[#C9A96E]/12 hover:text-[#8a6d3b]"
+            >
               <Link to={ROUTES.FINANCE.PNL}>Open full Profit &amp; Loss</Link>
             </Button>
           </div>
 
           <div className="grid gap-4 lg:grid-cols-2">
-            <Card>
+            <Card className="border-border/70 bg-card shadow-sm">
               <CardHeader>
-                <CardTitle className="text-base">Projects</CardTitle>
+                <CardTitle className="text-base font-semibold tracking-tight">Projects</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 {projects.length === 0 ? (
@@ -188,9 +198,9 @@ export default function FinanceDashboard() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="border-border/70 bg-card shadow-sm">
               <CardHeader>
-                <CardTitle className="text-base">Billing milestones</CardTitle>
+                <CardTitle className="text-base font-semibold tracking-tight">Billing milestones</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 {milestoneRows.length === 0 ? (

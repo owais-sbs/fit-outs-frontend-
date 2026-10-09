@@ -154,7 +154,7 @@ export default function SiteEngineerSnagsPage() {
   };
 
   return (
-    <PageShell className="max-w-4xl mx-auto">
+    <PageShell className="max-w-4xl">
       <PageTitle
         title="Snags"
         subtitle="Raise defects on your projects and update snags assigned to you"

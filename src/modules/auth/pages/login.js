@@ -2,14 +2,15 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   AlertCircle,
-  Building2,
-  CreditCard,
+  ArrowRight,
+  Briefcase,
   Eye,
   EyeOff,
-  FolderKanban,
-  LogIn,
+  FileBarChart,
+  Lock,
   Mail,
-  Truck,
+  Package,
+  Users,
 } from "lucide-react";
 import { useAuth } from "@/shared/context/auth-context";
 import { ROUTES } from "@/shared/constants/routes";
@@ -19,8 +20,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   BRAND_NAME,
-  PLATFORM_LOGO_URL,
-  PLATFORM_LOGO_JPG_URL,
+  BRAND_TAGLINE,
+  PLATFORM_ICON_URL,
 } from "@/components/brand/BrandMark";
 import {
   AuthLoadingOverlay,
@@ -64,10 +65,10 @@ function useForceLightDocument() {
 }
 
 const FEATURES = [
-  { icon: Building2, title: "Companies", desc: "Manage your business" },
-  { icon: CreditCard, title: "Subscriptions", desc: "Track & renew" },
-  { icon: FolderKanban, title: "Projects", desc: "Stay on schedule" },
-  { icon: Truck, title: "Delivery", desc: "From one platform" },
+  { icon: Briefcase, title: "Projects", desc: "Track & manage projects" },
+  { icon: Users, title: "Teams", desc: "Coordinate workforce" },
+  { icon: Package, title: "Procurement", desc: "Simplify purchases & vendors" },
+  { icon: FileBarChart, title: "Reports", desc: "Insights for better decisions" },
 ];
 
 export default function Login() {
@@ -79,8 +80,6 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [logoSrc, setLogoSrc] = useState(PLATFORM_LOGO_URL);
-
   useForceLightDocument();
 
   useEffect(() => {
@@ -133,194 +132,196 @@ export default function Login() {
 
   return (
     <div
-      className="fixed inset-0 flex h-dvh max-h-dvh w-full overflow-hidden text-[#0B1F3A]"
+      className="fixed inset-0 flex h-dvh max-h-dvh w-full overflow-hidden bg-[#0a1628] text-[#0a1628]"
       style={{ fontFamily: '"Plus Jakarta Sans", system-ui, sans-serif' }}
     >
-      <div
-        aria-hidden
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${loginBg})` }}
-      />
-      <div
-        aria-hidden
-        className="absolute inset-0 bg-gradient-to-br from-white/60 via-white/40 to-[#0B1F3A]/10 backdrop-blur-[2px]"
-      />
-
       {isLoading ? <AuthLoadingOverlay label="Signing in…" /> : null}
 
-      <div className="relative z-10 flex h-full min-h-0 w-full flex-col overflow-hidden lg:flex-row">
-        {/* Left brand */}
-        <aside className="flex min-h-0 flex-1 flex-col justify-between overflow-hidden px-6 py-8 sm:px-10 lg:max-w-[58%] lg:px-12 lg:py-10 xl:px-16">
-          <div className="min-h-0">
-            {/* Official lockup — icon + Fit-Outs + tagline baked into the asset */}
-            <img
-              src={logoSrc}
-              alt={BRAND_NAME}
-              className="-ml-1 h-auto w-[210px] object-contain object-left sm:-ml-2 sm:w-[240px] lg:w-[260px]"
-              onError={() => {
-                if (logoSrc !== PLATFORM_LOGO_JPG_URL) setLogoSrc(PLATFORM_LOGO_JPG_URL);
-              }}
-            />
+      <div className="relative z-10 flex h-full min-h-0 w-full flex-col lg:flex-row">
+        {/* Left — brand / hero (50%) */}
+        <aside className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden lg:w-1/2 lg:max-w-[50%]">
+          <div className="absolute inset-0 bg-[#0a1628]" />
+          <div
+            aria-hidden
+            className="absolute inset-y-0 right-0 w-[58%] bg-cover bg-center"
+            style={{
+              backgroundImage: `url(${loginBg})`,
+              clipPath: "polygon(18% 0, 100% 0, 100% 100%, 0 100%)",
+            }}
+          />
+          <div
+            aria-hidden
+            className="absolute inset-y-0 right-0 w-[58%] bg-gradient-to-r from-[#0a1628] via-[#0a1628]/55 to-transparent"
+            style={{ clipPath: "polygon(18% 0, 100% 0, 100% 100%, 0 100%)" }}
+          />
 
-            <h1
-              className="mt-8 max-w-xl text-[2rem] font-semibold leading-[1.12] tracking-[-0.02em] text-[#0B1F3A] sm:mt-10 sm:text-[2.6rem] xl:text-[3rem]"
-              style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}
-            >
-              Premium{" "}
-              <span className="font-semibold text-[#C9A96E]">Fit-Out &amp;</span>
-              <br />
-              Interior Solutions
-            </h1>
-
-            <p className="mt-4 max-w-md text-[15px] font-normal leading-[1.65] tracking-normal text-[#475569] sm:text-base">
-              Manage companies, subscriptions, projects, and delivery from one platform.
-            </p>
-
-            <div className="mt-8 grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-4 sm:gap-x-8">
-              {FEATURES.map(({ icon: Icon, title, desc }) => (
-                <div key={title} className="min-w-0">
-                  <Icon className="h-5 w-5 text-[#C9A96E]" strokeWidth={1.5} />
-                  <p className="mt-2.5 text-[13px] font-semibold tracking-tight text-[#0B1F3A]">
-                    {title}
+          <div className="relative z-10 flex h-full min-h-0 flex-col justify-between px-7 py-8 sm:px-10 lg:px-12 xl:px-14">
+            <div>
+              <div className="flex items-center gap-3.5">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white p-1.5 shadow-[0_0_0_1px_rgba(201,169,110,0.45)]">
+                  <img
+                    src={PLATFORM_ICON_URL}
+                    alt=""
+                    className="h-full w-full object-contain"
+                  />
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-[15px] font-semibold tracking-wide text-white sm:text-base">
+                    {BRAND_NAME.toUpperCase()} ERP SYSTEM
                   </p>
-                  <p className="mt-1 text-[12px] font-normal leading-snug text-[#64748B]">
-                    {desc}
+                  <p className="mt-0.5 truncate text-[10px] font-semibold uppercase tracking-[0.18em] text-[#C9A96E]">
+                    {BRAND_TAGLINE}
                   </p>
                 </div>
-              ))}
-            </div>
-          </div>
+              </div>
 
-          <div className="mt-6 hidden shrink-0 lg:block">
-            <div className="mb-3.5 h-px w-10 bg-[#C9A96E]" />
-            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#C9A96E]">
-              Build · Manage · Grow
-            </p>
+              <div className="mt-12 sm:mt-16 lg:mt-20">
+                <div className="mb-4 h-px w-12 bg-[#C9A96E]" />
+                <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#C9A96E]">
+                  Building tomorrow together
+                </p>
+                <h1
+                  className="mt-4 max-w-lg text-[2.1rem] font-semibold leading-[1.12] tracking-[-0.02em] text-white sm:text-[2.55rem] xl:text-[2.85rem]"
+                  style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}
+                >
+                  Fit-Out{" "}
+                  <span className="text-[#C9A96E]">Made Smarter</span>
+                </h1>
+                <p className="mt-4 max-w-md text-[15px] leading-relaxed text-white/70 sm:text-base">
+                  Manage your projects, teams, resources and operations — all in one powerful platform.
+                </p>
+              </div>
+
+              <div className="mt-10 grid grid-cols-2 gap-x-6 gap-y-7 sm:mt-12 sm:grid-cols-4 lg:gap-x-5">
+                {FEATURES.map(({ icon: Icon, title, desc }) => (
+                  <div key={title} className="min-w-0">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-md border border-[#C9A96E]/45 text-[#C9A96E]">
+                      <Icon className="h-4 w-4" strokeWidth={1.6} />
+                    </div>
+                    <p className="mt-2.5 text-[13px] font-semibold tracking-tight text-white">
+                      {title}
+                    </p>
+                    <p className="mt-1 text-[11px] leading-snug text-white/55">{desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-8 hidden shrink-0 lg:block">
+              <div className="mb-3 h-px w-10 bg-[#C9A96E]/70" />
+              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#C9A96E]">
+                Safer / Faster / Stronger
+              </p>
+            </div>
           </div>
         </aside>
 
-        {/* Right sign-in card */}
-        <main className="flex min-h-0 flex-1 items-center justify-center overflow-hidden px-5 py-6 sm:px-8 lg:px-10 lg:py-0">
-          <div className="relative w-full max-w-[420px]">
-            <div className="relative overflow-hidden rounded-[1.35rem] border border-white/80 bg-white/80 p-7 shadow-[0_20px_60px_-24px_rgba(11,31,58,0.35)] backdrop-blur-xl sm:p-9">
-              <div
-                aria-hidden
-                className="pointer-events-none absolute right-0 top-0 h-16 w-16"
+        {/* Right — sign-in (50%) */}
+        <main className="relative flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden bg-[#F4F1EC] px-5 py-8 sm:px-8 lg:w-1/2 lg:max-w-[50%] lg:px-10 lg:py-0">
+          <div className="relative z-10 w-full max-w-[420px]">
+            <div className="mb-7">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#C9A96E]">
+                Welcome back
+              </p>
+              <h2
+                className="mt-2 text-[2rem] font-semibold tracking-[-0.02em] text-[#0a1628]"
+                style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}
               >
-                <div className="absolute right-0 top-0 h-0 w-0 border-l-[64px] border-t-[64px] border-l-transparent border-t-[#0B1F3A]" />
-                <div className="absolute right-0 top-0 h-0 w-0 border-l-[40px] border-t-[40px] border-l-transparent border-t-[#C9A96E]" />
-              </div>
-
-              <div className="relative mb-7">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#C9A96E]">
-                  Welcome back
-                </p>
-                <h2
-                  className="mt-2 text-[2rem] font-semibold tracking-[-0.02em] text-[#0B1F3A]"
-                  style={{ fontFamily: '"Source Serif 4", Georgia, serif' }}
-                >
-                  Sign in
-                </h2>
-                <p className="mt-1.5 text-sm font-normal text-[#64748B]">
-                  Enter your credentials to continue.
-                </p>
-              </div>
-
-              <form onSubmit={handleSubmit} className="relative space-y-4">
-                {error && (
-                  <div className="flex items-center gap-2.5 rounded-xl border border-red-200 bg-red-50/90 p-3.5 text-sm text-red-700">
-                    <AlertCircle className="h-5 w-5 shrink-0" />
-                    <p>{error}</p>
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="email"
-                    className="text-sm font-semibold tracking-tight text-[#0B1F3A]"
-                  >
-                    Email
-                  </Label>
-                  <div className="relative">
-                    <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8]" />
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="you@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="h-12 rounded-xl border-[#E2E8F0] bg-white pl-11 text-sm font-medium text-[#0B1F3A] placeholder:font-normal placeholder:text-[#94A3B8] focus-visible:ring-[#C9A96E]/40"
-                      autoComplete="email"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label
-                      htmlFor="password"
-                      className="text-sm font-semibold tracking-tight text-[#0B1F3A]"
-                    >
-                      Password
-                    </Label>
-                    <Link
-                      to={ROUTES.AUTH.FORGOT_PASSWORD}
-                      className="text-xs font-semibold text-[#C9A96E] hover:text-[#B89051]"
-                    >
-                      Forgot password?
-                    </Link>
-                  </div>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="h-12 rounded-xl border-[#E2E8F0] bg-white pr-11 text-sm font-medium text-[#0B1F3A] placeholder:font-normal placeholder:text-[#94A3B8] focus-visible:ring-[#C9A96E]/40"
-                      autoComplete="current-password"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((v) => !v)}
-                      className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-[#94A3B8] transition-colors hover:text-[#0B1F3A]"
-                      aria-label={showPassword ? "Hide password" : "Show password"}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                <Button
-                  type="submit"
-                  className="mt-3 h-12 w-full rounded-xl border-0 bg-gradient-to-r from-[#C9A96E] to-[#B89051] text-sm font-semibold tracking-wide text-white shadow-[0_8px_24px_-10px_rgba(184,144,81,0.7)] hover:from-[#B89051] hover:to-[#A67F42]"
-                  disabled={isLoading}
-                >
-                  <LogIn className="mr-2 h-4 w-4" />
-                  Sign in
-                </Button>
-              </form>
-
-              <div className="relative mt-7 flex items-center gap-3">
-                <div className="h-px flex-1 bg-[#E2E8F0]" />
-                <span className="text-xs font-medium text-[#94A3B8]">New here?</span>
-                <div className="h-px flex-1 bg-[#E2E8F0]" />
-              </div>
-              <p className="mt-4 text-center text-sm">
-                <Link
-                  to={ROUTES.AUTH.SIGNUP}
-                  className="font-semibold text-[#C9A96E] hover:text-[#B89051] hover:underline"
-                >
-                  Create an account
-                </Link>
+                Sign in
+              </h2>
+              <p className="mt-1.5 text-sm text-[#64748B]">
+                Enter your credentials to continue to {BRAND_NAME}.
               </p>
             </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {error ? (
+                <div className="flex items-center gap-2.5 rounded-xl border border-red-200 bg-red-50/90 p-3.5 text-sm text-red-700">
+                  <AlertCircle className="h-5 w-5 shrink-0" />
+                  <p>{error}</p>
+                </div>
+              ) : null}
+
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-semibold text-[#0a1628]">
+                  Email
+                </Label>
+                <div className="relative">
+                  <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8]" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="h-12 rounded-xl border-[#0a1628]/15 bg-transparent pl-11 text-sm font-medium text-[#0a1628] placeholder:text-[#94A3B8] focus-visible:ring-[#C9A96E]/40"
+                    autoComplete="email"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password" className="text-sm font-semibold text-[#0a1628]">
+                    Password
+                  </Label>
+                  <Link
+                    to={ROUTES.AUTH.FORGOT_PASSWORD}
+                    className="text-xs font-semibold text-[#C9A96E] hover:text-[#B89051]"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
+                <div className="relative">
+                  <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8]" />
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="h-12 rounded-xl border-[#0a1628]/15 bg-transparent pl-11 pr-11 text-sm font-medium text-[#0a1628] placeholder:text-[#94A3B8] focus-visible:ring-[#C9A96E]/40"
+                    autoComplete="current-password"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-[#94A3B8] transition-colors hover:text-[#0a1628]"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <Button
+                type="submit"
+                className="mt-2 h-12 w-full gap-2 rounded-xl border-0 bg-[#C9A96E] text-sm font-semibold tracking-wide text-white shadow-[0_10px_28px_-12px_rgba(201,169,110,0.85)] hover:bg-[#B89051] hover:text-white"
+                disabled={isLoading}
+              >
+                Sign in
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </form>
+
+            <div className="relative mt-7 flex items-center gap-3">
+              <div className="h-px flex-1 bg-[#0a1628]/12" />
+              <span className="text-xs font-medium text-[#94A3B8]">New here?</span>
+              <div className="h-px flex-1 bg-[#0a1628]/12" />
+            </div>
+
+            <Button
+              asChild
+              variant="outline"
+              className="mt-4 h-12 w-full gap-2 rounded-xl border-[#C9A96E] bg-transparent text-sm font-semibold text-[#C9A96E] hover:bg-[#C9A96E]/10 hover:text-[#8a6d3b]"
+            >
+              <Link to={ROUTES.AUTH.SIGNUP}>
+                <Users className="h-4 w-4" />
+                Create an account
+              </Link>
+            </Button>
           </div>
         </main>
       </div>

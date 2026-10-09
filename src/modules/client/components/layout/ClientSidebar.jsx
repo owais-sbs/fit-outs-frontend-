@@ -1,111 +1,129 @@
 import { useState } from "react";
-import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, ChevronRight, Palette, Inbox, RotateCcw, Award,
-  FileText, CreditCard, MessageSquare, Settings, AlertTriangle,
-  Briefcase, ClipboardList,
-} from "lucide-react";
-import { SidebarBrand } from "@/components/brand/BrandMark";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
-  Sidebar, SidebarContent, SidebarFooter, SidebarGroup,
-  SidebarGroupContent, SidebarGroupLabel, SidebarHeader,
-  SidebarMenu, SidebarMenuButton, SidebarMenuItem,
-  SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem,
+  LayoutDashboard,
+  ChevronRight,
+  Palette,
+  Inbox,
+  RotateCcw,
+  Award,
+  FileText,
+  CreditCard,
+  MessageSquare,
+  Settings,
+  AlertTriangle,
+  Briefcase,
+  ClipboardList,
+} from "lucide-react";
+import { BRAND_NAME, PLATFORM_ICON_URL } from "@/components/brand/BrandMark";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarRail,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { ROUTES } from "@/shared/constants/routes";
 import { useAuth } from "@/shared/context/auth-context";
 
-// ─── Design Center sub-items ──────────────────────────────────────────────────
 const DESIGN_SUB_ITEMS = [
-  { label: "My Designs",        href: ROUTES.CLIENT.DESIGNS,          icon: Palette },
-  { label: "Pending Approval",  href: ROUTES.CLIENT.DESIGNS_PENDING,  icon: Inbox },
-  { label: "Revision History",  href: ROUTES.CLIENT.DESIGNS_REVISIONS,icon: RotateCcw },
-  { label: "Approved Designs",  href: ROUTES.CLIENT.DESIGNS_APPROVED, icon: Award },
+  { label: "My Designs", href: ROUTES.CLIENT.DESIGNS, icon: Palette },
+  { label: "Pending Approval", href: ROUTES.CLIENT.DESIGNS_PENDING, icon: Inbox },
+  { label: "Revision History", href: ROUTES.CLIENT.DESIGNS_REVISIONS, icon: RotateCcw },
+  { label: "Approved Designs", href: ROUTES.CLIENT.DESIGNS_APPROVED, icon: Award },
 ];
 
-// ─── Top-level nav ────────────────────────────────────────────────────────────
 const NAV_GROUPS = [
   {
     label: "Overview",
     items: [
-      { label: "Dashboard", href: ROUTES.CLIENT.DASHBOARD, icon: LayoutDashboard, end: true },
-      { label: "BOQ Approvals", href: ROUTES.CLIENT.BOQ_APPROVALS, icon: FileText },
-      { label: "Variations", href: ROUTES.CLIENT.VARIATIONS, icon: ClipboardList },
+      { type: "link", label: "Dashboard", href: ROUTES.CLIENT.DASHBOARD, icon: LayoutDashboard, end: true },
+      { type: "link", label: "BOQ Approvals", href: ROUTES.CLIENT.BOQ_APPROVALS, icon: FileText },
+      { type: "link", label: "Variations", href: ROUTES.CLIENT.VARIATIONS, icon: ClipboardList },
     ],
   },
   {
     label: "Design Center",
-    items: [
-      { label: "DESIGN_CENTER_PLACEHOLDER" },
-    ],
+    items: [{ type: "submenu", label: "Design Center", icon: Palette, children: DESIGN_SUB_ITEMS }],
   },
   {
     label: "Projects",
     items: [
-      { label: "My Projects", href: ROUTES.CLIENT.PROJECTS_MY, icon: Briefcase },
-      { label: "New Project Request", href: ROUTES.CLIENT.PROJECTS_REQUEST, icon: ClipboardList },
+      { type: "link", label: "My Projects", href: ROUTES.CLIENT.PROJECTS_MY, icon: Briefcase },
+      { type: "link", label: "New Project Request", href: ROUTES.CLIENT.PROJECTS_REQUEST, icon: ClipboardList },
     ],
   },
   {
     label: "Project Details",
     items: [
-      { label: "Documents",     href: ROUTES.CLIENT.DOCUMENTS,      icon: FileText },
-      { label: "Snags",         href: ROUTES.CLIENT.SNAGS,          icon: AlertTriangle },
-      { label: "Invoices",      href: ROUTES.CLIENT.INVOICES,        icon: CreditCard },
-      { label: "Communications",href: ROUTES.CLIENT.COMMUNICATIONS,  icon: MessageSquare },
-      { label: "Settings",      href: ROUTES.CLIENT.SETTINGS,        icon: Settings },
-      { label: "Terms & Conditions", href: ROUTES.CLIENT.TERMS,      icon: FileText },
+      { type: "link", label: "Documents", href: ROUTES.CLIENT.DOCUMENTS, icon: FileText },
+      { type: "link", label: "Snags", href: ROUTES.CLIENT.SNAGS, icon: AlertTriangle },
+      { type: "link", label: "Invoices", href: ROUTES.CLIENT.INVOICES, icon: CreditCard },
+      { type: "link", label: "Communications", href: ROUTES.CLIENT.COMMUNICATIONS, icon: MessageSquare },
+      { type: "link", label: "Settings", href: ROUTES.CLIENT.SETTINGS, icon: Settings },
+      { type: "link", label: "Terms & Conditions", href: ROUTES.CLIENT.TERMS, icon: FileText },
     ],
   },
 ];
 
-function ClientNavItem({ item }) {
-  const location = useLocation();
-  const Icon = item.icon;
-  const isActive = item.end
-    ? location.pathname === item.href
-    : location.pathname === item.href || location.pathname.startsWith(`${item.href}/`);
-
-  return (
-    <SidebarMenuItem>
-      <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
-        <NavLink to={item.href} end={!!item.end}>
-          <Icon className="h-4 w-4" />
-          <span>{item.label}</span>
-        </NavLink>
-      </SidebarMenuButton>
-    </SidebarMenuItem>
-  );
+function isActivePath(pathname, href, end = false) {
+  if (end || href === ROUTES.CLIENT.DASHBOARD) return pathname === href;
+  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function DesignCenterSubmenu() {
+function Submenu({ label, icon: Icon, items }) {
   const location = useLocation();
-  const isAnyActive = DESIGN_SUB_ITEMS.some((i) =>
-    location.pathname === i.href || location.pathname.startsWith(`${i.href}/`)
-  );
+  const navigate = useNavigate();
+  const { state } = useSidebar();
+  const collapsed = state === "collapsed";
+  const isAnyActive = items.some((i) => isActivePath(location.pathname, i.href));
   const [open, setOpen] = useState(isAnyActive);
 
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton onClick={() => setOpen((o) => !o)} isActive={isAnyActive} tooltip="Design Center">
-        <Palette className="h-4 w-4" />
-        <span>Design Center</span>
-        <ChevronRight
-          className={`ml-auto h-3 w-3 transition-transform duration-200 ${open ? "rotate-90" : ""}`}
-        />
+      <SidebarMenuButton
+        onClick={() => {
+          if (collapsed) {
+            const target = items.find((i) => location.pathname.startsWith(i.href)) || items[0];
+            if (target?.href) navigate(target.href);
+            return;
+          }
+          setOpen((o) => !o);
+        }}
+        isActive={isAnyActive}
+        tooltip={label}
+        className="sa-nav-item"
+      >
+        <Icon className="sa-nav-icon h-[18px] w-[18px] shrink-0" strokeWidth={1.75} />
+        <span className="truncate text-sm font-medium">{label}</span>
+        {!collapsed && (
+          <ChevronRight
+            className={`sa-nav-chevron ml-auto h-3.5 w-3.5 shrink-0 transition-transform duration-200 ${open ? "rotate-90" : ""}`}
+            strokeWidth={1.75}
+          />
+        )}
       </SidebarMenuButton>
-      {open && (
+      {!collapsed && open && (
         <SidebarMenuSub>
-          {DESIGN_SUB_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const isSubActive =
-              location.pathname === item.href || location.pathname.startsWith(`${item.href}/`);
+          {items.map((item) => {
+            const ItemIcon = item.icon;
+            const active = isActivePath(location.pathname, item.href);
             return (
               <SidebarMenuSubItem key={item.href}>
-                <SidebarMenuSubButton asChild isActive={isSubActive}>
+                <SidebarMenuSubButton asChild isActive={active}>
                   <NavLink to={item.href}>
-                    <Icon className="h-4 w-4" />
-                    <span>{item.label}</span>
+                    <ItemIcon className="h-[16px] w-[16px] shrink-0" strokeWidth={1.75} />
+                    <span className="truncate text-[13px] font-medium">{item.label}</span>
                   </NavLink>
                 </SidebarMenuSubButton>
               </SidebarMenuSubItem>
@@ -117,37 +135,67 @@ function DesignCenterSubmenu() {
   );
 }
 
-export default function ClientSidebar() {
-  const { user } = useAuth();
+function ClientBrand() {
   return (
-    <Sidebar collapsible="icon">
-      <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg" className="pointer-events-none">
-              <SidebarBrand
-                portal="Client Portal"
-                companyName={user?.companyName}
-                logoUrl={user?.companyLogo}
-              />
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+    <div className="sa-brand-row flex w-full items-center gap-3 px-0.5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+      <div className="sa-brand-mark flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white p-1.5 shadow-[0_0_0_1px_rgba(255,255,255,0.35)] group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8">
+        <img
+          src={PLATFORM_ICON_URL}
+          alt={BRAND_NAME}
+          className="h-full w-full object-contain"
+        />
+      </div>
+      <div className="grid min-w-0 flex-1 text-left leading-tight group-data-[collapsible=icon]:hidden">
+        <span className="truncate text-[15px] font-semibold tracking-tight text-white">
+          {BRAND_NAME}
+        </span>
+        <span className="truncate text-[11px] font-medium text-white/45">Client Portal</span>
+      </div>
+    </div>
+  );
+}
+
+export default function ClientSidebar() {
+  const location = useLocation();
+  const { user } = useAuth();
+
+  return (
+    <Sidebar collapsible="icon" className="sa-sidebar">
+      <SidebarHeader className="sa-sidebar-header">
+        <ClientBrand />
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className="sa-sidebar-content gap-1">
         {NAV_GROUPS.map((group) => (
-          <SidebarGroup key={group.label}>
-            <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/60">
+          <SidebarGroup key={group.label} className="sa-nav-group py-1">
+            <SidebarGroupLabel className="sa-nav-group-label">
               {group.label}
             </SidebarGroupLabel>
             <SidebarGroupContent>
-              <SidebarMenu>
+              <SidebarMenu className="sa-nav-menu gap-0.5">
                 {group.items.map((item) => {
-                  if (item.label === "DESIGN_CENTER_PLACEHOLDER") {
-                    return <DesignCenterSubmenu key="design-center" />;
+                  if (item.type === "submenu") {
+                    return (
+                      <Submenu
+                        key={item.label}
+                        label={item.label}
+                        icon={item.icon}
+                        items={item.children}
+                      />
+                    );
                   }
-                  return <ClientNavItem key={item.href} item={item} />;
+                  const Icon = item.icon;
+                  const active = isActivePath(location.pathname, item.href, item.end);
+                  return (
+                    <SidebarMenuItem key={item.href}>
+                      <SidebarMenuButton asChild isActive={active} tooltip={item.label} className="sa-nav-item">
+                        <NavLink to={item.href} end={!!item.end}>
+                          <Icon className="sa-nav-icon h-[18px] w-[18px] shrink-0" strokeWidth={1.75} />
+                          <span className="truncate text-sm font-medium">{item.label}</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
                 })}
               </SidebarMenu>
             </SidebarGroupContent>
@@ -155,19 +203,18 @@ export default function ClientSidebar() {
         ))}
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border p-4">
-        <div className="flex items-center gap-3 rounded-xl bg-secondary/70 p-2 ring-1 ring-border/50 group-data-[collapsible=icon]:hidden">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-background shadow-sm">
-            <span className="text-xs font-semibold">
-              {user?.name?.substring(0, 2).toUpperCase() || "CL"}
-            </span>
+      <SidebarFooter className="sa-sidebar-footer mt-auto border-t border-white/10 p-2 group-data-[collapsible=icon]:p-2">
+        <div className="admin-user-chip group-data-[collapsible=icon]:hidden">
+          <div className="admin-user-chip-avatar">
+            {user?.name?.substring(0, 2).toUpperCase() || "CL"}
           </div>
-          <div className="flex flex-col overflow-hidden">
-            <span className="truncate text-xs font-medium">{user?.name || "Client"}</span>
-            <span className="truncate text-[10px] text-muted-foreground">Client Portal</span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs font-medium text-white">{user?.name || "Client"}</p>
+            <p className="truncate text-[10px] font-medium text-white/45">Client Portal</p>
           </div>
         </div>
       </SidebarFooter>
+
       <SidebarRail />
     </Sidebar>
   );

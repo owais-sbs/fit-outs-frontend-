@@ -71,7 +71,11 @@ export default function MyProjectsPage() {
       case "Completed":
         return <Badge className="border-none bg-emerald-500/15 font-medium text-emerald-700 dark:text-emerald-400">Completed</Badge>;
       case "Planning":
-        return <Badge className="border-none bg-amber-500/15 font-medium text-amber-700 dark:text-amber-400">Planning</Badge>;
+        return (
+          <Badge className="rounded-sm border border-[#0a1628] bg-[#0a1628] font-medium text-[#FAF7F2] shadow-none hover:bg-[#081729] hover:text-[#FAF7F2]">
+            Planning
+          </Badge>
+        );
       case "On Hold":
         return <Badge className="border-none bg-orange-500/15 font-medium text-orange-700 dark:text-orange-400">On Hold</Badge>;
       case "Cancelled":

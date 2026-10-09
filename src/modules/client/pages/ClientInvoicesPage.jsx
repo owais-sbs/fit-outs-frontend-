@@ -8,6 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   fetchClientInvoices,
   clientAcceptPaymentRequest,
   clientRejectPaymentRequest,
@@ -217,31 +224,37 @@ export default function ClientInvoicesPage() {
       )}
 
       {/* Project Selector */}
-      <div className="w-full space-y-1 sm:max-w-xs">
-        <Label className="text-xs">Project</Label>
-        <select
-          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
-          value={projectId}
-          onChange={(e) => setProjectId(e.target.value)}
-        >
-          <option value="">Select project</option>
-          {projects.map((p) => (
-            <option key={p.id} value={p.id}>{p.projectName || p.name}</option>
-          ))}
-        </select>
+      <div className="w-full space-y-2.5 sm:max-w-xs">
+        <Label className="text-sm font-semibold text-foreground">Project</Label>
+        <Select value={projectId} onValueChange={setProjectId}>
+          <SelectTrigger className="h-10 rounded-sm border border-[#0a1628]/20 bg-card shadow-sm">
+            <SelectValue placeholder="Select project" />
+          </SelectTrigger>
+          <SelectContent>
+            {projects.map((p) => (
+              <SelectItem key={p.id} value={String(p.id)}>
+                {p.projectName || p.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Project Profile Summary & Package Proposal Approval */}
       {selectedProject && (
-        <Surface className="p-5 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-border/30 pb-4">
+        <Surface className="space-y-4 border-border/70 p-5 shadow-sm">
+          <div className="flex flex-col gap-3 border-b border-border/40 pb-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-base font-semibold">{selectedProject.projectName || selectedProject.name}</h3>
-                <Badge variant="outline">Project Profile</Badge>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h3 className="text-base font-semibold tracking-tight text-foreground">
+                  {selectedProject.projectName || selectedProject.name}
+                </h3>
+                <Badge className="rounded-sm border-none bg-[#0a1628] px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#FAF7F2] hover:bg-[#0a1628]">
+                  Project Profile
+                </Badge>
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Client: {selectedProject.clientName || selectedProject.name} · Contract Total: {formatAed(totals.total)}
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                Client: {selectedProject.clientName || "—"} · Contract Total: {formatAed(totals.total)}
               </p>
             </div>
             {pendingIssuedInvoices.length > 0 && !commercialFrozen && (

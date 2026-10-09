@@ -90,13 +90,17 @@ export default function ClientVariationsPage() {
 
       <ProjectLifecycleBanner commercialStage={commercialStage} className="mb-4" />
 
-      <div className="mb-4 max-w-sm">
-        <Label>Project</Label>
+      <div className="mb-4 max-w-sm space-y-2.5">
+        <Label className="text-sm font-semibold text-foreground">Project</Label>
         <Select value={projectId} onValueChange={setProjectId}>
-          <SelectTrigger><SelectValue placeholder="Select project" /></SelectTrigger>
+          <SelectTrigger className="h-10 rounded-sm border border-[#0a1628]/20 bg-card shadow-sm">
+            <SelectValue placeholder="Select project" />
+          </SelectTrigger>
           <SelectContent>
             {projects.map((p) => (
-              <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
+              <SelectItem key={p.id} value={String(p.id)}>
+                {p.name || p.projectName}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
