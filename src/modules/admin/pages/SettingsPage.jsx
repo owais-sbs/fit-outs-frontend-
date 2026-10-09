@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2, Save, Stamp } from "lucide-react";
 import { notify } from "@/lib/notify";
 import PageHeader from "@/modules/super-admin/components/shared/PageHeader";
+import AccountProfileSettings from "@/components/shared/AccountProfileSettings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,9 +18,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAuth } from "@/shared/context/auth-context";
+import { ROLES, ROLE_LABELS } from "@/shared/constants/roles";
 import { ROUTES } from "@/shared/constants/routes";
 import { fetchPlanningGates, updatePlanningGates } from "../api/planning.api";
 import { loadAdminProfile, saveAdminProfile } from "../lib/local-profile";
+
+const QS_PROFILE_ROLES = new Set([ROLES.QS, ROLES.SENIOR_QS, ROLES.QAS]);
 
 function SettingsGroup({ title, description, children }) {
   return (
@@ -54,6 +58,33 @@ const DEFAULT_GATES = {
 };
 
 export default function AdminSettingsPage() {
+  const { role } = useAuth();
+  const loadProfile = useCallback(() => loadAdminProfile(), []);
+  const saveProfile = useCallback((next) => {
+    saveAdminProfile({
+      ...loadAdminProfile(),
+      ...next,
+    });
+  }, []);
+
+  // QS / Senior QS: Super Admin–style My Profile only (no CRM / planning settings)
+  if (QS_PROFILE_ROLES.has(role)) {
+    const label = ROLE_LABELS[role] || "QS";
+    return (
+      <AccountProfileSettings
+        title="My Profile"
+        description="Manage your profile and account password."
+        accountLabel={`your ${label} account`}
+        loadProfile={loadProfile}
+        saveProfile={saveProfile}
+      />
+    );
+  }
+
+  return <AdminFullSettingsPage />;
+}
+
+function AdminFullSettingsPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();

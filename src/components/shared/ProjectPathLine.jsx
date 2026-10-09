@@ -57,8 +57,9 @@ function sectionLabelFromPath(pathname, projectId) {
 }
 
 /**
- * Path line with back control on the same row:
- * `←  Projects > {projectName} > {section}`
+ * Path line with bare back arrow stacked above the breadcrumb:
+ * `←`
+ * `Projects > {projectName} > {section}`
  */
 export default function ProjectPathLine({
   projectId: projectIdProp,
@@ -116,7 +117,7 @@ export default function ProjectPathLine({
     showBack && (resolvedBackTo != null || typeof backOnClick === "function");
 
   return (
-    <div className={cn("mb-1 flex items-center gap-1.5", className)}>
+    <div className={cn("mb-1 flex w-full flex-col items-start gap-0.5", className)}>
       {hasBack ? (
         <PageBackLink
           to={resolvedBackTo}
@@ -124,10 +125,13 @@ export default function ProjectPathLine({
           onClick={backOnClick}
           title={resolvedBackTitle}
           iconOnly
-          className="-ml-1 shrink-0"
+          className={cn(
+            "-ml-1.5 h-7 w-7 shrink-0 rounded-md border-0 bg-transparent shadow-none",
+            "text-foreground hover:border-0 hover:bg-white hover:text-[#0a1628]"
+          )}
         />
       ) : null}
-      <Breadcrumbs className="min-w-0 flex-1" items={items} />
+      <Breadcrumbs className="min-w-0 w-full pl-0" items={items} />
     </div>
   );
 }

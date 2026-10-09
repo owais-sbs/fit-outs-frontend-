@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ROUTES } from "@/shared/constants/routes";
-import { Inbox, Briefcase, MapPin, Mail, Stamp } from "lucide-react";
+import { Inbox, Briefcase, MapPin, Mail, Stamp, ArrowRight } from "lucide-react";
 import { PageShell, PageTitle } from "@/components/layout/PageShell";
 
 export default function ProjectManagerDashboard() {
@@ -51,21 +51,31 @@ export default function ProjectManagerDashboard() {
         title="Project Manager"
         subtitle="Approvals, projects, site visits, and communications in one place."
       />
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {tiles.map((tile) => {
           const Icon = tile.icon;
           return (
-            <Card key={tile.href}>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Icon className="h-4 w-4 text-muted-foreground" />
+            <Card
+              key={tile.href}
+              className="border-border/70 bg-card shadow-sm transition-shadow hover:shadow-md"
+            >
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2.5 text-base font-semibold tracking-tight">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#C9A96E]/15 text-[#8a6d3b]">
+                    <Icon className="h-4 w-4" strokeWidth={1.75} />
+                  </span>
                   {tile.title}
                 </CardTitle>
-                <CardDescription>{tile.description}</CardDescription>
+                <CardDescription className="text-sm leading-relaxed">
+                  {tile.description}
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <Button asChild size="sm">
-                  <Link to={tile.href}>Open</Link>
+                <Button asChild size="sm" className="gap-1.5">
+                  <Link to={tile.href}>
+                    Open
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
                 </Button>
               </CardContent>
             </Card>

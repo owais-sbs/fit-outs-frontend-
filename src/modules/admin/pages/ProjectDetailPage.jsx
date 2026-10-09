@@ -195,6 +195,75 @@ export default function ProjectDetailPage() {
   const completionPath = projectSubPath(routes, "PROJECT_COMPLETION", projectId);
   const subcontractorsPath = projectSubPath(routes, "PROJECT_SUBCONTRACTORS", projectId);
   const validationPath = projectSubPath(routes, "PROJECT_VALIDATION", projectId);
+
+  const moduleNavItems = useMemo(() => {
+    const items = [];
+    if (!isFinance) {
+      if (drawingsPath) items.push({ label: "Drawings", href: drawingsPath, icon: FileImage });
+      if (planningPath) {
+        items.push({
+          label: "Planning",
+          href: planningPath,
+          icon: ClipboardList,
+          state: PROJECT_DETAIL_NAV_STATE,
+        });
+      }
+      if (schedulePath) items.push({ label: "Schedule", href: schedulePath, icon: GanttChart });
+      if (approvalsPath) items.push({ label: "Approvals", href: approvalsPath, icon: Stamp });
+      if (snagsPath) items.push({ label: "Snags", href: snagsPath, icon: AlertTriangle });
+      if (variationsPath) items.push({ label: "Variations", href: variationsPath, icon: GitBranch });
+      if (documentsPath) items.push({ label: "Documents", href: documentsPath, icon: FileText });
+      if (reportingPath) items.push({ label: "Reporting", href: reportingPath, icon: BarChart3 });
+      if (subcontractorsPath) {
+        items.push({
+          label: "Subcons",
+          href: subcontractorsPath,
+          icon: HardHat,
+          state: PROJECT_DETAIL_NAV_STATE,
+          title: "Subcontractors",
+        });
+      }
+      if (validationPath) {
+        items.push({
+          label: "Validation",
+          href: validationPath,
+          icon: ClipboardCheck,
+          state: PROJECT_DETAIL_NAV_STATE,
+        });
+      }
+    }
+    items.push({
+      label: "Billing",
+      href: billingPath || ROUTES.FINANCE.PROJECT_BILLING.replace(":projectId", projectId),
+      icon: CreditCard,
+      emphasize: isFinance,
+    });
+    if (completionPath) {
+      items.push({
+        label: "Completion",
+        href: completionPath,
+        icon: CheckCircle2,
+        state: PROJECT_DETAIL_NAV_STATE,
+      });
+    }
+    return items;
+  }, [
+    isFinance,
+    projectId,
+    drawingsPath,
+    planningPath,
+    schedulePath,
+    approvalsPath,
+    snagsPath,
+    variationsPath,
+    documentsPath,
+    reportingPath,
+    subcontractorsPath,
+    validationPath,
+    billingPath,
+    completionPath,
+  ]);
+
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
@@ -541,98 +610,50 @@ export default function ProjectDetailPage() {
 
         <ProjectLifecycleBanner commercialStage={project.commercialStage} />
 
-        <div className="flex flex-wrap items-center gap-2">
-          {!isFinance && (
-            <>
-              {drawingsPath && (
-                <Button asChild size="sm" variant="outline">
-                  <Link to={drawingsPath}>
-                    <FileImage className="w-4 h-4 mr-1" /> Drawings
-                  </Link>
-                </Button>
-              )}
-              {planningPath && (
-                <Button asChild size="sm" variant="outline">
-                  <Link to={planningPath} state={PROJECT_DETAIL_NAV_STATE}>
-                    <ClipboardList className="w-4 h-4 mr-1" /> Planning
-                  </Link>
-                </Button>
-              )}
-              {schedulePath && (
-                <Button asChild size="sm" variant="outline">
-                  <Link to={schedulePath}>
-                    <GanttChart className="w-4 h-4 mr-1" /> Schedule
-                  </Link>
-                </Button>
-              )}
-              {approvalsPath && (
-                <Button asChild size="sm" variant="outline">
-                  <Link to={approvalsPath}>
-                    <Stamp className="w-4 h-4 mr-1" /> Approvals
-                  </Link>
-                </Button>
-              )}
-              {snagsPath && (
-                <Button asChild size="sm" variant="outline">
-                  <Link to={snagsPath}>
-                    <AlertTriangle className="w-4 h-4 mr-1" /> Snags
-                  </Link>
-                </Button>
-              )}
-              {variationsPath && (
-                <Button asChild size="sm" variant="outline">
-                  <Link to={variationsPath}>
-                    <GitBranch className="w-4 h-4 mr-1" /> Variations
-                  </Link>
-                </Button>
-              )}
-              {documentsPath && (
-                <Button asChild size="sm" variant="outline">
-                  <Link to={documentsPath}>
-                    <FileText className="w-4 h-4 mr-1" /> Documents
-                  </Link>
-                </Button>
-              )}
-              {reportingPath && (
-                <Button asChild size="sm" variant="outline">
-                  <Link to={reportingPath}>
-                    <BarChart3 className="w-4 h-4 mr-1" /> Reporting
-                  </Link>
-                </Button>
-              )}
-              {subcontractorsPath && (
-                <Button asChild size="sm" variant="outline">
-                  <Link to={subcontractorsPath} state={PROJECT_DETAIL_NAV_STATE}>
-                    <HardHat className="w-4 h-4 mr-1" /> Subcontractors
-                  </Link>
-                </Button>
-              )}
-              {validationPath && (
-                <Button asChild size="sm" variant="outline">
-                  <Link to={validationPath} state={PROJECT_DETAIL_NAV_STATE}>
-                    <ClipboardCheck className="w-4 h-4 mr-1" /> Validation
-                  </Link>
-                </Button>
-              )}
-            </>
-          )}
-          <Button asChild size="sm" variant={isFinance ? "default" : "outline"}>
-            <Link to={billingPath || ROUTES.FINANCE.PROJECT_BILLING.replace(":projectId", projectId)}>
-              <CreditCard className="w-4 h-4 mr-1" /> Billing
-            </Link>
-          </Button>
-          {completionPath && (
-            <Button asChild size="sm" variant="outline">
-              <Link to={completionPath} state={PROJECT_DETAIL_NAV_STATE}>
-                <CheckCircle2 className="w-4 h-4 mr-1" /> Completion
-              </Link>
-            </Button>
-          )}
-          <FinalProjectPdfButton
-            projectId={projectId}
-            projectName={project.projectName || project.name}
-          />
-        </div>
+        <nav
+          aria-label="Project modules"
+          className="mt-2 rounded-sm border border-border bg-card p-1.5 shadow-sm sm:p-2"
+        >
+          <div
+            className="grid w-full gap-0.5 sm:gap-1"
+            style={{
+              gridTemplateColumns: `repeat(${moduleNavItems.length + 1}, minmax(0, 1fr))`,
+            }}
+          >
+            {moduleNavItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.label}
+                  to={item.href}
+                  state={item.state}
+                  title={item.title || item.label}
+                  className={cn(
+                    "flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-sm px-0.5 py-2 text-center transition-colors sm:gap-1 sm:px-1 sm:py-2.5",
+                    item.emphasize
+                      ? "bg-[#0a1628] text-[#FAF7F2] hover:bg-[#C9A96E] hover:text-[#0a1628]"
+                      : "text-muted-foreground hover:bg-[#C9A96E]/18 hover:text-[#8a6d3b]"
+                  )}
+                >
+                  <Icon className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" strokeWidth={1.75} />
+                  <span className="w-full truncate text-[9px] font-semibold leading-tight tracking-wide sm:text-[10px]">
+                    {item.label}
+                  </span>
+                </Link>
+              );
+            })}
+            <div className="flex min-w-0 items-stretch">
+              <FinalProjectPdfButton
+                projectId={projectId}
+                projectName={project.projectName || project.name}
+                variant="ghost"
+                size="sm"
+                label="Final PDF"
+                className="flex w-full [&_button]:flex [&_button]:h-full [&_button]:min-h-[3.25rem] [&_button]:w-full [&_button]:flex-col [&_button]:items-center [&_button]:justify-center [&_button]:gap-0.5 [&_button]:rounded-sm [&_button]:px-0.5 [&_button]:py-2 [&_button]:text-[9px] [&_button]:font-semibold [&_button]:leading-tight [&_button]:text-muted-foreground [&_button]:hover:bg-[#C9A96E]/18 [&_button]:hover:text-[#8a6d3b] sm:[&_button]:gap-1 sm:[&_button]:text-[10px] [&_svg]:mb-0 [&_svg]:mr-0 [&_svg]:h-3.5 [&_svg]:w-3.5 sm:[&_svg]:h-4 sm:[&_svg]:w-4"
+              />
+            </div>
+          </div>
+        </nav>
 
         {saveMessage && (
           <p className="text-sm text-muted-foreground">{saveMessage}</p>

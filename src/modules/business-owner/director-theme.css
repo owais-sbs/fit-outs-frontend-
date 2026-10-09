@@ -1,0 +1,836 @@
+/**
+ * Business Owner / Director portal theme (matched to Admin / Super Admin).
+ * Sidebar navy (buttons): #0a1628
+ * Sidebar nav overlay / active: gold #C9A96E
+ * Fonts: Plus Jakarta Sans · Source Serif 4 · JetBrains Mono (same as app index.css)
+ */
+
+html.portal-director {
+  --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-serif: "Source Serif 4", Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* Surfaces — warmwhite / ivory */
+  --background: 0.9771 0.0074 80.72;
+  --foreground: 0.2178 0 89.88;
+  --card: 0.995 0.004 80;
+  --card-foreground: 0.2178 0 89.88;
+  --popover: 0.995 0.004 80;
+  --popover-foreground: 0.2178 0 89.88;
+
+  /* Primary = exact sidebar navy #0a1628 */
+  --primary: 0.1998 0.0403 258.29;
+  --primary-foreground: 0.985 0.005 80;
+
+  /* Secondary / muted — soft ivory-sand */
+  --secondary: 0.9543 0.0136 78.26;
+  --secondary-foreground: 0.2393 0.0581 256.66;
+  --muted: 0.9508 0.016 82.79;
+  --muted-foreground: 0.4712 0 89.88;
+
+  /* Accent = gold #C9A96E */
+  --accent: 0.9568 0.02 84.59;
+  --accent-foreground: 0.6777 0.0943 77.43;
+
+  --destructive: 0.55 0.18 30;
+  --destructive-foreground: 0.99 0 0;
+
+  --border: 0.9023 0.0203 84.59;
+  --input: 0.9771 0.0074 80.72;
+  --ring: 0.7499 0.0854 82.08;
+
+  --chart-1: 0.2393 0.0581 256.66;
+  --chart-2: 0.7499 0.0854 82.08;
+  --chart-3: 0.298 0.0651 254.22;
+  --chart-4: 0.6777 0.0943 77.43;
+  --chart-5: 0.4712 0 89.88;
+
+  --radius: 0.35rem;
+
+  --shadow-sm: 0 1px 0 oklch(var(--border) / 0.8), 0 1px 2px -1px rgba(11, 31, 58, 0.08);
+  --shadow-md: 0 1px 0 oklch(var(--border) / 0.85), 0 8px 24px -16px rgba(11, 31, 58, 0.18);
+  --shadow-lg: 0 1px 0 oklch(var(--border) / 0.9), 0 16px 40px -20px rgba(11, 31, 58, 0.25);
+
+  /* Sidebar — Vetro admin #0a1628 */
+  --sidebar: 0.1998 0.0403 258.29;
+  --sidebar-foreground: 0.96 0.01 80;
+  --sidebar-primary: 0.7499 0.0854 82.08;
+  --sidebar-primary-foreground: 0.2393 0.0581 256.66;
+  --sidebar-accent: 0.28 0.04 256;
+  --sidebar-accent-foreground: 0.7499 0.0854 82.08;
+  --sidebar-border: 0.28 0.03 256;
+  --sidebar-ring: 0.7499 0.0854 82.08;
+  --sidebar-gradient: linear-gradient(180deg, #0a1628 0%, #081729 100%);
+  /* Wider rail than global 16rem / 3rem — Vetro-like collapsed icon strip */
+  --sidebar-width: 14.5rem;
+  --sidebar-width-icon: 4.5rem;
+
+  --color-accent-copper: #0a1628;
+  --color-accent-gold: #c9a96e;
+  --color-accent-orange: #b89051;
+  --color-accent-teal: #c9a96e;
+  --color-accent-pink: #d9be8a;
+  --color-accent-blue: #0a1628;
+  --color-ink: #1a1a1a;
+  --color-brand: #0a1628;
+}
+
+/* Dashboard primary buttons = exact sidebar navy #0a1628 */
+html.portal-director button.bg-primary,
+html.portal-director a.bg-primary {
+  background-color: #0a1628 !important;
+  color: #faf7f2 !important;
+}
+
+html.portal-director button.bg-primary:hover,
+html.portal-director a.bg-primary:hover {
+  background-color: #0d1c32 !important;
+  color: #faf7f2 !important;
+}
+
+/* ---------- App fonts for whole Super Admin ---------- */
+html.portal-director,
+html.portal-director body,
+html.portal-director .portal-director {
+  font-family: var(--font-sans);
+}
+
+/* Page titles use clean sans (dashboard), not serif */
+html.portal-director h1,
+html.portal-director h2 {
+  font-family: var(--font-sans);
+}
+
+html.portal-director .font-display {
+  font-family: var(--font-sans);
+}
+
+html.portal-director h3,
+html.portal-director h4,
+html.portal-director h5,
+html.portal-director h6,
+html.portal-director button,
+html.portal-director input,
+html.portal-director textarea,
+html.portal-director select,
+html.portal-director table,
+html.portal-director p,
+html.portal-director span,
+html.portal-director label {
+  font-family: var(--font-sans);
+}
+
+html.portal-director code,
+html.portal-director kbd,
+html.portal-director .font-mono {
+  font-family: var(--font-mono);
+}
+
+/* ---------- Cards / tiles: clean themed borders (SA only) ---------- */
+html.portal-director .bg-card,
+html.portal-director .surface-panel {
+  border: 1px solid rgba(11, 31, 58, 0.12) !important;
+  box-shadow: 0 1px 2px rgba(11, 31, 58, 0.04);
+  background-color: oklch(var(--card));
+}
+
+html.portal-director .stat-tile {
+  border: 1px solid rgba(11, 31, 58, 0.12);
+  border-radius: 0.65rem;
+  background-color: #ffffff;
+  padding: 1rem 1.1rem;
+  box-shadow: 0 1px 2px rgba(11, 31, 58, 0.04);
+}
+
+/* Only the icon chip — never paint text wrappers */
+html.portal-director .stat-tile > div.shrink-0 {
+  color: #c9a96e;
+  background-color: rgba(201, 169, 110, 0.14) !important;
+}
+
+/* Kill any leftover tinted text overlays inside tiles */
+html.portal-director .stat-tile > div.min-w-0,
+html.portal-director .stat-tile > div.min-w-0 * {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+html.dark.portal-director .bg-card,
+html.dark.portal-director .surface-panel {
+  border-color: rgba(201, 169, 110, 0.18) !important;
+}
+
+html.dark.portal-director .stat-tile {
+  border-color: rgba(201, 169, 110, 0.18);
+  background-color: oklch(var(--card));
+}
+
+/* Dark mode inside Super Admin — keep primary as sidebar navy for buttons */
+html.dark.portal-director {
+  --background: 0.2021 0.0418 254.02;
+  --foreground: 0.9771 0.0074 80.72;
+  --card: 0.2393 0.0581 256.66;
+  --card-foreground: 0.9771 0.0074 80.72;
+  --popover: 0.2393 0.0581 256.66;
+  --popover-foreground: 0.9771 0.0074 80.72;
+
+  /* Primary stays sidebar navy #0a1628 (gold is sidebar overlay only) */
+  --primary: 0.1998 0.0403 258.29;
+  --primary-foreground: 0.985 0.005 80;
+
+  --secondary: 0.298 0.0651 254.22;
+  --secondary-foreground: 0.9771 0.0074 80.72;
+  --muted: 0.28 0.04 256;
+  --muted-foreground: 0.75 0.02 80;
+
+  --accent: 0.32 0.05 256;
+  --accent-foreground: 0.8123 0.0748 83.44;
+
+  --border: 0.32 0.04 256;
+  --input: 0.28 0.04 256;
+  --ring: 0.7499 0.0854 82.08;
+
+  --chart-1: 0.7499 0.0854 82.08;
+  --chart-2: 0.8123 0.0748 83.44;
+  --chart-3: 0.6777 0.0943 77.43;
+  --chart-4: 0.5 0.05 256;
+  --chart-5: 0.9 0.02 80;
+
+  --shadow-sm: 0 1px 0 oklch(var(--border) / 0.45), 0 1px 3px -1px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 1px 0 oklch(var(--border) / 0.5), 0 10px 28px -18px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 1px 0 oklch(var(--border) / 0.55), 0 16px 40px -20px rgba(0, 0, 0, 0.55);
+
+  --sidebar: 0.18 0.035 258;
+  --sidebar-foreground: 0.96 0.01 80;
+  --sidebar-primary: 0.7499 0.0854 82.08;
+  --sidebar-primary-foreground: 0.2021 0.0418 254.02;
+  --sidebar-accent: 0.26 0.04 256;
+  --sidebar-accent-foreground: 0.8123 0.0748 83.44;
+  --sidebar-border: 0.3 0.035 256;
+  --sidebar-ring: 0.7499 0.0854 82.08;
+  --sidebar-gradient: linear-gradient(180deg, #081729 0%, #060f1c 100%);
+
+  --color-accent-copper: #c9a96e;
+  --color-accent-gold: #c9a96e;
+  --color-accent-orange: #b89051;
+  --color-accent-teal: #d9be8a;
+  --color-accent-pink: #d9be8a;
+  --color-accent-blue: #c9a96e;
+  --color-ink: #faf7f2;
+  --color-brand: #c9a96e;
+}
+
+/* Soft warm wash instead of cool blue body glows */
+html.portal-director body {
+  background-color: #f4f1eb;
+  background-image:
+    radial-gradient(1100px 520px at 8% -8%, rgba(201, 169, 110, 0.14), transparent 58%),
+    radial-gradient(900px 480px at 100% 0%, rgba(11, 31, 58, 0.05), transparent 52%),
+    linear-gradient(180deg, #f7f4ef 0%, #f1eee8 100%);
+}
+
+html.dark.portal-director body {
+  background-image:
+    radial-gradient(1200px 600px at 10% -10%, rgba(201, 169, 110, 0.08), transparent 55%),
+    radial-gradient(900px 500px at 100% 0%, rgba(11, 31, 58, 0.35), transparent 50%);
+}
+
+/* Main content canvas — professional subtle surface */
+html.portal-director .sa-main-canvas {
+  background:
+    radial-gradient(900px 420px at 100% -10%, rgba(201, 169, 110, 0.1), transparent 55%),
+    radial-gradient(700px 380px at 0% 100%, rgba(11, 31, 58, 0.04), transparent 50%),
+    linear-gradient(180deg, #f6f3ed 0%, #f0ede7 48%, #ece8e1 100%);
+}
+
+html.dark.portal-director .sa-main-canvas {
+  background:
+    radial-gradient(900px 420px at 100% -10%, rgba(201, 169, 110, 0.07), transparent 55%),
+    linear-gradient(180deg, #0f1a2a 0%, #0c1624 100%);
+}
+
+html.portal-director .sa-main-inner {
+  position: relative;
+}
+
+html.portal-director .sa-topbar {
+  height: 3.5rem;
+  min-height: 3.5rem;
+  box-sizing: border-box;
+  border-bottom: 1px solid rgba(11, 31, 58, 0.1);
+  background: rgba(250, 247, 242, 0.92);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: none;
+}
+
+html.dark.portal-director .sa-topbar {
+  border-bottom-color: rgba(201, 169, 110, 0.12);
+  background: rgba(12, 22, 36, 0.88);
+  box-shadow: none;
+}
+
+/* Override global green dark-sidebar texture — navy only for Admin */
+html.portal-director [data-sidebar="sidebar"],
+html.dark.portal-director [data-sidebar="sidebar"] {
+  background-color: #0a1628 !important;
+  background-image: linear-gradient(180deg, #0a1628 0%, #081729 100%) !important;
+  background-size: auto !important;
+  background-repeat: no-repeat !important;
+  border-right-color: rgba(201, 169, 110, 0.12) !important;
+  color: #faf7f2;
+}
+
+html.dark.portal-director [data-sidebar="sidebar"] {
+  background-color: #081729 !important;
+  background-image: linear-gradient(180deg, #081729 0%, #060f1c 100%) !important;
+}
+
+/* Kill shared left accent bar / nav-glow inside Super Admin */
+html.portal-director [data-sidebar="menu-button"]::before {
+  display: none !important;
+  content: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  opacity: 0 !important;
+}
+
+html.portal-director [data-sidebar="menu-button"] {
+  animation: none !important;
+}
+
+/* ---------- Expanded sidebar — header height matches topbar so borders align ---------- */
+html.portal-director [data-slot="sidebar"] [data-sidebar="header"],
+html.portal-director [data-slot="sidebar"]:not([data-collapsible="icon"]) [data-sidebar="header"] {
+  height: 3.5rem !important;
+  min-height: 3.5rem !important;
+  max-height: 3.5rem !important;
+  padding: 0 0.65rem !important;
+  display: flex !important;
+  align-items: center !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  box-sizing: border-box;
+  overflow: hidden !important;
+  flex-shrink: 0 !important;
+}
+
+html.portal-director [data-slot="sidebar"][data-collapsible="icon"] [data-sidebar="header"] {
+  justify-content: center !important;
+  padding: 0 0.35rem !important;
+}
+
+html.portal-director [data-slot="sidebar"]:not([data-collapsible="icon"]) [data-sidebar="header"]::after {
+  display: none;
+}
+
+html.portal-director [data-slot="sidebar"]:not([data-collapsible="icon"]) .sa-brand-row {
+  min-height: 2.5rem;
+}
+
+html.portal-director [data-slot="sidebar"]:not([data-collapsible="icon"]) .sa-brand-btn {
+  height: auto !important;
+  min-height: 2.5rem;
+  padding: 0.15rem 0.25rem !important;
+  border-radius: 0.5rem !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+html.portal-director [data-slot="sidebar"]:not([data-collapsible="icon"]) [data-sidebar="content"] {
+  padding: 0.65rem 0.55rem 0.85rem;
+  gap: 0.15rem;
+}
+
+html.portal-director [data-slot="sidebar"]:not([data-collapsible="icon"]) [data-sidebar="group"] {
+  padding: 0.15rem 0.35rem 0.35rem !important;
+}
+
+html.portal-director [data-slot="sidebar"]:not([data-collapsible="icon"]) [data-sidebar="group-label"],
+html.portal-director [data-slot="sidebar"]:not([data-collapsible="icon"]) .sa-nav-group-label {
+  height: auto !important;
+  min-height: 0;
+  margin: 0.55rem 0 0.35rem;
+  padding: 0.2rem 0.65rem !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.16em !important;
+  text-transform: uppercase;
+  color: rgba(250, 247, 242, 0.38) !important;
+}
+
+html.portal-director [data-slot="sidebar"]:not([data-collapsible="icon"]) .sa-nav-item,
+html.portal-director [data-slot="sidebar"]:not([data-collapsible="icon"]) [data-sidebar="menu-button"].sa-nav-item {
+  height: auto !important;
+  min-height: 2.4rem !important;
+  gap: 0.65rem !important;
+  padding: 0.55rem 0.7rem !important;
+  margin: 0 0 0.15rem !important;
+  border-radius: 0.55rem !important;
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: rgba(255, 255, 255, 0.88) !important;
+  font-weight: 500;
+  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+html.portal-director [data-slot="sidebar"]:not([data-collapsible="icon"]) .sa-nav-item span {
+  font-size: 0.875rem;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+html.portal-director [data-slot="sidebar"]:not([data-collapsible="icon"]) .sa-nav-item svg {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+/* Sidebar overlay only = dark gold #C9A96E (dashboard buttons stay navy) */
+html.portal-director [data-slot="sidebar"]:not([data-collapsible="icon"]) .sa-nav-item:hover {
+  background-color: #c9a96e !important;
+  color: #0a1628 !important;
+  border-color: transparent !important;
+}
+
+html.portal-director [data-slot="sidebar"]:not([data-collapsible="icon"]) .sa-nav-item:hover svg {
+  color: #0a1628 !important;
+}
+
+html.portal-director [data-slot="sidebar"]:not([data-collapsible="icon"]) .sa-nav-item[data-active="true"],
+html.portal-director [data-slot="sidebar"]:not([data-collapsible="icon"]) .sa-nav-item[data-active="true"]:hover {
+  background-color: #c9a96e !important;
+  border-color: transparent !important;
+  color: #0a1628 !important;
+  font-weight: 600 !important;
+  box-shadow: none !important;
+}
+
+html.portal-director [data-slot="sidebar"]:not([data-collapsible="icon"]) .sa-nav-item[data-active="true"] svg,
+html.portal-director [data-slot="sidebar"]:not([data-collapsible="icon"]) .sa-nav-item[data-active="true"]:hover svg {
+  color: #0a1628 !important;
+}
+
+html.portal-director [data-slot="sidebar"]:not([data-collapsible="icon"]) .sa-sidebar-footer {
+  padding: 0.55rem !important;
+  margin-top: auto;
+}
+
+html.portal-director [data-slot="sidebar"]:not([data-collapsible="icon"]) .sa-logout-btn,
+html.portal-director [data-slot="sidebar"]:not([data-collapsible="icon"]) [data-sidebar="menu-button"].sa-logout-btn {
+  height: auto !important;
+  min-height: 2.35rem !important;
+  gap: 0.55rem !important;
+  padding: 0.5rem 0.55rem !important;
+  border-radius: 0.45rem !important;
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  color: rgba(250, 247, 242, 0.72) !important;
+  font-weight: 500;
+}
+
+html.portal-director [data-slot="sidebar"]:not([data-collapsible="icon"]) .sa-logout-btn:hover {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+  color: #faf7f2 !important;
+}
+
+/* Lock open width so resize/storage cannot leave SA overly wide */
+/* Gold selection (Vetro globals.css) */
+html.portal-director ::selection {
+  background: #c9a96e;
+  color: #0b1f3a;
+}
+
+/* Compact open width + clean collapsed icon rail */
+html.portal-director [data-slot="sidebar-wrapper"] {
+  --sidebar-width: 232px !important;
+  --sidebar-width-icon: 3.75rem !important;
+}
+
+/* Expanded + collapsed: clearer nav icons */
+html.portal-director [data-sidebar="menu-button"] svg {
+  width: 1.15rem;
+  height: 1.15rem;
+  flex-shrink: 0;
+}
+
+/* Collapsed icon mode — tight, centered column */
+html.portal-director [data-slot="sidebar"][data-collapsible="icon"] [data-sidebar="header"] {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  min-height: 3.5rem !important;
+  height: auto !important;
+  padding: 0.65rem 0.35rem !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+html.portal-director [data-slot="sidebar"][data-collapsible="icon"] [data-sidebar="content"] {
+  padding: 0.45rem 0.35rem 0.65rem !important;
+  gap: 0.15rem;
+  align-items: center;
+}
+
+html.portal-director [data-slot="sidebar"][data-collapsible="icon"] [data-sidebar="group"] {
+  padding: 0.1rem 0 !important;
+  width: 100%;
+}
+
+html.portal-director [data-slot="sidebar"][data-collapsible="icon"] [data-sidebar="group-label"] {
+  display: none !important;
+}
+
+html.portal-director [data-slot="sidebar"][data-collapsible="icon"] [data-sidebar="menu"] {
+  align-items: center;
+  gap: 0.2rem;
+}
+
+html.portal-director [data-slot="sidebar"][data-collapsible="icon"] [data-sidebar="menu-button"],
+html.portal-director [data-slot="sidebar"][data-collapsible="icon"] [data-sidebar="menu-button"].sa-nav-item {
+  height: 2.35rem !important;
+  width: 2.35rem !important;
+  min-height: 2.35rem !important;
+  max-width: 2.35rem !important;
+  padding: 0 !important;
+  margin: 0 auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0 !important;
+  border-radius: 0.5rem !important;
+  border: 1px solid transparent !important;
+  overflow: hidden !important;
+}
+
+html.portal-director [data-slot="sidebar"][data-collapsible="icon"] [data-sidebar="menu-button"] > span,
+html.portal-director [data-slot="sidebar"][data-collapsible="icon"] [data-sidebar="menu-button"] .sa-nav-chevron {
+  display: none !important;
+}
+
+html.portal-director [data-slot="sidebar"][data-collapsible="icon"] [data-sidebar="menu-button"] svg,
+html.portal-director [data-slot="sidebar"][data-collapsible="icon"] [data-sidebar="menu-button"] .sa-nav-icon {
+  width: 1.15rem !important;
+  height: 1.15rem !important;
+  margin: 0 !important;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+html.portal-director [data-slot="sidebar"][data-collapsible="icon"] [data-sidebar="menu-button"]:hover {
+  background-color: #c9a96e !important;
+  color: #0a1628 !important;
+  border-color: transparent !important;
+}
+
+html.portal-director [data-slot="sidebar"][data-collapsible="icon"] [data-sidebar="menu-button"]:hover svg {
+  color: #0a1628 !important;
+}
+
+html.portal-director [data-slot="sidebar"][data-collapsible="icon"] [data-sidebar="menu-button"][data-active="true"] {
+  background-color: #c9a96e !important;
+  color: #0a1628 !important;
+  box-shadow: none;
+}
+
+html.portal-director [data-slot="sidebar"][data-collapsible="icon"] [data-sidebar="menu-button"][data-active="true"] svg {
+  color: #0a1628 !important;
+}
+
+html.portal-director [data-slot="sidebar"][data-collapsible="icon"] [data-sidebar="footer"] {
+  padding: 0.45rem 0.35rem !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Clean outline / secondary buttons in light + dark */
+html.portal-director button.border,
+html.portal-director a.border,
+html.portal-director [data-slot="button"][class*="border"] {
+  border-color: rgba(11, 31, 58, 0.14);
+}
+
+html.dark.portal-director button.border,
+html.dark.portal-director a.border,
+html.dark.portal-director [data-slot="button"][class*="border"] {
+  border-color: rgba(201, 169, 110, 0.22);
+}
+
+html.portal-director .sa-topbar [data-slot="sidebar-trigger"] {
+  color: oklch(var(--foreground) / 0.78);
+}
+
+html.portal-director .sa-topbar [data-slot="sidebar-trigger"]:hover {
+  background: oklch(var(--accent));
+  color: oklch(var(--foreground));
+}
+
+/* Professional conversation surfaces — navy + gold */
+html.portal-director .admin-chat-shell {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 480px;
+  border: 1px solid rgba(10, 22, 40, 0.14);
+  border-radius: 0.75rem;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(10, 22, 40, 0.05);
+}
+
+html.dark.portal-director .admin-chat-shell {
+  border-color: rgba(201, 169, 110, 0.2);
+  background: oklch(var(--card));
+  box-shadow: none;
+}
+
+html.portal-director .admin-chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid rgba(201, 169, 110, 0.28);
+  background: linear-gradient(180deg, #0a1628 0%, #0d1c32 100%);
+  color: #faf7f2;
+}
+
+html.portal-director .admin-chat-header p,
+html.portal-director .admin-chat-header .text-sm,
+html.portal-director .admin-chat-header .text-xs {
+  color: inherit;
+}
+
+html.portal-director .admin-chat-header .text-muted-foreground,
+html.portal-director .admin-chat-header svg {
+  color: rgba(201, 169, 110, 0.9) !important;
+}
+
+html.dark.portal-director .admin-chat-header {
+  border-bottom-color: rgba(201, 169, 110, 0.22);
+  background: linear-gradient(180deg, #081729 0%, #0a1628 100%);
+}
+
+html.portal-director .admin-chat-thread {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem 1.1rem;
+  background:
+    linear-gradient(180deg, rgba(10, 22, 40, 0.035) 0%, rgba(201, 169, 110, 0.06) 100%);
+}
+
+html.dark.portal-director .admin-chat-thread {
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.22) 0%, rgba(201, 169, 110, 0.05) 100%);
+}
+
+html.portal-director .admin-chat-bubble {
+  max-width: min(85%, 36rem);
+  border-radius: 0.85rem;
+  padding: 0.7rem 0.9rem;
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+html.portal-director .admin-chat-bubble-mine {
+  background: #0a1628;
+  color: #faf7f2;
+  border-bottom-right-radius: 0.25rem;
+  box-shadow: 0 1px 0 rgba(201, 169, 110, 0.25);
+}
+
+html.dark.portal-director .admin-chat-bubble-mine {
+  background: #0d1c32;
+  color: #faf7f2;
+  border: 1px solid rgba(201, 169, 110, 0.35);
+}
+
+html.portal-director .admin-chat-bubble-theirs {
+  background: #fff;
+  border: 1px solid rgba(201, 169, 110, 0.35);
+  border-bottom-left-radius: 0.25rem;
+  color: #0a1628;
+  box-shadow: 0 1px 2px rgba(10, 22, 40, 0.04);
+}
+
+html.dark.portal-director .admin-chat-bubble-theirs {
+  border-color: rgba(201, 169, 110, 0.22);
+  background: rgba(255, 255, 255, 0.05);
+  color: oklch(var(--foreground));
+}
+
+html.portal-director .admin-chat-composer {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  padding: 0.8rem;
+  border-top: 1px solid rgba(10, 22, 40, 0.1);
+  background: linear-gradient(180deg, #faf8f4 0%, #fff 100%);
+}
+
+html.dark.portal-director .admin-chat-composer {
+  border-top-color: rgba(201, 169, 110, 0.14);
+  background: rgba(8, 23, 41, 0.65);
+}
+
+html.portal-director .admin-chat-input {
+  min-height: 2.5rem;
+  flex: 1;
+  border-radius: 0.55rem;
+  border: 1px solid rgba(10, 22, 40, 0.14);
+  background: #fff;
+  padding: 0.55rem 0.85rem;
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+html.portal-director .admin-chat-input:focus {
+  border-color: #c9a96e;
+  box-shadow: 0 0 0 3px rgba(201, 169, 110, 0.22);
+}
+
+html.dark.portal-director .admin-chat-input {
+  border-color: rgba(201, 169, 110, 0.22);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+html.portal-director .admin-inbox-item {
+  width: 100%;
+  border-bottom: 1px solid rgba(10, 22, 40, 0.07);
+  padding: 0.9rem 1rem;
+  text-align: left;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  border-left: 3px solid transparent;
+}
+
+html.portal-director .admin-inbox-item:hover {
+  background: rgba(10, 22, 40, 0.035);
+}
+
+html.portal-director .admin-inbox-item[data-active="true"] {
+  background: rgba(201, 169, 110, 0.16);
+  border-left-color: #c9a96e;
+}
+
+html.portal-director .admin-inbox-item[data-active="true"] .font-medium {
+  color: #0a1628;
+}
+
+html.dark.portal-director .admin-inbox-item {
+  border-bottom-color: rgba(201, 169, 110, 0.1);
+}
+
+html.dark.portal-director .admin-inbox-item:hover {
+  background: rgba(201, 169, 110, 0.08);
+}
+
+html.dark.portal-director .admin-inbox-item[data-active="true"] {
+  background: rgba(201, 169, 110, 0.14);
+}
+
+html.dark.portal-director .admin-inbox-item[data-active="true"] .font-medium {
+  color: #faf7f2;
+}
+
+html.portal-director .admin-chat-thread-header {
+  border: 1px solid rgba(10, 22, 40, 0.1);
+  border-radius: 0.65rem;
+  background: #fff;
+  border-left: 3px solid #c9a96e;
+}
+
+html.dark.portal-director .admin-chat-thread-header {
+  background: oklch(var(--card));
+  border-color: rgba(201, 169, 110, 0.18);
+}
+
+/* ---------- Reports: clean date inputs (fix clipped calendar icons) ---------- */
+html.portal-director .sa-reports-page input[type="date"].sa-date-input,
+html.portal-director .sa-reports-page input.sa-date-input[type="date"] {
+  width: 11.75rem;
+  min-width: 11.75rem;
+  height: 2.25rem;
+  padding-left: 0.65rem;
+  padding-right: 0.4rem;
+  line-height: 1.25;
+}
+
+html.portal-director .sa-reports-page input[type="date"]::-webkit-calendar-picker-indicator {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0.75;
+}
+
+html.portal-director .sa-reports-page input[type="date"]::-webkit-datetime-edit {
+  padding: 0;
+}
+
+html.portal-director .sa-reports-tabs [data-state="active"] {
+  border: 1px solid rgba(201, 169, 110, 0.45) !important;
+  background-color: rgba(201, 169, 110, 0.18) !important;
+  color: #0b1f3a !important;
+  box-shadow: none !important;
+}
+
+html.dark.portal-director .sa-reports-tabs [data-state="active"] {
+  background-color: rgba(201, 169, 110, 0.22) !important;
+  border-color: rgba(201, 169, 110, 0.55) !important;
+  color: #faf7f2 !important;
+}
+
+html.dark.portal-director .sa-reports-tabs [data-state="inactive"],
+html.dark.portal-director .sa-reports-tabs button:not([data-state="active"]) {
+  color: rgba(250, 247, 242, 0.72);
+}
+
+/* Admin submenus — same gold hover/active language as SA nav */
+html.portal-director [data-slot="sidebar"]:not([data-collapsible="icon"]) [data-sidebar="menu-sub"] {
+  border-left-color: rgba(255, 255, 255, 0.12) !important;
+  margin-left: 0.85rem;
+  padding-left: 0.45rem;
+}
+
+html.portal-director [data-slot="sidebar"]:not([data-collapsible="icon"]) [data-sidebar="menu-sub-button"] {
+  color: rgba(255, 255, 255, 0.78) !important;
+  border-radius: 0.45rem !important;
+  height: auto !important;
+  min-height: 2rem !important;
+  padding: 0.4rem 0.55rem !important;
+}
+
+html.portal-director [data-slot="sidebar"]:not([data-collapsible="icon"]) [data-sidebar="menu-sub-button"]:hover {
+  background-color: #c9a96e !important;
+  color: #0a1628 !important;
+}
+
+html.portal-director [data-slot="sidebar"]:not([data-collapsible="icon"]) [data-sidebar="menu-sub-button"][data-active="true"] {
+  background-color: #c9a96e !important;
+  color: #0a1628 !important;
+  font-weight: 600 !important;
+}
+
+html.portal-director [data-slot="sidebar"]:not([data-collapsible="icon"]) [data-sidebar="menu-sub-button"] svg {
+  color: inherit !important;
+}
+
+html.portal-director .admin-user-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.5rem 0.55rem;
+  border-radius: 0.45rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+html.portal-director .admin-user-chip-avatar {
+  display: flex;
+  height: 2rem;
+  width: 2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.4rem;
+  background: rgba(255, 255, 255, 0.1);
+  color: #faf7f2;
+  font-size: 0.7rem;
+  font-weight: 600;
+}

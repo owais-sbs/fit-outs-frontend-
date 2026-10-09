@@ -475,10 +475,10 @@ export default function BillingMilestoneInboxPage() {
         }
       />
 
-      <Card>
-        <CardContent className="pt-4">
+      <Card className="border-border/70 shadow-sm">
+        <CardContent className="space-y-4 px-5 pb-5 pt-6 md:px-6 md:pt-7">
           <BillingApprovalPipeline status="" className="max-w-xl" />
-          <p className="mt-2 text-xs text-muted-foreground">
+          <p className="text-xs leading-relaxed text-muted-foreground">
             Each project profile package has its approval chain: Finance → PM → Director → Client.
             Approving or rejecting operates on the complete project billing schedule. Click any project row to view the payment slice breakdown.
           </p>

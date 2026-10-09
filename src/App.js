@@ -198,6 +198,7 @@ import BillingMilestoneInboxPage from "./modules/admin/pages/billing/BillingMile
 import ProjectSubcontractorPage from "./modules/admin/pages/subcontractor/ProjectSubcontractorPage";
 import VendorListPage from "./modules/admin/pages/subcontractor/VendorListPage";
 import AdminSettingsPage from "./modules/admin/pages/SettingsPage";
+import PmSettingsPage from "./modules/project-manager/pages/SettingsPage";
 import ClientSnagsPage from "./modules/client/pages/ClientSnagsPage";
 import TermsAndConditionsPage from "./shared/pages/TermsAndConditionsPage";
 
@@ -500,6 +501,7 @@ function App() {
               <Route path="site-visits" element={<SiteVisitsPage />} />
               <Route path="site-visits/:visitId/report" element={<SiteVisitReportPage />} />
               <Route path="communications" element={<CommunicationsPage />} />
+              <Route path="settings" element={<PmSettingsPage />} />
               <Route path="terms" element={<TermsAndConditionsPage />} />
             </Route>
             <Route

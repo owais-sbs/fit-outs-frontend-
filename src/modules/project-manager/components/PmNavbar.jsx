@@ -1,30 +1,58 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut } from "lucide-react";
+import { LogOut, User } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/shared/context/auth-context";
 import { ROUTES } from "@/shared/constants/routes";
 import NotificationDropdown from "@/modules/client/components/design/NotificationDropdown";
 import useNotifications from "@/shared/hooks/useNotifications";
 import ThemeToggle from "@/shared/theme/ThemeToggle";
 import DemoPortalSwitcher from "@/components/shared/DemoPortalSwitcher";
+import { loadPmProfile } from "../lib/local-profile";
 
 export default function PmNavbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { notifications, markRead, clearAll } = useNotifications();
+  const [profile, setProfile] = useState(() => loadPmProfile());
 
-  const displayName = user?.name || "Project Manager";
-  const initials = displayName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
+  useEffect(() => {
+    const refresh = () => setProfile(loadPmProfile());
+    refresh();
+    window.addEventListener("focus", refresh);
+    window.addEventListener("storage", refresh);
+    window.addEventListener("fitouts-pm-profile-updated", refresh);
+    return () => {
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener("storage", refresh);
+      window.removeEventListener("fitouts-pm-profile-updated", refresh);
+    };
+  }, []);
+
+  const displayName = profile.name || user?.name || "Project Manager";
+  const email = profile.email || user?.email || "pm@fitouts.com";
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-border/40 bg-background/75 px-4 backdrop-blur-xl md:px-6">
-      <SidebarTrigger className="-ml-1" />
+    <header className="sa-topbar sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 px-4 md:px-6">
+      <SidebarTrigger
+        className="-ml-1 text-foreground hover:bg-accent hover:text-accent-foreground"
+        aria-label="Toggle sidebar"
+      />
       <Separator orientation="vertical" className="mr-1 hidden h-5 md:block" />
       <div className="flex-1" />
-      <div className="ml-auto flex items-center gap-2">
+
+      <div className="ml-auto flex items-center gap-3 md:gap-4">
         <ThemeToggle />
         <DemoPortalSwitcher />
         <NotificationDropdown
@@ -32,23 +60,54 @@ export default function PmNavbar() {
           onMarkRead={markRead}
           onClearAll={clearAll}
         />
-        <Avatar className="h-8 w-8">
-          <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
-            {initials}
-          </AvatarFallback>
-        </Avatar>
-        <span className="hidden text-sm font-medium md:inline">{displayName}</span>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 text-muted-foreground"
-          onClick={() => {
-            logout();
-            navigate(ROUTES.AUTH.LOGIN);
+
+        <DropdownMenu
+          onOpenChange={(open) => {
+            if (open) setProfile(loadPmProfile());
           }}
         >
-          <LogOut className="h-4 w-4" />
-        </Button>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 rounded-full"
+              aria-label="Account menu"
+            >
+              <Avatar className="h-8 w-8 border border-border">
+                {profile.avatarDataUrl ? (
+                  <AvatarImage src={profile.avatarDataUrl} alt={displayName} />
+                ) : null}
+                <AvatarFallback className="bg-primary/10 text-primary">
+                  <User className="h-4 w-4" strokeWidth={1.75} />
+                </AvatarFallback>
+              </Avatar>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>
+              <p className="text-sm font-medium">{displayName}</p>
+              <p className="text-xs text-muted-foreground">{email}</p>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => navigate(`${ROUTES.PROJECT_MANAGER.SETTINGS}?tab=profile`)}
+            >
+              <User className="mr-2 h-4 w-4" />
+              My Profile
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => {
+                logout();
+                navigate(ROUTES.AUTH.LOGIN);
+              }}
+              className="text-destructive focus:text-destructive"
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Sign out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

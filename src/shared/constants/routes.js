@@ -176,6 +176,7 @@ export const ROUTES = {
     TASKS: "/project-manager/tasks",
     TEAM: "/project-manager/team",
     REPORTS: "/project-manager/reports",
+    SETTINGS: "/project-manager/settings",
     TERMS: "/project-manager/terms",
   },
   DESIGNER: {
