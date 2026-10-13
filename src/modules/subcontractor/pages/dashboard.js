@@ -7,7 +7,6 @@ import {
 import { PageShell, PageTitle, StatTile, Surface } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { ROUTES } from "@/shared/constants/routes";
 import { fetchMyScPackages } from "@/modules/admin/api/subcontractor.api";
 import { SC_STATUS_BADGE, formatScStatus, groupPackagesByProject } from "../utils/subcontractor.utils";
@@ -16,27 +15,28 @@ import { SC_ROLES, roleLabel } from "../utils/scPortalRoles";
 
 function QuickCard({ icon: Icon, title, description, href, tone = "primary" }) {
   const tones = {
-    primary: "bg-primary/10 text-primary",
-    violet: "bg-violet-500/10 text-violet-700",
-    blue: "bg-blue-500/10 text-blue-700",
-    amber: "bg-amber-500/10 text-amber-700",
-    emerald: "bg-emerald-500/10 text-emerald-700",
+    primary: "bg-[#0a1628]/8 text-[#0a1628] dark:bg-[#C9A96E]/15 dark:text-[#C9A96E]",
+    violet: "bg-violet-500/10 text-violet-700 dark:text-violet-400",
+    blue: "bg-sky-500/10 text-sky-700 dark:text-sky-400",
+    amber: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
+    emerald: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
   };
   return (
-    <Card className="border-border/50 bg-card/60 shadow-none">
-      <CardContent className="space-y-3 p-4">
-        <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${tones[tone] || tones.primary}`}>
-          <Icon className="h-4 w-4" />
-        </div>
-        <div>
-          <p className="text-sm font-semibold">{title}</p>
-          <p className="text-xs text-muted-foreground">{description}</p>
-        </div>
-        <Button asChild size="sm" variant="outline" className="w-full">
-          <Link to={href}>Open</Link>
-        </Button>
-      </CardContent>
-    </Card>
+    <Link
+      to={href}
+      className="group flex items-start gap-3 rounded-sm border border-border/60 bg-card p-4 transition-colors hover:border-[#0a1628]/25 hover:bg-muted/30"
+    >
+      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${tones[tone] || tones.primary}`}>
+        <Icon className="h-4 w-4" strokeWidth={1.75} />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold tracking-tight text-foreground">{title}</p>
+        <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{description}</p>
+        <span className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-[#0a1628] dark:text-[#C9A96E]">
+          Open <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+        </span>
+      </div>
+    </Link>
   );
 }
 
@@ -178,57 +178,56 @@ export default function SubcontractorDashboard() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         {showPackageStats ? (
-          <Surface className="p-5">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-sm font-semibold">Recent projects</h2>
-              <Button asChild variant="ghost" size="sm" className="h-8 gap-1 text-xs">
+          <Surface className="p-0 overflow-hidden">
+            <div className="flex items-center justify-between border-b border-border/50 px-5 py-4">
+              <h2 className="text-sm font-semibold tracking-tight">Recent projects</h2>
+              <Button asChild variant="ghost" size="sm" className="h-8 gap-1 text-xs text-muted-foreground hover:text-foreground">
                 <Link to={ROUTES.SUBCONTRACTOR.PROJECTS}>
                   View all <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
               </Button>
             </div>
             {projects.length === 0 ? (
-              <p className="py-10 text-center text-sm text-muted-foreground">No projects assigned yet</p>
+              <p className="px-5 py-12 text-center text-sm text-muted-foreground">No projects assigned yet</p>
             ) : (
-              <div className="space-y-3">
+              <ul className="divide-y divide-border/40">
                 {projects.slice(0, 4).map((project) => (
-                  <button
-                    key={project.projectId}
-                    type="button"
-                    onClick={() => navigate(
-                      ROUTES.SUBCONTRACTOR.PROJECT_DETAIL.replace(":projectId", project.projectId)
-                    )}
-                    className="flex w-full items-start justify-between gap-3 rounded-xl bg-secondary/40 p-4 text-left transition-colors hover:bg-secondary/70"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold">{project.projectName}</p>
-                      {project.location ? (
-                        <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-                          <MapPin className="h-3 w-3 shrink-0" />
-                          {project.location}
-                        </p>
-                      ) : null}
-                    </div>
-                    <Badge className={`${SC_STATUS_BADGE[project.status] || "bg-muted border-none"} shrink-0 text-[10px]`}>
-                      {project.status || "Assigned"}
-                    </Badge>
-                  </button>
+                  <li key={project.projectId}>
+                    <button
+                      type="button"
+                      onClick={() => navigate(
+                        ROUTES.SUBCONTRACTOR.PROJECT_DETAIL.replace(":projectId", project.projectId)
+                      )}
+                      className="flex w-full items-center justify-between gap-3 px-5 py-3.5 text-left transition-colors hover:bg-muted/40"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold tracking-tight">{project.projectName}</p>
+                        {project.location ? (
+                          <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                            <MapPin className="h-3 w-3 shrink-0" />
+                            {project.location}
+                          </p>
+                        ) : null}
+                      </div>
+                      <Badge className={`${SC_STATUS_BADGE[project.status] || "bg-muted border-none"} shrink-0 text-[10px]`}>
+                        {project.status || "Assigned"}
+                      </Badge>
+                    </button>
+                  </li>
                 ))}
-              </div>
+              </ul>
             )}
           </Surface>
         ) : (
           <Surface className="p-5">
-            <h2 className="mb-2 text-sm font-semibold">Your workspace</h2>
+            <h2 className="mb-2 text-sm font-semibold tracking-tight">Your workspace</h2>
             <p className="text-sm text-muted-foreground">{roleDashboardCopy(portal.portalRole)}</p>
           </Surface>
         )}
 
         <Surface className="p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-sm font-semibold">Quick actions</h2>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <h2 className="mb-4 text-sm font-semibold tracking-tight">Quick actions</h2>
+          <div className="grid gap-3 sm:grid-cols-1">
             <RoleQuickActions portal={portal} />
           </div>
         </Surface>

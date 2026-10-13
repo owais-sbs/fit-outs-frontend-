@@ -39,7 +39,7 @@ function canManageProjectGroups(roleList) {
     || roleList.includes(ROLES.BUSINESS_OWNER);
 }
 
-export default function ProjectChatSection({ projectId, locked = false }) {
+export default function ProjectChatSection({ projectId, locked = false, className = "" }) {
   const { user, role, roles } = useAuth();
   const roleList = roles?.length ? roles : role ? [role] : [];
   const canManage = canManageProjectGroups(roleList);
@@ -249,7 +249,7 @@ export default function ProjectChatSection({ projectId, locked = false }) {
         : "Only members of this group can send.";
 
   return (
-    <section className="admin-chat-shell !min-h-0 overflow-hidden">
+    <section className={`admin-chat-shell !min-h-0 w-full overflow-hidden ${className}`.trim()}>
       <div className="admin-chat-header flex-wrap">
         <div className="min-w-0">
           <h2 className="flex items-center gap-2 text-sm font-semibold tracking-tight">

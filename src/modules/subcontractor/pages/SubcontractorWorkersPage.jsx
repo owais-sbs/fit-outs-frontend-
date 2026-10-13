@@ -268,7 +268,7 @@ export default function SubcontractorWorkersPage() {
   }
 
   return (
-    <PageShell className="max-w-5xl mx-auto space-y-4">
+    <PageShell className="max-w-5xl space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <PageTitle
           title="Worker roster"

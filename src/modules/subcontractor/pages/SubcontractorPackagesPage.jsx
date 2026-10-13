@@ -136,45 +136,47 @@ export default function SubcontractorPackagesPage() {
                 </p>
               )}
               {(pkg.boqLineDescription || pkg.boqSectionCode) && (
-                <p className="mb-3 text-xs text-muted-foreground">
+                <p className="mb-4 text-xs text-muted-foreground">
                   {pkg.boqLineDescription || `Section: ${pkg.boqSectionCode}`}
                 </p>
               )}
-              <div className="mt-auto grid grid-cols-3 gap-2 text-center text-[11px]">
-                <div className="rounded-lg bg-secondary/60 px-2 py-1.5">
-                  <p className="text-muted-foreground">Planned</p>
-                  <p className="font-semibold tabular-nums">{pkg.boqPlannedQty ?? 0}</p>
+              <div className="mt-auto flex items-center gap-4 rounded-sm bg-muted/40 px-3 py-2.5 text-[11px]">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Planned</p>
+                  <p className="mt-0.5 text-sm font-semibold tabular-nums text-foreground">{pkg.boqPlannedQty ?? 0}</p>
                 </div>
-                <div className="rounded-lg bg-secondary/60 px-2 py-1.5">
-                  <p className="text-muted-foreground">Approved</p>
-                  <p className="font-semibold tabular-nums">{pkg.approvedClaimedQty ?? 0}</p>
+                <div className="h-8 w-px bg-border/60" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Approved</p>
+                  <p className="mt-0.5 text-sm font-semibold tabular-nums text-foreground">{pkg.approvedClaimedQty ?? 0}</p>
                 </div>
-                <div className="rounded-lg bg-secondary/60 px-2 py-1.5">
-                  <p className="text-muted-foreground">Left</p>
-                  <p className="font-semibold tabular-nums">{pkg.remainingQty ?? 0}</p>
+                <div className="h-8 w-px bg-border/60" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Left</p>
+                  <p className="mt-0.5 text-sm font-semibold tabular-nums text-foreground">{pkg.remainingQty ?? 0}</p>
                 </div>
               </div>
-              <div className="mt-4 pt-3 border-t flex items-center justify-between gap-2">
-                <Button asChild size="sm" variant="outline" className="w-full text-xs">
+              <div className="mt-4 flex flex-col gap-2">
+                <Button asChild size="sm" variant="outline" className="w-full border-border/70 text-xs">
                   <Link to={`/subcontractor/packages/${pkg.uuid}`}>
                     View Package Details & Contract
                   </Link>
                 </Button>
+                {pkg.status === "APPOINTED" && (
+                  <Button
+                    size="sm"
+                    className="w-full border-0 bg-[#0a1628] text-[#FAF7F2] text-xs hover:bg-[#0d1c32] hover:text-[#FAF7F2]"
+                    disabled={acceptingUuid === pkg.uuid}
+                    onClick={() => handleAccept(pkg)}
+                  >
+                    {acceptingUuid === pkg.uuid ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      "Accept assignment"
+                    )}
+                  </Button>
+                )}
               </div>
-              {pkg.status === "APPOINTED" && (
-                <Button
-                  size="sm"
-                  className="mt-2 w-full text-xs"
-                  disabled={acceptingUuid === pkg.uuid}
-                  onClick={() => handleAccept(pkg)}
-                >
-                  {acceptingUuid === pkg.uuid ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    "Accept assignment"
-                  )}
-                </Button>
-              )}
             </Surface>
           ))}
         </div>

@@ -32,25 +32,25 @@ function SectionCard({ id, className, children }) {
 
 export default function TermsAndConditionsPage() {
   return (
-    <PageShell className="max-w-none">
-      <header className="max-w-4xl border-b border-border pb-6">
-        <h1 className="font-display text-3xl font-bold tracking-tight text-foreground md:text-4xl">
+    <PageShell className="max-w-4xl space-y-8">
+      <header className="border-b border-border/70 pb-6">
+        <h1 className="font-sans text-3xl font-semibold tracking-tight text-foreground md:text-[2rem]">
           {JCT_TERMS_TITLE}
         </h1>
-        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
           {SUBTITLE}
         </p>
       </header>
 
-      <div className="mt-8 max-w-4xl space-y-12">
+      <div className="space-y-10">
         <section
           id="commercial-summary"
-          className="scroll-mt-28 space-y-6"
+          className="scroll-mt-28 space-y-5"
           aria-labelledby="commercial-summary-heading"
         >
           <h2
             id="commercial-summary-heading"
-            className="text-xl font-bold tracking-tight text-foreground sm:text-2xl"
+            className="font-sans text-lg font-semibold tracking-tight text-foreground sm:text-xl"
           >
             Commercial summary
           </h2>
@@ -89,25 +89,25 @@ export default function TermsAndConditionsPage() {
 
         <section
           id="other-terms"
-          className="scroll-mt-28 space-y-6"
+          className="scroll-mt-28 space-y-5"
           aria-labelledby="other-terms-heading"
         >
           <h2
             id="other-terms-heading"
-            className="text-xl font-bold tracking-tight text-foreground sm:text-2xl"
+            className="font-sans text-lg font-semibold tracking-tight text-foreground sm:text-xl"
           >
             Other terms &amp; conditions
           </h2>
 
           <SectionCard className="overflow-hidden">
-            <ol className="divide-y divide-border/80">
+            <ol className="divide-y divide-border/70">
               {JCT_TERMS_CLAUSES.map((clause, index) => (
                 <li
                   key={index}
                   className="flex gap-4 px-5 py-4 sm:gap-5 sm:px-6 sm:py-5"
                 >
                   <span
-                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border bg-muted/40 text-xs font-bold tabular-nums text-muted-foreground"
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-sm border border-border bg-muted/40 text-xs font-semibold tabular-nums text-muted-foreground"
                     aria-hidden="true"
                   >
                     {index + 1}

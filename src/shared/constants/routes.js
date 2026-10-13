@@ -242,6 +242,7 @@ export const ROUTES = {
     ORG_EXTRAS: "/subcontractor/organization",
     WORKERS: "/subcontractor/workers",
     TEAM: "/subcontractor/team",
+    TERMS: "/subcontractor/terms",
   },
   CLIENT: {
     DASHBOARD: "/client",

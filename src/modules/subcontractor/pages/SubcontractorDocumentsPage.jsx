@@ -1,10 +1,11 @@
-import { FileText, Download, Eye, Search, FolderOpen, Loader2 } from "lucide-react";
+import { FileText, Download, Eye, FolderOpen, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { PageShell, PageTitle, Surface } from "@/components/layout/PageShell";
-import { Input } from "@/components/ui/input";
+import { PageShell, PageTitle, Surface, FilterToolbar, SearchInput } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { fetchScDocuments, resolveFileUrl } from "@/modules/admin/api/documents.api";
 import { fetchMyScPackages } from "@/modules/admin/api/subcontractor.api";
 
@@ -90,30 +91,27 @@ export default function SubcontractorDocumentsPage() {
         subtitle="Documents published to subcontractors for your appointed packages."
       />
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-        <div className="w-full space-y-1 sm:max-w-xs">
-          <Label className="text-xs">Project</Label>
-          <select
-            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
-            value={projectId}
-            onChange={(e) => setProjectId(e.target.value)}
+      <FilterToolbar className="items-center">
+        <Select value={projectId || "none"} onValueChange={(v) => setProjectId(v === "none" ? "" : v)}>
+          <SelectTrigger
+            aria-label="Project"
+            className="h-8 w-full rounded-sm border-border bg-card shadow-sm sm:w-[240px]"
           >
-            <option value="">Select project</option>
+            <SelectValue placeholder="Select project" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Select project</SelectItem>
             {projects.map((p) => (
-              <option key={p.id} value={p.id}>{p.projectName}</option>
+              <SelectItem key={p.id} value={String(p.id)}>{p.projectName}</SelectItem>
             ))}
-          </select>
-        </div>
-        <div className="relative max-w-sm flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search documents..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-      </div>
+          </SelectContent>
+        </Select>
+        <SearchInput
+          placeholder="Search documents..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </FilterToolbar>
 
       <Surface className="overflow-hidden">
         {docsLoading ? (

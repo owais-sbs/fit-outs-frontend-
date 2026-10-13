@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, Plus, Save, Upload, UserPlus } from "lucide-react";
+import { Loader2, Plus, Save, Upload } from "lucide-react";
 import { PageShell, PageTitle, Surface } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -155,7 +155,7 @@ export default function SubcontractorOrganizationExtrasPage() {
   }
 
   return (
-    <PageShell className="max-w-3xl mx-auto space-y-6">
+    <PageShell className="max-w-4xl space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <PageTitle
           title="Extended profile"

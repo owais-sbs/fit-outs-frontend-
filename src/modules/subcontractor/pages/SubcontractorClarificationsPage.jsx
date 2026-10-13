@@ -102,7 +102,7 @@ export default function SubcontractorClarificationsPage() {
   }
 
   return (
-    <PageShell className="max-w-4xl mx-auto space-y-6">
+    <PageShell className="max-w-5xl space-y-6">
       <PageTitle
         title="Clarifications"
         subtitle="Questions and addenda across all RFQs you are invited to, grouped by project package."
@@ -115,7 +115,7 @@ export default function SubcontractorClarificationsPage() {
           <div className="space-y-1 min-w-[200px] flex-1">
             <Label className="text-xs">Ask about package</Label>
             <select
-              className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+              className="flex h-9 w-full rounded-sm border border-border bg-card px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
               value={askPackageUuid}
               onChange={(e) => setAskPackageUuid(e.target.value)}
             >

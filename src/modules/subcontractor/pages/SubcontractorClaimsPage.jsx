@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -287,30 +286,32 @@ export default function SubcontractorClaimsPage() {
   }
 
   return (
-    <PageShell>
+    <PageShell className="space-y-6">
       <PageTitle
         title="Progress Claims"
         subtitle="Submit completed work for QS/PM measurement and certification."
         actions={
-          <Button asChild size="sm" variant="outline">
+          <Button asChild size="sm" variant="outline" className="border-border/70">
             <Link to={ROUTES.SUBCONTRACTOR.PACKAGES}>View packages</Link>
           </Button>
         }
       />
 
-      <p className="text-xs text-muted-foreground">
-        Lifecycle: Claim → Certificate → Invoice → Payment
+      <p className="inline-flex flex-wrap items-center gap-1.5 rounded-sm border border-border/60 bg-muted/30 px-3 py-1.5 text-xs text-muted-foreground">
+        <span className="font-medium text-foreground">Lifecycle</span>
+        <span aria-hidden>·</span>
+        Claim → Certificate → Invoice → Payment
       </p>
 
       {message && (
-        <p className="rounded-lg border border-border bg-secondary/40 px-3 py-2 text-sm text-foreground">
+        <p className="rounded-sm border border-border/60 bg-muted/30 px-3 py-2 text-sm text-foreground">
           {message}
         </p>
       )}
 
       {tracker.length > 0 && (
         <Surface className="p-5">
-          <h2 className="mb-3 text-sm font-semibold">Claim status pipeline</h2>
+          <h2 className="mb-1 text-sm font-semibold tracking-tight">Claim status pipeline</h2>
           <p className="mb-4 text-xs text-muted-foreground">
             Submitted → Under review → Measured → Certified. Payment status comes from the linked certificate.
           </p>
@@ -366,15 +367,15 @@ export default function SubcontractorClaimsPage() {
       )}
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.75fr)_minmax(0,1fr)]">
-        <Card className="border-border/50 bg-card/60 shadow-none">
-          <CardContent className="space-y-4 p-5">
-            <h2 className="text-sm font-semibold">New claim</h2>
+        <Surface className="p-5">
+          <div className="space-y-4">
+            <h2 className="text-sm font-semibold tracking-tight">New claim</h2>
             <div className="space-y-1.5">
               <Label className="text-xs">Package</Label>
               <Select value={selectedPackage} onValueChange={(v) => { setSelectedPackage(v); setForm(emptyForm()); }}>
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder="Select package" />
-                </SelectTrigger>
+            <SelectTrigger className="h-9 rounded-sm border-border bg-card shadow-sm">
+              <SelectValue placeholder="Select package" />
+            </SelectTrigger>
                 <SelectContent>
                   {packages.length === 0 ? (
                     <SelectItem value="__none" disabled>No packages assigned</SelectItem>
@@ -510,15 +511,19 @@ export default function SubcontractorClaimsPage() {
               <Button className="flex-1" variant="outline" onClick={() => handleCreate(false)} disabled={busy || !selectedPackage}>
                 <Plus className="mr-1 h-4 w-4" /> Save Draft
               </Button>
-              <Button className="flex-1" onClick={() => handleCreate(true)} disabled={busy || !selectedPackage}>
+              <Button
+                className="flex-1 border-0 bg-[#0a1628] text-[#FAF7F2] hover:bg-[#0d1c32] hover:text-[#FAF7F2]"
+                onClick={() => handleCreate(true)}
+                disabled={busy || !selectedPackage}
+              >
                 <Send className="mr-1 h-4 w-4" /> Submit
               </Button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </Surface>
 
         <Surface className="p-5">
-          <h2 className="mb-4 text-sm font-semibold">Claims history ({claims.length})</h2>
+          <h2 className="mb-4 text-sm font-semibold tracking-tight">Claims history ({claims.length})</h2>
           {claims.length === 0 ? (
             <p className="py-12 text-center text-sm text-muted-foreground">
               No claims for this package yet

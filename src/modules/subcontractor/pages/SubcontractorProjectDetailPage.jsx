@@ -3,10 +3,9 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft, Briefcase, Loader2, MapPin, Package, User, FileText, CheckCircle,
 } from "lucide-react";
-import { PageShell, PageTitle, Surface } from "@/components/layout/PageShell";
+import { PageShell, PageTitle, StatTile, Surface } from "@/components/layout/PageShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   acceptScPackage, fetchMyScProject, fetchMyScPackages,
 } from "@/modules/admin/api/subcontractor.api";
@@ -136,61 +135,35 @@ export default function SubcontractorProjectDetailPage() {
         </Surface>
       )}
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card className="border-border/50 bg-card/60 shadow-none">
-          <CardContent className="flex items-start gap-3 p-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <Briefcase className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Your work status</p>
-              <Badge className={`${SC_STATUS_BADGE[workStatus] || "bg-muted border-none"} mt-1`}>
-                {workStatus}
-              </Badge>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border/50 bg-card/60 shadow-none">
-          <CardContent className="flex items-start gap-3 p-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-700">
-              <CheckCircle className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Approved progress</p>
-              <p className="text-xl font-semibold tabular-nums">{workProgress}%</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border/50 bg-card/60 shadow-none">
-          <CardContent className="flex items-start gap-3 p-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-700">
-              <Package className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Your packages</p>
-              <p className="text-xl font-semibold">{project.packageCount}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border/50 bg-card/60 shadow-none">
-          <CardContent className="flex items-start gap-3 p-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-700">
-              <FileText className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Remaining qty (all)</p>
-              <p className="text-xl font-semibold tabular-nums">{totalRemaining}</p>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatTile
+          label="Your work status"
+          value={workStatus}
+          icon={Briefcase}
+        />
+        <StatTile
+          label="Approved progress"
+          value={`${workProgress}%`}
+          icon={CheckCircle}
+        />
+        <StatTile
+          label="Your packages"
+          value={project.packageCount ?? packages.length}
+          icon={Package}
+        />
+        <StatTile
+          label="Remaining qty (all)"
+          value={totalRemaining}
+          icon={FileText}
+        />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Surface className="p-5">
-          <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold">
+          <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold tracking-tight">
             <MapPin className="h-4 w-4" /> Site location
           </h2>
-          <div className="rounded-xl bg-secondary/40 p-4">
+          <div className="rounded-sm bg-muted/40 p-4">
             {project.location ? (
               <p className="text-sm font-medium">{project.location}</p>
             ) : (
@@ -209,15 +182,15 @@ export default function SubcontractorProjectDetailPage() {
         </Surface>
 
         <Surface className="p-5">
-          <h2 className="mb-4 text-sm font-semibold">Appointed packages</h2>
+          <h2 className="mb-4 text-sm font-semibold tracking-tight">Appointed packages</h2>
           {packages.length === 0 ? (
             <p className="text-sm text-muted-foreground">No packages on this project.</p>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {packages.map((pkg) => (
                 <div
                   key={pkg.uuid}
-                  className="rounded-xl border border-border/40 bg-card/50 px-4 py-3"
+                  className="rounded-sm border border-border/50 bg-card px-4 py-3.5"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -232,24 +205,26 @@ export default function SubcontractorProjectDetailPage() {
                       {formatScStatus(pkg.status)}
                     </Badge>
                   </div>
-                  <div className="mt-2 grid grid-cols-3 gap-2 text-center text-[11px]">
-                    <div className="rounded-lg bg-secondary/60 px-2 py-1.5">
-                      <p className="text-muted-foreground">Planned</p>
-                      <p className="font-semibold tabular-nums">{pkg.boqPlannedQty ?? 0}</p>
+                  <div className="mt-3 flex items-center gap-4 rounded-sm bg-muted/40 px-3 py-2 text-[11px]">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Planned</p>
+                      <p className="mt-0.5 text-sm font-semibold tabular-nums">{pkg.boqPlannedQty ?? 0}</p>
                     </div>
-                    <div className="rounded-lg bg-secondary/60 px-2 py-1.5">
-                      <p className="text-muted-foreground">Approved</p>
-                      <p className="font-semibold tabular-nums">{pkg.approvedClaimedQty ?? 0}</p>
+                    <div className="h-7 w-px bg-border/60" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Approved</p>
+                      <p className="mt-0.5 text-sm font-semibold tabular-nums">{pkg.approvedClaimedQty ?? 0}</p>
                     </div>
-                    <div className="rounded-lg bg-secondary/60 px-2 py-1.5">
-                      <p className="text-muted-foreground">Remaining</p>
-                      <p className="font-semibold tabular-nums">{pkg.remainingQty ?? 0}</p>
+                    <div className="h-7 w-px bg-border/60" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Left</p>
+                      <p className="mt-0.5 text-sm font-semibold tabular-nums">{pkg.remainingQty ?? 0}</p>
                     </div>
                   </div>
                   {pkg.status === "APPOINTED" && (
                     <Button
                       size="sm"
-                      className="mt-3 w-full"
+                      className="mt-3 w-full border-0 bg-[#0a1628] text-[#FAF7F2] hover:bg-[#0d1c32] hover:text-[#FAF7F2]"
                       disabled={acceptingUuid === pkg.uuid}
                       onClick={() => handleAccept(pkg)}
                     >
@@ -265,7 +240,10 @@ export default function SubcontractorProjectDetailPage() {
             </div>
           )}
         </Surface>
-        <ProjectChatSection projectId={projectId} />
+      </div>
+
+      <div className="w-full min-w-0">
+        <ProjectChatSection projectId={projectId} className="min-h-[560px] w-full" />
       </div>
     </PageShell>
   );

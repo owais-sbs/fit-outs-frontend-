@@ -607,6 +607,7 @@ function App() {
               <Route path="back-charges" element={<ScBackChargesPage />} />
               <Route path="scorecard" element={<ScScorecardPage />} />
               <Route path="notifications" element={<ScNotificationsPage />} />
+              <Route path="terms" element={<TermsAndConditionsPage />} />
               {SC_PLACEHOLDER_ROUTES.map((r) => (
                 <Route
                   key={r.path}
@@ -614,7 +615,8 @@ function App() {
                   element={placeholderElement(r)}
                 />
               ))}
-            </Route>            <Route
+            </Route>
+            <Route
               path={ROUTES.CLIENT.DASHBOARD}
               element={
                 <ProtectedRoute>

@@ -142,12 +142,16 @@ function ComplianceDocRow({ doc, busy, onSave, onUpload, draft }) {
 
 function StepChip({ label, done, active }) {
   return (
-    <div className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs border ${
-      done ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-800"
-        : active ? "bg-primary/10 border-primary/30 text-foreground"
-          : "bg-muted/40 border-border text-muted-foreground"
-    }`}>
-      {done ? <CheckCircle2 className="h-3.5 w-3.5" /> : null}
+    <div
+      className={`inline-flex items-center gap-1.5 rounded-sm border px-3.5 py-2 text-xs font-medium tracking-tight transition-colors ${
+        done
+          ? "border-emerald-500/35 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300"
+          : active
+            ? "border-[#0a1628]/30 bg-[#0a1628] text-[#FAF7F2] shadow-sm dark:border-[#C9A96E]/40 dark:bg-[#0a1628]"
+            : "border-border/70 bg-card text-muted-foreground"
+      }`}
+    >
+      {done ? <CheckCircle2 className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} /> : null}
       {label}
     </div>
   );
@@ -255,34 +259,37 @@ export default function SubcontractorCompanyProfilePage() {
   }
 
   return (
-    <PageShell className="max-w-3xl mx-auto space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <PageTitle
-          title="Company profile"
-          subtitle="Guided prequalification: profile → trades → documents → submit for QS review."
-        />
-        <div className="flex flex-wrap items-center gap-2">
-          <FillDemoDataButton
-            onClick={() => {
-              setForm((f) => ({ ...f, ...DEMO.scCompanyProfile }));
-              setDocDrafts({ ...DEMO.scComplianceDocs });
-            }}
-          />
-          {profile?.complianceStatus && (
-            <Badge className={COMPLIANCE_STATUS_BADGE[profile.complianceStatus]}>
-              Compliance: {profile.complianceStatus.replace(/_/g, " ")}
-            </Badge>
-          )}
-        </div>
-      </div>
+    <PageShell className="max-w-4xl space-y-6">
+      <PageTitle
+        title="Company profile"
+        subtitle="Guided prequalification: profile → trades → documents → submit for QS review."
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <FillDemoDataButton
+              onClick={() => {
+                setForm((f) => ({ ...f, ...DEMO.scCompanyProfile }));
+                setDocDrafts({ ...DEMO.scComplianceDocs });
+              }}
+            />
+            {profile?.complianceStatus && (
+              <Badge className={COMPLIANCE_STATUS_BADGE[profile.complianceStatus]}>
+                Compliance: {profile.complianceStatus.replace(/_/g, " ")}
+              </Badge>
+            )}
+          </div>
+        }
+      />
 
-      <div className="flex flex-wrap gap-2">
+      <nav
+        aria-label="Prequalification steps"
+        className="flex flex-wrap gap-2 rounded-sm border border-border/60 bg-muted/30 p-2"
+      >
         <StepChip label="Company profile" done={checklist.companyOk} active />
         <StepChip label="Trade selection" done={checklist.tradesOk} />
         <StepChip label="Required documents" done={checklist.licenceOk && checklist.mandatoryOk} />
         <StepChip label="Review" done={underReview || approved} />
         <StepChip label="Approval status" done={approved} />
-      </div>
+      </nav>
 
       {underReview && (
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm">

@@ -201,32 +201,36 @@ export default function SubcontractorTeamPage() {
   }
 
   return (
-    <PageShell className="max-w-3xl mx-auto space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <PageTitle
-          title="Manage portal users"
-          subtitle={`Your role: ${roleLabel(portalRole)}. SC Admin invites specialists. Workers (site roster) remain separate and do not get login accounts.`}
-        />
-        {isOrgAdmin && (
-          <FillDemoDataButton
-            onClick={() => {
-              const demoRole = DEMO.scTeamManual?.portalRole || "SC_ESTIMATOR";
-              setManual({
-                ...DEMO.scTeamManual,
-                permissions: defaultPermissionsForRole(demoRole),
-              });
-              const inviteRole = DEMO.scTeamInvite?.portalRole || "SC_ESTIMATOR";
-              setInvite({
-                ...DEMO.scTeamInvite,
-                permissions: defaultPermissionsForRole(inviteRole),
-              });
-            }}
-          />
-        )}
-      </div>
-      {message && <p className="text-sm text-muted-foreground">{message}</p>}
+    <PageShell className="max-w-5xl space-y-6">
+      <PageTitle
+        title="Manage portal users"
+        subtitle={`Your role: ${roleLabel(portalRole)}. SC Admin invites specialists. Workers (site roster) remain separate and do not get login accounts.`}
+        actions={
+          isOrgAdmin ? (
+            <FillDemoDataButton
+              onClick={() => {
+                const demoRole = DEMO.scTeamManual?.portalRole || "SC_ESTIMATOR";
+                setManual({
+                  ...DEMO.scTeamManual,
+                  permissions: defaultPermissionsForRole(demoRole),
+                });
+                const inviteRole = DEMO.scTeamInvite?.portalRole || "SC_ESTIMATOR";
+                setInvite({
+                  ...DEMO.scTeamInvite,
+                  permissions: defaultPermissionsForRole(inviteRole),
+                });
+              }}
+            />
+          ) : null
+        }
+      />
+      {message && (
+        <p className="rounded-sm border border-border/60 bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {message}
+        </p>
+      )}
 
-      <Surface>
+      <Surface className="overflow-hidden p-0">
         <Card className="border-0 shadow-none">
           <CardContent className="p-0">
             <Table>
