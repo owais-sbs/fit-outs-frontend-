@@ -1,14 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { PageShell, PageHeader } from "@/components/layout/PageShell";
 import ProjectPageFrame from "@/components/layout/ProjectPageFrame";
 import ProjectPathLine from "@/components/shared/ProjectPathLine";
 import { rememberProjectName } from "../../hooks/useProjectName";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fetchProjectById } from "../../api/projects.api";
-import { portalRoutesFromPath, PROJECT_DETAIL_NAV_STATE } from "@/shared/constants/routes";
 import CloseoutChecklistPanel from "./CloseoutChecklistPanel";
 import FinalAccountPanel from "./FinalAccountPanel";
 import PostCompletionPanel from "./PostCompletionPanel";
@@ -21,11 +19,6 @@ const TAB_FINAL_ACCOUNT = "final-account";
 const TAB_POST_COMPLETION = "post-completion";
 const VALID_TABS = new Set([TAB_CHECKLIST, TAB_FINAL_ACCOUNT, TAB_POST_COMPLETION]);
 
-function projectSubPath(routes, key, projectId) {
-  const template = routes?.[key];
-  return template ? template.replace(":projectId", projectId) : null;
-}
-
 /**
  * Project Completion shell: Close-out Checklist | Final Account | Post-Completion.
  */
@@ -34,8 +27,6 @@ export default function ProjectCompletionPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const routes = portalRoutesFromPath(location.pathname);
-  const detailPath = projectSubPath(routes, "PROJECT_DETAIL", projectId) || routes.PROJECTS;
 
   const tabParam = searchParams.get("tab");
   const activeTab = VALID_TABS.has(tabParam) ? tabParam : TAB_CHECKLIST;

@@ -324,7 +324,7 @@ export default function ScTenderPanel({ projectId, packages, busy: parentBusy, o
       siteVisitAt: selectedPkg.siteVisitAt ? toDatetimeLocal(selectedPkg.siteVisitAt) : f.siteVisitAt,
       tenderDescription: selectedPkg.tenderDescription || f.tenderDescription,
     }));
-  }, [selectedPkg?.uuid, selectedPkg?.tenderDeadline, selectedPkg?.tenderStatus]);
+  }, [selectedPkg]);
 
   const invitedOrgIds = useMemo(
     () => new Set(bidders.map((b) => String(b.organizationUuid))),

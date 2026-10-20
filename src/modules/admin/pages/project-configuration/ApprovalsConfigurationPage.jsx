@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { ChevronDown, ChevronRight, Pencil, Search, Trash2 } from "lucide-react";
 import ConfigurationLayout from "../../components/shared/configuration/ConfigurationLayout";
@@ -140,7 +140,7 @@ export default function ApprovalsConfigurationPage() {
     setTimeout(() => setToast(null), 3500);
   };
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const catalog = await fetchApprovalsCatalog();
@@ -162,11 +162,11 @@ export default function ApprovalsConfigurationPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
   useEffect(() => {
     const section = searchParams.get("section");

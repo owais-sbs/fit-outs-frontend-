@@ -1,6 +1,6 @@
 import axiosInstance from "@/lib/axiosInstance";
 import { multipartConfig } from "./site-visits.api";
-import { normalizeRoomScopes, parseScopeItem, filterScopeItemsByReportYes } from "../data/renovationChecklist";
+import { parseScopeItem, filterScopeItemsByReportYes } from "../data/renovationChecklist";
 
 export const LINE_SOURCE = {
   SITE_VISIT: "SITE_VISIT",

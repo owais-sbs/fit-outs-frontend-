@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useLocation, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import {
   Check,
   ChevronDown,
@@ -58,7 +58,6 @@ import {
   createFinanceTemplateRows,
   FINANCE_BOQ_PAYMENT_SLICES,
 } from "@/shared/constants/financePaymentTemplate";
-import { portalRoutesFromPath, ROUTES } from "@/shared/constants/routes";
 import { ROLES } from "@/shared/constants/roles";
 import { useAuth } from "@/shared/context/auth-context";
 import { formatAed } from "@/shared/utils/currency";
@@ -133,12 +132,7 @@ function resolveBoqGrandTotal(boq) {
 export default function ProjectBillingPage() {
   const { projectId } = useParams();
   const { name: projectName } = useProjectName(projectId);
-  const location = useLocation();
   const { role } = useAuth();
-  const portalRoutes = portalRoutesFromPath(location.pathname);
-  const detailPath = location.pathname.startsWith("/business-owner")
-    ? ROUTES.BUSINESS_OWNER.PROJECTS
-    : portalRoutes.PROJECT_DETAIL.replace(":projectId", projectId);
 
   const isFinanceUser =
     role === ROLES.FINANCE || role === ROLES.ADMIN || role === ROLES.SUPER_ADMIN;
@@ -204,7 +198,7 @@ export default function ProjectBillingPage() {
     if (approvedBoq) {
       setCreateMode("template");
     }
-  }, [approvedBoq?.id]);
+  }, [approvedBoq]);
 
   const scheduleMilestones = useMemo(
     () =>

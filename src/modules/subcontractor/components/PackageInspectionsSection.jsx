@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { Loader2, Plus, AlertCircle, CheckCircle2, XCircle, Clock, FileCheck, RefreshCw, Upload, FileText, Image as ImageIcon, Trash2, ExternalLink } from "lucide-react";
+import { Loader2, Plus, XCircle, Clock, FileCheck, RefreshCw, Upload, FileText, Trash2, ExternalLink } from "lucide-react";
 import { Surface } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

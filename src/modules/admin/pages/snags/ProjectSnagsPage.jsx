@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useLocation, useParams } from "react-router-dom";
-import { Loader2, Plus } from "lucide-react";
+import { useParams } from "react-router-dom";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageShell, PageHeader } from "@/components/layout/PageShell";
 import ProjectPageFrame from "@/components/layout/ProjectPageFrame";
@@ -25,7 +25,6 @@ import { fetchAllEmployees } from "../../api/employees.api";
 import { fetchProjectRooms } from "../../api/room-collab.api";
 import { fetchProjectSchedule } from "../../api/schedule.api";
 import { fetchScPackages } from "../../api/subcontractor.api";
-import { ROUTES } from "@/shared/constants/routes";
 import { FillDemoDataButton } from "@/components/shared/FillDemoDataButton";
 import { buildDemoSnagForm } from "@/shared/demo/formDemoData";
 import ProjectLifecycleBanner from "../../components/projects/ProjectLifecycleBanner";
@@ -97,11 +96,7 @@ function toggleId(list, id, on) {
 export default function ProjectSnagsPage() {
   const { projectId } = useParams();
   const { name: projectName } = useProjectName(projectId);
-  const location = useLocation();
   const { commercialStage, archived } = useProjectLifecycle(projectId);
-  const isPm = location.pathname.startsWith("/project-manager");
-  const detailPath = (isPm ? ROUTES.PROJECT_MANAGER.PROJECT_DETAIL : ROUTES.ADMIN.PROJECT_DETAIL)
-    .replace(":projectId", projectId);
 
   const [snags, setSnags] = useState([]);
   const [employees, setEmployees] = useState([]);

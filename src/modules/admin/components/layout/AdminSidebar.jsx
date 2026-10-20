@@ -266,27 +266,25 @@ function AdminBrand({ portalLabel }) {
 
 export default function AdminSidebar() {
   const { user, role } = useAuth();
-  const enabledFeatures = user?.enabledFeatures || [];
 
-  const groups = useMemo(
-    () =>
-      NAV_GROUPS.filter((g) => canSee(role, g.roles)).map((g) => ({
-        ...g,
-        items: g.items
-          .filter((item) => canSee(role, item.roles) && canSeeFeature(enabledFeatures, item.feature))
-          .map((item) => {
-            if (item.type !== "submenu" || !item.children) return item;
-            return {
-              ...item,
-              children: item.children.filter((child) =>
-                canSeeFeature(enabledFeatures, child.feature || item.feature)
-              ),
-            };
-          })
-          .filter((item) => item.type !== "submenu" || (item.children && item.children.length > 0)),
-      })).filter((g) => g.items.length > 0),
-    [role, enabledFeatures]
-  );
+  const groups = useMemo(() => {
+    const enabledFeatures = user?.enabledFeatures || [];
+    return NAV_GROUPS.filter((g) => canSee(role, g.roles)).map((g) => ({
+      ...g,
+      items: g.items
+        .filter((item) => canSee(role, item.roles) && canSeeFeature(enabledFeatures, item.feature))
+        .map((item) => {
+          if (item.type !== "submenu" || !item.children) return item;
+          return {
+            ...item,
+            children: item.children.filter((child) =>
+              canSeeFeature(enabledFeatures, child.feature || item.feature)
+            ),
+          };
+        })
+        .filter((item) => item.type !== "submenu" || (item.children && item.children.length > 0)),
+    })).filter((g) => g.items.length > 0);
+  }, [role, user?.enabledFeatures]);
 
   const portalLabel = QS_ROLES.has(role) ? "QS Panel" : "Admin Panel";
 

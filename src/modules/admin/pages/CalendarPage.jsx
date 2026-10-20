@@ -415,16 +415,6 @@ export default function CalendarPage() {
     [calendarEvents]
   );
 
-  // Map date → visits for O(1) lookup (legacy table — site visits only)
-  const visitsByDate = useMemo(() => {
-    const map = {};
-    monthVisits.forEach((v) => {
-      if (!map[v.date]) map[v.date] = [];
-      map[v.date].push(v);
-    });
-    return map;
-  }, [monthVisits]);
-
   // ── Navigation ─────────────────────────────────────────────────────────────
   const prevMonth = () => {
     if (month === 1) { setMonth(12); setYear((y) => y - 1); }

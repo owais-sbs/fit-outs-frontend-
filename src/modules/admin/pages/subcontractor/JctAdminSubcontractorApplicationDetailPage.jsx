@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, Building2, User, FileText, CheckCircle2, XCircle, Clock, ShieldCheck, Download, Eye, AlertTriangle, History, Check, X } from "lucide-react";
+import { useParams, Link } from "react-router-dom";
+import { ArrowLeft, Building2, User, FileText, CheckCircle2, XCircle, ShieldCheck, AlertTriangle, History, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -13,7 +13,6 @@ import { getApplicationById, updateApplicationStatus, updateDocumentStatus } fro
 
 export default function JctAdminSubcontractorApplicationDetailPage() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const [application, setApplication] = useState(null);
 
   // Modals state

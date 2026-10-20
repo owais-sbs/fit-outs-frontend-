@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link, useLocation, useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import { Loader2, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageShell, PageHeader, StatTile } from "@/components/layout/PageShell";
@@ -9,7 +9,6 @@ import { useProjectName } from "../../hooks/useProjectName";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { fetchProgressReport } from "../../api/reporting.api";
-import { portalRoutesFromPath, ROUTES } from "@/shared/constants/routes";
 import ProjectLifecycleBanner from "../../components/projects/ProjectLifecycleBanner";
 import { useProjectLifecycle } from "../../hooks/useProjectLifecycle";
 
@@ -19,9 +18,6 @@ export default function ProjectReportingPage() {
   const location = useLocation();
   const { commercialStage } = useProjectLifecycle(projectId);
   const isClient = location.pathname.startsWith("/client");
-  const routes = portalRoutesFromPath(location.pathname);
-  const detailPath = (routes.PROJECT_DETAIL || ROUTES.ADMIN.PROJECT_DETAIL)
-    .replace(":projectId", projectId);
 
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);

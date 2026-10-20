@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useLocation, useNavigate, useOutletContext, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useOutletContext, useParams } from "react-router-dom";
 import {
   RefreshCw,
   CheckCircle2,
@@ -452,7 +452,7 @@ export default function MaterialPlanPage() {
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, [isDirty]);
 
-  const applyPlanData = (data, { markClean = false } = {}) => {
+  const applyPlanData = useCallback((data, { markClean = false } = {}) => {
     const nextLines = Array.isArray(data?.lines) ? data.lines.map((l) => ({ ...l })) : [];
     const nextPackages = Array.isArray(data?.packages)
       ? data.packages.map((p) => ({
@@ -467,7 +467,7 @@ export default function MaterialPlanPage() {
     if (markClean) {
       setSavedSnapshot(snapshotFromParts(data?.status, nextLines, nextPackages));
     }
-  };
+  }, []);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -490,7 +490,7 @@ export default function MaterialPlanPage() {
         setSavedSnapshot(null);
       })
       .finally(() => setLoading(false));
-  }, [projectId]);
+  }, [projectId, applyPlanData]);
 
   useEffect(() => {
     load();

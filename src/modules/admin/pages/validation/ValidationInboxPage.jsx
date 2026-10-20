@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { AlertTriangle, Check, ClipboardCheck, HardHat, Loader2, Plus, X, ShieldAlert, Trash2 } from "lucide-react";
+import { AlertTriangle, Check, ClipboardCheck, HardHat, Plus, X, ShieldAlert, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageShell, PageHeader } from "@/components/layout/PageShell";
 import ProjectPageFrame from "@/components/layout/ProjectPageFrame";
@@ -256,7 +256,7 @@ export default function ValidationInboxPage() {
   };
 
   const progressItems = inbox.progressItems || [];
-  const claimItems = inbox.claimItems || [];
+  const claimItems = useMemo(() => inbox.claimItems || [], [inbox.claimItems]);
   const { needsAction, acceptedOrCertified, rejected } = useMemo(() => {
     const needsAction = [];
     const acceptedOrCertified = [];
@@ -275,7 +275,7 @@ export default function ValidationInboxPage() {
   }, [claimItems]);
   const variationItems = inbox.variationItems || [];
   const invoiceItems = inbox.invoiceItems || [];
-  const siteReportItems = inbox.siteReportItems || [];
+  const siteReportItems = useMemo(() => inbox.siteReportItems || [], [inbox.siteReportItems]);
   const { openSiteReports, resolvedSiteReports } = useMemo(() => {
     const openSiteReports = [];
     const resolvedSiteReports = [];

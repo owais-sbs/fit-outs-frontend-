@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Briefcase, Package, FileText, MapPin, ClipboardList, FolderOpen,
   ListTodo, GitBranch, AlertTriangle, CreditCard, Table2, Building2, Users, UserCog,
-  Layers, Inbox, MessageCircle, Stamp, FileCheck, Truck, Shield, HardHat, Search,
+  Layers, Inbox, MessageCircle, Stamp, FileCheck, Truck, HardHat, Search,
   Receipt, Scale, Award, Bell, FileStack, PenLine, Ruler, ScrollText,
 } from "lucide-react";
 
